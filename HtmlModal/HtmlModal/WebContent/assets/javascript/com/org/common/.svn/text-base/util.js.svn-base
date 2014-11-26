@@ -1,0 +1,109 @@
+//Position can be "head" or "body"
+function includeJavaScriptFile(position,filePath,callback) 
+{
+	if(filePath)
+	{
+		if(!position)
+		{
+			position = "head";
+		}
+		var domPosition = document.getElementsByTagName(position)[0];
+		var script = document.createElement("script");
+		script.setAttribute("type","text/javascript");
+		script.setAttribute("src",filePath);
+		// Then bind the event to the callback function.
+		// There are several events for cross browser compatibility.
+		if(callback)
+		{
+			script.onreadystatechange= function () 
+			{
+				if (this.readyState == "complete") 
+				{
+					callback();
+				}
+			}
+			script.onload = callback
+		}
+		domPosition.appendChild(script);
+	}
+}
+
+function includeCssFile(filePath,callback) 
+{
+	if(filePath)
+	{
+		var domPosition = document.getElementsByTagName("head")[0];
+		var cssFile = document.createElement("link");
+		cssFile.setAttribute("rel", "stylesheet")
+		cssFile.setAttribute("type", "text/css")
+		cssFile.setAttribute("href", filePath)
+		// Then bind the event to the callback function.
+		// There are several events for cross browser compatibility.
+		if(callback)
+		{
+			cssFile.onreadystatechange= function () 
+			{
+				if (this.readyState == "complete") 
+				{
+					callback();
+				}
+			}
+			cssFile.onload = callback
+		}
+		domPosition.appendChild(cssFile);
+	}
+}
+
+function createDiv(id,styleName)
+{
+	var div = document.createElement("div");  
+    div.id = id;  
+	if(styleName)
+	{
+		div.className = styleName;   
+	}
+    return div;
+}
+
+function setDivVisibility(id,isVisible)
+{
+	var div = document.getElementById(id);
+	if(div)
+	{
+		if(isVisible)
+		{
+			div.style.display = "block";
+		}
+		else
+		{
+			div.style.display = "none";
+		}
+	}
+}
+
+function removeDiv(id)
+{
+	var div = document.getElementById(id);
+	if (div) 
+	{
+		var parent = div.parentNode;
+		if(parent)
+		{
+			parent.removeChild(div);
+		}
+	}
+}
+
+function isBrowserIE()
+{
+	if(navigator && navigator.appName && navigator.appName == "Microsoft Internet Explorer")
+	{
+		return true;
+	}
+	return false;
+	
+	//other values of navigator.appName is "Netscape","Opera"
+	//From IE 11 navigator.appName returns "Netscape" instead of "Microsoft Internet Explorer"
+	//and From IE 11 it follows standard API.
+}
+
