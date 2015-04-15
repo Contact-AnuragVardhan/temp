@@ -618,3 +618,172 @@ loadDot.html
 CSSReload.init();*/
 </script>
 </body></html>
+
+---------------------------------------------------------------------------------------
+
+<!DOCTYPE html><html class=''>
+<head><meta charset='UTF-8'><meta name="robots" content="noindex"><link rel="canonical" href="http://codepen.io/anon/pen/wBVgPe" />
+
+
+<style class="cp-pen-styles">
+
+.container {
+  text-align: center;
+  line-height:150%;
+}
+
+.loadingContainer {
+  display: inline-block;
+}
+
+
+
+
+@-webkit-keyframes animBefore {
+  0% {
+    -webkit-transform: scale(1) translateY(-200%);
+    z-index: 1;
+  }
+  25% {
+    -webkit-transform: scale(1.3) translateY(0);
+    z-index: 1;
+  }
+  50% {
+    -webkit-transform: scale(1) translateY(200%);
+    z-index: -1;
+  }
+  75% {
+    -webkit-transform: scale(0.7) translateY(0);
+    z-index: -1;
+  }
+  100% {
+    -webkit-transform: scale(1) translateY(-200%);
+    z-index: -1;
+  }
+}
+@keyframes animBefore {
+  0% {
+    transform: scale(1) translateY(-200%);
+    z-index: 1;
+  }
+  25% {
+    transform: scale(1.3) translateY(0);
+    z-index: 1;
+  }
+  50% {
+    transform: scale(1) translateY(200%);
+    z-index: -1;
+  }
+  75% {
+    transform: scale(0.7) translateY(0);
+    z-index: -1;
+  }
+  100% {
+    transform: scale(1) translateY(-200%);
+    z-index: -1;
+  }
+}
+@-webkit-keyframes animAfter {
+  0% {
+    -webkit-transform: scale(1) translateY(200%);
+    z-index: -1;
+  }
+  25% {
+    -webkit-transform: scale(0.7) translateY(0);
+    z-index: -1;
+  }
+  50% {
+    -webkit-transform: scale(1) translateY(-200%);
+    z-index: 1;
+  }
+  75% {
+    -webkit-transform: scale(1.3) translateY(0);
+    z-index: 1;
+  }
+  100% {
+    -webkit-transform: scale(1) translateY(200%);
+    z-index: 1;
+  }
+}
+@keyframes animAfter {
+  0% {
+    transform: scale(1) translateY(200%);
+    z-index: -1;
+  }
+  25% {
+    transform: scale(0.7) translateY(0);
+    z-index: -1;
+  }
+  50% {
+    transform: scale(1) translateY(-200%);
+    z-index: 1;
+  }
+  75% {
+    transform: scale(1.3) translateY(0);
+    z-index: 1;
+  }
+  100% {
+    transform: scale(1) translateY(200%);
+    z-index: 1;
+  }
+}
+</style></head><body>
+<div class="container">
+                <div id="mynew" class="loadingContainer">
+                
+                </div>
+</div>
+
+
+
+<script>
+
+
+
+head = document.head || document.getElementsByTagName('head')[0],
+   
+
+                "use strict";
+
+var n=100 ;
+var divDots = document.getElementById("mynew") ; 
+var preAni = 0 ; 
+for(var i=0;i<n;i++)
+{
+  preAni = preAni + (-0.9) ; 
+  var css = '\n.dots'+i+' {display: inline-block; position: relative;}.dots'+i+':not(:last-child) {  margin-right: 9px;}.dots'+i+':before, .dots'+i+':after {  content: "";  display: inline-block;  width: 6px;  height: 6px;  border-radius: 50%;  position: absolute;}.dots'+i+':before {  -webkit-transform: translateY(-200%);  transform: translateY(-200%);  -webkit-animation: animBefore 1s linear infinite;  animation: animBefore 1s linear infinite;  -webkit-animation-delay: '+preAni+'s;  animation-delay: '+preAni+'s;  background-color: #F00;}.dots'+i+':after {  -webkit-transform: translateY(200%);  transform: translateY(200%);  -webkit-animation: animAfter 1s linear infinite;  animation: animAfter 1s linear infinite;  -webkit-animation-delay: '+preAni+'s;  animation-delay: '+preAni+'s;  background-color: #777;}'
+
+
+style = document.createElement('style');
+
+style.type = 'text/css';
+if (style.styleSheet){
+  style.styleSheet.cssText = css;
+} else {
+  style.appendChild(document.createTextNode(css));
+}
+
+head.appendChild(style);
+
+  var spanDot = document.createElement("span") ; 
+  spanDot.className = "dots"+i ;
+
+  var style = document.createElement("style");
+   
+
+for(var k in spanDot.style)
+{
+    if(i==0)
+                {
+    alert(k) ; 
+                }
+}
+  divDots.appendChild(spanDot) ;
+
+}
+
+
+
+</script>
+</body></html>
+
