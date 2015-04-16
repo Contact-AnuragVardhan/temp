@@ -1108,4 +1108,108 @@ angular.module('cfp.loadingBar', [])
   });       // wtf javascript. srsly
 })();       //
 
+--------------------------------------------------------------------------------------
+
+PasswordVerifier.html
+
+
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta name="google" value="notranslate">
+
+  <!--
+Copyright (c) 2015 by Bruno Scopelliti (http://codepen.io/brunoscopelliti/pen/CctvH)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
+
+  <title>CodePen - pwCheck</title>
+
+  <style>* {
+    margin:0;
+    padding:0;
+}
+body {
+    padding:10px;
+}
+label {
+    display:block;
+    font-size:14px;
+    margin:10px 0 2px;
+}
+input {
+    padding:1px 3px;
+}
+.msg-block {
+    margin-top:5px;
+}
+.msg-error {
+    color:#F00;
+    font-size:14px;
+}</style>
+
+</head>
+
+<body onload="_l='t';">
+
+  <!doctype html>
+<html lang="en" ng-app="myApp">
+
+    <head>
+        <meta charset="utf-8" />
+        <title>My AngularJS App</title>
+    </head>
+
+    <body ng-controller="stageController">
+        <form name="myForm">
+            <label for="pw1">Set a password:</label>
+            <input type="password" id="pw1" name="pw1" ng-model="pw1" ng-required="" />
+            <label for="pw2">Confirm the password:</label>
+            <input type="password" id="pw2" name="pw2" ng-model="pw2" ng-required="" pw-check="pw1" />
+            <div class="msg-block" ng-show="myForm.$error"> <span class="msg-error" ng-show="myForm.pw2.$error.pwmatch">Passwords don't match.</span> 
+            </div>
+        </form>
+    </body>
+
+</html>
+
+  <script src='//assets.codepen.io/assets/libs/fullpage/jquery-c152c51c4dda93382a3ae51e8a5ea45d.js'></script>
+  <script src='http://ajax.googleapis.com/ajax/libs/angularjs/1.0.6/angular.min.js'></script>
+
+<!--   <script src="//assets.codepen.io/assets/common/stopExecutionOnTimeout-6c99970ade81e43be51fa877be0f7600.js"></script> -->
+
+  <script>
+'use strict';
+angular.module('myApp', ['myApp.directives']);
+function stageController($scope) {
+    $scope.pw1 = 'password';
+}
+angular.module('myApp.directives', []).directive('pwCheck', [function () {
+        return {
+            require: 'ngModel',
+            link: function (scope, elem, attrs, ctrl) {
+                var firstPassword = '#' + attrs.pwCheck;
+                elem.add(firstPassword).on('keyup', function () {
+                    scope.$apply(function () {
+                        ctrl.$setValidity('pwmatch', elem.val() === $(firstPassword).val());
+                    });
+                });
+            }
+        };
+    }]);
+  </script>
+
+</body>
+
+</html>
+
 
