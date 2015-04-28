@@ -1,160 +1,192 @@
 
-var nsCheckBox = Object.create(HTMLInputElement.Prototype);
+var nsUIComponent = Object.create(HTMLDivElement.prototype);
+
+nsUIComponent.INITIALIZE = "initialize";
+nsUIComponent.CREATION_COMPLETE = "creationComplete";
+nsUIComponent.PROPERTY_CHANGE = "propertyChange";
+nsUIComponent.REMOVE = "remove";
+
 /*start of private variables */
-
+nsUIComponent.base = null;
 /*end of private variables */
+
 /*start of functions */
-nsCheckBox.createdCallback = function() 
+nsUIComponent.__setBase = function() 
 {
-	console.log("In createdCallback");
-	this.type = "checkbox";
+	if(this.__proto__ && this.__proto__.__proto__)
+	{
+		this.base = this.__proto__.__proto__;
+	}
 };
-
-nsCheckBox.attachedCallback = function()
+nsUIComponent.createdCallback = function() 
 {
-	this.initialise();
+	console.log("In Parent createdCallback");
+	this.__setBase();
+	this.initializeComponent();
+	this.dispatchCustomEvent(this.INITIALIZE);
+};
+nsUIComponent.attachedCallback = function()
+{
 	console.log("In attachedCallback");
+	this.setComponentProperties();
+	this.dispatchCustomEvent(this.CREATION_COMPLETE);
 };
-
-nsCheckBox.detachedCallback = function()
-{
-	console.log("In detachedCallback");
-};
-
-nsCheckBox.attributeChangedCallback = function(attrName, oldVal, newVal)
+nsUIComponent.attributeChangedCallback = function(attrName, oldVal, newVal)
 {
 	console.log("attrName::" + attrName + " oldVal::" + oldVal + " newVal::" + newVal);
+	var data = {};
+	data.propertyName = attrName;
+	data.oldValue = oldVal;
+	data.newValue = newVal;
+	this.dispatchCustomEvent(this.PROPERTY_CHANGE,data);
+	this.propertyChange(attrName, oldVal, newVal);
 };
-
-nsCheckBox.initialise = function ()
+nsUIComponent.detachedCallback = function()
 {
-	
+	console.log("In detachedCallback");
+	this.dispatchCustomEvent(this.REMOVE);
 };
 
+nsUIComponent.initializeComponent = function() 
+{
+	console.log("In Parent initializeComponent");
+};
+nsUIComponent.setComponentProperties = function() 
+{
+	console.log("In Parent setComponentProperties");
+};
+nsUIComponent.propertyChange = function(attrName, oldVal, newVal) 
+{
+	console.log("In Parent setComponentProperties");
+};
+
+nsUIComponent.dispatchCustomEvent = function(eventType,data,bubbles,cancelable) 
+{
+	console.log("In Parent dispatchCustomEvent");
+	if(!data)
+	{
+		data = null;
+	}
+	if(typeof bubbles == "undefined")
+	{
+		bubbles = true;
+	}
+	if(typeof cancelable == "undefined")
+	{
+		cancelable = true;
+	}
+	var event = new CustomEvent(eventType, 
+	{
+		detail: data,
+		bubbles: bubbles,
+		cancelable: cancelable
+	});
+	this.dispatchEvent(event);
+};
 /*end of functions */
 
-//document.registerElement('ns-checkbox', {prototype: nsCheckBox, extends: 'input'});
-
--------------------------------------------------------------------------------------------------
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
+document.registerElement('ns-uicomponent', {prototype: nsUIComponent});
+---------------------------------------------------------------------------------------------------------------------
 
 
-public class FileExtensionChange 
+var nsCheckBox = Object.create(nsUIComponent);
+
+this.checkbox = null;
+this.label = null;
+this.textNode = null;
+
+nsCheckBox.initializeComponent = function() 
 {
-	public void listFilesForFolder(String path ,String intendedExtension,String newExtension) throws IOException 
+	this.base.initializeComponent();
+	console.log("In nsCheckBox initializeComponent");
+	this.checkbox = document.createElement('input');
+	this.checkbox.type = "checkbox";
+	this.checkbox.name = "name";
+	this.checkbox.value = "value";
+	this.checkbox.id = "id";
+
+	this.label = document.createElement('label');
+	this.label.htmlFor = "id";
+	
+	this.textNode = document.createTextNode("");
+	this.label.appendChild(this.textNode);
+
+	this.appendChild(this.checkbox);
+	this.appendChild(this.label);
+};
+
+nsCheckBox.setComponentProperties = function() 
+{
+	console.log("In child setComponentProperties");
+	this.setText();
+	this.base.setComponentProperties();
+};
+
+nsCheckBox.propertyChange = function(attrName, oldVal, newVal)
+{
+	console.log("In child propertyChange");
+	if(attrName === "text")
 	{
-//		File folder = new File(path);
-//	    for (final File fileEntry : folder.listFiles()) 
-//	    {
-//	        if (fileEntry.isDirectory()) 
-//	        {
-//	            listFilesForFolder(fileEntry.getAbsolutePath(),intendedExtension,newExtension);
-//	        } 
-//	        else 
-//	        {
-//	        	modifyFileExtension(fileEntry,intendedExtension,newExtension);
-//	            System.out.println(fileEntry.getName());
-//	        }
-//	    }
-	    zipFolder(path,"C:\\Users\\avardhan\\Desktop\\load.js-master\\Test.zip");
+		this.setText();
 	}
-	
-	private void modifyFileExtension(File file,String intendedExtension,String newExtension) throws IOException 
-    {
-        int index = file.getName().indexOf(".");
-        //print filename
-        //System.out.println(file.getName().substring(0, index));
-        //print extension
-        //System.out.println(file.getName().substring(index));
-        String fileName = file.getName().substring(0, index);
-        String ext = file.getName().substring(index);
-        String extToCompare = "." + intendedExtension;
-        //use file.renameTo() to rename the file
-        if(extToCompare.equals(ext))
-        {
-        	Path source  = file.toPath();
-        	Files.move(source, source.resolveSibling(fileName + "." + newExtension));
+};
 
-        	//Boolean isSuccess = file.renameTo(new File(fileName + "." + newExtension));
-        	//System.out.println("isSuccess " + isSuccess);
-        }
-    }
-	
-	private void zipFolder(String sourceFolderPath,String destinationFolderPath) throws IOException
+nsCheckBox.getText = function()
+{
+	var textToSet = null;
+	if (this.hasAttribute("text")) 
 	{
-		 ZipOutputStream zip = null;
-	     FileOutputStream fW = null;
-	     fW = new FileOutputStream(destinationFolderPath);
-	     zip = new ZipOutputStream(fW);
-	     addFolderToZip("", sourceFolderPath, zip);
-	     zip.close();
-	     fW.close();
+		textToSet = this.getAttribute("text");
 	}
-	
-	private void addFolderToZip(String path, String srcFolder, ZipOutputStream zip) throws IOException 
-	{
-        File folder = new File(srcFolder);
-        if (folder.list().length == 0) 
-        {
-            addFileToZip(path , srcFolder, zip, true);
-        }
-        else 
-        {
-            for (String fileName : folder.list()) 
-            {
-                if (path.equals("")) 
-                {
-                    addFileToZip(folder.getName(), srcFolder + "/" + fileName, zip, false);
-                } 
-                else 
-                {
-                     addFileToZip(path + "/" + folder.getName(), srcFolder + "/" + fileName, zip, false);
-                }
-            }
-        }
-    }
+	return textToSet;
+};
 
-	
-	private void addFileToZip(String path, String srcFile, ZipOutputStream zip, boolean flag) throws IOException 
+nsCheckBox.setText = function()
+{
+	var textToSet = this.getText();
+	if(textToSet)
 	{
-        File folder = new File(srcFile);
-        if (flag) 
-        {
-            zip.putNextEntry(new ZipEntry(path + "/" +folder.getName() + "/"));
-        }
-        else 
-        {
-            if (folder.isDirectory()) 
-            {
-                addFolderToZip(path, srcFile, zip);
-            }
-            else 
-            {
-                byte[] buf = new byte[1024];
-                int len;
-                FileInputStream in = new FileInputStream(srcFile);
-                zip.putNextEntry(new ZipEntry(path + "/" + folder.getName()));
-                while ((len = in.read(buf)) > 0) 
-                {
-                    zip.write(buf, 0, len);
-                }
-            }
-        }
-    }
-
-	public static void main(String[] args) throws IOException 
-	{
-		FileExtensionChange fileExtension = new FileExtensionChange();
-		fileExtension.listFilesForFolder("C:\\Users\\avardhan\\Desktop\\load.js-master\\load.js-master","js","txt");
+		this.textNode.nodeValue = textToSet;
 	}
+};
 
+document.registerElement("ns-checkBox", {prototype: nsCheckBox});
+ -------------------------------------------------------------------------------------------------------------------------------------
+ 
+ <!DOCTYPE html>
+<html>
+
+<head>
+
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/webcomponentsjs/0.6.1/CustomElements.js"></script>
+ <script src="lib/com/org/base/nsUIComponent.js"></script>
+ <script src="lib/com/org/containers/nsGroup.js"></script>
+ <script src="lib/com/org/components/nsCheckBox.js"></script>
+ 
+</head>
+
+<body>
+
+<ns-checkBox id="chkBox" text="Check"></ns-checkBox>
+<input type="button" value="Click" onclick="changeText()">
+</input>
+<script>
+var count = 0;
+function changeText()
+{
+	count++;
+	var checkBox  = document.getElementById("chkBox");
+	chkBox.setAttribute("text",("Check" + count));
 }
+// 	var checkBox = document.createElement("ns-checkBox");
+// 	checkBox.text = "Check";
+// 	document.body.appendChild(checkBox);     
+</script>
 
+</body>
+
+</html>
+
+---------------------------------------------
+
+https://github.com/github/time-elements
