@@ -1,101 +1,18 @@
-
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
-	<head>
-		<meta http-equiv="content-type" content="text/html; charset=utf-8" />
-		<title>ToolTips Example</title>
-		<style type="text/css">
-		.tooltip {
-			border-bottom: 1px dotted #000000; color: #000000; outline: none;
-			cursor: help; text-decoration: none;
-			position: relative;
-		}
-		.tooltip span {
-			margin-left: -999em;
-			position: absolute;
-		}
-		.tooltip:hover span {
-			border-radius: 5px 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px; 
-			box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
-			font-family: Calibri, Tahoma, Geneva, sans-serif;
-			position: absolute; left: 1em; top: 2em; z-index: 99;
-			margin-left: 0; width: 250px;
-		}
-		.tooltip:hover img {
-			border: 0; margin: -10px 0 0 -55px;
-			float: left; position: absolute;
-		}
-		.tooltip:hover em {
-			font-family: Candara, Tahoma, Geneva, sans-serif; font-size: 1.2em; font-weight: bold;
-			display: block; padding: 0.2em 0 0.6em 0;
-		}
-		.classic { padding: 0.8em 1em; }
-		.custom { padding: 0.5em 0.8em 0.8em 2em; }
-		* html a:hover { background: transparent; }
-		.classic {background: #FFFFAA; border: 1px solid #FFAD33; }
-		.critical { background: #FFCCAA; border: 1px solid #FF3334;	}
-		.help { background: #9FDAEE; border: 1px solid #2BB0D7;	}
-		.info { background: #9FDAEE; border: 1px solid #2BB0D7;	}
-		.warning { background: #FFFFAA; border: 1px solid #FFAD33; }
-		</style>
-	</head>
-	<body>
-		<a class="tooltip" href="#">Classic
-			<span class="classic">
-				This is just an example of what you can do using a CSS tooltip, feel free to get creative and produce your own!
-			</span>
-		</a>, 
-		<a class="tooltip" href="#">Critical
-			<span class="custom critical">
-				<img src="Critical.png" alt="Error" height="48" width="48" />
-				<em>Critical</em>
-				This is just an example of what you can do using a CSS tooltip, feel free to get creative and produce your own!
-			</span>
-		</a>, 
-		<a class="tooltip" href="#">Help<span class="custom help">
-			<img src="Help.png" alt="Help" height="48" width="48" />
-			<em>Help</em>
-			This is just an example of what you can do using a CSS tooltip, feel free to get creative and produce your own!
-			</span>
-		</a>, 
-		<a class="tooltip" href="#">Information
-			<span class="custom info">
-			<img src="Info.png" alt="Information" height="48" width="48" />
-			<em>Information</em>
-			This is just an example of what you can do using a CSS tooltip, feel free to get creative and produce your own!
-			</span>
-		</a> and 
-		<a class="tooltip" href="#">Warning<span class="custom warning">
-			<img src="Warning.png" alt="Warning" height="48" width="48" />
-			<em>Warning</em>This is just an example of what you can do using a CSS tooltip, feel free to get creative and produce your own!
-			</span>
-		</a>
-	</body>
-</html>
-
-
------------------------------------------------------------------------------------------------------
-
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-	<meta charset="utf-8" />
-	<title>CSS3 tooltip</title>
-	
-	<style type="text/css">
-	
-		.tooltip{
-   			display: inline;
-    		position: relative;
-		}
-		
-		.tooltip:hover:after{
+<style>
+.test:before		{
+	content: "testing";
+	color: red;
+}
+
+		.divTest{
     		background: #333;
     		background: rgba(0,0,0,.8);
     		border-radius: 5px;
-    		bottom: 26px;
+    		bottom: 0px;
     		color: #fff;
-    		content: attr(title);
     		left: 20%;
     		padding: 5px 15px;
     		position: absolute;
@@ -103,27 +20,92 @@
     		width: 220px;
 		}
 		
-		.tooltip:hover:before{
+		.divTestTip{
     		border: solid;
-    		border-color: #333 transparent;
-    		border-width: 6px 6px 0 6px;
-    		bottom: 20px;
+    		border-color: #FFFFFF #FFFFFF #333 #FFFFFF;
+    		border-width: 0px 12px 12px 12px;
+    		bottom: 30px;
     		content: "";
-    		left: 50%;
+    		left: 10%;
     		position: absolute;
-    		z-index: 99;
 		}
+</style>
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script>
+var UID = {
+	_current: 0,
+	getNew: function(){
+		this._current++;
+		return this._current;
+	}
+};
+/*http://mcgivery.com/htmlelement-pseudostyle-settingmodifying-before-and-after-in-javascript/*/
+HTMLElement.prototype.pseudoStyle = function(element,prop,value)
+{
+	var _this = this;
+	var _sheetId = "pseudoStyles";
+	var _head = document.head || document.getElementsByTagName('head')[0];
+	var _sheet = document.getElementById(_sheetId) || document.createElement('style');
+	_sheet.id = _sheetId;
+	var className = "pseudoStyle" + UID.getNew();
 	
-	</style>
+	_this.className +=  " "+className; 
 	
-	
+	_sheet.innerHTML += "\n."+className+":"+element+"{"+prop+":"+value+"}";
+	_head.appendChild(_sheet);
+	return this;
+};
+
+function getCSSClass(cssClassName)
+{
+    if(!document.styleSheets) 
+	{
+		return "";
+	}
+	var regEx = null;
+	var styleSheets = document.styleSheets;
+	var counter = styleSheets.length;
+	var result = [];
+    if(typeof cssClassName == "string") 
+	{
+		regEx = RegExp('\\b' + cssClassName + '\\b','i');
+	}
+    while(counter)
+	{
+    	var currentSheet = styleSheets[--counter];
+    	var cssRules = (currentSheet.rules) ? currentSheet.rules: currentSheet.cssRules;
+		var cssRulesLength = cssRules.length;
+    	for(var count = 0 ; count < cssRulesLength; count++)
+		{
+    		var tempClassDetails = cssRules[count].selectorText ? [cssRules[count].selectorText, cssRules[count].style.cssText]: [cssRules[count]+''];
+    		if(regEx.test(tempClassDetails[0])) 
+			{
+				result[result.length]= tempClassDetails;
+			}
+    	}
+    }
+	if(result && result.length === 1 && result[0] && result[0].length > 1)
+	{
+		return result[0][1];
+	}
+    return result.join('\n\n');
+}
+
+function clicked()
+{
+	var div = document.getElementById("testDiv");
+	div.pseudoStyle("before","color","black");
+	alert(getCSSClass("divTestTip"));
+}
+</script>
+
 </head>
 <body>
 
+<div id="testDiv" class="test">test2</div>
 
-<br /><br /><br /><br />
-<a href="#" title="This is some information for our tooltip." class="tooltip"><span title="More">CSS3 Tooltip</span></a>
-
+<input type="button" value="click" onclick="clicked()" />
 
 </body>
 </html>
