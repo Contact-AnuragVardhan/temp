@@ -57,6 +57,24 @@ HTMLElement.prototype.pseudoStyle = function(element,prop,value)
 	return this;
 };
 
+
+HTMLElement.prototype.addShadowStyle = function(element,cssClassName)
+{
+	var _this = this;
+	var _sheetId = "pseudoStyles";
+	var styleProperties = getCSSClass(cssClassName);
+	var _head = document.head || document.getElementsByTagName('head')[0];
+	var _sheet = document.getElementById(_sheetId) || document.createElement('style');
+	_sheet.id = _sheetId;
+	var className = "pseudoStyle" + UID.getNew();
+	
+	_this.className +=  " "+className; 
+	
+	_sheet.innerHTML += "\n."+className+":"+element+"{"+styleProperties+"}";
+	_head.appendChild(_sheet);
+	return this;
+};
+
 function getCSSClass(cssClassName)
 {
     if(!document.styleSheets) 
@@ -95,7 +113,8 @@ function getCSSClass(cssClassName)
 function clicked()
 {
 	var div = document.getElementById("testDiv");
-	div.pseudoStyle("before","color","black");
+	//div.pseudoStyle("before","color","black");
+	div.addShadowStyle("before","divTestTip");
 	alert(getCSSClass("divTestTip"));
 }
 </script>
