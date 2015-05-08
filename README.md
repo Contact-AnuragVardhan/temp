@@ -300,3 +300,54 @@ DividerBoxDemo.html
     </body>
 </html>
 
+-----------------------------------------------------------------------------------------------------------
+
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <!-- HBox and VBox layouts have been implementated with many libraries/toolkits on
+            different platforms and languages (like ExtJS,QT,GTK,.NET...).
+            This tries to achieve the same but with CSS only.
+
+            Supported browsers: IE 10+, Safari 6.1, Latest FF, Chrome -->
+        <style type="text/css">
+            html, body {
+                margin: 0;
+                height: 100%;
+            }
+        </style>
+        <style>
+            /*Stack child items vertically*/
+            .vbox {
+                display: -webkit-flex;
+                display: -ms-flexbox;
+                display: flex;
+            
+                /*Align children vetically*/
+                -webkit-flex-direction: column;
+                -ms-flex-direction: column;
+                flex-direction: column;
+            
+                -webkit-align-content: flex-start;
+                -ms-flex-line-pack: start;
+                align-content: flex-start;
+            }
+               #content-resizer {
+		height: 6px;
+		bottom: 100%;
+		background-color: #666;
+		cursor: n-resize;
+	}
+            
+        </style>
+    </head>
+    <body>
+        <div class="vbox">
+            <div>Hello 2.1</div>
+            <div id="content-resizer"></div>
+            <div>Hello 2.2</div>
+            <div id="content-resizer"></div>
+            <div>Hello 2.3</div>
+        </div>
+    </body>
+</html>
