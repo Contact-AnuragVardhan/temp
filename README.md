@@ -360,6 +360,7 @@ https://gist.github.com/Munawwar/7926618
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
 <style>
 
 .panel
@@ -385,10 +386,34 @@ https://gist.github.com/Munawwar/7926618
 	/*border-top: 1px solid #5d5852;	*/
 }
 
-.accordion-toggle:hover,.accordion-toggle-active
+.accordion-toggle:hover
 {
 	background-color: #0000FF;
 	border-top: 1px solid #a06b55;
+}
+
+.accordion-toggle-active
+{
+	background-color: #0000FF;
+}
+
+.accordion-title
+{
+	  -webkit-transform: translateZ(0);
+	  transform: translateZ(0);
+	  box-shadow: 0 0 1px rgba(0, 0, 0, 0);
+	  -webkit-backface-visibility: hidden;
+	  backface-visibility: hidden;
+	  -moz-osx-font-smoothing: grayscale;
+	  -webkit-transition-duration: 0.3s;
+	  transition-duration: 0.3s;
+	  -webkit-transition-property: transform;
+	  transition-property: transform;
+}
+
+.accordion-title:hover,.accordion-title:focus,.accordion-title:active
+{
+	webkit-transform: scale(1.1);
 }
 
 .accordion-content
@@ -444,7 +469,6 @@ https://gist.github.com/Munawwar/7926618
 </head>
 <body onload="initialise('divAccordion');">
 	<script>
-		//
 		var objAccordion = [
 		      {title:"Title 1",content:"#divContent1"},
 		      {title:"Title 2",content:"#divContent2"},
@@ -452,22 +476,32 @@ https://gist.github.com/Munawwar/7926618
 		      {title:"Title 4",content:"#divContent4"}
 		 ];
 		
-		var parentContainer = null;
-		var contentMaxHeight = 0;
+		var ANIMATION_INTERVAL = 10;
+		var animationRequired = true;
 		
 		var parentClass = "panel";
 		var toggleClass = "accordion-toggle";
         var toggleActive = "accordion-toggle-active";
+		var titleClass = "accordion-title";
         var contentClass = "accordion-content";
 		var arrowClose = "arrow-right";
 		var arrowOpen = "arrow-down";
+		
+		var __parentContainer = null;
+		var __contentMaxHeight = 0;
+		
+		var __currentTitleClicked = null;
+		var __isAnimating = false;
+		var __currentTitleHeight = 0;
+		var __animationIntervalId = 0;
+		
         
         function initialise(parentContainerID)
         {
         	if(parentContainerID && objAccordion && objAccordion.length > 0)
         	{
-        		parentContainer = getElement(parentContainerID);
-        		if(parentContainer)
+        		__parentContainer = getElement(parentContainerID);
+        		if(__parentContainer)
         		{
         			for(var count = 0;count < objAccordion.length;count++)
             		{
@@ -475,7 +509,7 @@ https://gist.github.com/Munawwar/7926618
             			if(item && item["title"] && item["content"])
             			{
             				var divParent = createContainer(item["title"],item["content"]);
-							parentContainer.appendChild(divParent);
+							__parentContainer.appendChild(divParent);
             			}
             		}
 					setContentMaxHeight();
@@ -494,6 +528,7 @@ https://gist.github.com/Munawwar/7926618
 			addClass(divArrow,arrowOpen);
 			divTitle.appendChild(divArrow);
 			var divText = document.createElement("div");
+			addClass(divText,titleClass);
 			divText.style.paddingLeft = "1.5%";
 			divText.style.fontWeight = "bold";
 			divText.style.width = "100%";
@@ -555,12 +590,27 @@ https://gist.github.com/Munawwar/7926618
 							{
 								if(hasClass(divTitle, toggleActive)) 
 								{
-									 closeContainer(divTitle,divContent);
+									if(animationRequired)
+									{
+										animate(divTitle,divContent,false);
+									}
+									else
+									{
+										closeContainer(divTitle,divContent);
+									}
 								}
 								else
 								{
-									 closeAllContainers();
-									 openContainer(divTitle,divContent);
+									if(animationRequired)
+									{
+										closeAllContainers();
+										animate(divTitle,divContent,true);
+									}
+									else
+									{
+										closeAllContainers();
+										openContainer(divTitle,divContent);
+									}
 								}
 								break;
 							}
@@ -572,7 +622,7 @@ https://gist.github.com/Munawwar/7926618
 		
 		function closeAllContainers()
 		{
-			if(parentContainer)
+			if(__parentContainer)
 			{
 				var titles = getAllTitles();
 				var contents = getAllContents();
@@ -595,9 +645,9 @@ https://gist.github.com/Munawwar/7926618
 			var count;
 			for(var count = 0; count < contents.length; count++) 
 			{
-				if(contents[count].offsetHeight > contentMaxHeight) 
+				if(contents[count].offsetHeight > __contentMaxHeight) 
 				{
-					contentMaxHeight = contents[count].offsetHeight;
+					__contentMaxHeight = contents[count].offsetHeight;
 				}
 			}
 		}
@@ -617,9 +667,9 @@ https://gist.github.com/Munawwar/7926618
 		function getAllTitlesOrContents(type)
 		{
 			var arrTitleContent = null;
-			if(parentContainer)
+			if(__parentContainer)
 			{
-				parentDivs = parentContainer.getElementsByClassName(parentClass);
+				parentDivs = __parentContainer.getElementsByClassName(parentClass);
 				if(parentDivs)
 				{
 					var count;
@@ -644,8 +694,6 @@ https://gist.github.com/Munawwar/7926618
 			return arrTitleContent;
 		}
 		
-		
-		
 		function openContainer(divTitle,divContent)
 		{
 			 if(divTitle && divContent)
@@ -658,9 +706,9 @@ https://gist.github.com/Munawwar/7926618
 				}
 				addClass(divTitle, toggleActive);
 				divContent.style.display = "block";
-				if(contentMaxHeight > 0)
+				if(__contentMaxHeight > 0)
 				{
-					divContent.style.height = contentMaxHeight + "px";
+					divContent.style.height = __contentMaxHeight + "px";
 				}
 			 }
 		}
@@ -694,6 +742,65 @@ https://gist.github.com/Munawwar/7926618
 			 {
 				 openContainer(divTitle,divContent);
 			 }
+		}
+		
+		function animate(divTitle,divContent,isOpening)
+		{
+		   if(!__isAnimating)
+		   {
+			   __isAnimating = true;
+			   if(isOpening)
+			   {
+					__currentTitleHeight = 0;
+					divContent.style.display = "block";
+					__animationIntervalId = setInterval(function(){animateOpening(divTitle,divContent)}, ANIMATION_INTERVAL);
+			   }
+			   else
+			   {
+					__currentTitleHeight = __contentMaxHeight;
+					__animationIntervalId = setInterval(function(){animateClosing(divTitle,divContent)}, ANIMATION_INTERVAL);
+			   }
+		   }
+		}
+		
+		function animateOpening(divTitle,divContent)
+		{
+		   if(__currentTitleHeight >= __contentMaxHeight)
+		   {
+			  __isAnimating = false;
+			  __currentTitleHeight = 0;
+			  openContainer(divTitle,divContent);
+			  clearInterval(__animationIntervalId);
+		   }
+		   else
+		   {
+			  __currentTitleHeight += ANIMATION_INTERVAL;
+			  if(__currentTitleHeight > __contentMaxHeight)
+			  {
+				 __currentTitleHeight = __contentMaxHeight;
+			  }
+			  divContent.style.height = __currentTitleHeight + "px";
+		   }
+		}
+
+		function animateClosing(divTitle,divContent)
+		{
+		   if(__currentTitleHeight <= 0)
+		   {
+			  __isAnimating = false;
+			  __currentTitleHeight = 0;
+			  closeContainer(divTitle,divContent);
+			  clearInterval(__animationIntervalId);
+		   }
+		   else
+		   {
+			  __currentTitleHeight -= ANIMATION_INTERVAL;
+			  if(__currentTitleHeight < 0)
+			  {
+				 __currentTitleHeight = 0;
+			  }
+			  divContent.style.height = __currentTitleHeight + 'px';
+		   }
 		}
 		
 		function resetAllContainers()
@@ -737,15 +844,62 @@ https://gist.github.com/Munawwar/7926618
 		}
 	
 	</script>
+	
+	  <script type="text/javascript">
+	  /*https://developers.google.com/chart/interactive/docs/gallery/linechart#Examples*/
+			google.load('visualization', '1.1', {packages: ['line']});
+    google.setOnLoadCallback(drawChart);
+
+    function drawChart() {
+
+      var data = new google.visualization.DataTable();
+      data.addColumn('number', 'Day');
+      data.addColumn('number', 'Guardians of the Galaxy');
+      data.addColumn('number', 'The Avengers');
+      data.addColumn('number', 'Transformers: Age of Extinction');
+
+      data.addRows([
+        [1,  37.8, 80.8, 41.8],
+        [2,  30.9, 69.5, 32.4],
+        [3,  25.4,   57, 25.7],
+        [4,  11.7, 18.8, 10.5],
+        [5,  11.9, 17.6, 10.4],
+        [6,   8.8, 13.6,  7.7],
+        [7,   7.6, 12.3,  9.6],
+        [8,  12.3, 29.2, 10.6],
+        [9,  16.9, 42.9, 14.8],
+        [10, 12.8, 30.9, 11.6],
+        [11,  5.3,  7.9,  4.7],
+        [12,  6.6,  8.4,  5.2],
+        [13,  4.8,  6.3,  3.6],
+        [14,  4.2,  6.2,  3.4]
+      ]);
+
+      var options = {
+        chart: {
+          title: 'Box Office Earnings in First Two Weeks of Opening',
+          subtitle: 'in millions of dollars (USD)'
+        },
+        width: 700,
+        height: 300,
+        axes: {
+          x: {
+            0: {side: 'top'}
+          }
+        }
+      };
+
+      var chart = new google.charts.Line(document.getElementById('divContent1Child'));
+
+      chart.draw(data, options);
+    }
+      
+		</script>
 	<div id="divAccordion">
 	</div>
-	<div id="divContent1">
-		<p>
-			Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Suspendisse malesuada mi vel risus. Nulla ipsum risus, malesuada gravida, dapibus et, dapibus rhoncus, orci. Quisque suscipit. Praesent sed tellus facilisis lectus ultrices laoreet. Donec eu orci in metus egestas hendrerit. In hac habitasse platea dictumst. Integer blandit ultricies erat. Nunc viverra blandit velit. Maecenas tristique tortor non ante. In pharetra mi quis metus. Cras urna dolor, volutpat et, tincidunt quis, accumsan a, erat. Donec et dolor at elit congue molestie. In mi sapien, porta ut, cursus placerat, sodales in, libero. Aliquam tempus vestibulum ipsum. Suspendisse ligula orci, dignissim eu, laoreet ut, interdum sit amet, tortor. Vestibulum est lacus, sagittis faucibus, sollicitudin fringilla, pretium non, ipsum. Quisque enim. Nullam tortor mi, posuere et, pellentesque ut, laoreet quis, lectus. Mauris euismod aliquet mi. Pellentesque eu pede vitae nibh imperdiet convallis.
-		</p>
-		<p>	
-			Mauris dictum congue lectus. Fusce erat elit, imperdiet non, aliquam sed, lobortis id, libero. Donec dui erat, sollicitudin sed, blandit eget, aliquam non, mauris. Mauris lobortis. Suspendisse orci metus, lobortis ut, sollicitudin et, laoreet eu, ligula. Pellentesque at tellus sed nunc volutpat convallis. Suspendisse tincidunt, erat ac pretium luctus, dolor purus tincidunt justo, eu semper massa massa ac dui. Morbi vel arcu ut elit placerat consequat. Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Maecenas est dui, luctus id, tempor a, dapibus lacinia, nunc. In vulputate, ipsum eget tempor aliquam, mauris enim ornare risus, vitae rhoncus purus ligula ut urna. In eu arcu. Aliquam erat volutpat. Donec purus enim, malesuada quis, aliquet vel, dapibus eu, lacus. In laoreet nulla id mi. Cras bibendum semper lacus. Nunc id sapien in ligula consectetuer semper. Nunc enim elit, interdum id, tincidunt et, ultrices eu, arcu.  
-		</p>
+	<div id="divContent1" style="width: 100%; height: 400px; display: block;">
+		<div id="divContent1Child" style="width: 100%; height: 100%;">
+		</div>
 	</div>
 	<div id="divContent2">
 		<p>
@@ -806,6 +960,30 @@ https://gist.github.com/Munawwar/7926618
 		Nulla eget ante. In luctus nunc eu nisi. Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Suspendisse lectus sem, commodo vitae, scelerisque eget, varius vitae, neque. Maecenas sed risus. Pellentesque erat. Morbi varius elit id augue. In ultrices vulputate mauris. Vivamus libero ligula, viverra eget, placerat at, adipiscing at, elit. Quisque sapien eros, fermentum a, cursus vel, dignissim id, massa. Donec hendrerit neque sit amet arcu. Cras adipiscing tincidunt elit. Praesent at enim ac lacus malesuada porttitor. Nullam nec diam eu erat posuere mollis. Cras eget urna. Pellentesque sed arcu. Vestibulum lacinia mattis lacus. Curabitur ornare felis ac eros. Fusce convallis est id nisi.
 		</p>
 	</div>
+	</div>
+</div>-->
+
+<!--<div class=" panel">
+	<div class=" accordion-toggle accordion-toggle-active">
+		<div class=" arrow-down"></div>
+		<div class=" accordion-title" style="padding-left: 1.5%; font-weight: bold; width: 100%;">Title 1</div>
+	</div>
+	<div id="divContent1" style="width: 900px; height: 700px; display: block;" class=" accordion-content">
+		<div id="divContent1Child" style="width: 100%; height: 100%;margin:100px">
+			
+		</div>
+	</div>
+</div>-->
+<!--<div class=" panel">
+	<div class=" accordion-toggle accordion-toggle-active">
+		<div class=" arrow-down"></div>
+		<div class=" accordion-title" style="padding-left: 1.5%; font-weight: bold; width: 100%;">Title 1</div>
+	</div>
+	<div id="divContent1" class=" accordion-content">
+		<div id="divContent1Child" style="width: 100%; height: 100%;margin:100px">
+			<div id="line_top_x">
+			</div>
+		</div>
 	</div>
 </div>-->
 
