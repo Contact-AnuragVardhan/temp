@@ -375,9 +375,9 @@ https://gist.github.com/Munawwar/7926618
 	display: flex;
 	position: relative; /* required for effect */
 	z-index: 10;		/* required for effect */
-	background: #3f3c38;
+	background: #fefffa;
 	background-position: bottom;
-	color: #fff;   
+	color: #000000;   
 	cursor: pointer;
 	/*margin-bottom: 1px;*/
 	padding: 9px 14px 6px 14px;
@@ -387,16 +387,16 @@ https://gist.github.com/Munawwar/7926618
 
 .accordion-toggle:hover,.accordion-toggle-active
 {
-	background-color: #6d493a;
+	background-color: #0000FF;
 	border-top: 1px solid #a06b55;
 }
 
 .accordion-content
 {
 	overflow: auto;	/* required for effect */
-	background: #302e2c;
+	background: #fefffa;
 	padding: 0;
-	color: #c4bab1;
+	color: #000000;
 }
 
 .accordion-content p
@@ -408,7 +408,7 @@ https://gist.github.com/Munawwar/7926618
 {
 	width:0;
     height:0;
-	border-bottom:9px solid #ff6873;
+	border-bottom:9px solid #ff0000;
     border-left:5px solid transparent;
     border-right:5px solid transparent;
 }
@@ -417,7 +417,7 @@ https://gist.github.com/Munawwar/7926618
 {
 	width: 0; 
 	height: 0; 
-	border-top: 9px solid #ff6873;
+	border-top: 9px solid #ff0000;
 	border-left: 5px solid transparent;
 	border-right: 5px solid transparent;
 }
@@ -426,7 +426,7 @@ https://gist.github.com/Munawwar/7926618
 {
 	width: 0; 
 	height: 0; 
-	border-left: 9px solid #ff6873;
+	border-left: 9px solid #ff0000;
 	border-top: 5px solid transparent;
 	border-bottom: 5px solid transparent;
 }
@@ -435,7 +435,7 @@ https://gist.github.com/Munawwar/7926618
 {
 	width: 0; 
 	height: 0; 
-	border-right:9px solid #ff6873;
+	border-right:9px solid #ff0000;
 	border-top: 5px solid transparent;
 	border-bottom: 5px solid transparent;
 }
@@ -495,6 +495,7 @@ https://gist.github.com/Munawwar/7926618
 			divTitle.appendChild(divArrow);
 			var divText = document.createElement("div");
 			divText.style.paddingLeft = "1.5%";
+			divText.style.fontWeight = "bold";
 			divText.style.width = "100%";
 			divText.innerHTML = title;
 			divTitle.appendChild(divText);
@@ -558,7 +559,7 @@ https://gist.github.com/Munawwar/7926618
 								}
 								else
 								{
-									 //closeAllContainers();
+									 closeAllContainers();
 									 openContainer(divTitle,divContent);
 								}
 								break;
