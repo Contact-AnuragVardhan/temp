@@ -382,38 +382,23 @@ https://gist.github.com/Munawwar/7926618
 	cursor: pointer;
 	/*margin-bottom: 1px;*/
 	padding: 9px 14px 6px 14px;
-    
-	/*border-top: 1px solid #5d5852;	*/
 }
 
 .accordion-toggle:hover
 {
-	background-color: #0000FF;
+	/*background-color: #0000FF;*/
 	border-top: 1px solid #a06b55;
 }
 
 .accordion-toggle-active
 {
-	background-color: #0000FF;
+	/*background-color: #0000FF;*/
+	border-bottom: 1px solid #5d5852;
 }
 
 .accordion-title
 {
-	  -webkit-transform: translateZ(0);
-	  transform: translateZ(0);
-	  box-shadow: 0 0 1px rgba(0, 0, 0, 0);
-	  -webkit-backface-visibility: hidden;
-	  backface-visibility: hidden;
-	  -moz-osx-font-smoothing: grayscale;
-	  -webkit-transition-duration: 0.3s;
-	  transition-duration: 0.3s;
-	  -webkit-transition-property: transform;
-	  transition-property: transform;
-}
-
-.accordion-title:hover,.accordion-title:focus,.accordion-title:active
-{
-	webkit-transform: scale(1.1);
+	  
 }
 
 .accordion-content
@@ -470,14 +455,14 @@ https://gist.github.com/Munawwar/7926618
 <body onload="initialise('divAccordion');">
 	<script>
 		var objAccordion = [
-		      {title:"Title 1",content:"#divContent1"},
-		      {title:"Title 2",content:"#divContent2"},
-		      {title:"Title 3",content:"#divContent3"},
-		      {title:"Title 4",content:"#divContent4"}
+		      {title:'You are on track to receive <span style="color:red;font-weight:bold;">2000</span>$ per year during retirement. It is <span style="color:red;font-weight:bold;">below</span> than your peers',content:"#divContent1"},
+		      {title:'Your 401k ROI which is <span style="color:red;font-weight:bold;">below</span> than your peers',content:"#divContent2"},
+		      {title:'Your current 401k balance which is <span style="color:red;font-weight:bold;">below</span> than your peers',content:"#divContent3"},
+		      {title:'Your contributions which is <span style="color:red;font-weight:bold;">more</span> than your peers',content:"#divContent4"}
 		 ];
 		
 		var ANIMATION_INTERVAL = 10;
-		var animationRequired = true;
+		var animationRequired = false;
 		
 		var parentClass = "panel";
 		var toggleClass = "accordion-toggle";
@@ -669,7 +654,7 @@ https://gist.github.com/Munawwar/7926618
 			var arrTitleContent = null;
 			if(__parentContainer)
 			{
-				parentDivs = __parentContainer.getElementsByClassName(parentClass);
+				var parentDivs = __parentContainer.getElementsByClassName(parentClass);
 				if(parentDivs)
 				{
 					var count;
@@ -710,6 +695,7 @@ https://gist.github.com/Munawwar/7926618
 				{
 					divContent.style.height = __contentMaxHeight + "px";
 				}
+				renderChart(divTitle,divContent);
 			 }
 		}
 		
@@ -733,7 +719,6 @@ https://gist.github.com/Munawwar/7926618
 		{
 			var divTitle = getElement(divTitleID);
 			var divContent = getElement(divContentID);
-			//resetAllContainers();
 			 if(hasClass(divTitle, toggleActive)) 
 			 {
 				 closeContainer(divTitle,divContent);
@@ -803,24 +788,6 @@ https://gist.github.com/Munawwar/7926618
 		   }
 		}
 		
-		function resetAllContainers()
-		{
-			var divTitle1 = getElement('divTitle1');
-			var divContent1 = getElement('divContent1');
-			var divTitle2 = getElement('divTitle2');
-			var divContent2 = getElement('divContent2');
-			var divTitle3 = getElement('divTitle3');
-			var divContent3 = getElement('divContent3');
-			var divTitle4 = getElement('divTitle4');
-			var divContent4 = getElement('divContent4');
-			closeContainer(divTitle1,divContent1);
-			closeContainer(divTitle2,divContent2);
-			closeContainer(divTitle3,divContent3);
-			closeContainer(divTitle4,divContent4);
-		}
-		
-		
-		
 		function getElement(i)
 		{
 			return document.getElementById(i);
@@ -845,147 +812,138 @@ https://gist.github.com/Munawwar/7926618
 	
 	</script>
 	
-	  <script type="text/javascript">
-	  /*https://developers.google.com/chart/interactive/docs/gallery/linechart#Examples*/
-			google.load('visualization', '1.1', {packages: ['line']});
+	<script type="text/javascript">
+	google.load('visualization', '1.1', {packages: ['corechart']});
     google.setOnLoadCallback(drawChart);
+	
+    var dataRecieve;
+    var optionsRecieve;
+    var hasRecieveChartRendered = false;
+    
+    var viewRateOfInterest;
+    var optionsRateOfInterest;
+    var hasRateOfInterestChartRendered = false;
+    function drawChart() 
+    {
+      dataRecieve = new google.visualization.DataTable();
+      dataRecieve.addColumn('number', 'Age');
+      dataRecieve.addColumn('number', '7% Annual Return');
+      dataRecieve.addColumn('number', '5% Orignal Return');
+      dataRecieve.addColumn('number', '2% Annual Fees');
 
-    function drawChart() {
+      var arrData = getAmount(30,67,100000,7,5,2);
+      dataRecieve.addRows(arrData);
 
-      var data = new google.visualization.DataTable();
-      data.addColumn('number', 'Day');
-      data.addColumn('number', 'Guardians of the Galaxy');
-      data.addColumn('number', 'The Avengers');
-      data.addColumn('number', 'Transformers: Age of Extinction');
-
-      data.addRows([
-        [1,  37.8, 80.8, 41.8],
-        [2,  30.9, 69.5, 32.4],
-        [3,  25.4,   57, 25.7],
-        [4,  11.7, 18.8, 10.5],
-        [5,  11.9, 17.6, 10.4],
-        [6,   8.8, 13.6,  7.7],
-        [7,   7.6, 12.3,  9.6],
-        [8,  12.3, 29.2, 10.6],
-        [9,  16.9, 42.9, 14.8],
-        [10, 12.8, 30.9, 11.6],
-        [11,  5.3,  7.9,  4.7],
-        [12,  6.6,  8.4,  5.2],
-        [13,  4.8,  6.3,  3.6],
-        [14,  4.2,  6.2,  3.4]
-      ]);
-
-      var options = {
-        chart: {
-          title: 'Box Office Earnings in First Two Weeks of Opening',
-          subtitle: 'in millions of dollars (USD)'
-        },
-        width: 700,
-        height: 300,
-        axes: {
-          x: {
-            0: {side: 'top'}
-          }
-        }
+      optionsRecieve = 
+      {
+           title: 'The Power of Compounding - How fees eat away at your retirement',
+           height:350,
+           width:'70%',
+           series: 
+           {
+               0: { color: 'blue' },
+               1: { color: 'yellow' },
+               2: { color: 'red' }
+           },
+           hAxis: 
+           {
+              title: 'Age'
+           },
+           vAxis: 
+           {
+              title: 'Amount (in USD)'
+           }
       };
+      
+      //*************************************************************************************************//
+       var dataRateOfInterest = google.visualization.arrayToDataTable([
+                            ["Owner", "Rate Of Interest", { role: "style" } ],
+                            ["You", 7, "blue"],
+                            ["Average", 9, "Red"]
+                          ]);
 
-      var chart = new google.charts.Line(document.getElementById('divContent1Child'));
+         viewRateOfInterest = new google.visualization.DataView(dataRateOfInterest);
+         /*viewRateOfInterest.setColumns([0, 1,
+                          { calc: "stringify",
+                            sourceColumn: 1,
+                            type: "string",
+                            role: "annotation" },
+                          2]); */
 
-      chart.draw(data, options);
+           optionsRateOfInterest = 
+           {
+             title: "Rate Of Interest Comparison",
+             width: '100%',
+             height: 350,
+             bar: {groupWidth: "20%"},
+             legend: { position: "right" }
+           };
+      
+      
+    }
+    
+    function getAmount(startAge,endAge,startingBalance,rateOfIdealReturn,rateOfActualReturn,rateOfAnnualFees)
+    {
+    	var retArray = new Array();
+    	var yearsToBeCalculated = endAge - startAge;
+    	var totalAmountIdeal = startingBalance;
+    	var totalAmountActual = startingBalance;
+    	var totalAmountFees = startingBalance;
+    	var count;
+    	for(count = 1;count <= yearsToBeCalculated;count++)
+    	{
+    		totalAmountIdeal += (rateOfIdealReturn/100) * totalAmountIdeal;
+    		totalAmountActual += (rateOfActualReturn/100) * totalAmountActual;
+    		totalAmountFees += (rateOfAnnualFees/100) * totalAmountFees;
+    		retArray[count - 1] = [count + startAge,totalAmountIdeal,totalAmountActual,totalAmountFees]; 
+    	}
+    	return retArray;
+    }
+    
+    
+    function renderChart(divTitle,divContent)
+    {
+    	if(divContent)
+    	{
+    		if(divContent.getAttribute("id") === "divContent1")
+    		{
+    			if(!hasRecieveChartRendered)
+    	    	{
+    	    		hasRecieveChartRendered = true;
+    	    		var chart = new google.visualization.LineChart(document.getElementById('divContent1Child'));
+    	            chart.draw(dataRecieve, optionsRecieve);
+    	    	}
+    		}
+    		else if(divContent.getAttribute("id") === "divContent2")
+    		{
+    			if(!hasRateOfInterestChartRendered)
+    	    	{
+    				hasRateOfInterestChartRendered = true;
+    	    		var chart = new google.visualization.ColumnChart(document.getElementById("divContent2Child"));
+    	    	    chart.draw(viewRateOfInterest, optionsRateOfInterest);
+    	    	}
+    		}
+    	}
     }
       
 		</script>
 	<div id="divAccordion">
 	</div>
-	<div id="divContent1" style="width: 100%; height: 400px; display: block;">
-		<div id="divContent1Child" style="width: 100%; height: 100%;">
+	<div id="divContent1" style="width: 100%; height: 400px;">
+		<div id="divContent1Child" style="padding-top: 10px;padding-left: 10px;">
 		</div>
 	</div>
-	<div id="divContent2">
-		<p>
-			Lorem ipsum dolor sit amet, &asdfasdfsadf;  &lt;asdfasdf&gt; consectetuer adipiscing elit. Donec vel justo. Integer ornare dignissim lectus. Nunc tellus. Donec pharetra aliquam neque. Vestibulum ornare tincidunt mauris. Duis ut felis et ipsum feugiat faucibus. Phasellus enim magna, sodales id, mollis vel, fringilla et, felis. Integer placerat, tortor eu blandit eleifend, elit leo fringilla orci, quis tristique leo justo ut quam. Aenean dolor. Donec tempus. Ut dapibus odio vitae ligula.
-		</p>
-		<p>
-			Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Donec vel justo. Integer ornare dignissim lectus. Nunc tellus. Donec pharetra aliquam neque. Vestibulum ornare tincidunt mauris. Duis ut felis et ipsum feugiat faucibus. Phasellus enim magna, sodales id, mollis vel, fringilla et, felis. Integer placerat, tortor eu blandit eleifend, elit leo fringilla orci, quis tristique leo justo ut quam. Aenean dolor. Donec tempus. Ut dapibus odio vitae ligula.                            
-		</p>
+	<div id="divContent2" style="width: 100%; height: 400px;">
+		<div id="divContent2Child" style="padding-top: 10px;padding-left: 10px;">
+		</div>
 	</div>
 	<div id="divContent3">
-		<p>
-		In posuere velit sit amet tortor. Donec elementum ipsum at ante luctus elementum. Duis varius dolor a tortor. Donec mi. Phasellus posuere. Mauris enim erat, commodo et, porta quis, consequat quis, nibh. Maecenas convallis eleifend ante. Phasellus metus metus, tempor sed, rhoncus ac, feugiat a, ante. Morbi sit amet ipsum. Cras eu leo quis pede condimentum tempor. Curabitur dictum elit sed lacus. Sed tortor magna, euismod non, mollis a, egestas nec, quam. Fusce porttitor porttitor nunc. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Fusce faucibus, ipsum vel consequat sodales, odio nulla pretium elit, sit amet tempor magna dolor vitae tellus. Quisque odio.
-		</p>
+		<div id="divContent3Child" style="padding-top: 10px;padding-left: 10px;">
+		</div>
 	</div>
 	<div id="divContent4">
-		<p>
-		Nulla eget ante. In luctus nunc eu nisi. Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Suspendisse lectus sem, commodo vitae, scelerisque eget, varius vitae, neque. Maecenas sed risus. Pellentesque erat. Morbi varius elit id augue. In ultrices vulputate mauris. Vivamus libero ligula, viverra eget, placerat at, adipiscing at, elit. Quisque sapien eros, fermentum a, cursus vel, dignissim id, massa. Donec hendrerit neque sit amet arcu. Cras adipiscing tincidunt elit. Praesent at enim ac lacus malesuada porttitor. Nullam nec diam eu erat posuere mollis. Cras eget urna. Pellentesque sed arcu. Vestibulum lacinia mattis lacus. Curabitur ornare felis ac eros. Fusce convallis est id nisi.
-		</p>
-	</div>
-	
-	  <!--<div id="test-accordion">
-	 <div class="panel">
-		<div id="divTitle1" class="accordion-toggle accordion-toggle-active" onclick="onClick('divTitle1','divContent1')">Main</div>
-		<div id="divContent1" class="accordion-content" style="height: 276px;">
-			<p>
-				Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Suspendisse malesuada mi vel risus. Nulla ipsum risus, malesuada gravida, dapibus et, dapibus rhoncus, orci. Quisque suscipit. Praesent sed tellus facilisis lectus ultrices laoreet. Donec eu orci in metus egestas hendrerit. In hac habitasse platea dictumst. Integer blandit ultricies erat. Nunc viverra blandit velit. Maecenas tristique tortor non ante. In pharetra mi quis metus. Cras urna dolor, volutpat et, tincidunt quis, accumsan a, erat. Donec et dolor at elit congue molestie. In mi sapien, porta ut, cursus placerat, sodales in, libero. Aliquam tempus vestibulum ipsum. Suspendisse ligula orci, dignissim eu, laoreet ut, interdum sit amet, tortor. Vestibulum est lacus, sagittis faucibus, sollicitudin fringilla, pretium non, ipsum. Quisque enim. Nullam tortor mi, posuere et, pellentesque ut, laoreet quis, lectus. Mauris euismod aliquet mi. Pellentesque eu pede vitae nibh imperdiet convallis.
-				<br/><br/>
-				Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Suspendisse malesuada mi vel risus. Nulla ipsum risus, malesuada gravida, dapibus et, dapibus rhoncus, orci. Quisque suscipit. Praesent sed tellus facilisis lectus ultrices laoreet. Donec eu orci in metus egestas hendrerit. In hac habitasse platea dictumst. Integer blandit ultricies erat. Nunc viverra blandit velit. Maecenas tristique tortor non ante. In pharetra mi quis metus. Cras urna dolor, volutpat et, tincidunt quis, accumsan a, erat. Donec et dolor at elit congue molestie. In mi sapien, porta ut, cursus placerat, sodales in, libero. Aliquam tempus vestibulum ipsum. Suspendisse ligula orci, dignissim eu, laoreet ut, interdum sit amet, tortor. Vestibulum est lacus, sagittis faucibus, sollicitudin fringilla, pretium non, ipsum. Quisque enim. Nullam tortor mi, posuere et, pellentesque ut, laoreet quis, lectus. Mauris euismod aliquet mi. Pellentesque eu pede vitae nibh imperdiet convallis.
-			</p>
-			<p>	
-				Mauris dictum congue lectus. Fusce erat elit, imperdiet non, aliquam sed, lobortis id, libero. Donec dui erat, sollicitudin sed, blandit eget, aliquam non, mauris. Mauris lobortis. Suspendisse orci metus, lobortis ut, sollicitudin et, laoreet eu, ligula. Pellentesque at tellus sed nunc volutpat convallis. Suspendisse tincidunt, erat ac pretium luctus, dolor purus tincidunt justo, eu semper massa massa ac dui. Morbi vel arcu ut elit placerat consequat. Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Maecenas est dui, luctus id, tempor a, dapibus lacinia, nunc. In vulputate, ipsum eget tempor aliquam, mauris enim ornare risus, vitae rhoncus purus ligula ut urna. In eu arcu. Aliquam erat volutpat. Donec purus enim, malesuada quis, aliquet vel, dapibus eu, lacus. In laoreet nulla id mi. Cras bibendum semper lacus. Nunc id sapien in ligula consectetuer semper. Nunc enim elit, interdum id, tincidunt et, ultrices eu, arcu.  
-			</p>
+		<div id="divContent4Child" style="padding-top: 10px;padding-left: 10px;">
 		</div>
 	</div>
-	<div class="panel">
-	<div id="divTitle2" class="accordion-toggle" onclick="onClick('divTitle2','divContent2')">Why Use Us</div>
-	<div id="divContent2"  class="accordion-content" style="height: 0px; display: none;">
-		<p>
-			Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Donec vel justo. Integer ornare dignissim lectus. Nunc tellus. Donec pharetra aliquam neque. Vestibulum ornare tincidunt mauris. Duis ut felis et ipsum feugiat faucibus. Phasellus enim magna, sodales id, mollis vel, fringilla et, felis. Integer placerat, tortor eu blandit eleifend, elit leo fringilla orci, quis tristique leo justo ut quam. Aenean dolor. Donec tempus. Ut dapibus odio vitae ligula.
-		</p>
-		<p>
-			Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Donec vel justo. Integer ornare dignissim lectus. Nunc tellus. Donec pharetra aliquam neque. Vestibulum ornare tincidunt mauris. Duis ut felis et ipsum feugiat faucibus. Phasellus enim magna, sodales id, mollis vel, fringilla et, felis. Integer placerat, tortor eu blandit eleifend, elit leo fringilla orci, quis tristique leo justo ut quam. Aenean dolor. Donec tempus. Ut dapibus odio vitae ligula.                            
-		</p>
-	</div>
-	</div>
-	<div class="panel">
-	<div id="divTitle3" class="accordion-toggle" onclick="onClick('divTitle3','divContent3')">Our Prices</div>
-	<div id="divContent3"  class="accordion-content" style="display: none; height: 0px;">
-		<p>
-		In posuere velit sit amet tortor. Donec elementum ipsum at ante luctus elementum. Duis varius dolor a tortor. Donec mi. Phasellus posuere. Mauris enim erat, commodo et, porta quis, consequat quis, nibh. Maecenas convallis eleifend ante. Phasellus metus metus, tempor sed, rhoncus ac, feugiat a, ante. Morbi sit amet ipsum. Cras eu leo quis pede condimentum tempor. Curabitur dictum elit sed lacus. Sed tortor magna, euismod non, mollis a, egestas nec, quam. Fusce porttitor porttitor nunc. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Fusce faucibus, ipsum vel consequat sodales, odio nulla pretium elit, sit amet tempor magna dolor vitae tellus. Quisque odio.
-		</p>
-	</div>
-	</div>
-	<div class="panel">
-	<div id="divTitle4" class="accordion-toggle" onclick="onClick('divTitle4','divContent4')">Contact Us</div>
-	<div id="divContent4"  class="accordion-content" style="display: none; height: 0px;">
-		<p>
-		Nulla eget ante. In luctus nunc eu nisi. Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Suspendisse lectus sem, commodo vitae, scelerisque eget, varius vitae, neque. Maecenas sed risus. Pellentesque erat. Morbi varius elit id augue. In ultrices vulputate mauris. Vivamus libero ligula, viverra eget, placerat at, adipiscing at, elit. Quisque sapien eros, fermentum a, cursus vel, dignissim id, massa. Donec hendrerit neque sit amet arcu. Cras adipiscing tincidunt elit. Praesent at enim ac lacus malesuada porttitor. Nullam nec diam eu erat posuere mollis. Cras eget urna. Pellentesque sed arcu. Vestibulum lacinia mattis lacus. Curabitur ornare felis ac eros. Fusce convallis est id nisi.
-		</p>
-	</div>
-	</div>
-</div>-->
-
-<!--<div class=" panel">
-	<div class=" accordion-toggle accordion-toggle-active">
-		<div class=" arrow-down"></div>
-		<div class=" accordion-title" style="padding-left: 1.5%; font-weight: bold; width: 100%;">Title 1</div>
-	</div>
-	<div id="divContent1" style="width: 900px; height: 700px; display: block;" class=" accordion-content">
-		<div id="divContent1Child" style="width: 100%; height: 100%;margin:100px">
-			
-		</div>
-	</div>
-</div>-->
-<!--<div class=" panel">
-	<div class=" accordion-toggle accordion-toggle-active">
-		<div class=" arrow-down"></div>
-		<div class=" accordion-title" style="padding-left: 1.5%; font-weight: bold; width: 100%;">Title 1</div>
-	</div>
-	<div id="divContent1" class=" accordion-content">
-		<div id="divContent1Child" style="width: 100%; height: 100%;margin:100px">
-			<div id="line_top_x">
-			</div>
-		</div>
-	</div>
-</div>-->
-
 </body>
 </html>
