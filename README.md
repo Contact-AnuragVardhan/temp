@@ -363,7 +363,7 @@ https://gist.github.com/Munawwar/7926618
 	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
 <style>
 
-.panel
+.nsClAccordionContainer
 {
 	background: #eee;
 	/*margin: 5px;*/
@@ -371,7 +371,7 @@ https://gist.github.com/Munawwar/7926618
 	border: 1px solid #999;	
 }
 
-.accordion-toggle
+.nsClAccordionTitle
 {
 	display: flex;
 	position: relative; /* required for effect */
@@ -384,24 +384,24 @@ https://gist.github.com/Munawwar/7926618
 	padding: 9px 14px 6px 14px;
 }
 
-.accordion-toggle:hover
+.nsClAccordionTitle:hover
 {
 	/*background-color: #0000FF;*/
 	border-top: 1px solid #a06b55;
 }
 
-.accordion-toggle-active
+.nsClAccordionTitleActive
 {
 	/*background-color: #0000FF;*/
 	border-bottom: 1px solid #5d5852;
 }
 
-.accordion-title
+.nsClAccordionTitleText
 {
 	  
 }
 
-.accordion-content
+.nsClAccordionContent
 {
 	overflow: auto;	/* required for effect */
 	background: #fefffa;
@@ -409,12 +409,12 @@ https://gist.github.com/Munawwar/7926618
 	color: #000000;
 }
 
-.accordion-content p
+.nsClAccordionContent p
 {
 	margin: 9px 24px 6px 24px;
 }
 
-.arrow-up 
+.nsArrowUp 
 {
 	width:0;
     height:0;
@@ -423,7 +423,7 @@ https://gist.github.com/Munawwar/7926618
     border-right:5px solid transparent;
 }
 
-.arrow-down 
+.nsArrowDown 
 {
 	width: 0; 
 	height: 0; 
@@ -432,7 +432,7 @@ https://gist.github.com/Munawwar/7926618
 	border-right: 5px solid transparent;
 }
 
-.arrow-right 
+.nsArrowRight 
 {
 	width: 0; 
 	height: 0; 
@@ -441,7 +441,7 @@ https://gist.github.com/Munawwar/7926618
 	border-bottom: 5px solid transparent;
 }
 
-.arrow-left 
+.nsArrowLeft
 {
 	width: 0; 
 	height: 0; 
@@ -451,368 +451,24 @@ https://gist.github.com/Munawwar/7926618
 }
 
 </style>
+<script src="nsAccordion.js">
+</script>
 </head>
-<body onload="initialise('divAccordion');">
-	<script>
-		var objAccordion = [
-		      {title:'You are on track to receive <span style="color:red;font-weight:bold;">2000</span>$ per year during retirement. It is <span style="color:red;font-weight:bold;">below</span> than your peers',content:"#divContent1"},
-		      {title:'Your 401k ROI which is <span style="color:red;font-weight:bold;">below</span> than your peers',content:"#divContent2"},
-		      {title:'Your current 401k balance which is <span style="color:red;font-weight:bold;">below</span> than your peers',content:"#divContent3"},
-		      {title:'Your contributions which is <span style="color:red;font-weight:bold;">more</span> than your peers',content:"#divContent4"}
-		 ];
-		
-		var ANIMATION_INTERVAL = 10;
-		var animationRequired = false;
-		
-		var parentClass = "panel";
-		var toggleClass = "accordion-toggle";
-        var toggleActive = "accordion-toggle-active";
-		var titleClass = "accordion-title";
-        var contentClass = "accordion-content";
-		var arrowClose = "arrow-right";
-		var arrowOpen = "arrow-down";
-		
-		var __parentContainer = null;
-		var __contentMaxHeight = 0;
-		
-		var __currentTitleClicked = null;
-		var __isAnimating = false;
-		var __currentTitleHeight = 0;
-		var __animationIntervalId = 0;
-		
-        
-        function initialise(parentContainerID)
-        {
-        	if(parentContainerID && objAccordion && objAccordion.length > 0)
-        	{
-        		__parentContainer = getElement(parentContainerID);
-        		if(__parentContainer)
-        		{
-        			for(var count = 0;count < objAccordion.length;count++)
-            		{
-            			var item = 	objAccordion[count];
-            			if(item && item["title"] && item["content"])
-            			{
-            				var divParent = createContainer(item["title"],item["content"]);
-							__parentContainer.appendChild(divParent);
-            			}
-            		}
-					setContentMaxHeight();
-            		closeAllContainers();        			
-        		}
-        	}
-        }
-        
-        function createContainer(title,contentID)
-        {
-			var divParent = document.createElement("div");
-			addClass(divParent,parentClass);
-        	var divTitle = document.createElement("div");
-        	addClass(divTitle,toggleClass);
-			var divArrow = document.createElement("div");
-			addClass(divArrow,arrowOpen);
-			divTitle.appendChild(divArrow);
-			var divText = document.createElement("div");
-			addClass(divText,titleClass);
-			divText.style.paddingLeft = "1.5%";
-			divText.style.fontWeight = "bold";
-			divText.style.width = "100%";
-			divText.innerHTML = title;
-			divTitle.appendChild(divText);
-        	divTitle.addEventListener("click", titleClickHandler);
-			divArrow.addEventListener("click", titleClickHandler);
-			divText.addEventListener("click", titleClickHandler);
-        	var divContent;
-        	var copyContentID = "";
-        	if(contentID && contentID.charAt("#"))
-        	{
-        		copyContentID = contentID.substring(1);
-        	}
-        	else
-        	{
-        		copyContentID = contentID;
-        	}
-        	var divCopyContent = getElement(copyContentID);
-        	if(divCopyContent)
-        	{
-        		divContent = divCopyContent.cloneNode(true);
-        		divCopyContent.parentNode.removeChild(divCopyContent);
-        	}
-        	else
-        	{
-        		divContent = document.createElement("div");
-        		divContent.setAttribute("id",copyContentID);
-        	}
-        	addClass(divContent,contentClass);
-        	divParent.appendChild(divTitle);
-        	divParent.appendChild(divContent);
-			
-			return divParent;
-        }
-        
-        function titleClickHandler(event)
-        {
-        	if(event && event.target)
-        	{
-        		var divTitle = event.target;
-				if(!hasClass(divTitle,toggleClass))
-				{
-					divTitle = divTitle.parentNode;
-				}
-				if(divTitle && hasClass(divTitle,toggleClass))
-				{
-					event.stopImmediatePropagation();
-					var titles = getAllTitles();
-					var contents = getAllContents();
-					var count;
-					for (count = 0; count < titles.length; count++) 
-					{
-						var divTitleInner = titles[count];
-						if(divTitleInner == divTitle)
-						{
-							var divContent = contents[count];
-							if(divContent)
-							{
-								if(hasClass(divTitle, toggleActive)) 
-								{
-									if(animationRequired)
-									{
-										animate(divTitle,divContent,false);
-									}
-									else
-									{
-										closeContainer(divTitle,divContent);
-									}
-								}
-								else
-								{
-									if(animationRequired)
-									{
-										closeAllContainers();
-										animate(divTitle,divContent,true);
-									}
-									else
-									{
-										closeAllContainers();
-										openContainer(divTitle,divContent);
-									}
-								}
-								break;
-							}
-						}
-					}
-				}
-        	}
-        }
-		
-		function closeAllContainers()
-		{
-			if(__parentContainer)
-			{
-				var titles = getAllTitles();
-				var contents = getAllContents();
-			    var count;
-			    for (count = 0; count < titles.length; count++) 
-			    {
-			        var divTitle = titles[count];
-			        var divContent = contents[count];
-			        if(divTitle && divContent)
-			        {
-			        	closeContainer(divTitle,divContent);
-			        }
-			    }
-			}
-		}
-		
-		function setContentMaxHeight() 
-		{
-			var contents = getAllContents();
-			var count;
-			for(var count = 0; count < contents.length; count++) 
-			{
-				if(contents[count].offsetHeight > __contentMaxHeight) 
-				{
-					__contentMaxHeight = contents[count].offsetHeight;
-				}
-			}
-		}
-		
-		function getAllTitles()
-		{
-			var arrTitles = getAllTitlesOrContents("title");
-			return arrTitles;
-		}
-		
-		function getAllContents()
-		{
-			var arrContents = getAllTitlesOrContents("content");
-			return arrContents;
-		}
-		
-		function getAllTitlesOrContents(type)
-		{
-			var arrTitleContent = null;
-			if(__parentContainer)
-			{
-				var parentDivs = __parentContainer.getElementsByClassName(parentClass);
-				if(parentDivs)
-				{
-					var count;
-					arrTitleContent = new Array();
-					for (count = 0; count < parentDivs.length; count++) 
-					{
-						 var divParent = parentDivs[count];
-						 if(divParent)
-						 {
-							if(type === "title")
-							{
-								arrTitleContent.push(divParent.getElementsByClassName(toggleClass)[0]);
-							}
-							else
-							{
-								arrTitleContent.push(divParent.getElementsByClassName(contentClass)[0]);
-							}
-						 }
-					}
-				}
-			}
-			return arrTitleContent;
-		}
-		
-		function openContainer(divTitle,divContent)
-		{
-			 if(divTitle && divContent)
-			 {
-				if(divTitle.getElementsByClassName(arrowClose) && divTitle.getElementsByClassName(arrowClose).length > 0)
-				{
-					var divArrow = divTitle.getElementsByClassName(arrowClose)[0];
-					removeClass(divArrow,arrowClose);
-					addClass(divArrow,arrowOpen);
-				}
-				addClass(divTitle, toggleActive);
-				divContent.style.display = "block";
-				if(__contentMaxHeight > 0)
-				{
-					divContent.style.height = __contentMaxHeight + "px";
-				}
-				renderChart(divTitle,divContent);
-			 }
-		}
-		
-		function closeContainer(divTitle,divContent)
-		{
-			if(divTitle && divContent)
-			{
-				if(divTitle.getElementsByClassName(arrowOpen) && divTitle.getElementsByClassName(arrowOpen).length > 0)
-				{
-					var divArrow = divTitle.getElementsByClassName(arrowOpen)[0];
-					removeClass(divArrow,arrowOpen);
-					addClass(divArrow,arrowClose);
-				}
-				removeClass(divTitle, toggleActive);
-				divContent.style.display = "none";
-				divContent.style.height = "0px";
-			}
-		}
-		
-		function onClick(divTitleID,divContentID)
-		{
-			var divTitle = getElement(divTitleID);
-			var divContent = getElement(divContentID);
-			 if(hasClass(divTitle, toggleActive)) 
-			 {
-				 closeContainer(divTitle,divContent);
-		     }
-			 else
-			 {
-				 openContainer(divTitle,divContent);
-			 }
-		}
-		
-		function animate(divTitle,divContent,isOpening)
-		{
-		   if(!__isAnimating)
-		   {
-			   __isAnimating = true;
-			   if(isOpening)
-			   {
-					__currentTitleHeight = 0;
-					divContent.style.display = "block";
-					__animationIntervalId = setInterval(function(){animateOpening(divTitle,divContent)}, ANIMATION_INTERVAL);
-			   }
-			   else
-			   {
-					__currentTitleHeight = __contentMaxHeight;
-					__animationIntervalId = setInterval(function(){animateClosing(divTitle,divContent)}, ANIMATION_INTERVAL);
-			   }
-		   }
-		}
-		
-		function animateOpening(divTitle,divContent)
-		{
-		   if(__currentTitleHeight >= __contentMaxHeight)
-		   {
-			  __isAnimating = false;
-			  __currentTitleHeight = 0;
-			  openContainer(divTitle,divContent);
-			  clearInterval(__animationIntervalId);
-		   }
-		   else
-		   {
-			  __currentTitleHeight += ANIMATION_INTERVAL;
-			  if(__currentTitleHeight > __contentMaxHeight)
-			  {
-				 __currentTitleHeight = __contentMaxHeight;
-			  }
-			  divContent.style.height = __currentTitleHeight + "px";
-		   }
-		}
-
-		function animateClosing(divTitle,divContent)
-		{
-		   if(__currentTitleHeight <= 0)
-		   {
-			  __isAnimating = false;
-			  __currentTitleHeight = 0;
-			  closeContainer(divTitle,divContent);
-			  clearInterval(__animationIntervalId);
-		   }
-		   else
-		   {
-			  __currentTitleHeight -= ANIMATION_INTERVAL;
-			  if(__currentTitleHeight < 0)
-			  {
-				 __currentTitleHeight = 0;
-			  }
-			  divContent.style.height = __currentTitleHeight + 'px';
-		   }
-		}
-		
-		function getElement(i)
-		{
-			return document.getElementById(i);
-		}
-		
-		function hasClass(ele, cls) 
-		{
-		    return ele.className.match(new RegExp('(\\s|^)' + cls + '(\\s|$)'));
-		}
-		function addClass(ele, cls) 
-		{
-		    if (!hasClass(ele, cls)) ele.className += " " + cls;
-		}
-		function removeClass(ele, cls) 
-		{
-		    if (hasClass(ele, cls)) 
-		    {
-		        var reg = new RegExp('(\\s|^)' + cls + '(\\s|$)');
-		        ele.className = ele.className.replace(reg, ' ');
-		    }
-		}
-	
-	</script>
-	
+<body onload="initialise();">	
 	<script type="text/javascript">
+	
+	var objAccordionDataSource = [
+ 		      {title:'You are on track to receive <span style="color:red;font-weight:bold;">2000</span>$ per year during retirement. It is <span style="color:red;font-weight:bold;">below</span> than your peers',content:"#divContent1"},
+ 		      {title:'Your 401k ROI which is <span style="color:red;font-weight:bold;">below</span> than your peers',content:"#divContent2"},
+ 		      {title:'Your current 401k balance which is <span style="color:red;font-weight:bold;">below</span> than your peers',content:"#divContent3"},
+ 		      {title:'Your contributions which is <span style="color:red;font-weight:bold;">more</span> than your peers',content:"#divContent4"}
+ 		 ];
+	var accordion;
+	function initialise()
+	{
+		accordion = new NSAccordion('divAccordion',objAccordionDataSource,true);
+		accordion.openCompleteHandler = renderChart;
+	}
 	google.load('visualization', '1.1', {packages: ['corechart']});
     google.setOnLoadCallback(drawChart);
 	
@@ -947,3 +603,382 @@ https://gist.github.com/Munawwar/7926618
 	</div>
 </body>
 </html>
+
+------------------------------------------------------------------------------------------------------------------------------
+
+//nsAccordion.js
+
+function NSAccordion(parentContainerID,dataSource,animationRequired) 
+{
+	//Contants
+	this.ANIMATION_INTERVAL = 10;
+	
+	//Private
+	this.__parentContainer = null;
+	this.__contentMaxHeight = 0;
+	this.__currentTitleClicked = null;
+	this.__isAnimating = false;
+	this.__currentTitleHeight = 0;
+	this.__animationIntervalId = 0;
+	
+	//Class Variables
+	this.parentContainerID = parentContainerID;
+	this.animationRequired = false;
+	this.dataSource = dataSource;
+	if(animationRequired)
+	{
+		this.animationRequired = true;
+	}
+	
+	//callback functions
+	this.openCompleteHandler = null;
+	this.closeCompleteHandler = null;
+	
+	//CSS Classes
+	this.nsClAccordionContainer = "nsClAccordionContainer";
+	this.nsClAccordionTitle = "nsClAccordionTitle";
+    this.nsClAccordionTitleActive = "nsClAccordionTitleActive";
+	this.nsClAccordionTitleText = "nsClAccordionTitleText";
+    this.nsClAccordionContent = "nsClAccordionContent";
+	this.nsArrowClose = "nsArrowRight";
+	this.nsArrowOpen = "nsArrowDown";
+	this.initialise();
+};
+
+NSAccordion.prototype.initialise = function ()
+{
+	if(!this.parentContainerID)
+	{
+		throwNSError("NSAccordion","ParentContainerID is missing");
+	}
+	this.__parentContainer = getElement(this.parentContainerID);
+	if(!this.__parentContainer)
+	{
+		throwNSError("NSAccordion","ParentContainer not found");
+	}
+	if(this.dataSource && this.dataSource.length > 0)
+	{
+		for(var count = 0;count < this.dataSource.length;count++)
+		{
+			var item = 	this.dataSource[count];
+			if(item && item["title"] && item["content"])
+			{
+				var divParent = this.createContainer(item["title"],item["content"]);
+				this.__parentContainer.appendChild(divParent);
+			}
+		}
+		this.setContentMaxHeight();
+		this.closeAllContainers();        			
+	}
+};
+
+NSAccordion.prototype.createContainer = function(title,contentID)
+{
+	var divParent = document.createElement("div");
+	addClass(divParent,this.nsClAccordionContainer);
+	var divTitle = document.createElement("div");
+	addClass(divTitle,this.nsClAccordionTitle);
+	var divArrow = document.createElement("div");
+	addClass(divArrow,this.nsArrowOpen);
+	divTitle.appendChild(divArrow);
+	var divText = document.createElement("div");
+	addClass(divText,this.nsClAccordionTitleText);
+	divText.style.paddingLeft = "1.5%";
+	divText.style.paddingTop = 0;
+	divText.style.fontWeight = "bold";
+	divText.style.width = "100%";
+	divText.innerHTML = title;
+	divTitle.appendChild(divText);
+	divTitle.addEventListener("click", this.titleClickHandler.bind(this));
+	divArrow.addEventListener("click", this.titleClickHandler.bind(this));
+	divText.addEventListener("click", this.titleClickHandler.bind(this));
+	var divContent;
+	var copyContentID = "";
+	if(contentID && contentID.charAt("#"))
+	{
+		copyContentID = contentID.substring(1);
+	}
+	else
+	{
+		copyContentID = contentID;
+	}
+	var divCopyContent = getElement(copyContentID);
+	if(divCopyContent)
+	{
+		divContent = divCopyContent.cloneNode(true);
+		divCopyContent.parentNode.removeChild(divCopyContent);
+	}
+	else
+	{
+		divContent = document.createElement("div");
+		divContent.setAttribute("id",copyContentID);
+	}
+	addClass(divContent,this.nsClAccordionContent);
+	divParent.appendChild(divTitle);
+	divParent.appendChild(divContent);
+	
+	return divParent;
+}
+
+NSAccordion.prototype.titleClickHandler = function(event)
+{
+	if(event && event.target)
+	{
+		var divTitle = event.target;
+		if(!hasClass(divTitle,this.nsClAccordionTitle))
+		{
+			divTitle = divTitle.parentNode;
+		}
+		if(divTitle && hasClass(divTitle,this.nsClAccordionTitle))
+		{
+			event.stopImmediatePropagation();
+			var titles = this.getAllTitles();
+			var contents = this.getAllContents();
+			var count;
+			for (count = 0; count < titles.length; count++) 
+			{
+				var divTitleInner = titles[count];
+				if(divTitleInner == divTitle)
+				{
+					var divContent = contents[count];
+					if(divContent)
+					{
+						if(hasClass(divTitle, this.nsClAccordionTitleActive)) 
+						{
+							if(this.animationRequired)
+							{
+								this.animate(divTitle,divContent,false);
+							}
+							else
+							{
+								this.closeContainer(divTitle,divContent);
+							}
+						}
+						else
+						{
+							if(this.animationRequired)
+							{
+								//this.closeAllContainers();
+								this.animate(divTitle,divContent,true);
+							}
+							else
+							{
+								this.closeAllContainers();
+								this.openContainer(divTitle,divContent);
+							}
+						}
+						break;
+					}
+				}
+			}
+		}
+	}
+};
+
+NSAccordion.prototype.closeAllContainers = function()
+{
+	if(this.__parentContainer)
+	{
+		var titles = this.getAllTitles();
+		var contents = this.getAllContents();
+	    var count;
+	    for (count = 0; count < titles.length; count++) 
+	    {
+	        var divTitle = titles[count];
+	        var divContent = contents[count];
+	        if(divTitle && divContent)
+	        {
+	        	this.closeContainer(divTitle,divContent);
+	        }
+	    }
+	}
+};
+
+NSAccordion.prototype.setContentMaxHeight = function() 
+{
+	var contents = this.getAllContents();
+	var count;
+	for(var count = 0; count < contents.length; count++) 
+	{
+		if(contents[count].offsetHeight > this.__contentMaxHeight) 
+		{
+			this.__contentMaxHeight = contents[count].offsetHeight;
+		}
+	}
+};
+
+NSAccordion.prototype.getAllTitles = function()
+{
+	var arrTitles = this.getAllTitlesOrContents("title");
+	return arrTitles;
+};
+
+NSAccordion.prototype.getAllContents = function()
+{
+	var arrContents = this.getAllTitlesOrContents("content");
+	return arrContents;
+};
+
+NSAccordion.prototype.getAllTitlesOrContents = function(type)
+{
+	var arrTitleContent = null;
+	if(this.__parentContainer)
+	{
+		var parentDivs = this.__parentContainer.getElementsByClassName(this.nsClAccordionContainer);
+		if(parentDivs)
+		{
+			var count;
+			arrTitleContent = new Array();
+			for (count = 0; count < parentDivs.length; count++) 
+			{
+				 var divParent = parentDivs[count];
+				 if(divParent)
+				 {
+					if(type === "title")
+					{
+						arrTitleContent.push(divParent.getElementsByClassName(this.nsClAccordionTitle)[0]);
+					}
+					else
+					{
+						arrTitleContent.push(divParent.getElementsByClassName(this.nsClAccordionContent)[0]);
+					}
+				 }
+			}
+		}
+	}
+	return arrTitleContent;
+};
+
+NSAccordion.prototype.openContainer = function(divTitle,divContent)
+{
+	 if(divTitle && divContent)
+	 {
+		if(divTitle.getElementsByClassName(this.nsArrowClose) && divTitle.getElementsByClassName(this.nsArrowClose).length > 0)
+		{
+			var divArrow = divTitle.getElementsByClassName(this.nsArrowClose)[0];
+			removeClass(divArrow,this.nsArrowClose);
+			addClass(divArrow,this.nsArrowOpen);
+		}
+		addClass(divTitle, this.nsClAccordionTitleActive);
+		divContent.style.display = "block";
+		if(this.__contentMaxHeight > 0)
+		{
+			divContent.style.height = this.__contentMaxHeight + "px";
+		}
+		if(this.openCompleteHandler)
+		{
+			this.openCompleteHandler(divTitle,divContent);
+		}
+	 }
+};
+
+NSAccordion.prototype.closeContainer = function(divTitle,divContent)
+{
+	if(divTitle && divContent)
+	{
+		if(divTitle.getElementsByClassName(this.nsArrowOpen) && divTitle.getElementsByClassName(this.nsArrowOpen).length > 0)
+		{
+			var divArrow = divTitle.getElementsByClassName(this.nsArrowOpen)[0];
+			removeClass(divArrow,this.nsArrowOpen);
+			addClass(divArrow,this.nsArrowClose);
+		}
+		removeClass(divTitle, this.nsClAccordionTitleActive);
+		divContent.style.display = "none";
+		divContent.style.height = "0px";
+		if(this.closeCompleteHandler)
+		{
+			this.closeCompleteHandler(divTitle,divContent);
+		}
+	}
+};
+
+NSAccordion.prototype.animate = function(divTitle,divContent,isOpening)
+{
+   if(!this.__isAnimating)
+   {
+	   this.__isAnimating = true;
+	   var objThis = this;
+	   if(isOpening)
+	   {
+		    this.__currentTitleHeight = 0;
+			divContent.style.display = "block";
+			this.__animationIntervalId = setInterval(function(){objThis.animateOpening(divTitle,divContent)}, objThis.ANIMATION_INTERVAL);
+	   }
+	   else
+	   {
+		    this.__currentTitleHeight = this.__contentMaxHeight;
+		    this.__animationIntervalId = setInterval(function(){objThis.animateClosing(divTitle,divContent)}, objThis.ANIMATION_INTERVAL);
+	   }
+   }
+};
+
+NSAccordion.prototype.animateOpening = function(divTitle,divContent)
+{
+   if(this.__currentTitleHeight >= this.__contentMaxHeight)
+   {
+	   this.__isAnimating = false;
+	   this.__currentTitleHeight = 0;
+	   this.openContainer(divTitle,divContent);
+	   clearInterval(this.__animationIntervalId);
+   }
+   else
+   {
+	  this.__currentTitleHeight += this.ANIMATION_INTERVAL;
+	  if(this.__currentTitleHeight > this.__contentMaxHeight)
+	  {
+		  this.__currentTitleHeight = this.__contentMaxHeight;
+	  }
+	  divContent.style.height = this.__currentTitleHeight + "px";
+   }
+};
+
+NSAccordion.prototype.animateClosing = function(divTitle,divContent)
+{
+   if(this.__currentTitleHeight <= 0)
+   {
+	   this.__isAnimating = false;
+	   this.__currentTitleHeight = 0;
+	   this.closeContainer(divTitle,divContent);
+	   clearInterval(__animationIntervalId);
+   }
+   else
+   {
+	   this.__currentTitleHeight -= this.ANIMATION_INTERVAL;
+	   if(this.__currentTitleHeight < 0)
+	   {
+		   this.__currentTitleHeight = 0;
+	   }
+	   divContent.style.height = this.__currentTitleHeight + 'px';
+   }
+};
+
+
+
+//Util functions
+
+function throwNSError(componentName,message)
+{
+	throw new Error("Error in " + componentName + " with details::" + message);
+}
+
+function getElement(i)
+{
+	return document.getElementById(i);
+}
+
+function hasClass(ele, cls) 
+{
+    return ele.className.match(new RegExp('(\\s|^)' + cls + '(\\s|$)'));
+}
+function addClass(ele, cls) 
+{
+    if (!hasClass(ele, cls)) ele.className += " " + cls;
+}
+function removeClass(ele, cls) 
+{
+    if (hasClass(ele, cls)) 
+    {
+        var reg = new RegExp('(\\s|^)' + cls + '(\\s|$)');
+        ele.className = ele.className.replace(reg, ' ');
+    }
+}
