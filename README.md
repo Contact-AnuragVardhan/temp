@@ -197,3 +197,259 @@
 
 </body>
 </html>
+
+-------------------------------------------------------------------index.html-------------------------------------------------
+
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8" />
+    <title>DividerBox Test</title>
+    <link href="style.css" rel="stylesheet" />
+    <script src="resizer1.js"></script>
+  </head>
+
+  <body onload="initialise()">
+
+    <div id="sidebar" style="min-width:150px;">
+        <h3>Side navbar</h3>
+    </div>
+	<div id="sidebar-resizer" style="width:6px">
+    </div>
+    <div id="content" style="min-Width:150px;">
+        <div id="top-content" style="min-Height:150px;">
+			Top content I am here
+		</div>
+		 <div id="content-resizer" style="height:6px;">
+         </div>
+        <div id="bottom-content" style="min-Height:80px;">
+			Bottom content
+		</div>
+    </div>
+  
+	<script>
+		function initialise()
+		{
+			var hDividerBox = new DividerBox("content-resizer",DividerBox.prototype.DIRECTION_HORIZONTAL);
+			var vDividerBox = new DividerBox("sidebar-resizer",DividerBox.prototype.DIRECTION_VERTICAL);
+		}
+	</script>
+    
+    
+  </body>
+
+</html>
+
+-----------------------------------------------------------------------resizer.js-------------------------------------------------------
+
+function DividerBox(dividerID,direction) 
+{	
+	this.dividerID = dividerID;
+	this.direction = direction;
+	this.divider = null;
+	this.beforeElement = null;
+	this.afterElement = null;
+	this.parentDimension = 0;
+	this.beforeElementMinDimension = 0;
+	this.afterElementMinDimension = 0;
+	
+	this.initialise();
+}
+
+DividerBox.prototype.DIRECTION_VERTICAL = "vertical";
+DividerBox.prototype.DIRECTION_HORIZONTAL = "horizontal";
+
+DividerBox.prototype.initialise = function () 
+{
+	this.divider = getElement(this.dividerID);
+	this.beforeElement = this.divider.previousElementSibling;
+	this.afterElement = this.divider.nextElementSibling;
+	this.__setDimensions();
+	this.divider.onmousedown = this.dividerMouseDownHandler.bind(this);
+};
+
+DividerBox.prototype.__setDimensions = function()
+{
+	if(this.direction == this.DIRECTION_VERTICAL)
+	{
+		this.parentDimension = window.innerWidth;
+		 //set minWidth
+		 if(this.beforeElement.style.minWidth)
+		 {
+			this.beforeElementMinDimension = this.__getDimensionAsNumber(this.beforeElement.style.minWidth);
+		 }
+		 if(this.afterElement.style.minWidth)
+		 {
+			this.afterElementMinDimension = this.__getDimensionAsNumber(this.afterElement.style.minWidth);
+		 }
+	}
+	else if(this.direction == this.DIRECTION_HORIZONTAL)
+	{
+		this.parentDimension = window.innerHeight;
+		//set minHieght
+		if(this.beforeElement.style.minHeight)
+		{
+			this.beforeElementMinDimension = this.__getDimensionAsNumber(this.beforeElement.style.minHeight);
+		}
+		if(this.afterElement.style.minHeight)
+		{
+			this.afterElementMinDimension = this.__getDimensionAsNumber(this.afterElement.style.minHeight);
+		}
+	}
+};
+
+DividerBox.prototype.__getDimensionAsNumber = function(dimension)
+{
+	var retValue = 0;
+	if(dimension)
+	{
+		if(dimension.substring(dimension.length - 2) == "px")
+		{
+			retValue = dimension.substring(0,dimension.length - 2)
+		}
+		else
+		{
+			retValue = dimension;
+		}
+	}
+	if(isNaN(retValue))
+	{
+		retValue = 0;
+	}
+	return retValue;
+	
+};
+
+DividerBox.prototype.dividerMouseDownHandler = function (event) 
+{
+	event.preventDefault();
+	
+	document.onmousemove = this.documentMouseMoveHandler.bind(this);
+	document.onmouseup =  this.documentMouseUpHandler.bind(this);
+};
+
+DividerBox.prototype.documentMouseMoveHandler = function (event) 
+{
+	if(this.direction == this.DIRECTION_VERTICAL)
+	{
+		var xPos = event.pageX;
+		var afterElementWidth = this.parentDimension - (xPos + this.divider.offsetWidth);
+		if(xPos > this.beforeElementMinDimension && afterElementWidth > this.afterElementMinDimension)
+		{
+			this.divider.style.left = xPos + "px";
+			this.beforeElement.style.width = xPos + "px";
+			this.afterElement.style.width = afterElementWidth + "px";
+		}
+	}
+	else if(this.direction == this.DIRECTION_HORIZONTAL)
+	{
+		var pare
+		var yPos = event.pageY;
+		var afterElementHeight = this.parentDimension - (yPos + this.divider.offsetHeight);
+		if(yPos > this.beforeElementMinDimension && afterElementHeight > this.afterElementMinDimension)
+		{
+			this.divider.style.top = yPos + "px";
+			this.beforeElement.style.height = ((yPos / this.parentDimension) * 100) + "%";
+			this.afterElement.style.height = ((afterElementHeight / this.parentDimension) * 100) + "%";
+		}
+	}
+};
+
+DividerBox.prototype.documentMouseUpHandler = function (event) 
+{
+	document.onmousemove = null;
+	document.onmouseup =  null;
+};
+
+
+function getElement(i)
+{
+	return document.getElementById(i);
+}
+
+function hasClass(ele, cls) 
+{
+	return ele.className.match(new RegExp('(\\s|^)' + cls + '(\\s|$)'));
+}
+
+function addClass(ele, cls) 
+{
+	if (!hasClass(ele, cls)) ele.className += " " + cls;
+}
+
+function removeClass(ele, cls) 
+{
+	if (hasClass(ele, cls)) 
+	{
+		var reg = new RegExp('(\\s|^)' + cls + '(\\s|$)');
+		ele.className = ele.className.replace(reg, ' ');
+	}
+}
+
+------------------------------------------------------------------------------------style.css----------------------------------
+
+
+
+#sidebar {
+    background-color: #EEE;
+    position: absolute;
+    top: 0px;
+    bottom: 0;
+    left: 0;
+    width: 20%;
+    overflow: auto;
+}
+#content {
+    position: absolute;
+    top: 0px;
+    bottom: 0;
+    width: 84%; /* 200 + 6*/;
+    right: 0;
+    overflow: hidden;
+    color: #FFF;
+    
+}
+#top-content {
+    position: absolute;
+    top: 0;
+    bottom: 136px; /* 130 + 6 */
+    left: 0;
+    right: 0;
+    background-color: #444;
+    overflow: auto;
+}
+#bottom-content {
+    position: absolute;
+    height: 130px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    overflow: auto;
+    background-color: #777;
+}
+
+#sidebar-resizer {
+    background-color: #666;
+    position: absolute;
+    top: 0px;
+    bottom: 0;
+    left: 200px;
+    width: 6px;
+    border-right: 1px solid grey;
+    cursor: col-resize;
+}
+#content-resizer {
+    position: absolute;
+    height: 6px;
+    bottom: 130px;
+    left: 0;
+    right: 0;
+    background-color: #666;
+    border-bottom: 1px solid grey;
+    cursor: row-resize;
+}
+
+#sidebar-resizer:hover, #preview-resizer:hover {
+    background-color: #AAA;
+}
