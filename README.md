@@ -198,115 +198,273 @@
 </body>
 </html>
 
--------------------------------------------------------------------index.html-------------------------------------------------
+-------------------------------------------------------------------nsDividerBox.js-------------------------------------------------
 
-<!DOCTYPE html>
-<html>
+var nsDividerBox = Object.create(nsUIComponent);
 
-  <head>
-    <meta charset="utf-8" />
-    <title>DividerBox Test</title>
-    <link href="style.css" rel="stylesheet" />
-    <script src="resizer1.js"></script>
-  </head>
+nsDividerBox.DIRECTION_VERTICAL = "vertical";
+nsDividerBox.DIRECTION_HORIZONTAL = "horizontal";
+nsDividerBox.DIVIDER_DIMENSION = 6;
 
-  <body onload="initialise()">
+nsDividerBox.__childContainer = null;
+nsDividerBox.__direction = null;
+nsDividerBox.__parentDimension = 0;
+nsDividerBox.__arrDivider = [];
+nsDividerBox.__expectedDimension = 0;
 
-    <div id="sidebar" style="min-width:150px;">
-        <h3>Side navbar</h3>
-    </div>
-	<div id="sidebar-resizer" style="width:6px">
-    </div>
-    <div id="content" style="min-Width:150px;">
-        <div id="top-content" style="min-Height:150px;">
-			Top content I am here
-		</div>
-		 <div id="content-resizer" style="height:6px;">
-         </div>
-        <div id="bottom-content" style="min-Height:80px;">
-			Bottom content
-		</div>
-    </div>
-  
-	<script>
-		function initialise()
+nsDividerBox.__currentDivider = null;
+nsDividerBox.__currentBeforeElement = null;
+nsDividerBox.__currentAfterElement = null;
+nsDividerBox.__currentBeforeElementMinDimension = 0;
+nsDividerBox.__currentAfterElementMinDimension = 0;
+nsDividerBox.__currentBeforeElementOffset = 0;
+nsDividerBox.__currentAfterElementOffset = 0;
+nsDividerBox.__lastPosition = 0;
+
+
+nsDividerBox.initializeComponent = function() 
+{
+	this.base.initializeComponent();
+};
+
+nsDividerBox.setComponentProperties = function() 
+{
+	console.log("In child setComponentProperties");
+	if(this.hasAttribute("direction")) 
+	{
+		this.__direction = this.getAttribute("direction");
+		if(!this.__direction)
 		{
-			var hDividerBox = new DividerBox("content-resizer",DividerBox.prototype.DIRECTION_HORIZONTAL);
-			var vDividerBox = new DividerBox("sidebar-resizer",DividerBox.prototype.DIRECTION_VERTICAL);
+			this.util.throwNSError("NSDividerBox","Direction is not initialized");
+			return;
 		}
-	</script>
-    
-    
-  </body>
+		if(this.__direction == this.DIRECTION_VERTICAL)
+		{
+			
+		}
+		else if(this.__direction == this.DIRECTION_HORIZONTAL)
+		{
+			this.setHorizontalComponents();
+		}
+	}
+	if(this.hasAttribute("labelClass"))
+	{
+		this.util.addStyleClass(this.label,this.getAttribute("labelClass"));
+	}
+	this.base.setComponentProperties();
+};
 
-</html>
+nsDividerBox.setHorizontalComponents = function() 
+{
+	if(this.hasAttribute("nsHeight"))
+	{
+		this.__expectedDimension = this.__getDimensionAsNumber(this,this.getAttribute("nsHeight"));
+		this.style.height = this.__expectedDimension + "px";
+		if(!this.style.width)
+		{
+			this.style.width = "100%";
+		}
+		if(!this.style.position != "absolute")
+		{
+			this.style.position = "absolute";
+		}
+	}
+	else if(this.style.height != "")
+	{
+		this.__expectedDimension  = this.__getDimensionAsNumber(this,this.style.height);
+	}
+	else
+	{
+		this.__expectedDimension  = this.offsetHeight;
+	}
+		
+	this.__childContainer = this.util.createDiv(this.getID() + "#container","nsHorizontalResizerContainer");
+	var children = this.childNodes;
+	var arrChildElement = [];
+	var childCount = -1;
+	for (var count = 0; count < children.length; count++) 
+	{
+		var child =  children[count];
+		if(child && this.util.isElement(child) && child.nodeName != "SCRIPT")
+	    {
+			arrChildElement[++childCount] = child;
+			this.removeChild(child);
+	    }
+	}
+	var totalHeightAllocated = 0;
+	for (var count = 0; count < arrChildElement.length; count++) 
+	{
+		var child =  arrChildElement[count];
+		var expectedChildHeight = 0;
+		this.util.addStyleClass(child,"nsHorizontalResizerChild");
+		if(child.style.height)
+		{
+			expectedChildHeight = this.__getDimensionAsNumber(child,child.style.height);
+		}
+		else
+		{
+			expectedChildHeight = this.__expectedDimension  / arrChildElement.length;
+		}
+		var childTop = expectedChildHeight;
+		child.style.top = totalHeightAllocated + "px";
+		child.style.height = childTop + "px";
+		this.__childContainer.appendChild(child);
+		var minDimension = 0;
+		var offsetDimension = 0;
+		if(child.style.minHeight)
+		{
+			minDimension = this.__getDimensionAsNumber(child,child.style.minHeight);
+			offsetDimension = totalHeightAllocated;
+		}
+		totalHeightAllocated += childTop;
+		if(count < arrChildElement.length - 1)
+		{
+			var divider = this.__getHorizontalDivider(count);
+			var dividerHeight = this.DIVIDER_DIMENSION;
+			divider.style.height = dividerHeight + "px";
+			divider.style.top = totalHeightAllocated + "px";
+			totalHeightAllocated += dividerHeight;
+			this.util.addEvent(divider,"mousedown",this.dividerMouseDownHandler.bind(this));
+			this.__childContainer.appendChild(divider);
+			//setting the global Divider Array
+			var objDivider = {beforeElement:child, afterElement:null, beforeElementMinDimension:minDimension, afterElementMinDimension:0,
+							  beforeElementOffset:offsetDimension,afterElementOffset:totalHeightAllocated};
+			this.__arrDivider[divider.id] = objDivider;
+		}
+		if(count != 0)
+		{
+			//setting the next element for previous Divider for global Divider Array
+			var prevDividerID = this.__getDividerID(count - 1);
+			var objPrevDivider = this.__arrDivider[prevDividerID];
+			objPrevDivider.afterElement = child;
+			objPrevDivider.afterElementMinDimension = minDimension;
+			this.__arrDivider[prevDividerID] = objPrevDivider;
+		}
+	}
+	this.appendChild(this.__childContainer);
+};
 
------------------------------------------------------------------------resizer.js-------------------------------------------------------
+nsDividerBox.__getHorizontalDivider = function(count)
+{
+	var dividerID  = this.__getDividerID(count);
+	var divider = this.util.createDiv(dividerID,"nsHorizontalResizer");
+	return divider;
+};
 
-function DividerBox(dividerID,direction) 
-{	
-	this.dividerID = dividerID;
-	this.direction = direction;
-	this.divider = null;
-	this.beforeElement = null;
-	this.afterElement = null;
-	this.parentDimension = 0;
-	this.beforeElementMinDimension = 0;
-	this.afterElementMinDimension = 0;
+nsDividerBox.__getDividerID = function(count)
+{
+	return this.getID() + "#resizer" + count;
+};
+
+nsDividerBox.dividerMouseDownHandler = function (event) 
+{
+	event = this.util.getEvent(event);
+	event.preventDefault();
 	
-	this.initialise();
-}
-
-DividerBox.prototype.DIRECTION_VERTICAL = "vertical";
-DividerBox.prototype.DIRECTION_HORIZONTAL = "horizontal";
-
-DividerBox.prototype.initialise = function () 
-{
-	this.divider = getElement(this.dividerID);
-	this.beforeElement = this.divider.previousElementSibling;
-	this.afterElement = this.divider.nextElementSibling;
-	this.__setDimensions();
-	this.divider.onmousedown = this.dividerMouseDownHandler.bind(this);
-};
-
-DividerBox.prototype.__setDimensions = function()
-{
-	if(this.direction == this.DIRECTION_VERTICAL)
+	var divider = this.util.getTarget(event);
+	if(divider)
 	{
-		this.parentDimension = window.innerWidth;
-		 //set minWidth
-		 if(this.beforeElement.style.minWidth)
-		 {
-			this.beforeElementMinDimension = this.__getDimensionAsNumber(this.beforeElement.style.minWidth);
-		 }
-		 if(this.afterElement.style.minWidth)
-		 {
-			this.afterElementMinDimension = this.__getDimensionAsNumber(this.afterElement.style.minWidth);
-		 }
-	}
-	else if(this.direction == this.DIRECTION_HORIZONTAL)
-	{
-		this.parentDimension = window.innerHeight;
-		//set minHieght
-		if(this.beforeElement.style.minHeight)
-		{
-			this.beforeElementMinDimension = this.__getDimensionAsNumber(this.beforeElement.style.minHeight);
-		}
-		if(this.afterElement.style.minHeight)
-		{
-			this.afterElementMinDimension = this.__getDimensionAsNumber(this.afterElement.style.minHeight);
-		}
+		var objDivider = this.__arrDivider[divider.id];
+		
+		this.__currentDivider = divider;
+		this.__currentBeforeElement = objDivider.beforeElement;
+		this.__currentAfterElement = objDivider.afterElement;
+		this.__currentBeforeElementMinDimension = objDivider.beforeElementMinDimension;
+		this.__currentAfterElementMinDimension = objDivider.afterElementMinDimension;
+		this.__currentBeforeElementOffset = objDivider.beforeElementOffset;
+		this.__currentAfterElementOffset = objDivider.afterElementOffset;
+		
+		document.onmousemove = this.documentMouseMoveHandler.bind(this);
+		document.onmouseup =  this.documentMouseUpHandler.bind(this);
 	}
 };
 
-DividerBox.prototype.__getDimensionAsNumber = function(dimension)
+nsDividerBox.documentMouseMoveHandler = function (event) 
+{
+	if(this.__direction == this.DIRECTION_VERTICAL)
+	{
+		var xPos = event.pageX;
+		var afterElementWidth = this.__expectedDimension - (xPos + this.__currentDivider.offsetWidth);
+		if(xPos > (this.__currentBeforeElementMinDimension + this.__currentBeforeElementOffset) 
+				&& afterElementWidth > (this.__currentAfterElementMinDimension + this.__currentAfterElementOffset))
+		{
+			this.__currentDivider.style.left = xPos + "px";
+			this.__currentBeforeElement.style.width = ((xPos / this.__expectedDimension) * 100) + "%";
+			this.__currentAfterElement.style.width = ((afterElementWidth / this.__expectedDimension) * 100) + "%";
+		}
+	}
+	else if(this.__direction == this.DIRECTION_HORIZONTAL)
+	{
+		var beforeElementMinHeight = 0;
+		var afterElementMinHeight = 0;
+		var yPos = event.pageY - this.offsetTop;
+		var afterElementHeight = this.__expectedDimension - (yPos + this.__currentDivider.offsetHeight);
+		//mouse movement is UP
+		if(event.pageY < this.__lastPosition)
+		{
+			beforeElementMinHeight = this.__currentBeforeElementMinDimension + this.__currentBeforeElementOffset;
+			afterElementMinHeight = this.__currentAfterElementMinDimension + this.__currentAfterElementOffset;
+			if(yPos > beforeElementMinHeight)
+			{
+				this.__currentDivider.style.top = yPos + "px";
+				this.__currentBeforeElement.style.height = yPos + "px";
+				this.__currentAfterElement.style.height = afterElementHeight + "px";
+				this.__currentAfterElement.style.top = (yPos + this.DIVIDER_DIMENSION) + "px";
+			}
+		}
+		//mouse movement is down
+		else if (event.pageY > this.__lastPosition) 
+		{
+			beforeElementMinHeight = this.__currentBeforeElementMinDimension + this.__currentBeforeElementOffset;
+			afterElementMinHeight = this.__currentAfterElementMinDimension;
+			if(afterElementHeight > afterElementMinHeight)
+			{
+				this.__currentDivider.style.top = yPos + "px";
+				this.__currentBeforeElement.style.height = yPos + "px";
+				this.__currentAfterElement.style.height = afterElementHeight + "px";
+				this.__currentAfterElement.style.top = (yPos + this.DIVIDER_DIMENSION) + "px";
+			}
+		}
+		this.__lastPosition = event.pageY;
+		
+		/*if(yPos > beforeElementMinHeight && afterElementHeight > afterElementMinHeight)
+		{
+			this.__currentDivider.style.top = yPos + "px";
+			this.__currentBeforeElement.style.height = yPos + "px";
+			this.__currentAfterElement.style.height = afterElementHeight + "px";
+			this.__currentAfterElement.style.top = (yPos + this.DIVIDER_DIMENSION) + "px";
+		}*/
+	}
+};
+
+nsDividerBox.documentMouseUpHandler = function (event) 
+{
+	document.onmousemove = null;
+	document.onmouseup =  null;
+	
+	this.__currentDivider = null;
+	this.__currentBeforeElement = null;
+	this.__currentAfterElement = null;
+	this.__currentBeforeElementMinDimension = 0;
+	this.__currentAfterElementMinDimension = 0;
+	this.__currentBeforeElementOffset = 0;
+	this.__currentAfterElementOffset = 0;
+	this.__lastPosition = 0;
+};
+
+nsDividerBox.__getDimensionAsNumber = function(element,dimension)
 {
 	var retValue = 0;
-	if(dimension)
+	if(element && dimension)
 	{
-		if(dimension.substring(dimension.length - 2) == "px")
+		if(dimension.substring(dimension.length - 1) == "%")
 		{
-			retValue = dimension.substring(0,dimension.length - 2)
+			dimension = dimension.substring(0,dimension.length - 1);
+			retValue = (dimension / 100) * element.parent.offsetHeight;
+		}
+		else if(dimension.substring(dimension.length - 2) == "px")
+		{
+			retValue = dimension.substring(0,dimension.length - 2);
 		}
 		else
 		{
@@ -317,139 +475,8 @@ DividerBox.prototype.__getDimensionAsNumber = function(dimension)
 	{
 		retValue = 0;
 	}
-	return retValue;
+	return parseInt(retValue);
 	
 };
 
-DividerBox.prototype.dividerMouseDownHandler = function (event) 
-{
-	event.preventDefault();
-	
-	document.onmousemove = this.documentMouseMoveHandler.bind(this);
-	document.onmouseup =  this.documentMouseUpHandler.bind(this);
-};
-
-DividerBox.prototype.documentMouseMoveHandler = function (event) 
-{
-	if(this.direction == this.DIRECTION_VERTICAL)
-	{
-		var xPos = event.pageX;
-		var afterElementWidth = this.parentDimension - (xPos + this.divider.offsetWidth);
-		if(xPos > this.beforeElementMinDimension && afterElementWidth > this.afterElementMinDimension)
-		{
-			this.divider.style.left = xPos + "px";
-			this.beforeElement.style.width = xPos + "px";
-			this.afterElement.style.width = afterElementWidth + "px";
-		}
-	}
-	else if(this.direction == this.DIRECTION_HORIZONTAL)
-	{
-		var pare
-		var yPos = event.pageY;
-		var afterElementHeight = this.parentDimension - (yPos + this.divider.offsetHeight);
-		if(yPos > this.beforeElementMinDimension && afterElementHeight > this.afterElementMinDimension)
-		{
-			this.divider.style.top = yPos + "px";
-			this.beforeElement.style.height = ((yPos / this.parentDimension) * 100) + "%";
-			this.afterElement.style.height = ((afterElementHeight / this.parentDimension) * 100) + "%";
-		}
-	}
-};
-
-DividerBox.prototype.documentMouseUpHandler = function (event) 
-{
-	document.onmousemove = null;
-	document.onmouseup =  null;
-};
-
-
-function getElement(i)
-{
-	return document.getElementById(i);
-}
-
-function hasClass(ele, cls) 
-{
-	return ele.className.match(new RegExp('(\\s|^)' + cls + '(\\s|$)'));
-}
-
-function addClass(ele, cls) 
-{
-	if (!hasClass(ele, cls)) ele.className += " " + cls;
-}
-
-function removeClass(ele, cls) 
-{
-	if (hasClass(ele, cls)) 
-	{
-		var reg = new RegExp('(\\s|^)' + cls + '(\\s|$)');
-		ele.className = ele.className.replace(reg, ' ');
-	}
-}
-
-------------------------------------------------------------------------------------style.css----------------------------------
-
-
-
-#sidebar {
-    background-color: #EEE;
-    position: absolute;
-    top: 0px;
-    bottom: 0;
-    left: 0;
-    width: 20%;
-    overflow: auto;
-}
-#content {
-    position: absolute;
-    top: 0px;
-    bottom: 0;
-    width: 84%; /* 200 + 6*/;
-    right: 0;
-    overflow: hidden;
-    color: #FFF;
-    
-}
-#top-content {
-    position: absolute;
-    top: 0;
-    bottom: 136px; /* 130 + 6 */
-    left: 0;
-    right: 0;
-    background-color: #444;
-    overflow: auto;
-}
-#bottom-content {
-    position: absolute;
-    height: 130px;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    overflow: auto;
-    background-color: #777;
-}
-
-#sidebar-resizer {
-    background-color: #666;
-    position: absolute;
-    top: 0px;
-    bottom: 0;
-    left: 200px;
-    width: 6px;
-    border-right: 1px solid grey;
-    cursor: col-resize;
-}
-#content-resizer {
-    position: absolute;
-    height: 6px;
-    bottom: 130px;
-    left: 0;
-    right: 0;
-    background-color: #666;
-    border-bottom: 1px solid grey;
-    cursor: row-resize;
-}
-
-#sidebar-resizer:hover, #preview-resizer:hover {
-    background-color: #AAA;
-}
+document.registerElement("ns-dividerBox", {prototype: nsDividerBox});
