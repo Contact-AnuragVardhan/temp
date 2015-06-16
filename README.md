@@ -335,18 +335,32 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	{
 		if(rowCount > 0)
 		{
-			var arrChildRows = this.getChildRows(rowCount,isCollapse);
+			var arrChildRows = [];
+			this.getChildRows(arrChildRows,rowCount,isCollapse);
 			if(arrChildRows && arrChildRows.length > 0)
 			{
 				for(var count = 0;count < arrChildRows.length;count++)
 				{
+					var row = arrChildRows[count];
 					if(isCollapse)
 					{
-						arrChildRows[count].style.display = "none";
+						row.style.display = "none";
+						if(row && row.hasAttribute("parent-row-count"))
+						{
+							var rowParentCount = row.getAttribute("parent-row-count");
+							if(rowParentCount)
+							{
+								var divArrow = this.getArrows(rowParentCount);
+								if(divArrow)
+								{
+									divArrow.className = "arrow-right";
+								}
+							}
+						}
 					}
 					else
 					{
-						arrChildRows[count].style.display = "";
+						row.style.display = "";
 					}
 				}
 				if(compArrow)
@@ -364,10 +378,10 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		}
 	}
 	
-	this.getChildRows = function(rowCount,includeAllChildren)
+	this.getChildRows = function(sendRows,rowCount,includeAllChildren)
 	{
-		var sendRows = [];
-		var arrRows = document.querySelectorAll("tr");
+		var tblData = $(this.__TABLE_ID);
+		var arrRows = tblData.querySelectorAll("tr");
 		if(arrRows && arrRows.length > 0)
 		{
 			for(var count = 0;count < arrRows.length;count++)
@@ -380,9 +394,10 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 					{
 						if(includeAllChildren)
 						{
-							if(rowParentCount.indexOf(rowCount) == 0)
+							if(rowParentCount == rowCount)
 							{
 								sendRows[sendRows.length] = row;
+								this.getChildRows(sendRows,count,includeAllChildren);
 							}
 						}
 						else if(rowParentCount == rowCount)
@@ -393,8 +408,27 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 				}
 			}
 		}
-		
-		return sendRows;
+	}
+	
+	this.getArrows = function(rowCount)
+	{
+		var tblData = $(this.__TABLE_ID);
+		var arrDivs = tblData.querySelectorAll("div");
+		if(arrDivs && arrDivs.length > 0)
+		{
+			for(var count = 0;count < arrDivs.length;count++)
+			{
+				var div = arrDivs[count];
+				if(div && div.hasAttribute("parent-row-count"))
+				{
+					var rowParentCount = div.getAttribute("parent-row-count");
+					if(rowParentCount && rowParentCount == rowCount)
+					{
+						return div;
+					}
+				}
+			}
+		}
 	}
 	//http://msdn.microsoft.com/en-us/library/ms532998%28v=vs.85%29.aspx
 	this.createFooter= function(table)
@@ -505,7 +539,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	     if(columnDetail && columnDetail.sortable)
 	     {
 	            // if last sorted column and current sorted column are same just reverse the dataset
-	          if (hasStyleClass(target,this.__CLASS_SORTING_ASC) || hasStyleClass(target,this.__CLASS_SORTING_DESC))
+	          /*if (hasStyleClass(target,this.__CLASS_SORTING_ASC) || hasStyleClass(target,this.__CLASS_SORTING_DESC))
 	          {
 	               this.reverseTable();
 	               if(hasStyleClass(target,this.__CLASS_SORTING_ASC))
@@ -519,7 +553,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	            	   this.addAscendingIndicator(target);
 	               }
 	               return;
-	          }
+	          }*/
 	          this.resetColumnHeaders();
 	          if(columnDetail.sortDescending)
 	          {
@@ -705,7 +739,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	      {
 	          sortFunction = "sortDate";
 	      }
-	      if (item.match(/^[£$]/))
+	      if (item.match(/^[�$]/))
 	      {
 	          sortFunction = "sortCurrency";
 	      }
@@ -1570,297 +1604,4 @@ if (!Function.prototype.bind)
 	    return fBound;
 	  };
 }
-
-
-/******************************************************End of Util Functions*************************************************************/
-
-
-
-
-
-
-
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>Data Set Demo</title>
-<!-- css from http://www.csstablegenerator.com/?table_id=3 -->
-<style>
-body 
-{
-	font-family: "Trebuchet MS", Tahoma, sans-serif;
-	font-size: 14px;
-	background-repeat: no-repeat;
-	margin: 0;
-	padding: 0;
-}
-
-.dataGrid
-{
-    border-collapse: collapse;
-    border-spacing: 0;
-    margin:0px;
-    padding:0px;
-    border:1px solid #000000;
-}
-.dataGridTitleBar
-{
-    background-color: #eee;
-    border-left: 1px solid #ccc;
-    border-right: 1px solid #ccc;
-    border-top: 1px solid #ccc;
-    color: #333;
-    font-weight: bold;
-    text-shadow: 1px 1px 0 white;
-}
-
-.dataGridHeader
-{
-    background:-o-linear-gradient(bottom, #005fbf 5%, #003f7f 100%);  
-    background:-webkit-gradient( linear, left top, left bottom, color-stop(0.05, #005fbf), color-stop(1, #003f7f) );
-    background:-moz-linear-gradient( center top, #005fbf 5%, #003f7f 100% );
-    filter:progid:DXImageTransform.Microsoft.gradient(startColorstr="#005fbf", endColorstr="#003f7f");  
-    background: -o-linear-gradient(top,#005fbf,003f7f);
-    background-color:#005fbf;
-    border:1px solid #000000;
-    text-align:center;
-    border-width:0px 0px 1px 1px;
-    font-weight:bold;
-    color:#ffffff;
-    cursor : default;
-}
-.dataGridOddRow
-{
-    background-color:#aad4ff;
-}
-.dataGridEvenRow  
-{
-    background-color:#ffffff;   
-}
-.dataGridCell
-{
-    border-bottom : buttonshadow 1px solid;
-    border-top : buttonshadow 1px solid;
-    border-left : buttonshadow 1px solid;
-    border-right : buttonshadow 1px solid;
-    cursor : default;
-    padding:7px;
-    text-align:left;
-    font-weight:normal;
-     vertical-align:middle;
-     color:#000000;
-}
-.dataGridHover
-{
-    background-color: #ffff99;
-}
-.dataGridSelection
-{
-    background-color: #b0bed9;
-}
-
-.hbox 
-{
-	display: -webkit-box;
-	-webkit-box-orient: horizontal;
-	-webkit-box-align: stretch;
- 
-	display: -moz-box;
-	-moz-box-orient: horizontal;
-	-moz-box-align: stretch;
- 
-	display: box;
-	box-orient: horizontal;
-	box-align: stretch;
-}
-
-.arrow-down 
-{
-	width: 0; 
-	height: 0; 
-	border-left: 5px solid transparent;
-	border-right: 5px solid transparent;
-	border-top: 5px solid #000;
-}
-
-.arrow-right 
-{
-	width: 0; 
-	height: 0; 
-	border-top: 5px solid transparent;
-	border-bottom: 5px solid transparent;
-	border-left: 5px solid #000;
-}
-</style>
-<script type="text/javascript" src="jsDataGrid1.js"></script>
-<!--  <script type="text/javascript" src="resizable-tables.js"></script> -->
-<script type="text/javascript">
-
-var columns=[ { headerText: "Id", dataField: "id", width : 30 , sortable: true , sortDescending: false },
-              { headerText: "Title", dataField: "title" ,width : 140 , sortable: true , sortDescending: true },
-              { headerText: "Artist", dataField: "artist" ,width : 120 , sortable: false , sortDescending: true },
-              { headerText: "Country", dataField: "country" ,width : 150 , sortable: true , sortDescending: true },
-              { headerText: "Company", dataField: "company" ,width : 100 , sortable: true , sortDescending: false },
-              { headerText: "Price", dataField: "price" ,width : 100 , sortable: true , sortDescending: true },
-              { headerText: "Year", dataField: "year" ,width : 60 , sortable: true , sortDescending: true }
-           ];
-
-                
-var dataSource =[{id: '1', title: 'Empire Burlesque', artist: 'Bob Dylan', country: 'US', company: 'Columbia', price: '10.90', year: '1985',children:[
-					{id: '2', title: 'Hide your heart', artist: 'Bonnie Tyler', country: 'UK', company: 'CBS Records', price: '9.90', year: '1988',children:[
-						{id: '3', title: 'One night only', artist: 'Bee Gees', country: 'UK', company: 'Polydor', price: '10.90', year: '1998'},
-						{id: '4', title: 'Romanza', artist: 'Andrea Bocelli', country: 'US', company: 'Polydor', price: '10.80', year: '1996'}  					                                                                                                                                         
-					]},
-                 ]},
-	            {id: '5', title: 'Pavarotti Gala Concert', artist: 'Luciano Pavarotti', country: 'US', company: 'DECCA', price: '9.90', year: '1991'},
-	            {id: '6', title: 'Picture book', artist: 'Simply Red', country: 'US', company: 'Elektra', price: '7.90', year: '1985'},
-	            {id: '7', title: 'Eros', artist: 'Eros Ramazzotti', country: 'US', company: 'BMG', price: '9.90', year: '1997'},
-	            {id: '8', title: 'Black angel', artist: 'Savage Rose', country: 'US', company: 'Mega', price: '10.90', year: '1995'},
-	            {id: '9', title: 'For the good times', artist: 'Kenny Rogers', country: 'UK', company: 'Mucik Master', price: '8.70', year: '1995'},
-	            {id: '10',title: 'Big Willie style', artist: 'Will Smith', country: 'US', company: 'Columbia', price: '9.90', year: '1997'},
-	            {id: '11', title: 'Empire Burlesque', artist: 'Bob Dylan', country: 'US', company: 'Columbia', price: '10.90', year: '1985'},
-	            {id: '12', title: 'Hide your heart', artist: 'Bonnie Tyler', country: 'UK', company: 'CBS Records', price: '9.90', year: '1988'},
-	            {id: '13', title: 'One night only', artist: 'Bee Gees', country: 'UK', company: 'Polydor', price: '10.90', year: '1998'},
-	            {id: '14', title: 'Romanza', artist: 'Andrea Bocelli', country: 'US', company: 'Polydor', price: '10.80', year: '1996'},
-	            {id: '15', title: 'Pavarotti Gala Concert', artist: 'Luciano Pavarotti', country: 'US', company: 'DECCA', price: '9.90', year: '1991'},
-	            {id: '16', title: 'Picture book', artist: 'Simply Red', country: 'US', company: 'Elektra', price: '7.90', year: '1985'},
-	            {id: '17', title: 'Eros', artist: 'Eros Ramazzotti', country: 'US', company: 'BMG', price: '9.90', year: '1997'},
-	            {id: '18', title: 'Black angel', artist: 'Savage Rose', country: 'US', company: 'Mega', price: '10.90', year: '1995'},
-	            {id: '19', title: 'For the good times', artist: 'Kenny Rogers', country: 'UK', company: 'Mucik Master', price: '8.70', year: '1995'},
-	            {id: '20',title: 'Big Willie style', artist: 'Will Smith', country: 'US', company: 'Columbia', price: '9.90', year: '1997'},
-	            {id: '21', title: 'Empire Burlesque', artist: 'Bob Dylan', country: 'US', company: 'Columbia', price: '10.90', year: '1985'},
-	            {id: '22', title: 'Hide your heart', artist: 'Bonnie Tyler', country: 'UK', company: 'CBS Records', price: '9.90', year: '1988'},
-	            {id: '23', title: 'One night only', artist: 'Bee Gees', country: 'UK', company: 'Polydor', price: '10.90', year: '1998'},
-	            {id: '24', title: 'Romanza', artist: 'Andrea Bocelli', country: 'US', company: 'Polydor', price: '10.80', year: '1996'},
-	            {id: '25', title: 'Pavarotti Gala Concert', artist: 'Luciano Pavarotti', country: 'US', company: 'DECCA', price: '9.90', year: '1991'},
-	            {id: '26', title: 'Picture book', artist: 'Simply Red', country: 'US', company: 'Elektra', price: '7.90', year: '1985'},
-	            {id: '27', title: 'Eros', artist: 'Eros Ramazzotti', country: 'US', company: 'BMG', price: '9.90', year: '1997'},
-	            {id: '28', title: 'Black angel', artist: 'Savage Rose', country: 'US', company: 'Mega', price: '10.90', year: '1995'},
-	            {id: '29', title: 'For the good times', artist: 'Kenny Rogers', country: 'UK', company: 'Mucik Master', price: '8.70', year: '1995'},
-	            {id: '30',title: 'Big Willie style', artist: 'Will Smith', country: 'US', company: 'Columbia', price: '9.90', year: '1997'},
-	            {id: '31', title: 'Empire Burlesque', artist: 'Bob Dylan', country: 'US', company: 'Columbia', price: '10.90', year: '1985'},
-	            {id: '32', title: 'Hide your heart', artist: 'Bonnie Tyler', country: 'UK', company: 'CBS Records', price: '9.90', year: '1988'},
-	            {id: '33', title: 'One night only', artist: 'Bee Gees', country: 'UK', company: 'Polydor', price: '10.90', year: '1998'},
-	            {id: '34', title: 'Romanza', artist: 'Andrea Bocelli', country: 'US', company: 'Polydor', price: '10.80', year: '1996'},
-	            {id: '35', title: 'Pavarotti Gala Concert', artist: 'Luciano Pavarotti', country: 'US', company: 'DECCA', price: '9.90', year: '1991'},
-	            {id: '36', title: 'Picture book', artist: 'Simply Red', country: 'US', company: 'Elektra', price: '7.90', year: '1985'},
-	            {id: '37', title: 'Eros', artist: 'Eros Ramazzotti', country: 'US', company: 'BMG', price: '9.90', year: '1997'},
-	            {id: '38', title: 'Black angel', artist: 'Savage Rose', country: 'US', company: 'Mega', price: '10.90', year: '1995'},
-	            {id: '39', title: 'For the good times', artist: 'Kenny Rogers', country: 'UK', company: 'Mucik Master', price: '8.70', year: '1995'},
-	            {id: '40',title: 'Big Willie style', artist: 'Will Smith', country: 'US', company: 'Columbia', price: '9.90', year: '1997'},
-	            {id: '41', title: 'Empire Burlesque', artist: 'Bob Dylan', country: 'US', company: 'Columbia', price: '10.90', year: '1985'},
-	            {id: '42', title: 'Hide your heart', artist: 'Bonnie Tyler', country: 'UK', company: 'CBS Records', price: '9.90', year: '1988'},
-	            {id: '43', title: 'One night only', artist: 'Bee Gees', country: 'UK', company: 'Polydor', price: '10.90', year: '1998'},
-	            {id: '44', title: 'Romanza', artist: 'Andrea Bocelli', country: 'US', company: 'Polydor', price: '10.80', year: '1996'},
-	            {id: '45', title: 'Pavarotti Gala Concert', artist: 'Luciano Pavarotti', country: 'US', company: 'DECCA', price: '9.90', year: '1991'},
-	            {id: '46', title: 'Picture book', artist: 'Simply Red', country: 'US', company: 'Elektra', price: '7.90', year: '1985'},
-	            {id: '47', title: 'Eros', artist: 'Eros Ramazzotti', country: 'US', company: 'BMG', price: '9.90', year: '1997'},
-	            {id: '48', title: 'Black angel', artist: 'Savage Rose', country: 'US', company: 'Mega', price: '10.90', year: '1995'},
-	            {id: '49', title: 'For the good times', artist: 'Kenny Rogers', country: 'UK', company: 'Mucik Master', price: '8.70', year: '1995'},
-	            {id: '50',title: 'Big Willie style', artist: 'Will Smith', country: 'US', company: 'Columbia', price: '9.90', year: '1997'},
-	            {id: '51', title: 'Empire Burlesque', artist: 'Bob Dylan', country: 'US', company: 'Columbia', price: '10.90', year: '1985'},
-	            {id: '52', title: 'Hide your heart', artist: 'Bonnie Tyler', country: 'UK', company: 'CBS Records', price: '9.90', year: '1988'},
-	            {id: '53', title: 'One night only', artist: 'Bee Gees', country: 'UK', company: 'Polydor', price: '10.90', year: '1998'},
-	            {id: '54', title: 'Romanza', artist: 'Andrea Bocelli', country: 'US', company: 'Polydor', price: '10.80', year: '1996'},
-	            {id: '55', title: 'Pavarotti Gala Concert', artist: 'Luciano Pavarotti', country: 'US', company: 'DECCA', price: '9.90', year: '1991'},
-	            {id: '56', title: 'Picture book', artist: 'Simply Red', country: 'US', company: 'Elektra', price: '7.90', year: '1985'},
-	            {id: '57', title: 'Eros', artist: 'Eros Ramazzotti', country: 'US', company: 'BMG', price: '9.90', year: '1997'},
-	            {id: '58', title: 'Black angel', artist: 'Savage Rose', country: 'US', company: 'Mega', price: '10.90', year: '1995'},
-	            {id: '59', title: 'For the good times', artist: 'Kenny Rogers', country: 'UK', company: 'Mucik Master', price: '8.70', year: '1995'},
-	            {id: '60',title: 'Big Willie style', artist: 'Will Smith', country: 'US', company: 'Columbia', price: '9.90', year: '1997'},
-	            {id: '61', title: 'Empire Burlesque', artist: 'Bob Dylan', country: 'US', company: 'Columbia', price: '10.90', year: '1985'},
-	            {id: '62', title: 'Hide your heart', artist: 'Bonnie Tyler', country: 'UK', company: 'CBS Records', price: '9.90', year: '1988'},
-	            {id: '63', title: 'One night only', artist: 'Bee Gees', country: 'UK', company: 'Polydor', price: '10.90', year: '1998'},
-	            {id: '64', title: 'Romanza', artist: 'Andrea Bocelli', country: 'US', company: 'Polydor', price: '10.80', year: '1996'},
-	            {id: '65', title: 'Pavarotti Gala Concert', artist: 'Luciano Pavarotti', country: 'US', company: 'DECCA', price: '9.90', year: '1991'},
-	            {id: '66', title: 'Picture book', artist: 'Simply Red', country: 'US', company: 'Elektra', price: '7.90', year: '1985'},
-	            {id: '67', title: 'Eros', artist: 'Eros Ramazzotti', country: 'US', company: 'BMG', price: '9.90', year: '1997'},
-	            {id: '68', title: 'Black angel', artist: 'Savage Rose', country: 'US', company: 'Mega', price: '10.90', year: '1995'},
-	            {id: '69', title: 'For the good times', artist: 'Kenny Rogers', country: 'UK', company: 'Mucik Master', price: '8.70', year: '1995'},
-	            {id: '70',title: 'Big Willie style', artist: 'Will Smith', country: 'US', company: 'Columbia', price: '9.90', year: '1997'},
-	            {id: '71', title: 'Empire Burlesque', artist: 'Bob Dylan', country: 'US', company: 'Columbia', price: '10.90', year: '1985'},
-	            {id: '72', title: 'Hide your heart', artist: 'Bonnie Tyler', country: 'UK', company: 'CBS Records', price: '9.90', year: '1988'},
-	            {id: '73', title: 'One night only', artist: 'Bee Gees', country: 'UK', company: 'Polydor', price: '10.90', year: '1998'},
-	            {id: '74', title: 'Romanza', artist: 'Andrea Bocelli', country: 'US', company: 'Polydor', price: '10.80', year: '1996'},
-	            {id: '75', title: 'Pavarotti Gala Concert', artist: 'Luciano Pavarotti', country: 'US', company: 'DECCA', price: '9.90', year: '1991'},
-	            {id: '76', title: 'Picture book', artist: 'Simply Red', country: 'US', company: 'Elektra', price: '7.90', year: '1985'},
-	            {id: '77', title: 'Eros', artist: 'Eros Ramazzotti', country: 'US', company: 'BMG', price: '9.90', year: '1997'},
-	            {id: '78', title: 'Black angel', artist: 'Savage Rose', country: 'US', company: 'Mega', price: '10.90', year: '1995'},
-	            {id: '79', title: 'For the good times', artist: 'Kenny Rogers', country: 'UK', company: 'Mucik Master', price: '8.70', year: '1995'},
-	            {id: '80',title: 'Big Willie style', artist: 'Will Smith', country: 'US', company: 'Columbia', price: '9.90', year: '1997'},
-	            {id: '81', title: 'Empire Burlesque', artist: 'Bob Dylan', country: 'US', company: 'Columbia', price: '10.90', year: '1985'},
-	            {id: '82', title: 'Hide your heart', artist: 'Bonnie Tyler', country: 'UK', company: 'CBS Records', price: '9.90', year: '1988'},
-	            {id: '83', title: 'One night only', artist: 'Bee Gees', country: 'UK', company: 'Polydor', price: '10.90', year: '1998'},
-	            {id: '84', title: 'Romanza', artist: 'Andrea Bocelli', country: 'US', company: 'Polydor', price: '10.80', year: '1996'},
-	            {id: '85', title: 'Pavarotti Gala Concert', artist: 'Luciano Pavarotti', country: 'US', company: 'DECCA', price: '9.90', year: '1991'},
-	            {id: '86', title: 'Picture book', artist: 'Simply Red', country: 'US', company: 'Elektra', price: '7.90', year: '1985'},
-	            {id: '87', title: 'Eros', artist: 'Eros Ramazzotti', country: 'US', company: 'BMG', price: '9.90', year: '1997'},
-	            {id: '88', title: 'Black angel', artist: 'Savage Rose', country: 'US', company: 'Mega', price: '10.90', year: '1995'},
-	            {id: '89', title: 'For the good times', artist: 'Kenny Rogers', country: 'UK', company: 'Mucik Master', price: '8.70', year: '1995'},
-	            {id: '90',title: 'Big Willie style', artist: 'Will Smith', country: 'US', company: 'Columbia', price: '9.90', year: '1997'},
-	            {id: '91', title: 'Empire Burlesque', artist: 'Bob Dylan', country: 'US', company: 'Columbia', price: '10.90', year: '1985'},
-	            {id: '92', title: 'Hide your heart', artist: 'Bonnie Tyler', country: 'UK', company: 'CBS Records', price: '9.90', year: '1988'},
-	            {id: '93', title: 'One night only', artist: 'Bee Gees', country: 'UK', company: 'Polydor', price: '10.90', year: '1998'},
-	            {id: '94', title: 'Romanza', artist: 'Andrea Bocelli', country: 'US', company: 'Polydor', price: '10.80', year: '1996'},
-	            {id: '95', title: 'Pavarotti Gala Concert', artist: 'Luciano Pavarotti', country: 'US', company: 'DECCA', price: '9.90', year: '1991'},
-	            {id: '96', title: 'Picture book', artist: 'Simply Red', country: 'US', company: 'Elektra', price: '7.90', year: '1985'},
-	            {id: '97', title: 'Eros', artist: 'Eros Ramazzotti', country: 'US', company: 'BMG', price: '9.90', year: '1997'},
-	            {id: '98', title: 'Black angel', artist: 'Savage Rose', country: 'US', company: 'Mega', price: '10.90', year: '1995'},
-	            {id: '99', title: 'For the good times', artist: 'Kenny Rogers', country: 'UK', company: 'Mucik Master', price: '8.70', year: '1995'},
-	            {id: '100', title: 'Big Willie style', artist: 'Will Smith', country: 'US', company: 'Columbia', price: '9.90', year: '1997'}
-            ];
-function loadHandler()
-{
-	/*JSDataGrid.init("divTable",columns,"Data Set Demo",true,true);
-	JSDataGrid.dataSource(dataSource);
-	JSDataGrid.rowSelectionHandler = onSelection;
-	JSDataGrid.rowUnSelectionHandler = onUnSelection;*/
-	var dataGrid = new JSDataGrid("divTable",null,"640px","300px",columns,"Data Set Demo",true,true);
-	dataGrid.init();
-	dataGrid.dataSource(dataSource);
-	dataGrid.rowSelectionHandler = onSelection;
-	dataGrid.rowUnSelectionHandler = onUnSelection;
-}
-
-function onSelection(item)
-{
-	if(item)
-	{
-		//divSelected.innerHTML += "Engine:" + item.engine + ",";
-	}
-}
-
-function onUnSelection(item)
-{
-	if(item)
-	{
-		//divUnSelected.innerHTML += "Engine:" + item.engine + ",";
-	}
-}
- 
-//Global Exception Handler
-/*window.onerror = function(msg, url, line)
-{
-    // You can view the information in an alert to see things working
-    // like so:
-   alert("Error: " + msg + "\nurl: " + url + "\nline #: " + line);
-   // TODO: Report this error via ajax so you can keep track
-   //       of what pages have JS issues
-   var suppressErrorAlert = true;
-   // If you return true, then error alerts (like in older versions of
-   // Internet Explorer) will be suppressed.
-   return suppressErrorAlert;
-};*/
-</script>
-</head>
-<body onload="loadHandler();" style="margin:0px;padding:0px;">
- <div id="divTable" style="position:relative; width: 640px; height: 300px">
- </div>
- <div id="divSelected">
- </div>
-  <div id="divUnSelected">
- </div>
-</body>
-</html>
 
