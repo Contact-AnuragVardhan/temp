@@ -20,8 +20,11 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	this.__CLASS_SORTING_DESC = "sorted_desc";
 	this.__OUTER_CONTAINER_ID = "divDataSet";
 	this.__TITLE_CONTAINER_ID = "divTitleBar";
-	this.__TABLE_CONTAINER_ID = "divTableContainer";
-	this.__TABLE_ID = "tblDataSet";
+	this.__TABLE_HEADER_CONTAINER_ID = "divHeaderContainer";
+	this.__TABLE_HEADER_ID = "tblHeader";
+	this.__TABLE_BODY_CONTAINER_ID = "divBodyContainer";
+	this.__TABLE_BODY_ID = "tblBody";
+	
 	this.__FOOTER_CONTAINER_ID = "divFooterContainer";
 	this.__FOOTER_TABLE_ID = "tblFooter";
 	//private variables
@@ -79,12 +82,14 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		this.__CLASS_SORTING_DESC += this.generatedKey;
 		this.__OUTER_CONTAINER_ID += this.generatedKey;
 		this.__TITLE_CONTAINER_ID += this.generatedKey;
-		this.__TABLE_CONTAINER_ID += this.generatedKey;
-		this.__TABLE_ID += this.generatedKey;
+		this.__TABLE_HEADER_CONTAINER_ID += this.generatedKey;
+		this.__TABLE_HEADER_ID += this.generatedKey;
+		this.__TABLE_BODY_CONTAINER_ID += this.generatedKey;
+		this.__TABLE_BODY_ID += this.generatedKey;
 		this.__FOOTER_CONTAINER_ID += this.generatedKey;
 		this.__FOOTER_TABLE_ID += this.generatedKey;
-		
 	}
+	
 	this.createDataSet= function()
 	{
 		this.parentElement.innerHTML = "";
@@ -121,27 +126,118 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	
 	this.createTable= function()
 	{
-		var divTableContainer = createDiv(this.__TABLE_CONTAINER_ID); 
-		divTableContainer.style.height = "100%";
-		divTableContainer.style.overflow = "auto";
-		$(this.__OUTER_CONTAINER_ID).appendChild(divTableContainer);
-		tblDataSet = document.createElement("TABLE");
-		tblDataSet.id = this.__TABLE_ID;
-		addStyleClass(tblDataSet , "dataGrid");
-		//addStyleClass(tblDataSet , "draggable");
-		addStyleClass(tblDataSet , "resizable");
-		divTableContainer.appendChild(tblDataSet);
 		this.createHeader();
 	}
 	
 	this.createHeader= function()
-	{
-		this.createHeaderRows();
+	{	
+		var divOuterContainer = $(this.__OUTER_CONTAINER_ID);
+		var divHeader = this.getSectionContainer(this.__TABLE_HEADER_CONTAINER_ID,this.__TABLE_HEADER_ID);
+		divHeader.style.overflow = "hidden";
+		divOuterContainer.appendChild(divHeader);
+		var tblData = $(this.__TABLE_HEADER_ID);
+	    var tBodies = tblData.tBodies;
+	    var tblHeader = null;
+	    if(tBodies && tBodies.length > 0)
+	    {
+	    	 tblData.removeChild(tBodies[0]);
+	    }
+	    tblHeader = document.createElement("tbody");
+	    tblData.appendChild(tblHeader);
+		
+		//this.createHeaderRows();
 	}
 	
 	this.createHeaderRows= function()
 	{
-		var tblData = $(this.__TABLE_ID);
+		var tblData = $(this.__TABLE_HEADER_ID);
+		var tblHeader = tblData.tHead;
+		var tblHeaderBody = tblData.tBodies[0];
+		if(tblHeader)
+	    {
+			//IE8 gives runtime exception if we do tblHeader.innerHTML = "" hence doing removeChild
+			tblHeader.removeChild(tblHeader.firstChild);
+	    }
+		else
+		{
+			 tblHeader = tblData.createTHead();
+		}
+	    var headerRow = tblHeader.insertRow(-1);
+	    headerRow.style.height = "auto";
+	    var bodyRow = tblHeaderBody.insertRow(-1);
+	    for (var colIndex = 0; colIndex < columns.length; colIndex++)
+	    {
+	    	var headerText = " ";
+	        var colItem = columns[colIndex];
+	        if(colItem.hasOwnProperty("headerText") && colItem["headerText"])
+	        {
+	        	headerText = colItem["headerText"];
+	        }
+            var headerCell = headerRow.insertCell(-1);
+            var bodyCell = bodyRow.insertCell(-1);
+            bodyCell.id = "col" + colItem["headerText"];
+            var cellDiv = createDiv("div" + headerText); 
+            bodyCell.appendChild(cellDiv);
+            if(colItem.hasOwnProperty("width") && !isNaN(colItem["width"]))
+            {
+            	headerCell.style.width = Number(colItem["width"]) + "px";
+            }
+            else
+            {
+            	headerCell.style.width = "100" + "px";
+            }
+            headerCell.style.height = "0px";
+            cellDiv.innerHTML = "<b>" + headerText + "</b>";
+            addStyleClass(bodyCell , "dataGridHeader");
+            var item = null;
+            if(this._dataSource && this._dataSource.length > 0 && colItem.hasOwnProperty("dataField") && colItem["dataField"] && colItem.hasOwnProperty("sortable") && colItem["sortable"] === true)
+            {
+                  for(var count = 0; count < this._dataSource.length; count++)
+                  {
+                       item = this._dataSource[count][colItem["dataField"]];
+                       if(item && item != "")
+                       {
+                           break;
+                       }
+                  }
+                  if(item && item !="")
+                  {
+                	  bodyCell.sortFunction = this.determineSortFunction(item);
+                  }
+                  else
+                  {
+                	  bodyCell.sortFunction = "sortCaseInsensitive";
+                  }
+            }   
+            bodyCell.columnIndex = colIndex;
+            bodyCell.onclick = this.headerClickHandler.bind(this);
+            //cell.onmousedown = this.headerMouseDownHandler.bind(this);
+	    }
+	}
+	
+	this.createBody= function(dataSet)
+	{	
+		var divOuterContainer = $(this.__OUTER_CONTAINER_ID);
+		var divBody = this.getSectionContainer(this.__TABLE_BODY_CONTAINER_ID,this.__TABLE_BODY_ID);
+		divBody.style.overflow = "auto";
+		divOuterContainer.appendChild(divBody);
+		var tblData = $(this.__TABLE_BODY_ID);
+	    var tBodies = tblData.tBodies;
+	    var tblBody = null;
+	    if(tBodies && tBodies.length > 0)
+	    {
+	    	 tblData.removeChild(tBodies[0]);
+	    }
+	    tblBody = document.createElement("tbody");
+	    tblData.appendChild(tblBody);
+	    this.createBodyHeader();
+		this.createBodyComponents(tblBody,dataSet,0,0);
+		this.alignTables();
+	}
+	
+	this.createBodyHeader= function()
+	{
+		var tblData = $(this.__TABLE_BODY_ID);
 		var tblHeader = tblData.tHead;
 		if(tblHeader)
 	    {
@@ -152,65 +248,22 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		{
 			 tblHeader = tblData.createTHead();
 		}
-	    var row = tblHeader.insertRow(-1);
+	    var headerRow = tblHeader.insertRow(-1);
+	    headerRow.style.height = "auto";
 	    for (var colIndex = 0; colIndex < columns.length; colIndex++)
 	    {
 	        var colItem = columns[colIndex];
-	        if(colItem.hasOwnProperty("headerText") && colItem["headerText"] && colItem.hasOwnProperty("dataField") && colItem["dataField"])
-	        {
-	            var cell = row.insertCell(-1);
-	            cell.id = "col" + colItem["headerText"];
-	            var cellDiv = createDiv("div" + colItem["headerText"]); 
-	            cell.appendChild(cellDiv);
-	            if(colItem.hasOwnProperty("width") && !isNaN(colItem["width"]))
-	            {
-	            	cell.style.width = Number(colItem["width"]) + "px";
-	            }
-	            else
-	            {
-	            	cell.style.width = "100" + "px";
-	            }
-	            cellDiv.innerHTML = "<b>" + colItem["headerText"] + "</b>";
-	            addStyleClass(cell , "dataGridHeader");
-	            var item = null;
-	            if(this._dataSource && this._dataSource.length > 0 && colItem.hasOwnProperty("sortable") && colItem["sortable"] === true)
-	            {
-	                  for(var count = 0; count < this._dataSource.length; count++)
-                      {
-                           item = this._dataSource[count][colItem["dataField"]];
-                           if(item && item != "")
-                           {
-                               break;
-                           }
-                      }
-                      if(item && item !="")
-                      {
-                          cell.sortFunction = this.determineSortFunction(item);
-                      }
-                      else
-                      {
-                          cell.sortFunction = "sortCaseInsensitive";
-                      }
-	            }   
-	            cell.columnIndex = colIndex;
-	            cell.onclick = this.headerClickHandler.bind(this);
-	            //cell.onmousedown = this.headerMouseDownHandler.bind(this);
-	        }
+            var headerCell = headerRow.insertCell(-1);
+            if(colItem.hasOwnProperty("width") && !isNaN(colItem["width"]))
+            {
+            	headerCell.style.width = Number(colItem["width"]) + "px";
+            }
+            else
+            {
+            	headerCell.style.width = "100" + "px";
+            }
+            headerCell.style.height = "0px";
 	    }
-	}
-	
-	this.createBody= function(dataSet)
-	{
-		var tblData = $(this.__TABLE_ID);
-	    var tBodies = tblData.tBodies;
-	    var tblBody = null;
-	    if(tBodies && tBodies.length > 0)
-	    {
-	    	 tblData.removeChild(tBodies[0]);
-	    }
-	    tblBody = document.createElement("tbody");
-	    tblData.appendChild(tblBody);
-		this.createBodyComponents(tblBody,dataSet,0,0);
 	}
 	
 	this.createBodyComponents= function(tblBody,dataSet,parentIndex,level)
@@ -225,16 +278,17 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		        {
 		        	row.setAttribute("parent-row-count",parentIndex);
 		        }
+		        var totalRowCount = this.getTotalRows() - 1;
 		        var className = null;
-		        if((rowIndex % 2) === 0)
+		        if((totalRowCount % 2) === 0)
 		        {
-		            className="dataGridEvenRow";
+		            className = "dataGridEvenRow";
 		        }
 		        else
 		        {
-		            className="dataGridOddRow";
+		            className = "dataGridOddRow";
 		        }
-		        this.createRow(row,item,className,this.getTotalRows() - 1,level);
+		        this.createRow(row,item,className,totalRowCount,level);
 		        addStyleClass(row , className);
 		        row.source = item;
 		        row.index = rowIndex + level;
@@ -243,7 +297,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		        row.onclick =  this.rowClickHandler.bind(this);
 		        if(item.hasOwnProperty(this.childField) && item[this.childField]  && item[this.childField].length > 0)
 	            {
-		        	this.createBodyComponents(tblBody,item[this.childField],this.getTotalRows() - 1,level + 1);
+		        	this.createBodyComponents(tblBody,item[this.childField],totalRowCount,level + 1);
 	            }
 		        //addEvent(trs[i],'click',this.callBodyClick);
 		        //addEvent(trs[i],'dblclick',this.callBodyDblClick);
@@ -258,18 +312,20 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	        for (var colIndex = 0; colIndex < columns.length; colIndex++)
 	        {
 	        	var colItem = columns[colIndex];
-	        	if(colItem.hasOwnProperty("dataField") && colItem["dataField"])
+	        	if((colItem.hasOwnProperty("dataField") && colItem["dataField"]) || (colItem.hasOwnProperty("templateID") && colItem["templateID"])
+	        			|| (colItem.hasOwnProperty("itemRenderer") && colItem["itemRenderer"]))
 	        	{
 	        		var dataField = colItem["dataField"];
+	        		var templateID = colItem["templateID"];
 		            var cell = row.insertCell(-1);
-		            if(colItem.hasOwnProperty("width") && !isNaN(colItem["width"]))
+		            /*if(colItem.hasOwnProperty("width") && !isNaN(colItem["width"]))
 		            {
 		            	cell.style.width = Number(colItem["width"]) + "px";
 		            }
 		            else
 		            {
 		            	cell.style.width = "100" + "px";
-		            }
+		            }*/
 		            if(className && className.length > 0)
 		            {
 		                addStyleClass(cell , "dataGridCell");
@@ -296,17 +352,73 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		            	cellDiv.appendChild(compArrow);
 		            	cellDiv.appendChild(document.createTextNode('\u00A0'));
 		            	var cellText = createDiv(null);
-		            	this.addCellText(item,cellText,dataField);
+		            	this.addCellText(item,cellText,colItem,colIndex);
 		            	cellDiv.appendChild(cellText);
 		            }
 		            else
 		            {
-		            	this.addCellText(item,cellDiv,dataField);
+		            	this.addCellText(item,cellDiv,colItem,colIndex);
 		            }
 	        	}
 	        }
 	    }
 	}
+	
+	this.alignTables = function()
+	{
+		var divOuterContainer = $(this.__OUTER_CONTAINER_ID);
+		var divHeader = $(this.__TABLE_HEADER_CONTAINER_ID);
+		var divBody = $(this.__TABLE_BODY_CONTAINER_ID);
+		var divTitleBar = $(this.__TITLE_CONTAINER_ID);
+		var topHeight = divHeader.offsetHeight;
+		if(divTitleBar)
+		{
+			topHeight += divTitleBar.offsetHeight;
+		}
+		divBody.style.height = (divOuterContainer.offsetHeight - topHeight) + "px";
+		var tableHeader = $(this.__TABLE_HEADER_ID);
+		var tableBody = $(this.__TABLE_BODY_ID);
+		var scrollbarWidth = divBody.parentNode.offsetWidth - divBody.offsetWidth;
+		divHeader.style.width = (divBody.offsetWidth - 17) + "px";
+		tableBody.onscroll = this.synchronizeTables(tableHeader,tableBody);
+		
+		if(tableHeader.tHead && tableHeader.tHead.rows.length > 0 && tableBody.tHead && tableBody.tHead.rows.length)
+		{
+			var headerCells = tableHeader.tHead.rows[0].cells;
+			var bodyCells = tableBody.tHead.rows[0].cells;
+			if(headerCells && headerCells.length > 0 && bodyCells && bodyCells.length > 0)
+			{
+				for(var count = 0;count < headerCells.length;count++)
+				{
+					headerCells[count].style.width = bodyCells[count].offsetWidth + "px";
+				}
+			}
+		}
+	}
+	
+	this.synchronizeTables = function(tableHeader,tableBody) 
+	{
+		return function () 
+		{
+			//tableHeader.scrollTop = event.srcElement.scrollTop;
+			tableHeader.scrollLeft = event.srcElement.scrollLeft;
+		};
+	}
+	
+	this.getSectionContainer = function(containerID,tableID)
+	{
+		var divTableContainer = createDiv(containerID); 
+		var table = document.createElement("TABLE");
+		table.id = tableID;
+		addStyleClass(table , "dataGrid");
+		//addStyleClass(tblDataSet , "draggable");
+		addStyleClass(table , "resizable");
+		divTableContainer.appendChild(table);
+		
+		return divTableContainer;
+	}
+	
+	
 	this.createArrow= function(parentRowCount)
 	{
 		 var compArrow = createDiv("compArrow" + parentRowCount,"arrow-down");
@@ -314,9 +426,33 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		 compArrow.onclick =  this.arrowClickHandler.bind(this);
 		 return compArrow;
 	}
-	this.addCellText = function(item,div,dataField)
+	
+	this.addCellText = function(item,div,colItem,colIndex)
 	{
 		var text = "";
+		var dataField = colItem["dataField"];
+		var templateID = colItem["templateID"];
+		var itemRenderer = colItem["itemRenderer"];
+		if(itemRenderer)
+		{
+			var strRenderer = itemRenderer(item,dataField,this.getTotalRows() - 1,colIndex);
+			if(strRenderer)
+			{
+				var compBodySpan = document.createElement("span");
+				compBodySpan.innerHTML = strRenderer;
+				div.appendChild(compBodySpan);
+				return ;
+			}
+		}
+		if(templateID)
+		{
+			var template = getTemplate(templateID);
+			if(template)
+			{
+				div.appendChild(template);
+				return ;
+			}
+		}
 		if(item && item.hasOwnProperty(dataField) && item[dataField])
         {
 			text = item[dataField];
@@ -388,7 +524,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	
 	this.getChildRows = function(sendRows,rowCount,includeAllChildren)
 	{
-		var tblData = $(this.__TABLE_ID);
+		var tblData = $(this.__TABLE_BODY_ID);
 		var arrRows = tblData.querySelectorAll("tr");
 		if(arrRows && arrRows.length > 0)
 		{
@@ -420,7 +556,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	
 	this.getArrows = function(rowCount)
 	{
-		var tblData = $(this.__TABLE_ID);
+		var tblData = $(this.__TABLE_BODY_ID);
 		var arrDivs = tblData.querySelectorAll("div");
 		if(arrDivs && arrDivs.length > 0)
 		{
@@ -440,7 +576,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	}
 	this.getTotalRows = function()
 	{
-		var tblData = $(this.__TABLE_ID);
+		var tblData = $(this.__TABLE_BODY_ID);
 		if(tblData)
 		{
 			return tblData.rows.length;
@@ -528,18 +664,19 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	
 	this.resetColumnHeaders= function()
 	{
-	     var tblData = $(this.__TABLE_ID);
+	     var tblData = $(this.__TABLE_HEADER_ID);
+	     var tblHeaderBody = null;
 	     //safari doesnot support table.tHead
-	     if (!tblData.tHead)
+	     if (tblData.tBodies && tblData.tBodies.length > 0)
 	     {
-	          tblData.tHead = tblData.getElementsByTagName("thead")[0];
+	    	 tblHeaderBody = tblData.tBodies[0];
 	     }
 	     //two header not allowed
-	     if (tblData.tHead.rows.length != 1)
+	     if (tblHeaderBody.rows.length != 1)
 	     {
 	          return;
 	     }
-	     var headers = tblData.tHead.rows[0].cells;
+	     var headers = tblHeaderBody.rows[0].cells;
 	     for (var colCount = 0; colCount < headers.length; colCount++)
 	     {
 	          this.resetIndicators(headers[colCount]);
@@ -944,7 +1081,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	this.reverseTable= function()
 	{
 	    // reverse the rows in a tbody
-	    var tbody = $(this.__TABLE_ID).tBodies[0];
+	    var tbody = $(this.__TABLE_BODY_ID).tBodies[0];
 	    var indexCount = 0;
 	    newrows = new Array();
 	    for (var rowCount=0; rowCount < tbody.rows.length; rowCount++)
@@ -1627,6 +1764,42 @@ function forEach(object, block, context)
 	  }
 }
 
+function getTemplate(templateID)
+{
+	var compBodySpan = null;
+	if(templateID)
+	{
+		if(supportsTemplate())
+		{
+			var template = document.querySelector(templateID);
+			if(template)
+			{
+				compBodySpan = document.createElement("span");
+				var templateClone = document.importNode(template.content, true);
+				compBodySpan.appendChild(templateClone);
+			}
+		}
+		else
+		{
+			var template = document.querySelector(templateID);
+			if(template)
+			{
+				compBodySpan = document.createElement("span");
+				compBodySpan.innerHTML = template.innerHTML;
+				template.style.display = "none";
+				//template.parentNode.removeChild(template);
+			}
+		}
+	}
+	
+	return compBodySpan;
+}
+
+function supportsTemplate() 
+{
+    return ("content" in document.createElement('template'));
+}
+
 /*  End of section copied from http://dean.edwards.name/base/forEach.js */
 
 if (!Function.prototype.bind) 
@@ -1656,9 +1829,7 @@ if (!Function.prototype.bind)
 	    return fBound;
 	  };
 }
----------------------------------------------------------------------------------------------------------------------------------------------
-
-
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
@@ -1763,19 +1934,6 @@ if (!Function.prototype.bind)
 	border-left: 5px solid #000;
 }
 
-table.scroll {
-    border-spacing: 0;
-    border: 2px solid black;
-}
-
-table.scroll tbody,
-table.scroll thead { display: block; }
-
-table.scroll tbody {
-    height: 100px;
-    overflow-y: auto;
-    overflow-x: hidden;
-}
 
 </style>
 <script type="text/javascript" src="jsDataGrid1.js"></script>
@@ -1785,11 +1943,13 @@ table.scroll tbody {
 var columns=[ { headerText: "Id", dataField: "id", width : 30 , sortable: true , sortDescending: false },
               { headerText: "Hierarchy", dataField: "hierarchy" ,width : 200 , sortable: true , sortDescending: true },
               { headerText: "Supervisor", dataField: "supervisor" ,width : 150 , sortable: false , sortDescending: true },
-              { headerText: "Employees", dataField: "employees" ,width : 150 , sortable: true , sortDescending: true }
+              { headerText: "Employees", dataField: "employees" ,width : 150 , sortable: true , sortDescending: true },
+              //{ headerText: "", dataField: "checked" ,width : 50 , sortable: false , sortDescending: false,templateID:"#tempCheckBox"},
+              { headerText: "", dataField: "checked" ,width : 50 , sortable: false , sortDescending: false,itemRenderer:itemRenderer}
            ];
 
                 
-var dataSource =[{id: '1', hierarchy: 'NDPI', supervisor: null, country: 'US', employees: null, price: '10.90', year: '1985',children:[
+var dataSource =[{id: '1', hierarchy: 'NDPI', supervisor: null, country: 'US', employees: null, price: '10.90', year: '1985',checked:true,children:[
 					{id: '2', hierarchy: 'NGFP Head', supervisor: 'Bonnie Tyler', country: 'UK', employees: 'Patel,Samir', price: '9.90', year: '1988',children:[
 						{id: '3', hierarchy: 'NGFP Corporate Equity Derivative Sales', supervisor: 'Bee Gees', country: 'UK', employees: 'Polydor', price: '10.90', year: '1998'},
 						{id: '4', hierarchy: 'NGFP Structured Products Sales', supervisor: 'Andrea Bocelli', country: 'US', employees: 'Polydor', price: '10.80', year: '1996'}  					                                                                                                                                         
@@ -1900,7 +2060,7 @@ function loadHandler()
 	JSDataGrid.dataSource(dataSource);
 	JSDataGrid.rowSelectionHandler = onSelection;
 	JSDataGrid.rowUnSelectionHandler = onUnSelection;*/
-	var dataGrid = new JSDataGrid("divTable",null,"640px","200px",columns,"Data Set Demo",true,true);
+	var dataGrid = new JSDataGrid("divTable",null,"340px","200px",columns,"Data Set Demo",true,true);
 	dataGrid.init();
 	dataGrid.dataSource(dataSource);
 	dataGrid.rowSelectionHandler = onSelection;
@@ -1922,6 +2082,19 @@ function onUnSelection(item)
 		//divUnSelected.innerHTML += "Engine:" + item.engine + ",";
 	}
 }
+
+function itemRenderer(data,dataField,rowIndex,columnIndex)
+{
+	var selected = data[dataField];
+	if(selected)
+	{
+		return '<input type="checkbox" checked>';
+	}
+	else
+	{
+		return '<input type="checkbox">';
+	}
+}
  
 //Global Exception Handler
 /*window.onerror = function(msg, url, line)
@@ -1939,6 +2112,9 @@ function onUnSelection(item)
 </script>
 </head>
 <body onload="loadHandler();" style="margin:0px;padding:0px;">
+ <template id="tempCheckBox">
+ 	<input type="checkbox" name="vehicle" value="Bike">
+ </template>
  <div id="divTable" style="position:relative; width: 640px; height: 700px;padding-left:50px;">
  </div>
  <div id="divSelected">
