@@ -1,5 +1,3 @@
-<!--http://dev.sencha.com/deploy/ext-4.0.0/examples/tree/treegrid.html -->
-
 function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHover,enableMultiSelection)
 {
 	//public properties
@@ -11,7 +9,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	this.enableMouseHover = enableMouseHover;
 	this.enableMultiSelection = enableMultiSelection;
 	this.parentElement = null;
-	this.columns = null;
+	this.columns = columns;
 	this.rowSelectionHandler = null;
 	this.rowUnSelectionHandler = null;
 	this.childField = "children";
@@ -36,6 +34,12 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	this._dragColumns = null;
 	//store the id's added key
 	this.generatedKey = null;
+	//stores whether mouse is on GridLine
+	this._onGridLine = false;
+	//cell which is being resized
+	this._resizingHeader = null;
+	this._resizingHeaderCell = null;
+	this._resizingBodyCell = null;
 	
 	/******************************************************Start of Public function Section*************************************************************/
 	this.init= function()
@@ -45,7 +49,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 			throw new Error("JSDataGrid Error :: ParentElementId cannot be null");
 			return;
 		}
-		this.parentElement = $(this.parentElementId);
+		this.parentElement = getElement(this.parentElementId);
 		if(!this.parentElement)
 		{
 			throw new Error("JSDataGrid Error :: ParentElement not found");
@@ -61,14 +65,14 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		this._dragColumns = new Object();
 		this._dragColumns.zIndex = 0;
 		this.createDataSet();
-	}
+	};
 	
 	this.dataSource= function(source)
 	{
 		this._dataSource = source;
 		this.createHeaderRows();
 		this.createBody(this._dataSource);
-	}
+	};
 	
 	/******************************************************End of Public function Section*************************************************************/
 	/******************************************************Start of Creating DataGrid Components*************************************************************/
@@ -88,7 +92,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		this.__TABLE_BODY_ID += this.generatedKey;
 		this.__FOOTER_CONTAINER_ID += this.generatedKey;
 		this.__FOOTER_TABLE_ID += this.generatedKey;
-	}
+	};
 	
 	this.createDataSet= function()
 	{
@@ -113,7 +117,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 			divOuterContainer.appendChild(divTitleBar);
 		}
 		this.createTable();
-	}
+	};
 	
 	this.createTitleBar= function(title)
 	{
@@ -122,20 +126,20 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		divTitleBar.innerHTML = title;
 		
 		return divTitleBar;
-	}
+	};
 	
 	this.createTable= function()
 	{
 		this.createHeader();
-	}
+	};
 	
 	this.createHeader= function()
 	{	
-		var divOuterContainer = $(this.__OUTER_CONTAINER_ID);
+		var divOuterContainer = getElement(this.__OUTER_CONTAINER_ID);
 		var divHeader = this.getSectionContainer(this.__TABLE_HEADER_CONTAINER_ID,this.__TABLE_HEADER_ID);
 		divHeader.style.overflow = "hidden";
 		divOuterContainer.appendChild(divHeader);
-		var tblData = $(this.__TABLE_HEADER_ID);
+		var tblData = getElement(this.__TABLE_HEADER_ID);
 	    var tBodies = tblData.tBodies;
 	    var tblHeader = null;
 	    if(tBodies && tBodies.length > 0)
@@ -146,11 +150,11 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	    tblData.appendChild(tblHeader);
 		
 		//this.createHeaderRows();
-	}
+	};
 	
 	this.createHeaderRows= function()
 	{
-		var tblData = $(this.__TABLE_HEADER_ID);
+		var tblData = getElement(this.__TABLE_HEADER_ID);
 		var tblHeader = tblData.tHead;
 		var tblHeaderBody = tblData.tBodies[0];
 		if(tblHeader)
@@ -165,10 +169,10 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	    var headerRow = tblHeader.insertRow(-1);
 	    headerRow.style.height = "auto";
 	    var bodyRow = tblHeaderBody.insertRow(-1);
-	    for (var colIndex = 0; colIndex < columns.length; colIndex++)
+	    for (var colIndex = 0; colIndex < this.columns.length; colIndex++)
 	    {
 	    	var headerText = " ";
-	        var colItem = columns[colIndex];
+	        var colItem = this.columns[colIndex];
 	        if(colItem.hasOwnProperty("headerText") && colItem["headerText"])
 	        {
 	        	headerText = colItem["headerText"];
@@ -211,19 +215,25 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
                   }
             }   
             bodyCell.columnIndex = colIndex;
-            bodyCell.onclick = this.headerClickHandler.bind(this);
-            bodyCell.onmousemove = this.headerMouseMoveHandler.bind(this);
-            //cell.onmousedown = this.headerMouseDownHandler.bind(this);
+            
+            addEvent(bodyCell,"click",this.headerClickHandler.bind(this));
+            addEvent(bodyCell,"mouseover",this.headerMouseOverHandler.bind(this));
+            addEvent(bodyCell,"mouseout",this.headerMouseOutHandler.bind(this));
 	    }
-	}
+	};
 	
 	this.createBody= function(dataSet)
 	{	
-		var divOuterContainer = $(this.__OUTER_CONTAINER_ID);
+		var divOuterContainer = getElement(this.__OUTER_CONTAINER_ID);
 		var divBody = this.getSectionContainer(this.__TABLE_BODY_CONTAINER_ID,this.__TABLE_BODY_ID);
 		divBody.style.overflow = "auto";
 		divOuterContainer.appendChild(divBody);
-		var tblData = $(this.__TABLE_BODY_ID);
+		this.renderBody(dataSet);
+	};
+	
+	this.renderBody = function(dataSet)
+	{
+		var tblData = getElement(this.__TABLE_BODY_ID);
 	    var tBodies = tblData.tBodies;
 	    var tblBody = null;
 	    if(tBodies && tBodies.length > 0)
@@ -235,11 +245,11 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	    this.createBodyHeader();
 		this.createBodyComponents(tblBody,dataSet,0,0);
 		this.alignTables();
-	}
+	};
 	
 	this.createBodyHeader= function()
 	{
-		var tblData = $(this.__TABLE_BODY_ID);
+		var tblData = getElement(this.__TABLE_BODY_ID);
 		var tblHeader = tblData.tHead;
 		if(tblHeader)
 	    {
@@ -252,9 +262,9 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		}
 	    var headerRow = tblHeader.insertRow(-1);
 	    headerRow.style.height = "auto";
-	    for (var colIndex = 0; colIndex < columns.length; colIndex++)
+	    for (var colIndex = 0; colIndex < this.columns.length; colIndex++)
 	    {
-	        var colItem = columns[colIndex];
+	        var colItem = this.columns[colIndex];
             var headerCell = headerRow.insertCell(-1);
             if(colItem.hasOwnProperty("width") && !isNaN(colItem["width"]))
             {
@@ -266,7 +276,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
             }
             headerCell.style.height = "0px";
 	    }
-	}
+	};
 	
 	this.createBodyComponents= function(tblBody,dataSet,parentIndex,level)
 	{
@@ -305,15 +315,15 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		        //addEvent(trs[i],'dblclick',this.callBodyDblClick);
 		     }
 	     }
-	}
+	};
 	
 	this.createRow= function(row,item,className,parentIndex,level)
 	{
 	    if(item)
 	    {
-	        for (var colIndex = 0; colIndex < columns.length; colIndex++)
+	        for (var colIndex = 0; colIndex < this.columns.length; colIndex++)
 	        {
-	        	var colItem = columns[colIndex];
+	        	var colItem = this.columns[colIndex];
 	        	if((colItem.hasOwnProperty("dataField") && colItem["dataField"]) || (colItem.hasOwnProperty("templateID") && colItem["templateID"])
 	        			|| (colItem.hasOwnProperty("itemRenderer") && colItem["itemRenderer"]))
 	        	{
@@ -355,22 +365,22 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	        	}
 	        }
 	    }
-	}
+	};
 	
 	this.alignTables = function()
 	{
-		var divOuterContainer = $(this.__OUTER_CONTAINER_ID);
-		var divHeader = $(this.__TABLE_HEADER_CONTAINER_ID);
-		var divBody = $(this.__TABLE_BODY_CONTAINER_ID);
-		var divTitleBar = $(this.__TITLE_CONTAINER_ID);
+		var divOuterContainer = getElement(this.__OUTER_CONTAINER_ID);
+		var divHeader = getElement(this.__TABLE_HEADER_CONTAINER_ID);
+		var divBody = getElement(this.__TABLE_BODY_CONTAINER_ID);
+		var divTitleBar = getElement(this.__TITLE_CONTAINER_ID);
 		var topHeight = divHeader.offsetHeight;
 		if(divTitleBar)
 		{
 			topHeight += divTitleBar.offsetHeight;
 		}
 		divBody.style.height = (divOuterContainer.offsetHeight - topHeight) + "px";
-		var tableHeader = $(this.__TABLE_HEADER_ID);
-		var tableBody = $(this.__TABLE_BODY_ID);
+		var tableHeader = getElement(this.__TABLE_HEADER_ID);
+		var tableBody = getElement(this.__TABLE_BODY_ID);
 		var scrollbarWidth = divBody.parentNode.offsetWidth - divBody.offsetWidth;
 		divHeader.style.width = (divBody.offsetWidth - 17) + "px";
 		divBody.onscroll = this.synchronizeTables.bind(this);
@@ -393,16 +403,16 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 			}
 		}
 		
-		tableHeader.style.tableLayout = "fixed";
-		tableBody.style.tableLayout = "fixed";
-	}
+		//tableHeader.style.tableLayout = "fixed";
+		//tableBody.style.tableLayout = "fixed";
+	};
 	
 	this.synchronizeTables = function(event) 
 	{
-		var divHeader = $(this.__TABLE_HEADER_CONTAINER_ID);
+		var divHeader = getElement(this.__TABLE_HEADER_CONTAINER_ID);
 		//divHeader.scrollTop = event.srcElement.scrollTop;
 		divHeader.scrollLeft = event.srcElement.scrollLeft;
-	}
+	};
 	
 	this.getSectionContainer = function(containerID,tableID)
 	{
@@ -415,7 +425,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		divTableContainer.appendChild(table);
 		
 		return divTableContainer;
-	}
+	};
 	
 	
 	this.createArrow= function(parentRowCount)
@@ -424,7 +434,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		 compArrow.setAttribute("parent-row-count",parentRowCount);
 		 compArrow.onclick =  this.arrowClickHandler.bind(this);
 		 return compArrow;
-	}
+	};
 	
 	this.addCellText = function(item,div,colItem,colIndex)
 	{
@@ -457,7 +467,16 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 			text = item[dataField];
         }
 		div.appendChild(document.createTextNode(text));
-	}
+	};
+	
+	this.isMouseOnElement = function(element, currentX, currentY)
+	{
+		var offset = getCumulativeOffset(element);
+		return (currentY >= offset.y &&
+				currentY <  offset.y + element.offsetHeight &&
+	            currentX >= offset.x + element.offsetWidth - 5 &&
+	            currentX <  offset.x + element.offsetWidth);
+	};
 	
 	this.arrowClickHandler = function(event)
 	{
@@ -472,7 +491,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 			}
 			this.hideShowRow(rowNum,target,isCollapse);
 		}
-	}
+	};
 	
 	this.hideShowRow = function(rowCount,compArrow,isCollapse)
 	{
@@ -519,11 +538,11 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 				}
 			}
 		}
-	}
+	};
 	
 	this.getChildRows = function(sendRows,rowCount,includeAllChildren)
 	{
-		var tblData = $(this.__TABLE_BODY_ID);
+		var tblData = getElement(this.__TABLE_BODY_ID);
 		var arrRows = tblData.querySelectorAll("tr");
 		if(arrRows && arrRows.length > 0)
 		{
@@ -551,11 +570,11 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 				}
 			}
 		}
-	}
+	};
 	
 	this.getArrows = function(rowCount)
 	{
-		var tblData = $(this.__TABLE_BODY_ID);
+		var tblData = getElement(this.__TABLE_BODY_ID);
 		var arrDivs = tblData.querySelectorAll("div");
 		if(arrDivs && arrDivs.length > 0)
 		{
@@ -572,16 +591,17 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 				}
 			}
 		}
-	}
+	};
+	
 	this.getTotalRows = function()
 	{
-		var tblData = $(this.__TABLE_BODY_ID);
+		var tblData = getElement(this.__TABLE_BODY_ID);
 		if(tblData)
 		{
 			return tblData.rows.length;
 		}
 		return 0;
-	}
+	};
 	//http://msdn.microsoft.com/en-us/library/ms532998%28v=vs.85%29.aspx
 	this.createFooter= function(table)
 	{
@@ -595,10 +615,10 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	    oCell.bgColor = "lightskyblue";
 	 
 	      // Set the innerText of the caption and position it at the bottom of the table.
-	    oCaption.innerHTML = "Created using Table Object Model."
+	    oCaption.innerHTML = "Created using Table Object Model.";
 	    oCaption.style.fontSize = "10px";
 	    oCaption.align = "bottom";
-	}
+	};
 	
 	this.addAscendingIndicator= function(target)
 	{
@@ -611,20 +631,20 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	          target.firstChild.appendChild(indicator_Asc);
 	          addStyleClass(target,this.__CLASS_SORTING_ASC);
 	     }
-	}
+	};
 	
 	this.removeAscendingIndicator= function(target)
 	{
 	     if(target)
 	     {
 	          removeStyleClass(target,this.__CLASS_SORTING_ASC);
-	          var indicator_Asc = $("indicator_Asc");
+	          var indicator_Asc = getElement("indicator_Asc");
 	          if(indicator_Asc && indicator_Asc.parentNode)
 	          {
 	        	  indicator_Asc.parentNode.removeChild(indicator_Asc);
 	          }
 	     }
-	}
+	};
 	
 	this.addDescendingIndicator= function(target)
 	{
@@ -637,20 +657,20 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	         target.firstChild.appendChild(indicatorDesc);
 	         addStyleClass(target,this.__CLASS_SORTING_DESC);
 	    }
-	}
+	};
 	
 	this.removeDescendingIndicators= function(target)
 	{
 	     if(target)
 	     {
 	          removeStyleClass(target,this.__CLASS_SORTING_DESC);
-	          var indicator_Desc = $("indicator_Desc");
+	          var indicator_Desc = getElement("indicator_Desc");
 	          if(indicator_Desc && indicator_Desc.parentNode)
 	          {
 	        	  indicator_Desc.parentNode.removeChild(indicator_Desc);
 	          }
 	     }
-	}
+	};
 	
 	this.resetIndicators= function(target)
 	{
@@ -659,11 +679,11 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	          this.removeAscendingIndicator(target);
 	          this.removeDescendingIndicators(target);
 	     }
-	}
+	};
 	
 	this.resetColumnHeaders= function()
 	{
-	     var tblData = $(this.__TABLE_HEADER_ID);
+	     var tblData = getElement(this.__TABLE_HEADER_ID);
 	     var tblHeaderBody = null;
 	     //safari doesnot support table.tHead
 	     if (tblData.tBodies && tblData.tBodies.length > 0)
@@ -680,7 +700,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	     {
 	          this.resetIndicators(headers[colCount]);
 	     }
-	}
+	};
 	/******************************************************End of Creating DataGrid Components*************************************************************/
 	/******************************************************Start of Event Handlers*************************************************************/
 	this.headerClickHandler= function(event)
@@ -688,7 +708,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	     var target = getTarget(event);
 	     //adding the below condition so that if we add a span or a font and click on it then we should navigate till we find the header object
 	     target = findParent(target,"TD");
-	     var columnDetail = columns[target.columnIndex];
+	     var columnDetail = this.columns[target.columnIndex];
 	     if(columnDetail && columnDetail.sortable)
 	     {
 	            // if last sorted column and current sorted column are same just reverse the dataset
@@ -735,25 +755,56 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	        	  this.addDescendingIndicator(target);
 	          }
 	          var dataSorted = this._dataSource.slice(0);
-	          this.sortArrOfObjectsByParam(this._dataSource,target.sortFunction,columns[target.columnIndex].dataField,sortAscending);
-	          this.createBody(this._dataSource);
+	          this.sortArrOfObjectsByParam(this._dataSource,target.sortFunction,this.columns[target.columnIndex].dataField,sortAscending);
+	          this.renderBody(this._dataSource);
 	     }
-	}
+	};
+	
+	this.headerMouseOverHandler = function(event)
+	{
+		event = getEvent(event);
+		var target = getTarget(event);
+		target = findParent(target,"TD");
+		addEvent(target,"mousemove",this.headerMouseMoveHandler.bind(this));
+        addEvent(target,"mousedown",this.headerMouseDownHandler.bind(this));
+	};
+	
+	this.headerMouseOutHandler = function(event)
+	{
+		event = getEvent(event);
+		var target = getTarget(event);
+		target = findParent(target,"TD");
+		this._onGridLine = false;
+		removeEvent(target,"mousemove",this.headerMouseMoveHandler.bind(this));
+		removeEvent(target,"mousedown",this.headerMouseDownHandler.bind(this));
+		removeStyleClass(target,"resize-handle-active");
+	};
 	
 	this.headerMouseMoveHandler = function(event)
 	{
 		event = getEvent(event);
 		var target = getTarget(event);
 		target = findParent(target,"TD");
-	}
+		if(this.isMouseOnElement(target,event.clientX,event.clientY))
+		{
+			addStyleClass(target,"resize-handle-active");
+			this._onGridLine = true;
+		}
+		else
+		{
+			removeStyleClass(target,"resize-handle-active");
+			this._onGridLine = false;
+		}
+	};
 	
 	this.headerMouseDownHandler = function(event)
 	{
 		event = getEvent(event);
 	    var target = getTarget(event);
 	    target = findParent(target,"TD");
-	    this.dragStart(event,target);
-	}
+	    this.startResize(event,target);
+	    //this.dragStart(event,target);
+	};
 	
 	this.rowMouseHover= function(event)
 	{
@@ -772,7 +823,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		     }
 		 }
 		    return false;
-	}
+	};
 	
 	this.rowClickHandler= function(event)
 	{
@@ -800,7 +851,102 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	    	this.clearAllRowSelection();
 	    	this.markRowSelected(target);
 	    } 
-	}
+	};
+	
+	this.resize = function(table,cell, desirableWidth)
+	{
+		var cellIndex = cell.cellIndex;
+		var cellPaddingLeft = getDimensionAsNumber(cell,"paddingLeft");
+		var cellPaddingRight = getDimensionAsNumber(cell,"paddingRight");
+		var pad = parseInt(cellPaddingLeft,10) + parseInt(cellPaddingRight,10);
+		var setWidth = desirableWidth - pad; //Math.max(desirableWidth - pad, TableKit.option('minWidth', table.id)[0]);
+		console.log(setWidth);
+		
+		cell.style.width = setWidth + "px";
+	};
+	
+	this.startResize = function(event,target)
+	{
+		if(!this._onGridLine)
+		{
+			return;
+		}
+		removeEvent(target,"mousemove",this.headerMouseMoveHandler.bind(this));
+		removeEvent(target,"mousedown",this.headerMouseDownHandler.bind(this));
+		removeEvent(target,"mouseout",this.headerMouseOutHandler.bind(this));
+		
+		this._resizingHeader = target;
+		this._resizingHeaderCell = this.getHeaderTopCell(target);
+		this._resizingBodyCell = this.getBodyTopCell(target);
+		
+		var headerTable = getElement(this.__TABLE_HEADER_ID);
+		
+		addEvent(document,"mousemove",this.doResize.bind(this));
+		addEvent(document,"mouseup",this.endResize.bind(this));
+		event.stopImmediatePropagation();
+	};
+	
+	this.doResize = function(event)
+	{
+		event = getEvent(event);
+		var headerTable = getElement(this.__TABLE_HEADER_ID);
+		var tableBody = getElement(this.__TABLE_BODY_ID);
+		var selectedHeader = this._resizingHeader;
+		if(selectedHeader)
+		{
+			var desiredWidth = event.clientX - getCumulativeOffset(selectedHeader).x;
+			//this.resize(headerTable,this._resizingHeaderCell,desiredWidth);
+			//this.resize(headerTable,this._resizingHeaderCell,desiredWidth);
+		}
+		return false;
+	};
+	
+	this.endResize = function(event)
+	{
+		event = getEvent(event);
+		var selectedHeader = this._resizingHeader;
+		var tableHeader = getElement(this.__TABLE_HEADER_ID);
+		var tableBody = getElement(this.__TABLE_BODY_ID);
+		if(selectedHeader)
+		{
+			var desiredWidth = event.clientX - getCumulativeOffset(selectedHeader).x;
+			this.resize(tableHeader,this._resizingHeaderCell,desiredWidth);
+			this.resize(tableBody,this._resizingBodyCell,desiredWidth);
+			addEvent(selectedHeader,"mouseout",this.headerMouseOutHandler.bind(this));
+		}
+		removeEvent(document,"mousemove",this.doResize.bind(this));
+		removeEvent(document,"mouseup",this.endResize.bind(this));
+		
+		this._resizingHeader = null;
+		this._resizingHeaderCell = null;
+		this._resizingBodyCell = null;
+		event.stopImmediatePropagation();
+	};
+	
+	this.getHeaderTopCell = function(cell)
+	{
+		if(cell)
+		{
+			var index = cell.cellIndex;
+			var tableHeader = getElement(this.__TABLE_HEADER_ID);
+			var headerCells = tableHeader.tHead.rows[0].cells;
+			return headerCells[index];
+		}
+		return null;
+	};
+	
+	this.getBodyTopCell = function(cell)
+	{
+		if(cell)
+		{
+			var index = cell.cellIndex;
+			var tableBody = getElement(this.__TABLE_BODY_ID);
+			var bodyCells = tableBody.tHead.rows[0].cells;
+			return bodyCells[index];
+		}
+		return null;
+	};
+	
 	/*callBodyDblClick:function(e) {
 	    var elm = SortedTable.getEventElement(e);
 	    var st = SortedTable.getSortedTable(elm);
@@ -818,7 +964,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	        return hasStyleClass(row,"dataGridSelection");
 	    }   
 	    return false;
-	}
+	};
 	
 	this.markRowSelected= function(row)
 	{
@@ -830,11 +976,11 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	            this._selectedItems.push(row);
 	            if(isFunction(this.rowSelectionHandler))
 	            {
-	                this.rowSelectionHandler(row.source)
+	                this.rowSelectionHandler(row.source);
 	            }
 	        }
 	    }
-	}
+	};
 	
 	this.markRowUnselected= function(row)
 	{
@@ -851,10 +997,10 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	        }
 	        if(isFunction(this.rowUnSelectionHandler))
 	        {
-	            this.rowUnSelectionHandler(row.source)
+	            this.rowUnSelectionHandler(row.source);
 	        }
 	    }
-	}
+	};
 	
 	this.clearAllRowSelection= function()
 	{
@@ -866,7 +1012,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	        }
 	    }
 	    this._selectedItems = new Array();
-	}
+	};
 	
 	this.multiSectionHandler= function(lastRow)
 	{
@@ -900,8 +1046,8 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 				  this.markRowUnselected(navigateRow);
 			  }
 		 }
-		 while(navigateRow.index != lastRow.index)
-	}
+		 while(navigateRow.index != lastRow.index);
+	};
 	/******************************************************End of Selection Functions*************************************************************/
 	/******************************************************Start of Sorting Logic*************************************************************/
 	//This method is based on Stuart Langridge's "sorttable" code
@@ -909,11 +1055,11 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	{ 
 	      var sortFunction = "sortCaseInsensitive";
 	     
-	      if (item.match(/^\d\d[\/-]\d\d[\/-]\d\d\d\d$/))
+	      if (item.match(/^\d\d[\/-]\d\d[\/-]\d\d\d\dgetElement/))
 	      {
 	          sortFunction = "sortDate";
 	      }
-	      if (item.match(/^\d\d[\/-]\d\d[\/-]\d\d$/))
+	      if (item.match(/^\d\d[\/-]\d\d[\/-]\d\dgetElement/))
 	      {
 	          sortFunction = "sortDate";
 	      }
@@ -921,17 +1067,17 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	      {
 	          sortFunction = "sortCurrency";
 	      }
-	      if (item.match(/^\d?\.?\d+$/))
+	      if (item.match(/^\d?\.?\d+getElement/))
 	      {
 	             sortFunction = "sortNumeric";
 	      }
-	      if (item.match(/^[+-]?\d*\.?\d+([eE]-?\d+)?$/))
+	      if (item.match(/^[+-]?\d*\.?\d+([eE]-?\d+)?getElement/))
 	      {
 	             sortFunction = "sortNumeric";
 	      }
 	     
 	      return sortFunction;
-	}
+	};
 
 	this.sortArrOfObjectsByParam= function(arrToSort,sortFunctionName,dataField,sortAscending)
 	{
@@ -948,7 +1094,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	         }
 	         return retValue;
 	     }.bind(this));
-	}
+	};
 	 
 	this.sortCaseInsensitive= function(item1, item2 , dataField, sortAscending)
 	{
@@ -989,7 +1135,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	        return retValue; 
 	    }
 	    return (retValue * -1);
-	}
+	};
 	 
 	this.sortDate= function(item1, item2 , dataField, sortAscending)
 	{
@@ -1052,7 +1198,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	          return retValue; 
 	      }
 	      return (retValue * -1);
-	}
+	};
 	
 	this.sortCurrency= function(item1, item2 , dataField, sortAscending)
 	{
@@ -1063,7 +1209,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	          return parseFloat(firstCurrency) - parseFloat(secondCurrency); 
 	      }
 	      return parseFloat(secondCurrency) - parseFloat(firstCurrency);
-	}
+	};
 	
 	this.sortNumeric= function(item1, item2 , dataField, sortAscending)
 	{
@@ -1082,12 +1228,12 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	          return (firstNumber - secondNumber);
 	      }
 	      return (secondNumber - firstNumber);
-	}
+	};
 	
 	this.reverseTable= function()
 	{
 	    // reverse the rows in a tbody
-	    var tbody = $(this.__TABLE_BODY_ID).tBodies[0];
+	    var tbody = getElement(this.__TABLE_BODY_ID).tBodies[0];
 	    var indexCount = 0;
 	    newrows = new Array();
 	    for (var rowCount=0; rowCount < tbody.rows.length; rowCount++)
@@ -1102,7 +1248,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	        tbody.appendChild(row);
 	    }
 	    delete newrows;
-	}
+	};
 	/******************************************************End of Sorting Logic*************************************************************/
 	/******************************************************Start of Dragging Logic*************************************************************/
 	this.dragStart= function(event,target) 
@@ -1113,9 +1259,9 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	    _dragColumns.target = target;
 
 	    // Since a column header can't be dragged directly, copy its contents in a div.
-	    var table = $(this.__TABLE_ID);
+	    var table = getElement(this.__TABLE_ID);
 	    this._dragColumns.table = table;
-	    this._dragColumns.tableContainer = $(this.__TABLE_CONTAINER_ID);
+	    this._dragColumns.tableContainer = getElement(this.__TABLE_CONTAINER_ID);
 	    this._dragColumns.startColumn = this.getColumnByPostion(table, targetPosition.x);
 	    if (this._dragColumns.startColumn == -1) 
 	    {
@@ -1177,7 +1323,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	    	document.addEventListener("mouseup", this.dragEnd, true);
 	    	event.preventDefault();
 	    }
-	}
+	};
 	
 	this.dragMove= function(event) 
 	{
@@ -1199,7 +1345,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	    var style = _dragColumns.clonedTable.style;
 	    style.left = (_dragColumns.clonedTableStartLeft + targetPosition.x - _dragColumns.cursorStartX) + "px";
 	    style.top  = (_dragColumns.clonedTableStartTop  + targetPosition.y - _dragColumns.cursorStartY) + "px";
-	 }
+	 };
 
 	 //if we use bind then it gives "Node was not found" at  _dragColumns.tableContainer.removeChild(_dragColumns.clonedTable);
 	  this.dragEnd= function(event) 
@@ -1235,7 +1381,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		    {
 		    	refJSDataGrid.moveColumn(_dragColumns.table, _dragColumns.startColumn, targetColumn);
 		    }
-	  }
+	  };
 	  
 	  this.getColumnByPostion= function(table, xPos) 
 	  {
@@ -1249,7 +1395,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		      }
 		    }
 		    return -1;
-	  }
+	  };
 	  
 	  this.copyColumnSection= function(section, columnIndex)
       {
@@ -1271,7 +1417,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		        copiedSection.appendChild(newRow);
 	      });
 	      return copiedSection;
-      }
+      };
 	  
 	  // Move a column of table from start index to finish index.
 	  // Assumes there are columns has to move from sourceX to destinationX
@@ -1299,7 +1445,7 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		    {
 		    	headrow[colCount].columnIndex = colCount;
 		    }
-	  }
+	  };
 
 
 	/******************************************************End of Dragging Logic*************************************************************/
@@ -1318,7 +1464,7 @@ function findParent(element,parentTag)
     return element;
 }
 
-function $(elementId)
+function getElement(elementId)
 {
     if(elementId && elementId.length > 0)
     {
@@ -1804,6 +1950,92 @@ function getTemplate(templateID)
 function supportsTemplate() 
 {
     return ("content" in document.createElement('template'));
+}
+
+function getCumulativeOffset(element)
+{
+    var x = 0;
+    var y = 0;
+    var currentElement = (element) ? element : this;
+    do
+    {
+        if (currentElement.nodeName.toLowerCase != 'td')
+        {
+            x += currentElement.offsetLeft;
+            y += currentElement.offsetTop;
+        }
+    }
+    while ((currentElement = currentElement.offsetParent) && currentElement.nodeName.toLowerCase() != 'body');   
+ 
+    return { x: x, y: y };
+}
+
+function addEvent(element, eventType, listener)
+{
+	 var retValue = false;
+	 if (element.addEventListener)
+	 {
+		 element.addEventListener(eventType, listener);
+		 retValue = true;
+	 } 
+	 else if (element.attachEvent)
+	 {
+	    retValue = element.attachEvent("on" + eventType, listener);
+	 } 
+	 else 
+	 {
+	    console.log("Handler could not be attached");
+	    retValue = false;
+	 }
+	 
+	 return retValue;
+}
+
+function removeEvent(element, eventType, listener)
+{
+	 var retValue = false;
+	 if (element.removeEventListener)
+	 {
+		 element.removeEventListener(eventType, listener);
+		 retValue = true;
+	 } 
+	 else if (element.detachEvent)
+	 {
+	    retValue = element.detachEvent("on" + eventType, listener);
+	 } 
+	 else 
+	 {
+	    console.log("Handler could not be attached");
+	    retValue = false;
+	 }
+	 
+	 return retValue;
+}
+
+function getDimensionAsNumber(element,dimension)
+{
+	var retValue = 0;
+	if(element && dimension)
+	{
+		if(dimension.substring(dimension.length - 1) == "%")
+		{
+			dimension = dimension.substring(0,dimension.length - 1);
+			retValue = (dimension / 100) * element.parent.offsetHeight;
+		}
+		else if(dimension.substring(dimension.length - 2) == "px")
+		{
+			retValue = dimension.substring(0,dimension.length - 2);
+		}
+		else
+		{
+			retValue = dimension;
+		}
+	}
+	if(isNaN(retValue))
+	{
+		retValue = 0;
+	}
+	return parseInt(retValue);
 }
 
 /*  End of section copied from http://dean.edwards.name/base/forEach.js */
