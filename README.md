@@ -247,6 +247,8 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 	    this.createBodyHeader();
 		this.createBodyComponents(tblBody,dataSet,0,0);
 		this.alignTables();
+		var divBodyContainer = getElement(this.__TABLE_BODY_CONTAINER_ID);
+		makeUnselectable(divBodyContainer);
 	};
 	
 	this.createBodyHeader= function()
@@ -425,7 +427,6 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		//addStyleClass(tblDataSet , "draggable");
 		addStyleClass(table , "resizable");
 		divTableContainer.appendChild(table);
-		
 		return divTableContainer;
 	};
 	
@@ -1109,7 +1110,14 @@ function JSDataGrid(parentElementId,id,width,height,columns,title,enableMouseHov
 		for (var count = 0; count < rows.length;count++) 
 		{
 		     var cells = rows[count].getElementsByTagName("td");
-		     cells[index].style.display = style;
+		     if(cells.length > index)
+		     {
+		    	 cells[index].style.display = style;
+		     }
+		     else
+		     {
+		    	 return;
+		     }
 		}
 		rows = tableBody.getElementsByTagName("tr");
 		for (var count = 0; count < rows.length;count++) 
@@ -2120,6 +2128,20 @@ function getDimensionAsNumber(element,dimension)
 	return parseInt(retValue);
 }
 
+function makeUnselectable(node) 
+{
+    if (node.nodeType == 1) 
+    {
+        node.setAttribute("unselectable", "on");
+    }
+    var child = node.firstChild;
+    while (child) 
+    {
+        makeUnselectable(child);
+        child = child.nextSibling;
+    }
+}
+
 /*  End of section copied from http://dean.edwards.name/base/forEach.js */
 
 if (!Function.prototype.bind) 
@@ -2150,7 +2172,7 @@ if (!Function.prototype.bind)
 	  };
 }
 
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
@@ -2225,7 +2247,7 @@ if (!Function.prototype.bind)
 
 .hbox 
 {
-	display: -webkit-box;
+	/*display: -webkit-box;
 	-webkit-box-orient: horizontal;
 	-webkit-box-align: stretch;
  
@@ -2235,25 +2257,51 @@ if (!Function.prototype.bind)
  
 	display: box;
 	box-orient: horizontal;
-	box-align: stretch;
+	box-align: stretch;*/
+	
+	margin-right: -15px;
+  	margin-left: -15px;
+}
+
+.hbox:before,.hbox:after
+{
+	display: table;
+  	content: " ";
+}
+
+.hbox:after
+{
+	clear: both;
 }
 
 .arrow-down 
 {
-	width: 0; 
+	/*width: 0; 
 	height: 0; 
 	border-left: 5px solid transparent;
 	border-right: 5px solid transparent;
-	border-top: 5px solid #000;
+	border-top: 5px solid #000;*/
+	
+	width: 0;
+	height: 0;
+	border-style: solid;
+	border-width: 10px 5px 0 5px;
+	border-color: #1f1c1c transparent transparent transparent;
 }
 
 .arrow-right 
 {
-	width: 0; 
+	/*width: 0; 
 	height: 0; 
 	border-top: 5px solid transparent;
 	border-bottom: 5px solid transparent;
-	border-left: 5px solid #000;
+	border-left: 5px solid #000;*/
+	
+	width: 0;
+	height: 0;
+	border-style: solid;
+	border-width: 4px 0 4px 10px;
+	border-color: transparent transparent transparent #1f1c1c;
 }
 
 .resize-handle-active
@@ -2269,6 +2317,19 @@ if (!Function.prototype.bind)
 	position:absolute;
 	top:0;
 	left:0;
+}
+
+*.unselectable {
+   -moz-user-select: none;
+   -khtml-user-select: none;
+   -webkit-user-select: none;
+
+   /*
+     Introduced in IE 10.
+     See http://ie.microsoft.com/testdrive/HTML5/msUserSelect/
+   */
+   -ms-user-select: none;
+   user-select: none;
 }
 
 </style>
@@ -2471,4 +2532,3 @@ function itemRenderer(data,dataField,rowIndex,columnIndex)
  
 </body>
 </html>
-
