@@ -1,4 +1,5 @@
-function NomuraDashBoard(parentID,dataSource) 
+//dashBoard.js
+function DashBoard(parentID,dataSource) 
 {
 	this.portletMouseOverHandler = null;
 	this.portletMouseOutHandler = null;
@@ -15,7 +16,7 @@ function NomuraDashBoard(parentID,dataSource)
 	/*CSS Class Names*/
 	this.__containerClass = "row";
 	this.__panelParentContainerClass = "col-sm-4";
-	this.__panelContainerClass = "panel panel-red";
+	this.__panelContainerClass = "panel panel-default";
 	this.__panelHeaderClass = "panel-heading";
 	this.__panelTitleClass = "fa fa-comments fa-fw";
 	this.__dropDownParentContainerClass = "btn-group pull-right";
@@ -37,7 +38,7 @@ function NomuraDashBoard(parentID,dataSource)
 	this.initialize();
 }
 
-NomuraDashBoard.prototype.initialize = function () 
+DashBoard.prototype.initialize = function () 
 {
 	 this.__parent = getElement(this.__parentID);
 	 if(this.__parent)
@@ -53,7 +54,7 @@ NomuraDashBoard.prototype.initialize = function ()
 	
 };
 
-NomuraDashBoard.prototype.createPanels = function () 
+DashBoard.prototype.createPanels = function () 
 {
 	if(this.__dataSource)
 	{
@@ -99,7 +100,7 @@ NomuraDashBoard.prototype.createPanels = function ()
 	}
 };
 
-NomuraDashBoard.prototype.createPanelHeader = function (panelID,count,title,menuProvider,menuCount) 
+DashBoard.prototype.createPanelHeader = function (panelID,count,title,menuProvider,menuCount) 
 {
 	var headerID = panelID + "#header" + count;
 	var divHeader = createDiv(headerID,this.__panelHeaderClass);
@@ -166,7 +167,7 @@ NomuraDashBoard.prototype.createPanelHeader = function (panelID,count,title,menu
 	return divHeader;
 };
 
-NomuraDashBoard.prototype.createPanelBody = function (panelID,count,templateID) 
+DashBoard.prototype.createPanelBody = function (panelID,count,templateID) 
 {
 	var bodyID = panelID + "#body" + count;
 	var divBody = createDiv(bodyID,this.__panelBodyClass);
@@ -198,7 +199,7 @@ NomuraDashBoard.prototype.createPanelBody = function (panelID,count,templateID)
 	return divBody;
 };
 
-NomuraDashBoard.prototype.createPanelFooter = function (panelID,count,item) 
+DashBoard.prototype.createPanelFooter = function (panelID,count,item) 
 {	
 	var footerID = panelID + "#footer" + count;
 	this.__objFooterSource[footerID] = item;
@@ -225,7 +226,7 @@ NomuraDashBoard.prototype.createPanelFooter = function (panelID,count,item)
 	return anchor;
 };
 
-NomuraDashBoard.prototype.panelItemOverHandler = function (event) 
+DashBoard.prototype.panelItemOverHandler = function (event) 
 {
 	if(this.portletMouseOverHandler)
 	{
@@ -242,7 +243,7 @@ NomuraDashBoard.prototype.panelItemOverHandler = function (event)
 	}
 };
 
-NomuraDashBoard.prototype.panelItemOutHandler = function (event) 
+DashBoard.prototype.panelItemOutHandler = function (event) 
 {
 	if(this.portletMouseOutHandler)
 	{
@@ -259,7 +260,7 @@ NomuraDashBoard.prototype.panelItemOutHandler = function (event)
 	}
 };
 
-NomuraDashBoard.prototype.subMenuClickHandler = function (event) 
+DashBoard.prototype.subMenuClickHandler = function (event) 
 {
 	if(this.navigationHandler)
 	{
@@ -276,7 +277,7 @@ NomuraDashBoard.prototype.subMenuClickHandler = function (event)
 	}
 };
 
-NomuraDashBoard.prototype.footerClickHandler = function (event) 
+DashBoard.prototype.footerClickHandler = function (event) 
 {
 	if(this.navigationHandler)
 	{
