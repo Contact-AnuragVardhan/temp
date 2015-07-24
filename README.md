@@ -1,203 +1,462 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="utf-8" />
-	<title>CSS3 tooltip</title>
+function NSImport()
+{
+	this.__extJSURL = "lib/com/ext";
+	this.__baseJSURL = "lib/com/org";
+	this.__baseCSSURL = "lib/css/com/org";
+	this.__dicPath = null;
+	this.__baseScriptCount = 0;
+	this.__baseFileCount = 0;
+	this.__callback = null;
+	this.__hasInitialized = false; 
+	this.__initialise();
 	
-		<style type="text/css">
-#container {
-    position:relative;
-    background: red;
-    width:100%;
-	height:200px;
-}
- 
-#content {
-    position:absolute;
-    display: inline-block;
-    background-color:#fff;
-    width:30%;
-    height:140px;
-    border:1px solid black;
-}
+};
 
-.spinner {
-  position:absolute;
-  width: 70px;
-}
-
-.spinner > div {
-  width: 18px;
-  height: 18px;
-  background-color: #333;
-
-  border-radius: 100%;
-  display: inline-block;
-  -webkit-animation: sk-bouncedelay 1.4s infinite ease-in-out both;
-  animation: sk-bouncedelay 1.4s infinite ease-in-out both;
-}
-
-.spinner .bounce1 {
-  -webkit-animation-delay: -0.32s;
-  animation-delay: -0.32s;
-}
-
-.spinner .bounce2 {
-  -webkit-animation-delay: -0.16s;
-  animation-delay: -0.16s;
-}
-
-@-webkit-keyframes sk-bouncedelay {
-  0%, 80%, 100% { -webkit-transform: scale(0) }
-  40% { -webkit-transform: scale(1.0) }
-}
-
-@keyframes sk-bouncedelay {
-  0%, 80%, 100% { 
-    -webkit-transform: scale(0);
-    transform: scale(0);
-  } 40% { 
-    -webkit-transform: scale(1.0);
-    transform: scale(1.0);
-  }
-}
-
-
-    </style>
-	
-	
-
-	
-	
-</head>
-<body onload="initialise();">
-	
-<div id="container" style="">
-    <div id="content" style="-webkit-box-shadow: rgba(50, 50, 50, 0.74902) 0px 10px 5px 0px; box-shadow: rgba(50, 50, 50, 0.74902) 0px 10px 5px 0px;">
-		<div style="vertical-align:center;position:relative;top:30%;text-align: center;">
-			<div id="compSpinner" class="spinner">
-			  <div class="bounce1"></div>
-			  <div class="bounce2"></div>
-			  <div class="bounce3"></div>
-			</div>
-			<div id="compLoadingLabel" style="position:absolute; font-weight: bold;">Loading...</div>
-			</div>
-		</div>
-</div> 
-
-
-
-
-<script>
-	function initialise()
+NSImport.prototype.onload = function (callback)
+{
+	this.__callback = callback;
+	//__callback fired from here only when not fired from readImport
+	if(this.__hasInitialized && this.__callback)
 	{
-		centerElement("content");
-		centerElement("compSpinner");
-		centerElement("compLoadingLabel");
-		var top = document.querySelector("#compLoadingLabel").style.top;
-		document.querySelector("#compLoadingLabel").style.top = (parseInt(top.substring(0,top.length - 2)) + 20) + "px";
+		this.__callback();
 	}
+};
+
+NSImport.prototype.__initialise = function ()
+{
+	this.__dicPath = new Array();
+	this.__dicPath["component.css"] = this.__baseCSSURL + "/component.css";
+	//copied webcomponent.js as IE does not allow to download from cdn site 
+	this.__dicPath["webComponent.js"] = this.__extJSURL + "/webcomponents.min.js";
+	this.__dicPath["nsUtil.js"] = this.__baseJSURL + "/util/nsUtil.js";
+	this.__dicPath["nsTip.js"] = this.__baseJSURL + "/util/nsTip.js";
+	this.__dicPath["nsUIComponent.js"] = this.__baseJSURL + "/base/nsUIComponent.js";
+	this.__dicPath["nsContainerBase.js"] = this.__baseJSURL + "/base/nsContainerBase.js";
+	this.__dicPath["nsCheckBox.js"] = this.__baseJSURL + "/components/nsCheckBox.js";
+	this.__dicPath["nsGroup.js"] = this.__baseJSURL + "/containers/nsGroup.js";
+	this.__dicPath["nsDividerBox.js"] = this.__baseJSURL + "/containers/nsDividerBox.js";
+	this.__dicPath["nsBanner.js"] = this.__baseJSURL + "/containers/nsBanner.js";
+	this.__dicPath["nsProgressBar.js"] = this.__baseJSURL + "/containers/nsProgressBar.js";
+	this.__dicPath["nsGrid.js"] = this.__baseJSURL + "/containers/nsGrid.js";
 	
-	function centerElement(componentID)
+	this.NSMODAL_JS = this.__baseJSURL + "/containers/nsModal.js";
+	this.NSMODAL_CSS = this.__baseCSSURL + "/nsModal.css";
+	this.NSPROGRESSBAR_CSS = this.__baseCSSURL + "/nsProgressBar.css";
+	this.NSGRIDCOLUMN_JS = this.__baseJSURL + "/containers/nsGridColumn.js";
+	this.NSDATAGRID_CSS = this.__baseCSSURL + "/nsGrid.css";
+};
+
+NSImport.prototype.__initialiseImport = function ()
+{
+	var loadFunction = function()
 	{
-		if(componentID)
+		this.loadBasicScripts();
+	};
+	
+	if (document.addEventListener) 
+	{ 
+	    document.addEventListener("DOMContentLoaded", loadFunction.bind(this), false);
+	} 
+	else if (window.addEventListener) 
+	{
+	    window.addEventListener("load", loadFunction.bind(this), false);
+	} 
+	else if (document.attachEvent) 
+	{
+	    window.attachEvent("onload", loadFunction.bind(this));
+	}
+	else // very old browser, copy old onload
+	{
+		window.onload = function() 
+		{ 
+			loadFunction().bind(this);
+		};
+	}
+};
+
+NSImport.prototype.loadBasicScripts = function ()
+{
+	var nsimport = this;
+	nsimport.__baseScriptCount = 1;
+	var basicScriptLoadComplete = function()
+	{
+		nsimport.__baseScriptCount--;
+		if(nsimport.__baseScriptCount === 0)
 		{
-			var component = document.querySelector("#" + componentID);
-			if(component)
+			nsimport.loadBaseComponents();
+		}
+	};
+	this.loadScript("webComponent.js",basicScriptLoadComplete);
+};
+
+NSImport.prototype.loadBaseComponents = function ()
+{
+	var nsimport = this;
+	nsimport.__baseFileCount = 5;
+	var baseLoadComplete = function()
+	{
+		nsimport.__baseFileCount--;
+		if(nsimport.__baseFileCount === 0)
+		{
+			nsimport.readImport();
+		}
+	};
+	this.loadScript("component.css",baseLoadComplete);
+	this.loadScript("nsUtil.js",baseLoadComplete);
+	this.loadScript("nsTip.js",baseLoadComplete);
+	this.loadScript("nsUIComponent.js",baseLoadComplete);
+	this.loadScript("nsContainerBase.js",baseLoadComplete);
+};
+
+NSImport.prototype.readImport = function ()
+{
+	var list = document.getElementsByTagName("nsimport");
+	if(list && list.length > 0)
+	{
+		var nsimport = this;
+		nsimport.__baseFileCount = list.length;
+		var loadComplete = function()
+		{
+			nsimport.__baseFileCount--;
+			if(nsimport.__baseFileCount === 0)
 			{
-				var parent = component.parentNode;
-				component.style.left = ((parent.offsetWidth - component.offsetWidth) / 2) + "px";
-				component.style.top = ((parent.offsetHeight - component.offsetHeight) / 2) + "px";
+				nsimport.__hasInitialized = true;
+				if(nsimport.__callback)
+				{
+					nsimport.__callback();
+				}
+			}			
+		};
+		for(var count = 0;count < list.length;count++)
+	    {
+	         var fileName = list[count].getAttribute("file");
+	         this.loadRelatedFiles(fileName,loadComplete);
+	         this.loadScript(fileName,loadComplete);
+	    }
+	}
+	else
+	{
+		this.__hasInitialized = true;
+		if(this.__callback)
+		{
+			this.__callback(event);
+		}
+	}
+		
+};
+
+NSImport.prototype.loadRelatedFiles = function(fileName,loadComplete)
+{
+	if(fileName === "nsProgressBar.js")
+	{
+		this.loadScript(this.NSMODAL_JS,loadComplete);
+		this.loadScript(this.NSMODAL_CSS,loadComplete);
+		this.loadScript(this.NSPROGRESSBAR_CSS,loadComplete);
+		this.__baseFileCount += 3;
+	}
+	else if(fileName === "nsGrid.js")
+	{
+		this.loadScript(this.NSDATAGRID_CSS,loadComplete);
+		this.loadScript(this.NSGRIDCOLUMN_JS,loadComplete);
+		this.__baseFileCount += 2;
+	}
+};
+
+NSImport.prototype.loadScript = function (fileName,callback)
+{
+	if(fileName)
+    {
+	   	var filePath = null;
+	   	var fileType = null;
+	   	if(fileName.indexOf("/") > 0)
+	   	{
+	   		filePath =  fileName;
+	   	}
+	   	else
+	   	{
+	   		 filePath = this.__dicPath[fileName];
+	   	}
+	   	if(filePath)
+		{
+			if (document.getElementById(filePath) == null) 
+			{
+				if(filePath.indexOf(".") > 0)
+				{
+					fileType = filePath.substring(filePath.lastIndexOf(".") + 1,filePath.length);
+					if(fileType === "js")
+					{
+						this.includeJavaScriptFile(filePath,callback,"body");
+					}
+					else if(fileType === "css")
+					{
+						this.includeCssFile(filePath,callback);
+					}
+				}
+			}
+			else if(callback)
+			{
+				
+				callback();
 			}
 		}
+    }
+	
+};
+
+//Position can be "head" or "body"
+NSImport.prototype.includeJavaScriptFile = function (filePath,callback,position)
+{
+    if(filePath)
+    {
+        if(!position)
+        {
+            position = "body";
+        }
+        var domPosition = document.getElementsByTagName(position)[0];
+        var script = document.createElement("script");
+        script.setAttribute("id", filePath);
+        script.setAttribute("type","text/javascript");
+        script.setAttribute("src",filePath);
+        if(callback)
+        {
+            script.onreadystatechange= function ()
+            {
+                if (this.readyState == "complete")
+                {
+                    callback();
+                }
+            };
+            script.onload = callback;
+        }
+        domPosition.appendChild(script);
+    }
+};
+
+NSImport.prototype.includeCssFile = function (filePath,callback)
+{
+    if(filePath)
+    {
+        var domPosition = document.getElementsByTagName("head")[0];
+        var cssFile = document.createElement("link");
+        cssFile.setAttribute("id", filePath);
+        cssFile.setAttribute("rel", "stylesheet");
+        cssFile.setAttribute("type", "text/css");
+        cssFile.setAttribute("href", filePath);
+        // Then bind the event to the callback function.
+        // There are several events for cross browser compatibility.
+        if(callback)
+        {
+            cssFile.onreadystatechange= function ()
+            {
+                if (this.readyState == "complete")
+                {
+                    callback();
+                }
+            };
+            cssFile.onload = callback;
+        }
+        domPosition.appendChild(cssFile);
+    }
+};
+
+if (!Function.prototype.bind) 
+{
+	Function.prototype.bind = function (oThis) 
+	{
+	    if (typeof this !== "function") 
+	    {
+	      // closest thing possible to the ECMAScript 5 internal IsCallable function
+	      throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
+	    }
+
+	    var aArgs = Array.prototype.slice.call(arguments, 1),
+	        fToBind = this,
+	        fNOP = function () {},
+	        fBound = function () {
+	          return fToBind.apply(this instanceof fNOP && oThis
+	                                 ? this
+	                                 : oThis,
+	                               aArgs.concat(Array.prototype.slice.call(arguments)));
+	        };
+
+	    fNOP.prototype = this.prototype;
+	    fBound.prototype = new fNOP();
+
+	    return fBound;
+	};
+}
+
+var ns = new NSImport();
+ns.__initialiseImport();
+---------------------------------------------------------------------------------------------------------------------------------
+
+var nsContainerBase = Object.create(HTMLDivElement.prototype);
+
+nsContainerBase.INITIALIZE = "initialize";
+nsContainerBase.CREATION_COMPLETE = "creationComplete";
+nsContainerBase.PROPERTY_CHANGE = "propertyChange";
+nsContainerBase.REMOVE = "remove";
+
+/*start of private variables */
+nsContainerBase.base = null;
+nsContainerBase.__setProperty = true; 
+nsContainerBase.__id = null;
+nsContainerBase.__shadow = null;
+/*end of private variables */
+
+/*start of functions */
+nsContainerBase.__setBase = function() 
+{
+	if(this.__proto__ && this.__proto__.__proto__)
+	{
+		this.base = this.__proto__.__proto__;
 	}
-</script>
+};
 
-</body>
-</html>
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-SVG
-<!DOCTYPE html>
-<html>
-<head>
-	<style>
-		element.style {
-		  display: block;
-		  z-index: 1100;
-		  left: 165px;
-		  top: 74px;
-		  visibility: visible;
-		  overflow-y: visible;
+nsContainerBase.__setID = function()
+{
+	if(this.hasAttribute("id"))
+	{
+		this.__id = this.getAttribute("id");
+	}
+	else if(this.hasAttribute("name"))
+	{
+		this.__id = this.getAttribute("name");
+	}
+	else
+	{
+		this.__id = "comp" + this.util.getUniqueId();
+	}
+};
+
+nsContainerBase.createdCallback = function() 
+{
+	console.log("In Parent createdCallback");
+	this.util = new NSUtil();
+	this.__setBase();
+	this.__setID();
+	this.initializeComponent();
+	this.dispatchCustomEvent(this.INITIALIZE);
+};
+nsContainerBase.attachedCallback = function()
+{
+	console.log("In attachedCallback");
+	this.setComponentProperties();
+	this.dispatchCustomEvent(this.CREATION_COMPLETE);
+};
+nsContainerBase.attributeChangedCallback = function(attrName, oldVal, newVal)
+{
+	console.log("attrName::" + attrName + " oldVal::" + oldVal + " newVal::" + newVal);
+	var data = {};
+	data.propertyName = attrName;
+	data.oldValue = oldVal;
+	data.newValue = newVal;
+	this.dispatchCustomEvent(this.PROPERTY_CHANGE,data);
+	this.propertyChange(attrName, oldVal, newVal, this.__setProperty);
+	this.__setProperty = true;
+};
+nsContainerBase.detachedCallback = function()
+{
+	console.log("In detachedCallback");
+	this.dispatchCustomEvent(this.REMOVE);
+};
+
+nsContainerBase.initializeComponent = function() 
+{
+	console.log("In Parent initializeComponent");
+};
+nsContainerBase.setComponentProperties = function() 
+{
+	console.log("In Parent setComponentProperties");
+};
+nsContainerBase.propertyChange = function(attrName, oldVal, newVal, setProperty) 
+{
+	console.log("In Parent setComponentProperties");
+};
+
+nsContainerBase.getID = function() 
+{
+	return this.__id;
+};
+
+nsContainerBase.addChild = function(element)
+{
+	if(element)
+	{
+		if(document.head.createShadowRoot) 
+		{
+		    if(!this.__shadow)
+		    {
+		    	this.__shadow = new WebKitShadowRoot(this);
+		    	//this.__shadow = this.createShadowRoot();
+		    	//this.__shadow.applyAuthorStyles  = true;
+		    }
+		    this.__shadow.appendChild(element);
+		} 
+		else 
+		{
+		    this.appendChild(element);
 		}
-		HTML[data-doctype=true] .context_menu {
-		  background: white;
-		  -webkit-box-shadow: rgba(0, 0, 0, 0.3) 6px 6px 7px 0;
-		  -moz-box-shadow: rgba(0, 0, 0, 0.3) 6px 6px 7px 0;
-		  box-shadow: rgba(0, 0, 0, 0.3) 6px 6px 7px 0;
-		  -webkit-border-radius: 3px;
-		  -moz-border-radius: 3px;
-		  -ms-border-radius: 3px;
-		  -o-border-radius: 3px;
-		  border-radius: 3px;
-		  border: 1px solid #e6e8ea;
+	}
+};
+
+nsContainerBase.getElement = function(elementId)
+{
+	if(this.__shadow) 
+	{
+		if(elementId && elementId.length > 0)
+		{
+			return this.__shadow.getElementById(elementId);
 		}
-		.context_menu {
-		  position: absolute;
-		  cursor: default;
-		  z-index: 1100;
-		  border: 1px solid #999;
-		  border-top: 1px solid #d5d5d5;
-		  border-left: 1px solid #d5d5d5;
-		  background: #fff url(../images/container_bottom_gradient.gif) repeat-x bottom;
+	} 
+    return this.util.getElement(elementId);
+};
+
+nsContainerBase.dispatchCustomEvent = function(eventType,data,bubbles,cancelable) 
+{
+	console.log("In Parent dispatchCustomEvent");
+	if(this.util.isUndefined(data))
+	{
+		data = null;
+	}
+	if(typeof bubbles == "undefined")
+	{
+		bubbles = true;
+	}
+	if(typeof cancelable == "undefined")
+	{
+		cancelable = true;
+	}
+	var event = new CustomEvent(eventType, 
+	{
+		detail: data,
+		bubbles: bubbles,
+		cancelable: cancelable
+	});
+	if (this.hasAttribute(eventType)) 
+	{
+		var attributeValue = this.getAttribute(eventType);
+		if(attributeValue)
+		{
+			this.util.callFunctionFromString(attributeValue,function(paramValue){
+				if(paramValue === 'true' || paramValue === 'false')
+				{
+					return Boolean.parse(paramValue);
+				}
+				else if(paramValue === 'this')
+				{
+					return this;
+				}
+				else if(paramValue === 'event')
+				{
+					return event;
+				}
+				return paramValue;
+			});
 		}
-		element.style {
-}
-.context_item {
-  padding: 2px 18px 2px 18px;
-  margin-top: 2px;
-  margin-bottom: 2px;
-  white-space: nowrap;
-}
-.context_item_hr {
-  border: 0px solid #d5d5d5;
-  border-top: 1px solid #d5d5d5;
-  margin-left: 4px;
-  margin-right: 4px;
-  margin-top: 6px;
-}
+	}
+	this.dispatchEvent(event);
+};
+/*end of functions */
 
-	</style>
-</head>
-
-<body>
-
-<svg height="210" width="400">
-  <rect x="10" y="10" width="30" height="5" rx="2" ry="2"
-    style="stroke: red; fill: red;"/> 
-   <rect x="10" y="20" width="30" height="5" rx="2" ry="2"
-    style="stroke: red; fill: red;"/>
-    <rect x="10" y="30" width="30" height="5" rx="2" ry="2"
-    style="stroke: red; fill: red;"/>  
-  Sorry, your browser does not support inline SVG.
-</svg>
-
-<div id="context_list_headerchange_request" class="context_menu" gsft_has_scroll="false" style="display: block; z-index: 1100; left: 166px; top: 73px; visibility: visible; overflow-y: visible;">
-	<div style="width: 120px; height: 1px; overflow: hidden;"></div>
-	<div item_id="c8c2eae10a0004e30084537138ba00ed" class="context_item" func_set="true" style="display: none;">Expand/Collapse All</div>
-	<div item_id="ab7f76d70ad33702005f177f6d3a7145" class="context_item" func_set="true">Sort (a to z)</div>
-	<div item_id="ab8369ac0ad337020058ada2a743863a" class="context_item" func_set="true">Sort (z to a)</div>
-	<div item_id="3051f5050a0a0b1800eb2669f7824df3" class="context_item" func_set="true" style="color: rgb(204, 204, 204);">Ungroup</div>
-	<div item_id="ab83ca6d0ad337020037c078040600bc" class="context_item" func_set="true" message="Group By">Group By Approval</div>
-	<div class="context_item_hr"></div><div item_id="cc97e1240a0a0b3e004a493f398feef8" class="context_item" func_set="true">Bar Chart</div>
-	<div item_id="ccb397090a0a0b3e00b2ce638f5d6df0" class="context_item" func_set="true">Pie Chart</div><div class="context_item_hr"></div>
-	<div item_id="d1ad2f010a0a0b3e005c8b7fbd7c4e28" class="context_item" label="true">Export
-		<img src="images/context_arrow.gifx" class="context_item_menu_img" alt="Add">
-	</div>
-</div>
-
-<div id="box_shadow" style="-webkit-box-shadow: rgba(50, 50, 50, 0.74902) 2px 10px 5px 0px; box-shadow: rgba(50, 50, 50, 0.74902) 2px 10px 5px 0px;">
-aaaa
-</div>
-
-</body>
-</html>
+document.registerElement('ns-containerbase', {prototype: nsContainerBase});
