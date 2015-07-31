@@ -1,79 +1,37 @@
-//In component.css
-.gm-scrollbar-container {
-  position: relative;
-  overflow: hidden!important;
-  width: 100%;
-  height: 100%;
-}
-.gm-scrollbar-container .gm-scroll-view {
-  width: 100%;
-  height: 100%;
-  overflow: scroll;
-  -webkit-overflow-scrolling: touch;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Test</title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<!--   <link href="lib/css/com/org/nsScroller.css" rel="stylesheet" media="all" /> -->
+  <link href="lib/css/com/org/component.css" rel="stylesheet" media="all" />
+  <script src="lib/com/org/util/nsUtil.js"></script>
+  <script src="lib/com/org/util/nsScroller.js"></script>
+</head>
+<body onload="initialize()">
+	
+	<div id="divContent" style="width:200px;height:200px;overflow:auto">
+		<div style="width:400px;">
+           <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Amet mollitia vero quam, nisi possimus dolorem asperiores, molestiae sit voluptatibus alias consequuntur laudantium repellat ea quidem quaerat rerum perspiciatis iste adipisci.</p>
+           <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Assumenda earum facilis sed nihil numquam at accusamus eum error eaque alias hic sint rem consequatur impedit tempore, dolor, quos, quae esse?</p>
+           <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Labore maiores maxime corrupti quisquam. Dignissimos sunt error voluptatibus repellat consequatur illo, aliquid nihil maxime veniam repudiandae, provident et sit, reiciendis dicta.</p>
+           <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Repudiandae id amet deserunt voluptate maiores sunt aut eligendi totam nesciunt magnam illo consectetur aspernatur at voluptatem, qui unde ullam omnis voluptates.</p>
+           <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Id assumenda et fugiat placeat enim quas, voluptas odio aperiam in quibusdam beatae eaque minima. Consequuntur pariatur, doloremque, odit dolorem ullam sunt!</p>
+		</div>
+	</div>
+	<br/>
+	<br/>
+	
+	<script>
+		function initialize()
+		{
+			var element = document.querySelector('#divContent');
+			new NSScroller(element);
+		}
+	</script>
 
-/* @option: autoshow */
-.gm-scrollbar-container.gm-autoshow .gm-scrollbar {
-  opacity: 0;
-  transition: opacity 120ms ease-out;
-}
-.gm-scrollbar-container.gm-autoshow:hover .gm-scrollbar,
-.gm-scrollbar-container.gm-autoshow:focus .gm-scrollbar {
-  opacity: 1;
-  transition: opacity 340ms ease-out;
-}
-.gm-prevented .gm-scrollbar {
-  display: none;
-}
-.gm-scrollbar {
-  position: absolute;
-  right: 2px;
-  bottom: 2px;
-  z-index: 1;
-  border-radius: 3px;
-}
 
-.gm-scrollbar.-vertical {
-  width: 6px;
-  top: 2px;
-}
-
-.gm-scrollbar.-horizontal {
-  height: 6px;
-  left: 2px;
-}
-
-.gm-scrollbar .thumb {
-  position: relative;
-  width: 0;
-  height: 0;
-  cursor: pointer;
-  border-radius: inherit;
-  background-color: rgba(0,0,0,.2);
-}
-
-.gm-scrollbar .thumb:hover,
-.gm-scrollbar .thumb:active {
-  background-color: rgba(0,0,0,.3);
-}
-
-.gm-scrollbar.-vertical .thumb {
-  width: 100%;
-}
-
-.gm-scrollbar.-horizontal .thumb {
-  height: 100%;
-}
-
-.gm-scrollbar-disable-selection {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  -khtml-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-}
-
-.gm-prevented {
-  -webkit-overflow-scrolling: touch;
-}
+</body>
+</html>
