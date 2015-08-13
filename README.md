@@ -16,6 +16,7 @@ nsList.initializeComponent = function()
 	this.__templateID = null;
 	this.__itemRenderer = null;
 	this.__setDataCallBack = null;
+	this.__clearDataCallBack = null;
 	this.__selectedIndex = -1;
 	this.__selectedItem = null;
 	this.__allowMultipleSelection = false;
@@ -50,7 +51,7 @@ nsList.setComponentProperties = function()
 {
 	if(this.hasAttribute("resuableRenderRequired"))
 	{
-		this.__resuableRenderRequired = this.getAttribute("resuableRenderRequired");
+		this.__resuableRenderRequired =  Boolean.parse(this.getAttribute("resuableRenderRequired"));
 	}
 	if(this.hasAttribute("labelField"))
 	{
@@ -68,9 +69,13 @@ nsList.setComponentProperties = function()
 	{
 		this.__setDataCallBack = this.getAttribute("setDataCallBack");
 	}
+	if(this.hasAttribute("clearDataCallBack"))
+	{
+		this.__clearDataCallBack  = this.getAttribute("clearDataCallBack");
+	}
 	if(this.hasAttribute("allowMultipleSelection"))
 	{
-		this.__allowMultipleSelection = this.getAttribute("allowMultipleSelection");
+		this.__allowMultipleSelection =  Boolean.parse(this.getAttribute("allowMultipleSelection"));
 	}
 	this.__setTemplate();
 	this.base.setComponentProperties();
@@ -117,6 +122,7 @@ nsList.__setTemplate = function()
 		var renderer = new this.util.defaultRenderer();
 		this.__itemRenderer = renderer.getRenderer();
 		this.__setDataCallBack = renderer.setData;
+		this.__clearDataCallBack = renderer.clearData;
 	}
 };
 
@@ -243,14 +249,28 @@ nsList.__renderList = function(value)
 			rowsOnBottom--;
 		}
 		rowsOnTop = this.__availableRows - this.__visibleRows - rowsOnBottom; 
+		if(rowsOnTop < 0)
+		{
+			rowsOnTop = 0;
+		}
 		topOffset = Math.max(0,Math.floor(this.__selectedIndex - rowsOnTop));
        	var start = Math.ceil(this.__selectedIndex) - Math.ceil(rowsOnTop);
 		if(start != this.__startArrayElement)
 		{
 			var end = start + this.__availableRows;
+			if(start < 0)
+			{
+				start = 0;
+			}
+			
+			if(end > this.__dataProvider.length)
+			{
+				end = this.__dataProvider.length;
+			}
 			var visibleData = this.__dataProvider.slice(start, end);
 			var domElement = null;
 			var dataItem = null;
+			console.log("visibleData.length::" + visibleData.length + ",this.__listContainer.children.length::" + this.__listContainer.children.length);
 			for(var count = 0; count < visibleData.length; count++) 
 			{
 				if(this.__listContainer.children[count].data != visibleData[count]) 
@@ -281,6 +301,32 @@ nsList.__renderList = function(value)
 		            	else
 		            	{
 		            		this.__setDataCallBack(domElement,dataItem,this.__labelField);
+		            	}
+		            }
+				}
+			}
+			if(this.__listContainer.children.length > visibleData.length)
+			{
+				var childCount = this.__listContainer.children.length;
+				var visibleCount = visibleData.length;
+				for(var count = childCount - 1;count > visibleCount - 1;count--)
+				{
+					domElement = this.__listContainer.children[count];
+					if(this.util.isFunction(this.__clearDataCallBack))
+		            {
+		            	if(this.util.isString(this.__clearDataCallBack))
+		            	{
+		            		this.util.callFunctionFromString(this.__clearDataCallBack + "(domElement)",function(paramValue){
+		        				if(paramValue === "domElement")
+		        				{
+		        					return domElement;
+		        				}
+		        				return paramValue;
+		        			});
+		            	}
+		            	else
+		            	{
+		            		this.__clearDataCallBack(domElement);
 		            	}
 		            }
 				}
@@ -360,4 +406,3 @@ nsList.propertyChange = function(attrName, oldVal, newVal, setProperty)
 
 
 document.registerElement("ns-list", {prototype: nsList});
-
