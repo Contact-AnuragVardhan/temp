@@ -18,14 +18,18 @@ nsList.initializeComponent = function()
 	this.__selectedIndex = -1;
 	this.__selectedItem = null;
 	this.__enableMultipleSelection = false;
+	this.__customScrollerRequired = false;
 	this.__selectedRows = new Array();
 	this.__selectedItems = new Array();	
-	this.__selectedIndexes = new Array();	
+	this.__selectedIndexes = new Array();
+	
+	this.__arrWrapper = null;
 	
 	this.__outerContainer = null;
+	this.__parentContainer = null;
 	this.__childContainer = null;
 	this.__listContainer = null;
-	
+	this.__scroller = null;
 	
 	this.__availableHeight = 0;
 	this.__scrollHeight = 0;
@@ -40,6 +44,8 @@ nsList.initializeComponent = function()
 	this.__maxCount = 0;
 	this.__startArrayElement = -1;
 	this.__scrollOffset = 0;
+	this.__targetDimensionOffset = 140;
+	this.__pageSize = 0;
 	
 	this.__positionX = 0;
 	this.__positionY = 0;
@@ -77,9 +83,12 @@ nsList.setComponentProperties = function()
 	{
 		this.__enableMultipleSelection =  Boolean.parse(this.getAttribute("enableMultipleSelection"));
 	}
+	if(this.hasAttribute("customScrollerRequired"))
+	{
+		this.__customScrollerRequired =  Boolean.parse(this.getAttribute("customScrollerRequired"));
+	}
 	this.__setTemplate();
-	this.util.addEvent(document.body,"keydown",this.__keyDownHandler.reference(this));
-	this.util.addEvent(document.body,"keyup",this.__keyUpHandler.reference(this));
+	this.__addListenerForBody();
 	this.base.setComponentProperties();
 };
 
@@ -92,25 +101,40 @@ nsList.setDataProvider = function(dataProvider)
 		this.__createComponents();
 		if(this.__resuableRenderRequired)
 		{
+			this.__createWrapperObject();
 			this.__createReusableRendererComponents();
-			this.__bindRenderers();
 			this.__calculateDimensions();
 			this.__renderList(0);
 			this.__setPosition(0,0);
+		}
+		else
+		{
+			this.__createNonreusableRendererComponents();
+		}
+		if(this.__customScrollerRequired && !this.__scroller)
+		{
+			this.__outerContainer.style.overflow = "hidden";
+			this.__scroller = new NSScroller(this.__parentContainer);
 		}
 	}
 };
 
 nsList.setSelectedIndex = function(selectedIndex,animationRequired)
 {
-	if(selectedIndex > -1 && this.__dataProvider && selectedIndex < this.__dataProvider.length)
+	//console.log(this.__outerContainer.clientHeight + "," + this.__listContainer.children[0].offsetHeight + "," + this.__outerContainer.clientHeight/this.__listContainer.children[0].offsetHeight);
+	if(selectedIndex > -1 && this.__arrWrapper && selectedIndex < this.__arrWrapper.length)
 	{
-		if(this.__resuableRenderRequired)
+		var target = this.__outerContainer;
+		if(this.__customScrollerRequired)
 		{
-			var targetDimension = parseInt(selectedIndex) * this.__listItemHeight;
+			target = this.__scroller.getChildContainer();
+		}
+		//if(this.__resuableRenderRequired)
+		//{
+			var targetDimension = (parseInt(selectedIndex) * this.__listItemHeight) + this.__targetDimensionOffset;
 			if(animationRequired)
 			{
-				var animation = new this.util.animation(this.__outerContainer,[
+				var animation = new this.util.animation(target,[
 	       	  	    {
 	       	  	      time: 1,
 	       	  	      property:"scrollTop",
@@ -121,9 +145,9 @@ nsList.setSelectedIndex = function(selectedIndex,animationRequired)
 			}
 			else
 			{
-				this.__outerContainer.scrollTop = targetDimension;
+				target.scrollTop = targetDimension;
 			}
-		}
+		//}
 	}
 };
 
@@ -167,18 +191,62 @@ nsList.__setTemplate = function()
 	}
 };
 
+nsList.__createWrapperObject = function()
+{
+	this.__arrWrapper = new Array();
+	if(this.__dataProvider)
+	{
+		var dataItem = null;
+		for(var count = 0; count < this.__dataProvider.length; count++) 
+		{
+			dataItem = this.__dataProvider[count];
+			this.__createWrapperItem(dataItem,count);
+		}
+	}
+};
+
+nsList.__createWrapperItem = function(dataItem,count)
+{
+	var item = new Object();
+	item.data = dataItem;
+	item.selected = false;
+	this.__arrWrapper[count] = item;
+};
+
 nsList.__createComponents = function()
 {
 	if(!this.__outerContainer)
 	{
-		this.__outerContainer = this.util.createDiv(this.getID() + "#container","nsListParentContainer");
+		this.__outerContainer = this.util.createDiv(this.getID() + "#container","nsListOuterContainer");
 		this.__outerContainer.style.height = this.__availableHeight + "px";
 		this.addChild(this.__outerContainer);
-		this.__childContainer = this.util.createDiv(this.getID() + "#childContainer","nsListChildContainer");
-		this.__outerContainer.appendChild(this.__childContainer);
+		this.__parentContainer = this.util.createDiv(this.getID() + "#parentContainer","nsListParentContainer");
+		this.__outerContainer.appendChild(this.__parentContainer);
+		this.__childContainer = this.util.createDiv(this.getID() + "#childContainer",null);
+		this.__parentContainer.appendChild(this.__childContainer);
 		this.__listContainer = document.createElement("ul");
 		this.util.addStyleClass(this.__listContainer,"nsListContainer");
+		//this.__parentContainer.appendChild(this.__listContainer);
 		this.__childContainer.appendChild(this.__listContainer);
+	}
+};
+
+nsList.__createNonreusableRendererComponents = function()
+{
+	this.__arrWrapper = new Array();
+	if(this.__outerContainer && this.__dataProvider.length > 0)
+	{
+		var dataItem = null;
+		for(var count = 0; count < this.__dataProvider.length; count++) 
+		{
+			var listItem = this.__createItem();
+			dataItem = this.__dataProvider[count];
+			listItem.index = count;
+			this.__setDataInItem(listItem,dataItem);
+			this.__createWrapperItem(dataItem,count);
+		}
+		//5 is offset for number of rows
+		this.__pageSize = 29;//(this.__outerContainer.clientHeight/this.__listContainer.children[0].offsetHeight) - 5;
 	}
 };
 
@@ -186,22 +254,78 @@ nsList.__createReusableRendererComponents = function()
 {
 	if(this.__outerContainer)
 	{
-		var divHeight = this.util.createDiv(null,"nsListScrollerCause");
-		divHeight.style.maxHeight = this.__scrollHeight + "px";
-		divHeight.style.height = this.__scrollHeight + "px";
-		this.__outerContainer.appendChild(divHeight);
+		var target = null;
+		if(this.__customScrollerRequired)
+		{
+			target = this.__parentContainer;
+			this.__childContainer.style.maxHeight = this.__scrollHeight + "px";
+			this.__childContainer.style.height = this.__scrollHeight + "px";
+		}
+		else
+		{
+			target = this.__outerContainer;
+			var divHeight = this.util.createDiv(null,"nsListScrollerCause");
+			divHeight.style.maxHeight = this.__scrollHeight + "px";
+			divHeight.style.height = this.__scrollHeight + "px";
+			this.__outerContainer.appendChild(divHeight);
+		}
 		for(var count = 0; count <= this.__rowCount; count++) 
 		{
-			 var listItem = document.createElement("li");
-			 this.util.addStyleClass(listItem,"nsListItem");
-			 listItem.style.height = this.__listItemHeight + "px";
-			 this.util.addEvent(listItem,"click",this.__itemClickHandler.reference(this));
-			 this.util.addEvent(listItem,"mouseover",this.__itemMouseOverHandler.reference(this));
-		     this.util.addEvent(listItem,"mouseout",this.__itemMouseOutHandler.reference(this));
-			 this.__listContainer.appendChild(listItem);
+			var listItem = this.__createItem();
 		}
-		this.util.addEvent(this.__outerContainer,"scroll",this.__scrollHandler.reference(this));
+		this.util.addEvent(target,"scroll",this.__scrollHandler.reference(this));
 	}
+};
+
+nsList.__setDataInItem = function(listItem,data)
+{
+	if(listItem)
+	{
+		this.__setRendererInData(listItem,data);
+		//IE bug
+		listItem.data = data;
+		if(this.util.isFunction(this.__setDataCallBack))
+	    {
+			var list = this;
+	    	if(this.util.isString(this.__setDataCallBack))
+	    	{
+	    		this.util.callFunctionFromString(this.__setDataCallBack + "(listItem,data,labelField)",function(paramValue){
+					if(paramValue === "listItem")
+					{
+						return listItem;
+					}
+					if(paramValue === "data")
+					{
+						return data;
+					}
+					if(paramValue === "labelField")
+					{
+						return list.__labelField;
+					}
+					return paramValue;
+				});
+	    	}
+	    	else
+	    	{
+	    		this.__setDataCallBack(listItem,data,this.__labelField);
+	    	}
+	    }
+	}
+};
+
+nsList.__createItem = function()
+{
+	 var listItem = document.createElement("li");
+	 this.util.addStyleClass(listItem,"nsListItem");
+	 listItem.style.height = this.__listItemHeight + "px";
+	 this.util.addEvent(listItem,"click",this.__itemClickHandler.reference(this));
+	 this.util.addEvent(listItem,"mouseover",this.__itemMouseOverHandler.reference(this));
+	 this.util.addEvent(listItem,"mouseout",this.__itemMouseOutHandler.reference(this));
+	 listItem.appendChild(this.__itemRenderer.cloneNode(true));
+	 this.__setRendererProperties(listItem);
+	 this.__listContainer.appendChild(listItem);
+	 
+	 return listItem;
 };
 
 nsList.__itemClickHandler = function(event)
@@ -234,6 +358,7 @@ nsList.__itemClickHandler = function(event)
 
 nsList.__itemMouseOverHandler = function(event)
 {
+	console.log("In __itemMouseOverHandler");
 	 var target = this.util.getTarget(event);
      target = this.util.findParent(target,"li");
      if(target && target.index > -1)
@@ -244,6 +369,7 @@ nsList.__itemMouseOverHandler = function(event)
 
 nsList.__itemMouseOutHandler = function(event)
 {
+	console.log("In __itemMouseOutHandler");
 	 var target = this.util.getTarget(event);
      target = this.util.findParent(target,"li");
      if(target)
@@ -269,8 +395,9 @@ nsList.__markRowSelected= function(row)
         {
         	this.util.addStyleClass(row,"selected"); 
             this.__setMultiSelectedVars(row,true);
-            this.util.dispatchEvent(this,this.ITEM_SELECTED,row.data);
-            console.log("Selected Index is ::" + row.index);
+            this.__arrWrapper[row.index].selected = true;
+            this.__selectedIndex = row.index;
+            this.util.dispatchEvent(this,this.ITEM_SELECTED,row.data,{index:row.index});
         }
     }
 };
@@ -283,20 +410,25 @@ nsList.__markRowUnselected= function(row)
     	var isUnselected = this.__setMultiSelectedVars(row,false);
         if(isUnselected)
         {
-        	 this.util.dispatchEvent(this,this.ITEM_UNSELECTED,row.data);
+        	this.__arrWrapper[row.index].selected = false;
+        	this.util.dispatchEvent(this,this.ITEM_UNSELECTED,row.data,{index:row.index});
         }
     }
 };
 
 nsList.__clearAllRowSelection= function()
 {
-    for (var count=0; count < this.__selectedRows.length ; count++)
+	var size = this.__selectedIndexes.length;
+    for (var count = size - 1; count >= 0 ; count--)
     {
-        if (this.__selectedRows[count])
+    	this.__arrWrapper[this.__selectedIndexes[count]].selected = false;
+    	var row = this.__selectedRows[count];
+        if (row)
         {
-        	this.util.removeStyleClass(this.__selectedRows[count],"selected");
+        	this.__markRowUnselected(row);
         }
     }
+    this.__selectedIndex = -1;
     this.__setMultiSelectedVars(null,true);
 };
 
@@ -403,7 +535,7 @@ nsList.__calculateDimensions = function()
 		this.__hiddenRows = this.__availableRows - this.__visibleRows;
 		this.__topHiddenRows = Math.floor(this.__hiddenRows / 2);
 		this.__bottomHiddenRows = this.__topHiddenRows + (this.__hiddenRows % 2);
-		this.__maxCount = Math.max(0,this.__dataProvider.length - this.__visibleRows);
+		this.__maxCount = Math.max(0,this.__arrWrapper.length - this.__visibleRows);
 		for(var count = 0; count < this.__listContainer.children.length; count++) 
 		{
 			this.__listContainer.children[count].originalOrder = count;
@@ -474,49 +606,31 @@ nsList.__renderList = function(value)
 				start = 0;
 			}
 			
-			if(end > this.__dataProvider.length)
+			if(end > this.__arrWrapper.length)
 			{
-				end = this.__dataProvider.length;
+				end = this.__arrWrapper.length;
 			}
-			var visibleData = this.__dataProvider.slice(start, end);
-			var domElement = null;
+			var visibleData = this.__arrWrapper.slice(start, end);
+			var listItem = null;
 			var dataItem = null;
 			for(var count = 0; count < visibleData.length; count++) 
 			{
-				if(this.__listContainer.children[count].data != visibleData[count]) 
+				if(this.__listContainer.children[count].data != visibleData[count].data) 
 				{
-					dataItem = visibleData[count];
-					domElement = this.__listContainer.children[count];
-					domElement.index = start + count;
-					this.__setRendererInData(domElement,dataItem);
-					//IE bug
-					domElement.data = dataItem;
-					if(this.util.isFunction(this.__setDataCallBack))
-		            {
-						var list = this;
-		            	if(this.util.isString(this.__setDataCallBack))
-		            	{
-		            		this.util.callFunctionFromString(this.__setDataCallBack + "(domElement,dataItem,labelField)",function(paramValue){
-		        				if(paramValue === "domElement")
-		        				{
-		        					return domElement;
-		        				}
-		        				if(paramValue === "dataItem")
-		        				{
-		        					return dataItem;
-		        				}
-		        				if(paramValue === "labelField")
-		        				{
-		        					return list.__labelField;
-		        				}
-		        				return paramValue;
-		        			});
-		            	}
-		            	else
-		            	{
-		            		this.__setDataCallBack(domElement,dataItem,this.__labelField);
-		            	}
-		            }
+					dataItem = visibleData[count].data;
+					listItem = this.__listContainer.children[count];
+					listItem.index = start + count;
+					if(visibleData[count].selected)
+					{
+						//DONOT REPLACE WITH __markRowSelected
+						this.util.addStyleClass(listItem,"selected"); 
+					}
+					else
+					{
+						//DONOT REPLACE WITH __markRowUnselected
+						this.util.removeStyleClass(listItem,"selected");
+					}
+					this.__setDataInItem(listItem,dataItem);
 				}
 			}
 			if(this.__listContainer.children.length > visibleData.length)
@@ -525,23 +639,23 @@ nsList.__renderList = function(value)
 				var visibleCount = visibleData.length;
 				for(var count = childCount - 1;count > visibleCount - 1;count--)
 				{
-					domElement = this.__listContainer.children[count];
-					domElement.index = -1;
+					listItem = this.__listContainer.children[count];
+					listItem.index = -1;
 					if(this.util.isFunction(this.__clearDataCallBack))
 		            {
 		            	if(this.util.isString(this.__clearDataCallBack))
 		            	{
-		            		this.util.callFunctionFromString(this.__clearDataCallBack + "(domElement)",function(paramValue){
-		        				if(paramValue === "domElement")
+		            		this.util.callFunctionFromString(this.__clearDataCallBack + "(listItem)",function(paramValue){
+		        				if(paramValue === "listItem")
 		        				{
-		        					return domElement;
+		        					return listItem;
 		        				}
 		        				return paramValue;
 		        			});
 		            	}
 		            	else
 		            	{
-		            		this.__clearDataCallBack(domElement);
+		            		this.__clearDataCallBack(listItem);
 		            	}
 		            }
 				}
@@ -568,33 +682,28 @@ nsList.__setChange= function(changeX,changeY)
 
 nsList.__scrollHandler = function(event)
 {
-	if(this.__outerContainer.scrollTop == this.__scrollOffset) 
+	var targetScrollTop = this.__outerContainer.scrollTop;
+	var targetScrollLeft = this.__outerContainer.scrollLeft;
+	if(this.__customScrollerRequired)
+	{
+		targetScrollTop = event.scrollTop;
+		targetScrollLeft = event.scrollLeft;
+	}
+	if(targetScrollTop == this.__scrollOffset) 
 	{
 		return;
 	}
-	if(!this.__dataProvider || !this.__dataProvider.length) 
+	if(!this.__arrWrapper || !this.__arrWrapper.length) 
 	{
 		return;
 	}
-	this.__scrollOffset = Math.max(0,this.__outerContainer.scrollTop);
+	this.__scrollOffset = Math.max(0,targetScrollTop);
 	this.__scrollOffset = Math.min(this.__scrollOffset, this.__scrollHeight);
 	
 	
-	this.__setChange(this.__outerContainer.scrollLeft, this.__scrollOffset);
+	this.__setChange(targetScrollLeft, this.__scrollOffset);
 	this.__renderList(this.__currentIndex - this.__changeY / this.__listItemHeight, false);
-	this.__setPosition(this.__outerContainer.scrollLeft, this.__scrollOffset);
-};
-
-nsList.__bindRenderers = function() 
-{
-	var listItem = null;
-	for(var count = 0; count < this.__listContainer.children.length; count++) 
-	{
-		listItem = this.__listContainer.children[count];
-		this.util.removeAllChildren(listItem);
-		listItem.appendChild(this.__itemRenderer.cloneNode(true));
-		this.__setRendererProperties(listItem);
-	}
+	this.__setPosition(targetScrollLeft, this.__scrollOffset);
 };
 
 nsList.__setRendererProperties = function(listItem)
@@ -646,10 +755,83 @@ nsList.__setRendererInData = function(listItem,item)
 	}
 };
 
+nsList.__addListenerForBody = function()
+{
+	if(this.__enableMultipleSelection)
+	{
+		this.util.addEvent(document.body,"keydown",this.__keyDownHandler.reference(this));
+		this.util.addEvent(document.body,"keyup",this.__keyUpHandler.reference(this));
+	}
+	
+};
+
 nsList.__keyDownHandler = function(event)
 {
+	event = this.util.getEvent(event);
+	var isShiftCtrlPressed = event.shiftKey || event.ctrlKey;
+	var keyCode = this.util.getKeyUnicode(event);
+	//key Up
+	if(keyCode === 38 && isShiftCtrlPressed)
+	{
+		console.log("keyCode === 38 && isShiftCtrlPressed");
+		if(this.__selectedIndex > 0)
+		{
+			this.__selectedIndex--;
+			return this.__keyBoardNavigationHandler(event,"up");
+		}
+	}
+	//key down
+	else if(keyCode === 40 && isShiftCtrlPressed)
+	{
+		console.log("keyCode === 40 && isShiftCtrlPressed");
+		if(this.__selectedIndex < this.__listContainer.children.length - 1)
+		{
+			this.__selectedIndex++;
+			return this.__keyBoardNavigationHandler(event,"down");
+		}
+	}
+	else if(keyCode === 38)
+	{
+		console.log("keyCode === 38");
+		if(this.__selectedIndex > 0)
+		{
+			var row = this.__listContainer.children[this.__selectedIndex];
+			this.util.removeStyleClass(row,"itemHover");
+			console.log("before::" + this.__selectedIndex);
+			this.__selectedIndex--;
+			console.log("after::" + this.__selectedIndex + "," + Math.floor(this.__selectedIndex % this.__pageSize));
+			row = this.__listContainer.children[this.__selectedIndex];
+			this.util.addStyleClass(row,"itemHover");
+			if(Math.floor(this.__selectedIndex % this.__pageSize) === 0)
+			{
+				this.setSelectedIndex(this.__selectedIndex,false);
+			}
+			event.preventDefault();
+			return false;
+		}
+	}
+	else if(keyCode === 40)
+	{
+		console.log("keyCode === 40");
+		if(this.__selectedIndex < this.__listContainer.children.length - 1)
+		{
+			var row = this.__listContainer.children[this.__selectedIndex];
+			this.util.removeStyleClass(row,"itemHover");
+			console.log("before::" + this.__selectedIndex);
+			this.__selectedIndex++;
+			console.log("after::" + this.__selectedIndex + "," + Math.floor(this.__selectedIndex % this.__pageSize));
+			row = this.__listContainer.children[this.__selectedIndex];
+			this.util.addStyleClass(row,"itemHover");
+			if(Math.floor(this.__selectedIndex % this.__pageSize) === 0)
+			{
+				this.setSelectedIndex(this.__selectedIndex,false);
+			}
+			event.preventDefault();
+			return false;
+		}
+	}
 	//unicode for shift key is 16
-	if(this.util.getKeyUnicode(event) === 16 && this.__enableMultipleSelection)
+	else if(keyCode === 16)
 	{
 		this.util.addStyleClass(document.body,"nsUnselectable");
 	}
@@ -658,10 +840,29 @@ nsList.__keyDownHandler = function(event)
 nsList.__keyUpHandler = function(event)
 {
 	//unicode for shift key is 16
-	if(this.util.getKeyUnicode(event) === 16 && this.__enableMultipleSelection)
+	if(this.util.getKeyUnicode(event) === 16)
 	{
 		this.util.removeStyleClass(document.body,"nsUnselectable");
 	}
+};
+
+nsList.__keyBoardNavigationHandler = function(event,direction)
+{
+	var row = this.__listContainer.children[this.__selectedIndex];
+	if(this.__isRowSelected(row))
+	{
+		this.__markRowUnselected(row);
+	}
+	else
+	{
+		this.__markRowSelected(row);
+	}
+	if(this.__selectedIndex > this.__pageSize)
+	{
+		this.setSelectedIndex(this.__selectedIndex - this.__pageSize,false);
+	}
+	event.preventDefault();
+	return false;
 };
 
 nsList.propertyChange = function(attrName, oldVal, newVal, setProperty) 
@@ -671,15 +872,3 @@ nsList.propertyChange = function(attrName, oldVal, newVal, setProperty)
 
 
 document.registerElement("ns-list", {prototype: nsList});
-
---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-*.nsUnselectable 
-{
-   -webkit-touch-callout: none;
-	-webkit-user-select: none;
-	-khtml-user-select: none;
-	-moz-user-select: none;
-	-ms-user-select: none;
-	user-select: none;
-}
