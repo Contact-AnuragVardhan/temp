@@ -802,10 +802,14 @@ nsList.__keyDownHandler = function(event)
 			console.log("after::" + this.__selectedIndex + "," + Math.floor(this.__selectedIndex % this.__pageSize));
 			row = this.__listContainer.children[this.__selectedIndex];
 			this.util.addStyleClass(row,"itemHover");
-			if(Math.floor(this.__selectedIndex % this.__pageSize) === 0)
+			/*if(Math.floor(this.__selectedIndex % this.__pageSize) === 0)
 			{
 				this.setSelectedIndex(this.__selectedIndex,false);
-			}
+			}*/
+			var rowOffset = {left : 0, top : 0};
+			this.util.getOffSet(row, rowOffset); 
+			console.log(rowOffset.top);
+			this.__outerContainer.scrollTop = rowOffset.top;
 			event.preventDefault();
 			return false;
 		}
@@ -822,10 +826,14 @@ nsList.__keyDownHandler = function(event)
 			console.log("after::" + this.__selectedIndex + "," + Math.floor(this.__selectedIndex % this.__pageSize));
 			row = this.__listContainer.children[this.__selectedIndex];
 			this.util.addStyleClass(row,"itemHover");
-			if(Math.floor(this.__selectedIndex % this.__pageSize) === 0)
+			/*if(Math.floor(this.__selectedIndex % this.__pageSize) === 0)
 			{
 				this.setSelectedIndex(this.__selectedIndex,false);
-			}
+			}*/
+			var rowOffset = {left : 0, top : 0};
+			this.util.getOffSet(row, rowOffset); 
+			console.log(rowOffset.top);
+			this.__outerContainer.scrollTop = rowOffset.top;
 			event.preventDefault();
 			return false;
 		}
@@ -857,9 +865,24 @@ nsList.__keyBoardNavigationHandler = function(event,direction)
 	{
 		this.__markRowSelected(row);
 	}
-	if(this.__selectedIndex > this.__pageSize)
+	
+	/*if(this.__selectedIndex > this.__pageSize)
 	{
 		this.setSelectedIndex(this.__selectedIndex - this.__pageSize,false);
+	}*/
+	if(direction === "down" && Math.floor(this.__selectedIndex % this.__pageSize) === 0)
+	{
+		var rowOffset = {left : 0, top : 0};
+		this.util.getOffSet(row, rowOffset); 
+		console.log(rowOffset.top);
+		this.__outerContainer.scrollTop = rowOffset.top;
+	}
+	else if(direction === "up")
+	{
+		var rowOffset = {left : 0, top : 0};
+		this.util.getOffSet(row, rowOffset); 
+		console.log(rowOffset.top);
+		this.__outerContainer.scrollTop = rowOffset.top;
 	}
 	event.preventDefault();
 	return false;
