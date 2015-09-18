@@ -5,6 +5,8 @@ nsList.initializeComponent = function()
 	this.base.initializeComponent();
 	this.ITEM_SELECTED = "itemSelected";
 	this.ITEM_UNSELECTED = "itemUnselected";
+	this.NAVIGATION_UP = "up";
+	this.NAVIGATION_DOWN = "down";
 	
 	this.__resuableRenderRequired = false;
 	this.__dataProvider = null;
@@ -30,6 +32,7 @@ nsList.initializeComponent = function()
 	this.__childContainer = null;
 	this.__listContainer = null;
 	this.__scroller = null;
+	this.__lastNavigationDirection = null;
 	
 	this.__availableHeight = 0;
 	this.__scrollHeight = 0;
@@ -121,7 +124,6 @@ nsList.setDataProvider = function(dataProvider)
 
 nsList.setSelectedIndex = function(selectedIndex,animationRequired)
 {
-	//console.log(this.__outerContainer.clientHeight + "," + this.__listContainer.children[0].offsetHeight + "," + this.__outerContainer.clientHeight/this.__listContainer.children[0].offsetHeight);
 	if(selectedIndex > -1 && this.__arrWrapper && selectedIndex < this.__arrWrapper.length)
 	{
 		var target = this.__outerContainer;
@@ -321,12 +323,26 @@ nsList.__createItem = function()
 	 this.util.addEvent(listItem,"click",this.__itemClickHandler.reference(this));
 	 this.util.addEvent(listItem,"mouseover",this.__itemMouseOverHandler.reference(this));
 	 this.util.addEvent(listItem,"mouseout",this.__itemMouseOutHandler.reference(this));
+	 listItem.onfocus = this.__itemFocusHandler.reference(this);
+	 //this.util.addEvent(listItem,"focus",this.__itemFocusHandler.reference(this));
+	 //this.util.addEvent(listItem,"blur",this.__itemBlurHandler.reference(this));
 	 listItem.appendChild(this.__itemRenderer.cloneNode(true));
 	 this.__setRendererProperties(listItem);
 	 this.__listContainer.appendChild(listItem);
 	 
 	 return listItem;
 };
+
+nsList.__itemFocusHandler = function(event)
+{
+	this.__focused = true;
+};
+
+nsList.__itemBlurHandler = function(event)
+{
+	this.__focused = false;
+};
+
 
 nsList.__itemClickHandler = function(event)
 {
@@ -354,11 +370,11 @@ nsList.__itemClickHandler = function(event)
     	this.__clearAllRowSelection();
     	this.__markRowSelected(target);
     } 
+    this.__lastNavigationDirection = null;
 };
 
 nsList.__itemMouseOverHandler = function(event)
 {
-	console.log("In __itemMouseOverHandler");
 	 var target = this.util.getTarget(event);
      target = this.util.findParent(target,"li");
      if(target && target.index > -1)
@@ -369,7 +385,6 @@ nsList.__itemMouseOverHandler = function(event)
 
 nsList.__itemMouseOutHandler = function(event)
 {
-	console.log("In __itemMouseOutHandler");
 	 var target = this.util.getTarget(event);
      target = this.util.findParent(target,"li");
      if(target)
@@ -757,7 +772,7 @@ nsList.__setRendererInData = function(listItem,item)
 
 nsList.__addListenerForBody = function()
 {
-	if(this.__enableMultipleSelection)
+	if(this.__enableMultipleSelection && !this.__resuableRenderRequired)
 	{
 		this.util.addEvent(document.body,"keydown",this.__keyDownHandler.reference(this));
 		this.util.addEvent(document.body,"keyup",this.__keyUpHandler.reference(this));
@@ -767,79 +782,63 @@ nsList.__addListenerForBody = function()
 
 nsList.__keyDownHandler = function(event)
 {
+	console.log(this.hasFocus());
 	event = this.util.getEvent(event);
 	var isShiftCtrlPressed = event.shiftKey || event.ctrlKey;
 	var keyCode = this.util.getKeyUnicode(event);
 	//key Up
-	if(keyCode === 38 && isShiftCtrlPressed)
+	if(keyCode === this.util.KEYCODE.UP && isShiftCtrlPressed)
 	{
-		console.log("keyCode === 38 && isShiftCtrlPressed");
-		if(this.__selectedIndex > 0)
+		if(this.__lastNavigationDirection && this.__lastNavigationDirection === this.NAVIGATION_DOWN)
+		{
+			return this.__keyBoardSelectionHandler(event,this.NAVIGATION_UP);
+		}
+		if(this.__selectedIndex != 0)
 		{
 			this.__selectedIndex--;
-			return this.__keyBoardNavigationHandler(event,"up");
+			return this.__keyBoardSelectionHandler(event,this.NAVIGATION_UP);
 		}
+		
+		/*else if(this.__selectedRows.length === 0)
+		{
+			this.__markRowSelected(this.__listContainer.children[this.__listContainer.children.length - 1]);
+		}*/
 	}
 	//key down
-	else if(keyCode === 40 && isShiftCtrlPressed)
+	else if(keyCode === this.util.KEYCODE.DOWN && isShiftCtrlPressed)
 	{
-		console.log("keyCode === 40 && isShiftCtrlPressed");
-		if(this.__selectedIndex < this.__listContainer.children.length - 1)
+		if(this.__lastNavigationDirection && this.__lastNavigationDirection === this.NAVIGATION_UP)
+		{
+			return this.__keyBoardSelectionHandler(event,this.NAVIGATION_DOWN);
+		}
+		if(this.__selectedIndex != this.__listContainer.children.length - 1)
 		{
 			this.__selectedIndex++;
-			return this.__keyBoardNavigationHandler(event,"down");
+			return this.__keyBoardSelectionHandler(event,this.NAVIGATION_DOWN);
 		}
+		
+		/*else if(this.__selectedRows.length === 0)
+		{
+			this.__markRowSelected(this.__listContainer.children[0]);
+		}*/
+			
 	}
-	else if(keyCode === 38)
+	else if(keyCode === this.util.KEYCODE.UP)
 	{
-		console.log("keyCode === 38");
 		if(this.__selectedIndex > 0)
 		{
-			var row = this.__listContainer.children[this.__selectedIndex];
-			this.util.removeStyleClass(row,"itemHover");
-			console.log("before::" + this.__selectedIndex);
-			this.__selectedIndex--;
-			console.log("after::" + this.__selectedIndex + "," + Math.floor(this.__selectedIndex % this.__pageSize));
-			row = this.__listContainer.children[this.__selectedIndex];
-			this.util.addStyleClass(row,"itemHover");
-			/*if(Math.floor(this.__selectedIndex % this.__pageSize) === 0)
-			{
-				this.setSelectedIndex(this.__selectedIndex,false);
-			}*/
-			var rowOffset = {left : 0, top : 0};
-			this.util.getOffSet(row, rowOffset); 
-			console.log(rowOffset.top);
-			this.__outerContainer.scrollTop = rowOffset.top;
-			event.preventDefault();
-			return false;
+			return this.__keyBoardNavigationHandler(event,this.NAVIGATION_UP);
 		}
 	}
-	else if(keyCode === 40)
+	else if(keyCode === this.util.KEYCODE.DOWN)
 	{
-		console.log("keyCode === 40");
 		if(this.__selectedIndex < this.__listContainer.children.length - 1)
 		{
-			var row = this.__listContainer.children[this.__selectedIndex];
-			this.util.removeStyleClass(row,"itemHover");
-			console.log("before::" + this.__selectedIndex);
-			this.__selectedIndex++;
-			console.log("after::" + this.__selectedIndex + "," + Math.floor(this.__selectedIndex % this.__pageSize));
-			row = this.__listContainer.children[this.__selectedIndex];
-			this.util.addStyleClass(row,"itemHover");
-			/*if(Math.floor(this.__selectedIndex % this.__pageSize) === 0)
-			{
-				this.setSelectedIndex(this.__selectedIndex,false);
-			}*/
-			var rowOffset = {left : 0, top : 0};
-			this.util.getOffSet(row, rowOffset); 
-			console.log(rowOffset.top);
-			this.__outerContainer.scrollTop = rowOffset.top;
-			event.preventDefault();
-			return false;
+			return this.__keyBoardNavigationHandler(event,this.NAVIGATION_DOWN);
 		}
 	}
 	//unicode for shift key is 16
-	else if(keyCode === 16)
+	else if(keyCode === this.util.KEYCODE.SHIFT)
 	{
 		this.util.addStyleClass(document.body,"nsUnselectable");
 	}
@@ -848,13 +847,35 @@ nsList.__keyDownHandler = function(event)
 nsList.__keyUpHandler = function(event)
 {
 	//unicode for shift key is 16
-	if(this.util.getKeyUnicode(event) === 16)
+	if(this.util.getKeyUnicode(event) === this.util.KEYCODE.SHIFT)
 	{
 		this.util.removeStyleClass(document.body,"nsUnselectable");
 	}
 };
 
 nsList.__keyBoardNavigationHandler = function(event,direction)
+{
+	var row = this.__listContainer.children[this.__selectedIndex];
+	this.util.removeStyleClass(row,"itemHover");
+	(direction === this.NAVIGATION_UP) ? this.__selectedIndex--:this.__selectedIndex++;
+	row = this.__listContainer.children[this.__selectedIndex];
+	this.util.addStyleClass(row,"itemHover");
+	if(direction === this.NAVIGATION_DOWN && Math.floor(this.__selectedIndex % this.__pageSize) === 0)
+	{
+		var rowOffset = this.util.getPosition(row);
+		this.__outerContainer.scrollTop = rowOffset.top;
+	}
+	else if(direction === this.NAVIGATION_UP)
+	{
+		var rowOffset = this.util.getPosition(row);
+		this.__outerContainer.scrollTop = rowOffset.top;
+	}
+	this.__lastNavigationDirection = null;
+	event.preventDefault();
+	return false;
+};
+
+nsList.__keyBoardSelectionHandler = function(event,direction)
 {
 	var row = this.__listContainer.children[this.__selectedIndex];
 	if(this.__isRowSelected(row))
@@ -865,25 +886,17 @@ nsList.__keyBoardNavigationHandler = function(event,direction)
 	{
 		this.__markRowSelected(row);
 	}
-	
-	/*if(this.__selectedIndex > this.__pageSize)
+	if(direction === this.NAVIGATION_DOWN && Math.floor(this.__selectedIndex % this.__pageSize) === 0)
 	{
-		this.setSelectedIndex(this.__selectedIndex - this.__pageSize,false);
-	}*/
-	if(direction === "down" && Math.floor(this.__selectedIndex % this.__pageSize) === 0)
-	{
-		var rowOffset = {left : 0, top : 0};
-		this.util.getOffSet(row, rowOffset); 
-		console.log(rowOffset.top);
+		var rowOffset = this.util.getPosition(row);
 		this.__outerContainer.scrollTop = rowOffset.top;
 	}
-	else if(direction === "up")
+	else if(direction === this.NAVIGATION_UP)
 	{
-		var rowOffset = {left : 0, top : 0};
-		this.util.getOffSet(row, rowOffset); 
-		console.log(rowOffset.top);
+		var rowOffset = this.util.getPosition(row);
 		this.__outerContainer.scrollTop = rowOffset.top;
 	}
+	this.__lastNavigationDirection = direction;
 	event.preventDefault();
 	return false;
 };
