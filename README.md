@@ -1,344 +1,355 @@
-function NSImport()
-{
-	this.__extJSURL = "lib/com/ext";
-	this.__baseJSURL = "lib/com/org";
-	this.__baseCSSURL = "lib/css/com/org";
-	this.__dicPath = null;
-	this.__baseScriptCount = 0;
-	this.__baseFileCount = 0;
-	this.__callback = null;
-	this.__hasInitialized = false; 
-	this.__hasCallBackCalled = false;
-	this.__initialise();
-	
-};
-
-NSImport.prototype.onload = function (callback)
-{
-	this.__callback = callback;
-	//__callback fired from here only when not fired from readImport
-	if(this.__hasInitialized && this.__callback && !this.__hasCallBackCalled)
-	{
-		this.__hasCallBackCalled = true;
-		this.__callback();
-	}
-};
-
-NSImport.prototype.__initialise = function ()
-{
-	this.__dicPath = new Array();
-	this.__dicPath["component.css"] = this.__baseCSSURL + "/component.css";
-	//copied webcomponent.js as IE does not allow to download from cdn site 
-	this.__dicPath["webComponent.js"] = this.__extJSURL + "/webcomponents.min.js";
-	this.__dicPath["document-register-element.js"] = this.__extJSURL + "document-register-element.js";
-	
-	this.__dicPath["nsUtil.js"] = this.__baseJSURL + "/util/nsUtil.js";
-	this.__dicPath["nsTip.js"] = this.__baseJSURL + "/util/nsTip.js";
-	this.__dicPath["nsUIComponent.js"] = this.__baseJSURL + "/base/nsUIComponent.js";
-	this.__dicPath["nsContainerBase.js"] = this.__baseJSURL + "/base/nsContainerBase.js";
-	this.__dicPath["nsCheckBox.js"] = this.__baseJSURL + "/components/nsCheckBox.js";
-	this.__dicPath["nsGroup.js"] = this.__baseJSURL + "/containers/nsGroup.js";
-	this.__dicPath["nsDividerBox.js"] = this.__baseJSURL + "/containers/nsDividerBox.js";
-	this.__dicPath["nsBanner.js"] = this.__baseJSURL + "/containers/nsBanner.js";
-	this.__dicPath["nsProgressBar.js"] = this.__baseJSURL + "/containers/nsProgressBar.js";
-	this.__dicPath["nsGrid.js"] = this.__baseJSURL + "/containers/nsGrid.js";
-	this.__dicPath["nsList.js"] = this.__baseJSURL + "/containers/nsList.js";
-	
-	this.NSMODAL_JS = this.__baseJSURL + "/containers/nsModal.js";
-	this.NSMODAL_CSS = this.__baseCSSURL + "/nsModal.css";
-	this.NSPROGRESSBAR_CSS = this.__baseCSSURL + "/nsProgressBar.css";
-	this.NSGRIDCOLUMN_JS = this.__baseJSURL + "/containers/nsGridColumn.js";
-	this.NSDATAGRID_CSS = this.__baseCSSURL + "/nsGrid.css";
-	this.NSSCROLLER_JS = this.__baseJSURL + "/util/nsScroller.js";
-	this.NSLIST_CSS = this.__baseCSSURL + "/nsList.css";
-};
-
-NSImport.prototype.__initialiseImport = function ()
-{
-	var loadFunction = function()
-	{
-		this.loadBasicScripts();
-	};
-	
-	if (document.addEventListener) 
-	{ 
-	    document.addEventListener("DOMContentLoaded", loadFunction.bind(this), false);
-	} 
-	else if (window.addEventListener) 
-	{
-	    window.addEventListener("load", loadFunction.bind(this), false);
-	} 
-	else if (document.attachEvent) 
-	{
-	    window.attachEvent("onload", loadFunction.bind(this));
-	}
-	else // very old browser, copy old onload
-	{
-		window.onload = function() 
-		{ 
-			loadFunction().bind(this);
-		};
-	}
-};
-
-NSImport.prototype.loadBasicScripts = function ()
-{
-	var nsimport = this;
-	var basicScriptLoadComplete = function(filePath)
-	{
-		nsimport.__baseScriptCount--;
-		if(nsimport.__baseScriptCount === 0)
-		{
-			nsimport.loadBaseComponents();
-		}
-	};
-	//if (!this.supportRegisterElement() && !this.supportShadowDOM() && !this.supportImportLink() && !this.supportTemplate())
-	//{
-		this.__baseScriptCount = 1;
-		this.loadScript("webComponent.js",basicScriptLoadComplete);
-	//}
-	var flag = (this.__baseScriptCount === 0);
-	if(flag)
-	{
-		this.loadBaseComponents();
-	}
-};
-
-NSImport.prototype.supportRegisterElement = function()
-{
-	return "registerElement" in document;
-};
-
-NSImport.prototype.supportShadowDOM = function()
-{
-	return "createShadowRoot" in HTMLElement.prototype;
-};
-
-NSImport.prototype.supportImportLink = function()
-{
-	return "import" in document.createElement("link");
-};
-
-NSImport.prototype.supportTemplate = function()
-{
-	return "content" in document.createElement("template");
-};
-
-
-NSImport.prototype.loadBaseComponents = function ()
-{
-	var nsimport = this;
-	nsimport.__baseFileCount = 5;
-	var baseLoadComplete = function(filePath)
-	{
-		nsimport.__baseFileCount--;
-		if(nsimport.__baseFileCount === 0)
-		{
-			nsimport.readImport();
-		}
-	};
-	this.loadScript("component.css",baseLoadComplete);
-	this.loadScript("nsUtil.js",baseLoadComplete);
-	this.loadScript("nsTip.js",baseLoadComplete);
-	this.loadScript("nsUIComponent.js",baseLoadComplete);
-	this.loadScript("nsContainerBase.js",baseLoadComplete);
-};
-
-NSImport.prototype.readImport = function ()
-{
-	var list = document.getElementsByTagName("nsimport");
-	if(list && list.length > 0)
-	{
-		var nsimport = this;
-		var arrFiles = [];
-		for(var count = 0;count < list.length;count++)
-	    {
-	         var fileName = list[count].getAttribute("file");
-	         arrFiles.push(fileName);
-	         this.getRelatedFiles(arrFiles,fileName);
-	    }
-		nsimport.__baseFileCount = arrFiles.length;
-		var loadComplete = function(filePath)
-		{
-			nsimport.__baseFileCount--;
-			if(nsimport.__baseFileCount === 0)
-			{
-				nsimport.__hasInitialized = true;
-				if(nsimport.__callback && !nsimport.__hasCallBackCalled)
-				{
-					nsimport.__hasCallBackCalled = true;
-					nsimport.__callback();
-				}
-			}			
-		};
-		for(var count = 0;count < arrFiles.length;count++)
-	    {
-	         var fileName = arrFiles[count];
-	         this.loadScript(fileName,loadComplete);
-	    }
-	}
-	else
-	{
-		this.__hasInitialized = true;
-		if(this.__callback && !this.__hasCallBackCalled)
-		{
-			this.__hasCallBackCalled = true;
-			this.__callback(event);
-		}
-	}
-		
-};
-
-NSImport.prototype.getRelatedFiles = function(arrFiles,fileName)
-{
-	if(fileName === "nsProgressBar.js")
-	{
-		arrFiles.push(this.NSMODAL_JS);
-		arrFiles.push(this.NSMODAL_CSS);
-		arrFiles.push(this.NSPROGRESSBAR_CSS);
-	}
-	else if(fileName === "nsGrid.js")
-	{
-		arrFiles.push(this.NSDATAGRID_CSS);
-		arrFiles.push(this.NSGRIDCOLUMN_JS);
-		arrFiles.push(this.NSSCROLLER_JS);
-	}
-	else if(fileName === "nsList.js")
-	{
-		arrFiles.push(this.NSLIST_CSS);
-		arrFiles.push(this.NSSCROLLER_JS);
-	}
-};
-
-NSImport.prototype.loadScript = function (fileName,callback)
-{
-	if(fileName)
-    {
-	   	var filePath = null;
-	   	var fileType = null;
-	   	if(fileName.indexOf("/") > 0)
-	   	{
-	   		filePath =  fileName;
-	   	}
-	   	else
-	   	{
-	   		 filePath = this.__dicPath[fileName];
-	   	}
-	   	if(filePath)
-		{
-			if (document.getElementById(filePath) == null) 
-			{
-				if(filePath.indexOf(".") > 0)
-				{
-					fileType = filePath.substring(filePath.lastIndexOf(".") + 1,filePath.length);
-					if(fileType === "js")
-					{
-						this.includeJavaScriptFile(filePath,callback,"body");
-					}
-					else if(fileType === "css")
-					{
-						this.includeCssFile(filePath,callback);
-					}
-				}
-			}
-			else if(callback)
-			{
-				
-				callback();
-			}
-		}
-    }
-	
-};
-
-//Position can be "head" or "body"
-NSImport.prototype.includeJavaScriptFile = function (filePath,callback,position)
-{
-    if(filePath)
-    {
-        if(!position)
-        {
-            position = "body";
-        }
-        var domPosition = document.getElementsByTagName(position)[0];
-        var script = document.createElement("script");
-        script.setAttribute("id", filePath);
-        script.setAttribute("type","text/javascript");
-        script.setAttribute("src",filePath);
-        if(callback)
-        {
-            /*script.onreadystatechange= function ()
-            {
-                if (this.readyState == "complete")
-                {
-                    callback();
-                }
-            };*/
-            script.onload = function()
-            {
-            	callback(filePath);
-            }; 
-        }
-        domPosition.appendChild(script);
-    }
-};
-
-NSImport.prototype.includeCssFile = function (filePath,callback)
-{
-    if(filePath)
-    {
-        var domPosition = document.getElementsByTagName("head")[0];
-        var cssFile = document.createElement("link");
-        cssFile.setAttribute("id", filePath);
-        cssFile.setAttribute("rel", "stylesheet");
-        cssFile.setAttribute("type", "text/css");
-        cssFile.setAttribute("href", filePath);
-        // Then bind the event to the callback function.
-        // There are several events for cross browser compatibility.
-        if(callback)
-        {
-            /*cssFile.onreadystatechange= function ()
-            {
-                if (this.readyState == "complete")
-                {
-                    callback();
-                }
-            };*/
-            cssFile.onload = function()
-            {
-            	callback(filePath);
-            };
-        }
-        domPosition.appendChild(cssFile);
-    }
-};
-
-if (!Function.prototype.bind) 
-{
-	Function.prototype.bind = function (oThis) 
-	{
-	    if (typeof this !== "function") 
-	    {
-	      // closest thing possible to the ECMAScript 5 internal IsCallable function
-	      throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
-	    }
-
-	    var aArgs = Array.prototype.slice.call(arguments, 1),
-	        fToBind = this,
-	        fNOP = function () {},
-	        fBound = function () {
-	          return fToBind.apply(this instanceof fNOP && oThis
-	                                 ? this
-	                                 : oThis,
-	                               aArgs.concat(Array.prototype.slice.call(arguments)));
-	        };
-
-	    fNOP.prototype = this.prototype;
-	    fBound.prototype = new fNOP();
-
-	    return fBound;
-	};
+<!-- https://github.com/darylrowland/angucomplete -->
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+    pageEncoding="ISO-8859-1"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Insert title here</title>
+ <meta name='viewport' content='width=device-width,initial-scale=1'>
+ <link rel="stylesheet" href="autocomplete/structure.css"/>
+ <link rel="stylesheet" href="autocomplete/angucomplete.css"/>
+ <script src="lib/com/org/util/nsImport.js"></script>
+ <style>
+ 	.angucomplete-dropdown {
+    border-color: #ececec;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 2px;
+    width: 250px;
+    padding: 6px;
+    cursor: pointer;
+    z-index: 9999;
+   /* position: absolute;*/
+    /*top: 32px;
+    left: 0px;
+    */
+    margin-top: -6px;
+    background-color: #ffffff;
 }
+ </style>
+</head>
+<body onload="loadHandler();">
+	<nsimport file="nsList.js">
+ 	</nsimport>
 
-var ns = new NSImport();
-ns.__initialiseImport();
+	<div id="divAutoComplete" class="angucomplete-holder">
+		<input id="txtDemo" ng-model="searchStr" type="text" placeholder="Search countries" class="form-control form-control-small ng-dirty"
+			    creationComplete="lstDemo_creationCompleteHandler(event)">
+		<!--  <ns-List id="lstDemo" labelField="name" style="height:300px;" resuableRenderRequired="false" enableMultipleSelection="true" 
+				 enableKeyboardNavigation="true" customScrollerRequired="true" >
+		</ns-List> -->
+	</div>
+	
+	<script>
+	
+	var countries = [
+	                    {name: 'Afghanistan', code: 'AF'},
+	                    {name: 'Aland Islands', code: 'AX'},
+	                    {name: 'Albania', code: 'AL'},
+	                    {name: 'Algeria', code: 'DZ'},
+	                    {name: 'American Samoa', code: 'AS'},
+	                    {name: 'AndorrA', code: 'AD'},
+	                    {name: 'Angola', code: 'AO'},
+	                    {name: 'Anguilla', code: 'AI'},
+	                    {name: 'Antarctica', code: 'AQ'},
+	                    {name: 'Antigua and Barbuda', code: 'AG'},
+	                    {name: 'Argentina', code: 'AR'},
+	                    {name: 'Armenia', code: 'AM'},
+	                    {name: 'Aruba', code: 'AW'},
+	                    {name: 'Australia', code: 'AU'},
+	                    {name: 'Austria', code: 'AT'},
+	                    {name: 'Azerbaijan', code: 'AZ'},
+	                    {name: 'Bahamas', code: 'BS'},
+	                    {name: 'Bahrain', code: 'BH'},
+	                    {name: 'Bangladesh', code: 'BD'},
+	                    {name: 'Barbados', code: 'BB'},
+	                    {name: 'Belarus', code: 'BY'},
+	                    {name: 'Belgium', code: 'BE'},
+	                    {name: 'Belize', code: 'BZ'},
+	                    {name: 'Benin', code: 'BJ'},
+	                    {name: 'Bermuda', code: 'BM'},
+	                    {name: 'Bhutan', code: 'BT'},
+	                    {name: 'Bolivia', code: 'BO'},
+	                    {name: 'Bosnia and Herzegovina', code: 'BA'},
+	                    {name: 'Botswana', code: 'BW'},
+	                    {name: 'Bouvet Island', code: 'BV'},
+	                    {name: 'Brazil', code: 'BR'},
+	                    {name: 'British Indian Ocean Territory', code: 'IO'},
+	                    {name: 'Brunei Darussalam', code: 'BN'},
+	                    {name: 'Bulgaria', code: 'BG'},
+	                    {name: 'Burkina Faso', code: 'BF'},
+	                    {name: 'Burundi', code: 'BI'},
+	                    {name: 'Cambodia', code: 'KH'},
+	                    {name: 'Cameroon', code: 'CM'},
+	                    {name: 'Canada', code: 'CA'},
+	                    {name: 'Cape Verde', code: 'CV'},
+	                    {name: 'Cayman Islands', code: 'KY'},
+	                    {name: 'Central African Republic', code: 'CF'},
+	                    {name: 'Chad', code: 'TD'},
+	                    {name: 'Chile', code: 'CL'},
+	                    {name: 'China', code: 'CN'},
+	                    {name: 'Christmas Island', code: 'CX'},
+	                    {name: 'Cocos (Keeling) Islands', code: 'CC'},
+	                    {name: 'Colombia', code: 'CO'},
+	                    {name: 'Comoros', code: 'KM'},
+	                    {name: 'Congo', code: 'CG'},
+	                    {name: 'Congo, The Democratic Republic of the', code: 'CD'},
+	                    {name: 'Cook Islands', code: 'CK'},
+	                    {name: 'Costa Rica', code: 'CR'},
+	                    {name: 'Cote D\'Ivoire', code: 'CI'},
+	                    {name: 'Croatia', code: 'HR'},
+	                    {name: 'Cuba', code: 'CU'},
+	                    {name: 'Cyprus', code: 'CY'},
+	                    {name: 'Czech Republic', code: 'CZ'},
+	                    {name: 'Denmark', code: 'DK'},
+	                    {name: 'Djibouti', code: 'DJ'},
+	                    {name: 'Dominica', code: 'DM'},
+	                    {name: 'Dominican Republic', code: 'DO'},
+	                    {name: 'Ecuador', code: 'EC'},
+	                    {name: 'Egypt', code: 'EG'},
+	                    {name: 'El Salvador', code: 'SV'},
+	                    {name: 'Equatorial Guinea', code: 'GQ'},
+	                    {name: 'Eritrea', code: 'ER'},
+	                    {name: 'Estonia', code: 'EE'},
+	                    {name: 'Ethiopia', code: 'ET'},
+	                    {name: 'Falkland Islands (Malvinas)', code: 'FK'},
+	                    {name: 'Faroe Islands', code: 'FO'},
+	                    {name: 'Fiji', code: 'FJ'},
+	                    {name: 'Finland', code: 'FI'},
+	                    {name: 'France', code: 'FR'},
+	                    {name: 'French Guiana', code: 'GF'},
+	                    {name: 'French Polynesia', code: 'PF'},
+	                    {name: 'French Southern Territories', code: 'TF'},
+	                    {name: 'Gabon', code: 'GA'},
+	                    {name: 'Gambia', code: 'GM'},
+	                    {name: 'Georgia', code: 'GE'},
+	                    {name: 'Germany', code: 'DE'},
+	                    {name: 'Ghana', code: 'GH'},
+	                    {name: 'Gibraltar', code: 'GI'},
+	                    {name: 'Greece', code: 'GR'},
+	                    {name: 'Greenland', code: 'GL'},
+	                    {name: 'Grenada', code: 'GD'},
+	                    {name: 'Guadeloupe', code: 'GP'},
+	                    {name: 'Guam', code: 'GU'},
+	                    {name: 'Guatemala', code: 'GT'},
+	                    {name: 'Guernsey', code: 'GG'},
+	                    {name: 'Guinea', code: 'GN'},
+	                    {name: 'Guinea-Bissau', code: 'GW'},
+	                    {name: 'Guyana', code: 'GY'},
+	                    {name: 'Haiti', code: 'HT'},
+	                    {name: 'Heard Island and Mcdonald Islands', code: 'HM'},
+	                    {name: 'Holy See (Vatican City State)', code: 'VA'},
+	                    {name: 'Honduras', code: 'HN'},
+	                    {name: 'Hong Kong', code: 'HK'},
+	                    {name: 'Hungary', code: 'HU'},
+	                    {name: 'Iceland', code: 'IS'},
+	                    {name: 'India', code: 'IN'},
+	                    {name: 'Indonesia', code: 'ID'},
+	                    {name: 'Iran, Islamic Republic Of', code: 'IR'},
+	                    {name: 'Iraq', code: 'IQ'},
+	                    {name: 'Ireland', code: 'IE'},
+	                    {name: 'Isle of Man', code: 'IM'},
+	                    {name: 'Israel', code: 'IL'},
+	                    {name: 'Italy', code: 'IT'},
+	                    {name: 'Jamaica', code: 'JM'},
+	                    {name: 'Japan', code: 'JP'},
+	                    {name: 'Jersey', code: 'JE'},
+	                    {name: 'Jordan', code: 'JO'},
+	                    {name: 'Kazakhstan', code: 'KZ'},
+	                    {name: 'Kenya', code: 'KE'},
+	                    {name: 'Kiribati', code: 'KI'},
+	                    {name: 'Korea, Democratic People\'S Republic of', code: 'KP'},
+	                    {name: 'Korea, Republic of', code: 'KR'},
+	                    {name: 'Kuwait', code: 'KW'},
+	                    {name: 'Kyrgyzstan', code: 'KG'},
+	                    {name: 'Lao People\'S Democratic Republic', code: 'LA'},
+	                    {name: 'Latvia', code: 'LV'},
+	                    {name: 'Lebanon', code: 'LB'},
+	                    {name: 'Lesotho', code: 'LS'},
+	                    {name: 'Liberia', code: 'LR'},
+	                    {name: 'Libyan Arab Jamahiriya', code: 'LY'},
+	                    {name: 'Liechtenstein', code: 'LI'},
+	                    {name: 'Lithuania', code: 'LT'},
+	                    {name: 'Luxembourg', code: 'LU'},
+	                    {name: 'Macao', code: 'MO'},
+	                    {name: 'Macedonia, The Former Yugoslav Republic of', code: 'MK'},
+	                    {name: 'Madagascar', code: 'MG'},
+	                    {name: 'Malawi', code: 'MW'},
+	                    {name: 'Malaysia', code: 'MY'},
+	                    {name: 'Maldives', code: 'MV'},
+	                    {name: 'Mali', code: 'ML'},
+	                    {name: 'Malta', code: 'MT'},
+	                    {name: 'Marshall Islands', code: 'MH'},
+	                    {name: 'Martinique', code: 'MQ'},
+	                    {name: 'Mauritania', code: 'MR'},
+	                    {name: 'Mauritius', code: 'MU'},
+	                    {name: 'Mayotte', code: 'YT'},
+	                    {name: 'Mexico', code: 'MX'},
+	                    {name: 'Micronesia, Federated States of', code: 'FM'},
+	                    {name: 'Moldova, Republic of', code: 'MD'},
+	                    {name: 'Monaco', code: 'MC'},
+	                    {name: 'Mongolia', code: 'MN'},
+	                    {name: 'Montserrat', code: 'MS'},
+	                    {name: 'Morocco', code: 'MA'},
+	                    {name: 'Mozambique', code: 'MZ'},
+	                    {name: 'Myanmar', code: 'MM'},
+	                    {name: 'Namibia', code: 'NA'},
+	                    {name: 'Nauru', code: 'NR'},
+	                    {name: 'Nepal', code: 'NP'},
+	                    {name: 'Netherlands', code: 'NL'},
+	                    {name: 'Netherlands Antilles', code: 'AN'},
+	                    {name: 'New Caledonia', code: 'NC'},
+	                    {name: 'New Zealand', code: 'NZ'},
+	                    {name: 'Nicaragua', code: 'NI'},
+	                    {name: 'Niger', code: 'NE'},
+	                    {name: 'Nigeria', code: 'NG'},
+	                    {name: 'Niue', code: 'NU'},
+	                    {name: 'Norfolk Island', code: 'NF'},
+	                    {name: 'Northern Mariana Islands', code: 'MP'},
+	                    {name: 'Norway', code: 'NO'},
+	                    {name: 'Oman', code: 'OM'},
+	                    {name: 'Pakistan', code: 'PK'},
+	                    {name: 'Palau', code: 'PW'},
+	                    {name: 'Palestinian Territory, Occupied', code: 'PS'},
+	                    {name: 'Panama', code: 'PA'},
+	                    {name: 'Papua New Guinea', code: 'PG'},
+	                    {name: 'Paraguay', code: 'PY'},
+	                    {name: 'Peru', code: 'PE'},
+	                    {name: 'Philippines', code: 'PH'},
+	                    {name: 'Pitcairn', code: 'PN'},
+	                    {name: 'Poland', code: 'PL'},
+	                    {name: 'Portugal', code: 'PT'},
+	                    {name: 'Puerto Rico', code: 'PR'},
+	                    {name: 'Qatar', code: 'QA'},
+	                    {name: 'Reunion', code: 'RE'},
+	                    {name: 'Romania', code: 'RO'},
+	                    {name: 'Russian Federation', code: 'RU'},
+	                    {name: 'RWANDA', code: 'RW'},
+	                    {name: 'Saint Helena', code: 'SH'},
+	                    {name: 'Saint Kitts and Nevis', code: 'KN'},
+	                    {name: 'Saint Lucia', code: 'LC'},
+	                    {name: 'Saint Pierre and Miquelon', code: 'PM'},
+	                    {name: 'Saint Vincent and the Grenadines', code: 'VC'},
+	                    {name: 'Samoa', code: 'WS'},
+	                    {name: 'San Marino', code: 'SM'},
+	                    {name: 'Sao Tome and Principe', code: 'ST'},
+	                    {name: 'Saudi Arabia', code: 'SA'},
+	                    {name: 'Senegal', code: 'SN'},
+	                    {name: 'Serbia and Montenegro', code: 'CS'},
+	                    {name: 'Seychelles', code: 'SC'},
+	                    {name: 'Sierra Leone', code: 'SL'},
+	                    {name: 'Singapore', code: 'SG'},
+	                    {name: 'Slovakia', code: 'SK'},
+	                    {name: 'Slovenia', code: 'SI'},
+	                    {name: 'Solomon Islands', code: 'SB'},
+	                    {name: 'Somalia', code: 'SO'},
+	                    {name: 'South Africa', code: 'ZA'},
+	                    {name: 'South Georgia and the South Sandwich Islands', code: 'GS'},
+	                    {name: 'Spain', code: 'ES'},
+	                    {name: 'Sri Lanka', code: 'LK'},
+	                    {name: 'Sudan', code: 'SD'},
+	                    {name: 'Suriname', code: 'SR'},
+	                    {name: 'Svalbard and Jan Mayen', code: 'SJ'},
+	                    {name: 'Swaziland', code: 'SZ'},
+	                    {name: 'Sweden', code: 'SE'},
+	                    {name: 'Switzerland', code: 'CH'},
+	                    {name: 'Syrian Arab Republic', code: 'SY'},
+	                    {name: 'Taiwan, Province of China', code: 'TW'},
+	                    {name: 'Tajikistan', code: 'TJ'},
+	                    {name: 'Tanzania, United Republic of', code: 'TZ'},
+	                    {name: 'Thailand', code: 'TH'},
+	                    {name: 'Timor-Leste', code: 'TL'},
+	                    {name: 'Togo', code: 'TG'},
+	                    {name: 'Tokelau', code: 'TK'},
+	                    {name: 'Tonga', code: 'TO'},
+	                    {name: 'Trinidad and Tobago', code: 'TT'},
+	                    {name: 'Tunisia', code: 'TN'},
+	                    {name: 'Turkey', code: 'TR'},
+	                    {name: 'Turkmenistan', code: 'TM'},
+	                    {name: 'Turks and Caicos Islands', code: 'TC'},
+	                    {name: 'Tuvalu', code: 'TV'},
+	                    {name: 'Uganda', code: 'UG'},
+	                    {name: 'Ukraine', code: 'UA'},
+	                    {name: 'United Arab Emirates', code: 'AE'},
+	                    {name: 'United Kingdom', code: 'GB'},
+	                    {name: 'United States', code: 'US'},
+	                    {name: 'United States Minor Outlying Islands', code: 'UM'},
+	                    {name: 'Uruguay', code: 'UY'},
+	                    {name: 'Uzbekistan', code: 'UZ'},
+	                    {name: 'Vanuatu', code: 'VU'},
+	                    {name: 'Venezuela', code: 'VE'},
+	                    {name: 'Vietnam', code: 'VN'},
+	                    {name: 'Virgin Islands, British', code: 'VG'},
+	                    {name: 'Virgin Islands, U.S.', code: 'VI'},
+	                    {name: 'Wallis and Futuna', code: 'WF'},
+	                    {name: 'Western Sahara', code: 'EH'},
+	                    {name: 'Yemen', code: 'YE'},
+	                    {name: 'Zambia', code: 'ZM'},
+	                    {name: 'Zimbabwe', code: 'ZW'}
+	                ];
+	var list = null;
+	var util = null;
+	function loadHandler()
+	{
+		ns.onload(function()
+		{
+			util = new NSUtil();
+			var txtDemo = document.querySelector("#txtDemo");
+			util.addEvent(txtDemo,"keyup",txtDemo_keyUpHandler);
+			//util.addEvent(lstDemo,lstDemo.ITEM_SELECTED,itemSelectHandler);
+			//util.addEvent(lstDemo,lstDemo.ITEM_UNSELECTED,itemUnSelectHandler);
+		});	
+	}
+	
+	function txtDemo_keyUpHandler(event)
+	{
+		event = util.getEvent(event);
+		var keyCode = util.getKeyUnicode(event);
+		if (!(keyCode == util.KEYCODE.UP || keyCode == util.KEYCODE.DOWN || keyCode == util.KEYCODE.ENTER)) 
+		{
+			var txtDemo = document.querySelector("#txtDemo");
+			createListControl();
+			if(!txtDemo.value || txtDemo.value == "")
+			{
+				list.style.display = "none";
+			}
+			else
+			{
+				list.style.display = "inline";	
+			}
+		}
+		else
+		{
+			event.preventDefault();
+		}
+	}
+	
+	function createListControl()
+	{
+		if(!list)
+		{
+			var divAutoComplete = document.querySelector("#divAutoComplete");
+			list = document.createElement("ns-List");
+			util.addStyleClass(list,"angucomplete-dropdown");
+			list.style.height = 300 + "px";
+			list.setAttribute("labelField","name");
+			list.setAttribute("resuableRenderRequired",false);
+			list.setAttribute("enableMultipleSelection",true);
+			list.setAttribute("enableKeyboardNavigation",true);
+			list.setAttribute("customScrollerRequired",true);
+			list.setDataProvider(countries);
+			//util.addEvent(list,"creationComplete",lstDemo_creationCompleteHandler);
+			divAutoComplete.appendChild(list);
+		}
+	}
+	
+	function lstDemo_creationCompleteHandler(event)
+	{
+		console.log("IN lstDemo_creationCompleteHandler");
+		list.style.display = "none";
+	}
+	</script>
+
+</body>
+</html>
