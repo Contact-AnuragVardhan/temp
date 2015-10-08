@@ -1,581 +1,368 @@
-var nsTextBox = Object.create(nsUIComponent);
-
-nsTextBox.initializeComponent = function() 
-{
-	this.base.initializeComponent();
-	this.ITEM_SELECTED = "itemSelected";
-	this.ITEM_UNSELECTED = "itemUnselected";
+//this.__list.setAttribute("labelField",this.__labelField);
+		this.__list.setAttribute("template","templateDemo");
+		//this.__list.__itemRenderer = this.__itemRenderer;
+		this.__list.setAttribute("setDataCallBack",setData);
+		//this.__list.__setDataCallBack = this.__renderer.setData.bind(this.__renderer);
+		this.__list.setAttribute("clearDataCallBack",clearData);
+		//this.__list.__clearDataCallBack = this.__renderer.clearData.bind(this.__renderer);
+		//this.__renderer.searchString = searchString;
+		
+		
+		
+		
+		<!-- https://github.com/darylrowland/angucomplete -->
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+    pageEncoding="ISO-8859-1"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Insert title here</title>
+ <meta name='viewport' content='width=device-width,initial-scale=1'>
+ <script src="lib/com/org/util/nsImport.js"></script>
+<style>
+  	.hbox 
+	{
+	  overflow-x:auto;
+	}
 	
-	this.__outerContainer = null;
-	this.__textBox = null;
-	this.__list = null;
-	this.__renderer =  null;
-	this.__itemRenderer = null;
+	.hbox > * 
+	{
+	  display: inline-block;
+	   vertical-align: middle;
+	  
+	}
 	
-	this.__dataProvider = null;
-	this.__enableAutoComplete = false;
-	this.__matchStartsWith = false;
-	this.__maxChars = -1;
-	this.__minSearchStartChars = 1;
-	this.__caseSensitive = true;
-	this.__required = false;
-	this.__placeholder = null;
-	this.__displayAsPassword = false;
-	this.__delay = 150;
-	this.__listWidth = -1;
-	this.__maxListHeight = 300;
-	this.__noRecordsFoundMessage = "No Records Found";
-	//can be [a-zA-Z0-9,-]
-	this.__restrict = null;
+</style>
+</head>
+<body onload="loadHandler();">
+	<template id="templateDemo">
+			<div accessor-name="rendererBody" class="hbox">
+				<label accessor-name="label"></label>
+			</div>
+	</template>
+ 	<nsimport file="nsTextBox.js">
+ 	</nsimport>
+
+	<ns-TextBox id="txtUserName" placeholder="User Name" style="width:200px;" class="nsTextBox" maxChars="10" restrict="A-Za-z-,">
+	</ns-TextBox> 
+	<ns-TextBox id="txtPassword" placeholder="Password" style="width:200px;" class="nsTextBox" displayAsPassword="true">
+	</ns-TextBox> 
+	<ns-TextBox id="txtAutoComplete" placeholder="Search Countries" style="width:200px;" listWidth="300" class="nsTextBox" enableAutoComplete="true" required="true" labelField="name" enableMultipleSelection="true" enableKeyboardNavigation="true" customScrollerRequired="true">
+	</ns-TextBox> 
 	
-	this.__labelField = "label";
-	this.__labelFunction = null;
-	this.__templateID = null;
-	this.__setDataCallBack = null;
-	this.__clearDataCallBack = null;
-	this.__enableKeyboardNavigation = false;
-	this.__enableMultipleSelection = false;
-	this.__customScrollerRequired = false;
+	<button onclick="toggleRestrict()">Toggle Restrict</button>
+	<button onclick="setText()">Set Text</button>
 	
-	this.__selectedItem = null;
-	this.__timerInstance = null;
-	this.__componentMeasurement = {};
-	
-	this.__keyPressedEvent = null;
-};
-
-nsTextBox.setText = function(text)
-{
-	if(this.__textBox)
-	{
-		if(this.__maxChars > -1 && text.length > this.__maxChars)
-		{
-			text = text.substring(0, this.__maxChars);
-		}
-		this.__textBox.value = text;
-	}
-};
-
-nsTextBox.getText = function()
-{
-	if(this.__textBox)
-	{
-		return this.__textBox.value;
-	}
-	return null;
-};
-
-nsTextBox.getSelectedIndex = function()
-{
-	if(this.__list)
-	{
-		return this.__list.getSelectedIndex();
-	}
-	return -1;
-};
-
-nsTextBox.getSelectedItem = function()
-{
-	if(this.__list)
-	{
-		return this.__list.getSelectedItem();
-	}
-	return null;
-};
-
-nsTextBox.getSelectedIndexes = function()
-{
-	if(this.__list)
-	{
-		return this.__list.getSelectedIndexes();
-	}
-	return null;
-};
-
-nsTextBox.getSelectedItems = function()
-{
-	if(this.__list)
-	{
-		return this.__list.getSelectedItems();
-	}
-	return null;
-};
-
-nsTextBox.setComponentProperties = function() 
-{
-	if(this.hasAttribute("enableAutoComplete"))
-	{
-		this.__enableAutoComplete =  Boolean.parse(this.getAttribute("enableAutoComplete"));
-	}
-	if(this.hasAttribute("matchStartsWith"))
-	{
-		this.__matchStartsWith =  Boolean.parse(this.getAttribute("matchStartsWith"));
-	}
-	if(this.hasAttribute("maxChars"))
-	{
-		this.__maxChars =  parseInt(this.getAttribute("maxChars"));
-	}
-	if(this.hasAttribute("minSearchStartChars"))
-	{
-		this.__minSearchStartChars =  parseInt(this.getAttribute("minSearchStartChars"));
-	}
-	if(this.hasAttribute("caseSensitive"))
-	{
-		this.__caseSensitive = Boolean.parse(this.getAttribute("caseSensitive"));
-	}
-	if(this.hasAttribute("required"))
-	{
-		this.__required = Boolean.parse(this.getAttribute("required"));
-	}
-	if(this.hasAttribute("placeholder"))
-	{
-		this.__placeholder = this.getAttribute("placeholder");
-	}
-	if(this.hasAttribute("displayAsPassword"))
-	{
-		this.__displayAsPassword = Boolean.parse(this.getAttribute("displayAsPassword"));
-	}
-	if(this.hasAttribute("delay"))
-	{
-		this.__delay =  parseInt(this.getAttribute("delay"));
-	}
-	if(this.hasAttribute("maxListHeight"))
-	{
-		this.__maxListHeight =  parseInt(this.getAttribute("maxListHeight"));
-	}
-	if(this.hasAttribute("listWidth"))
-	{
-		this.__listWidth =  parseInt(this.getAttribute("listWidth"));
-	}
-	if(this.hasAttribute("labelField"))
-	{
-		this.__labelField = this.getAttribute("labelField");
-	}
-	if(this.hasAttribute("labelFunction"))
-	{
-		this.__labelFunction = this.getAttribute("labelFunction");
-	}
-	if(this.hasAttribute("template"))
-	{
-		this.__templateID = this.getAttribute("template");
-	}
-	if(this.hasAttribute("setDataCallBack"))
-	{
-		this.__setDataCallBack = this.getAttribute("setDataCallBack");
-	}
-	if(this.hasAttribute("clearDataCallBack"))
-	{
-		this.__clearDataCallBack  = this.getAttribute("clearDataCallBack");
-	}
-	if(this.hasAttribute("enableMultipleSelection"))
-	{
-		this.__enableMultipleSelection =  Boolean.parse(this.getAttribute("enableMultipleSelection"));
-	}
-	if(this.hasAttribute("customScrollerRequired"))
-	{
-		this.__customScrollerRequired =  Boolean.parse(this.getAttribute("customScrollerRequired"));
-	}
-	if(this.hasAttribute("enableKeyboardNavigation"))
-	{
-		this.__enableKeyboardNavigation =  Boolean.parse(this.getAttribute("enableKeyboardNavigation"));
-	}
-	if(this.hasAttribute("noRecordsFoundMessage"))
-	{
-		this.__noRecordsFoundMessage =  this.getAttribute("noRecordsFoundMessage");
-	}
-	if(this.hasAttribute("restrict"))
-	{
-		this.__restrict =  this.getAttribute("restrict");
-		if(this.__restrict)
-		{
-			this.__restrict = "[" + this.__restrict + "]";
-		}
-	}
-	this.__createComponents();
-	this.__setTextBoxProperty();
-	this.__coreElement = this.__textBox;
-	this.base.setComponentProperties();
-};
-
-nsTextBox.propertyChange = function(attrName, oldVal, newVal, setProperty)
-{
-	var callTextProperty = false;
-	var attributeName = attrName.toLowerCase();
-	if(attributeName === "enableAutoComplete")
-	{
-		this.__enableAutoComplete =  Boolean.parse(this.getAttribute("enableAutoComplete"));
-	}
-	if(attributeName === "matchStartsWith")
-	{
-		this.__matchStartsWith =  Boolean.parse(this.getAttribute("matchStartsWith"));
-	}
-	if(attributeName === "maxChars")
-	{
-		this.__maxChars =  parseInt(this.getAttribute("maxChars"));
-		callTextProperty = true;
-	}
-	if(attributeName === "minSearchStartChars")
-	{
-		this.__minSearchStartChars =  parseInt(this.getAttribute("minSearchStartChars"));
-	}
-	if(attributeName === "caseSensitive")
-	{
-		this.__caseSensitive = Boolean.parse(this.getAttribute("caseSensitive"));
-	}
-	if(attributeName === "required")
-	{
-		this.__required = Boolean.parse(this.getAttribute("required"));
-		callTextProperty = true;
-	}
-	if(attributeName === "placeholder")
-	{
-		this.__placeholder = this.getAttribute("placeholder");
-		callTextProperty = true;
-	}
-	if(attributeName === "delay")
-	{
-		this.__delay =  parseInt(this.getAttribute("delay"));
-	}
-	if(attributeName === "maxListHeight")
-	{
-		this.__maxListHeight =  parseInt(this.getAttribute("maxListHeight"));
-	}
-	if(attributeName === "listWidth")
-	{
-		this.__listWidth =  parseInt(this.getAttribute("listWidth"));
-	}
-	if(attributeName === "labelField")
-	{
-		this.__labelField = this.getAttribute("labelField");
-	}
-	if(attributeName === "labelFunction")
-	{
-		this.__labelFunction = this.getAttribute("labelFunction");
-	}
-	if(attributeName === "enableMultipleSelection")
-	{
-		this.__enableMultipleSelection =  Boolean.parse(this.getAttribute("enableMultipleSelection"));
-	}
-	if(attributeName === "enableKeyboardNavigation")
-	{
-		this.__enableKeyboardNavigation =  Boolean.parse(this.getAttribute("enableKeyboardNavigation"));
-	}
-	if(attributeName === "noRecordsFoundMessage")
-	{
-		this.__noRecordsFoundMessage =  this.getAttribute("noRecordsFoundMessage");
-	}
-	if(attributeName === "restrict")
-	{
-		this.__restrict =  this.getAttribute("restrict");
-		if(this.util.isValueNull(this.__restrict))
-		{
-			this.__restrict = null;
-		}
-		else
-		{
-			this.__restrict = "[" + this.__restrict + "]";
-		}
-		callTextProperty = true;
-	}
-	if(callTextProperty)
-	{
-		this.__setTextBoxProperty();
-	}
-};
-
-nsTextBox.setDataProvider = function(dataProvider)
-{
-	this.__dataProvider = dataProvider;
-	if(this.__enableAutoComplete && this.__dataProvider && this.__dataProvider.length > 0 && this.__isCreationCompleted)
-	{
-		this.__renderer = new this.defaultSearchRenderer();
-		this.__itemRenderer = this.__renderer.getRenderer();
-		var rect = this.getBoundingClientRect();
-		this.__componentMeasurement.top = rect.top + this.__textBox.offsetHeight + 5;
-		this.__componentMeasurement.left = rect.left;
-		this.__componentMeasurement.width = this.__textBox.offsetWidth;
-		this.util.addEvent(this.__textBox,"keyup",this.__keyUpHandler.reference(this));
-	}
-};
-
-nsTextBox.__createComponents = function() 
-{
-	if(!this.__outerContainer)
-	{
-		this.__outerContainer = this.util.createDiv(this.getID() + "#container","nsTextBoxContainer");
-		this.addChild(this.__outerContainer);
-		this.__textBox = document.createElement("INPUT");
-		var preferredWidth = this.util.getDimensionAsNumber(this,this.style.width);
-		if(preferredWidth > 0)
-		{
-			this.__textBox.style.width = preferredWidth + "px";
-		}
-		if(this.__displayAsPassword)
-		{
-			this.__textBox.setAttribute("type", "password");
-		}
-		else
-		{
-			this.__textBox.setAttribute("type", "text");
-		}
-		this.__outerContainer.appendChild(this.__textBox);
-	}
-};
-
-nsTextBox.__setTextBoxProperty = function() 
-{
-	if(this.__textBox)
-	{
-		if(this.__required)
-		{
-			this.__textBox.setAttribute("required", "");
-		}
-		else
-		{
-			this.__textBox.removeAttribute("required");   
-		}
-		if(this.__placeholder && this.__placeholder.length > 0)
-		{
-			this.__textBox.setAttribute("placeholder", this.__placeholder);
-		}
-		else
-		{
-			this.__textBox.removeAttribute("placeholder");
-		}
-		if(this.__maxChars > -1)
-		{
-			this.__textBox.setAttribute("maxLength", this.__maxChars);
-		}
-		if(this.__restrict)
-		{
-			if(!this.__keyPressedEvent)
-			{
-				this.__keyPressedEvent = this.__keyPressHandler.bind(this);
-				this.util.addEvent(this.__textBox,"keypress",this.__keyPressedEvent);
-				console.log("keypress added in " + this.id + " " + this.__keyPressedEvent);
-			}
-		}
-		else
-		{
-			if(this.__keyPressedEvent)
-			{
-				console.log("keypress removed in " + this.id + " " + this.__keyPressedEvent);
-				this.util.removeEvent(this.__textBox,"keypress",this.__keyPressedEvent);
-				this.__keyPressedEvent = null;
-			}
-		}
-	}
-};
-
-nsTextBox.__keyUpHandler = function(event)
-{
-	event = this.util.getEvent(event);
-	var keyCode = this.util.getKeyUnicode(event);
-	if (!(keyCode == this.util.KEYCODE.UP || keyCode == this.util.KEYCODE.DOWN || keyCode == this.util.KEYCODE.ENTER)) 
-	{
-		if(!this.__textBox.value || this.__textBox.value == "" || this.__textBox.value.length < this.__minSearchStartChars)
-		{
-			this.__removeListControl();
-		}
-		else
-		{
-			if(this.__timerInstance)
-			{
-				clearTimeout(this.__timerInstance);
-			}
-			var compRef = this;
-			this.__timerInstance = setTimeout(
-			function()
-			{ 
-				compRef.__searchText(compRef.__textBox.value);
-			},this.__delay);
-		}
-	}
-	else
-	{
-		event.preventDefault();
-	}
-};
-
-nsTextBox.__keyPressHandler = function(event)
-{
-	event = this.util.getEvent(event);
-	var keyCode = this.util.getKeyUnicode(event);
-	var keyPressed = String.fromCharCode(keyCode);
-	if(!this.util.checkRegexValue(this.__restrict,keyPressed))
-	{
-		event.preventDefault();
-	}
-};
-
-nsTextBox.__searchText = function(searchString)
-{
-	this.__removeListControl();
-	this.__createListControl(searchString);
-	var compRef = this;
-	var dataSource = this.__dataProvider.filter(
-	function (item)
-	{
-		var compareString = searchString;
-		if(item)
-		{
-			if(compRef.__matchStartsWith)
-			{
-				return compRef.util.startsWith(item[compRef.__labelField],compareString,compRef.__caseSensitive);
-			}
-			else
-			{
-				return compRef.util.contains(item[compRef.__labelField],compareString,0,compRef.__caseSensitive);
-			}
-		}
-		return false;
-	});
-	if(dataSource.length === 0)
-	{
-		var item = {};
-		item[compRef.__labelField] = compRef.__noRecordsFoundMessage;
-		dataSource[0] = item;
-	}
-	compRef.__list.setDataProvider(dataSource);
-	var suggestedHeight = (dataSource.length * compRef.__list.__listItemHeight) + 5;
-	suggestedHeight = (compRef.__maxListHeight > suggestedHeight) ? suggestedHeight:compRef.__maxListHeight;
-	compRef.__list.style.height = suggestedHeight + "px";
-};
-
-nsTextBox.__createListControl = function(searchString)
-{
-	if(!this.__list)
-	{
-		this.__list = document.createElement("ns-List");
-		this.util.addStyleClass(this.__list,"nsTextBoxList");
-		this.__list.style.top = this.__componentMeasurement.top + "px";
-		this.__list.style.left = this.__componentMeasurement.left + "px";
-		if(this.__listWidth > 0)
-		{
-			this.__list.style.width =this.__listWidth + "px";
-		}
-		else
-		{
-			this.__list.style.width =this.__componentMeasurement.width + "px";
-		}
-		this.__list.style.height = this.__maxListHeight + "px";
-		this.__list.setAttribute("labelField",this.__labelField);
-		//this.__list.setAttribute("template",__itemRenderer);
-		this.__list.__itemRenderer = this.__itemRenderer;
-		//this.__list.setAttribute("setDataCallBack",__renderer.setData);
-		this.__list.__setDataCallBack = this.__renderer.setData.bind(this.__renderer);
-		//this.__list.setAttribute("clearDataCallBack",__renderer.clearData);
-		this.__list.__clearDataCallBack = this.__renderer.clearData.bind(this.__renderer);
-		this.__renderer.searchString = searchString;
-		this.__list.setAttribute("resuableRenderRequired",false);
-		this.__list.setAttribute("enableMultipleSelection",this.__enableMultipleSelection);
-		this.__list.setAttribute("enableKeyboardNavigation",this.__enableKeyboardNavigation);
-		this.__list.setAttribute("customScrollerRequired",this.__customScrollerRequired);
-		this.util.addEvent(this.__list,this.__list.ITEM_NAVIGATED,this.__itemNavigationHandler.reference(this));
-		this.util.addEvent(this.__list,this.__list.ITEM_SELECTED,this.__itemSelectHandler.reference(this));
-		this.util.addEvent(this.__list,this.__list.ITEM_UNSELECTED,this.__itemUnSelectHandler.reference(this));
-		this.__outerContainer.appendChild(this.__list);
-	}
-};
-
-nsTextBox.__removeListControl = function()
-{
-	if(this.__list)
-	{
-		this.__outerContainer.removeChild(this.__list);
-		this.__list = null;
-	}
-};
-
-nsTextBox.__itemNavigationHandler = function(event)
-{
-	if(event && event.detail)
-	{
-		var navigatedItem = event.detail;
-		this.__textBox.value = navigatedItem[this.__labelField];
-	}
-};
-
-nsTextBox.__itemSelectHandler = function(event)
-{
-	if(event && event.detail)
-	{
-		this.__selectedItem = event.detail;
-		this.__textBox.value = this.__selectedItem[this.__labelField];
-		this.__removeListControl();
-		this.util.dispatchEvent(this,this.ITEM_SELECTED,event.detail,{index:event.index});
-	}
-};
-
-nsTextBox.__itemUnSelectHandler = function(event)
-{
-	console.log("Item Unselected with details::" + event.detail  + " with index " + event.index);
-	this.util.dispatchEvent(this,this.ITEM_UNSELECTED,event.detail,{index:event.index});
-}
-
-nsTextBox.defaultSearchRenderer = function()
-{
-	this.searchString = null;
-	this.util = new NSUtil();
-	this.divItemRenderer = null;
-	
-	this.getRenderer = function()
-	{
-		if(!this.divItemRenderer)
-		{
-			this.__createComponents();
-		}
-		return this.divItemRenderer;
-	};
-	
-	this.setData = function(renderer,item,labelField)
+	<script>
+	function setData(renderer,item,labelField)
 	{
 		if(renderer)
 		{
 			if(item && item[labelField])
 			{
-				var htmlText = item[labelField];
-				if (this.searchString) 
-				{
-				      var words = '(' +
-				      		this.searchString.split(/\ /).join(' |').split(/\(/).join('\\(').split(/\)/).join('\\)') + '|' +
-				      		this.searchString.split(/\ /).join('|').split(/\(/).join('\\(').split(/\)/).join('\\)') +
-				          ')',
-				          exp = new RegExp(words, 'gi');
-				      if (words.length) 
-				      {
-				    	  htmlText = htmlText.replace(exp, "<span class=\"highlight\">$1</span>");
-				      }
-				}
-				renderer.rendererBody.rendererLabel.innerHTML = htmlText;
-				//renderer.rendererBody.rendererLabel.appendChild(document.createTextNode(item[labelField]));
+				renderer.rendererBody.label.innerHTML = item["id"];
 			}
 			else
 			{
-				this.clearData(renderer);
+				clearData(renderer);
 			}
 		}
-		
-	};
+	}
 	
-	this.clearData = function(renderer)
+	function clearData(renderer)
 	{
 		if(renderer)
 		{
-			renderer.rendererBody.rendererLabel.innerHTML = "";
+			renderer.rendererBody.label.innerHTML = "";
 		}
-	};
+	}
+	</script>
 	
-	this.__createComponents = function()
-	{
-		this.divItemRenderer = this.util.createDiv(null,"imageHolder"); 
-		this.divItemRenderer.style.height = 20 + "px";
-		this.divItemRenderer.style.padding = 4 + "px";
-		this.divItemRenderer.setAttribute("accessor-name","rendererBody"); 
-		var lblItemRenderer = document.createElement("LABEL");
-		lblItemRenderer.setAttribute("accessor-name","rendererLabel");
-		this.divItemRenderer.appendChild(lblItemRenderer);
-	};
-};
+	<script>
+	
+		function loadHandler()
+		{
+			ns.onload(function()
+			{
+				var txtAutoComplete = document.getElementById("txtAutoComplete");
+				txtAutoComplete.setDataProvider(countries);
+			});	
+		}
+		
+		function toggleRestrict() 
+		{
+		   // checkValue(document.getElementById("txtDemo1").value);
+		   var txtUserName = document.querySelector("#txtUserName");
+		   if(!txtUserName.getAttribute("restrict") || txtUserName.getAttribute("restrict") === "null")
+		   {
+			   txtUserName.setAttribute("restrict","A-Za-z-,");
+		   }
+		   else
+		   {
+			   txtUserName.setAttribute("restrict",null);
+		   }
+		}
+		
+		function setText() 
+		{
+		   var txtUserName = document.querySelector("#txtUserName");
+		   txtUserName.setText("This is a for a demo");
+		}
+		
+		function checkValue (eleValue) 
+		{
+		    //var re = new RegExp(/[a-z0-9,\(\)\/\\_\s]+/ig);
+		    var re = new RegExp('[a-z0-9,{}]', 'g');
+		    return re.test(eleValue);
+		} 
+		function keyDownHandler(e)
+		{
+			var e = e || event;
+			//var unicode=event.charCode? e.charCode : e.keyCode
+			console.log((e.keyCode || e.charCode));
+			var actualkey=String.fromCharCode(e.keyCode || e.charCode);
+			if(!checkValue(actualkey))
+			{
+				e.preventDefault();
+			}
+				
+		}
+		
+		var countries = [
+		                    {name: 'Afghanistan', code: 'AF'},
+		                    {name: 'Aland Islands', code: 'AX'},
+		                    {name: 'Albania', code: 'AL'},
+		                    {name: 'Algeria', code: 'DZ'},
+		                    {name: 'American Samoa', code: 'AS'},
+		                    {name: 'AndorrA', code: 'AD'},
+		                    {name: 'Angola', code: 'AO'},
+		                    {name: 'Anguilla', code: 'AI'},
+		                    {name: 'Antarctica', code: 'AQ'},
+		                    {name: 'Antigua and Barbuda', code: 'AG'},
+		                    {name: 'Argentina', code: 'AR'},
+		                    {name: 'Armenia', code: 'AM'},
+		                    {name: 'Aruba', code: 'AW'},
+		                    {name: 'Australia', code: 'AU'},
+		                    {name: 'Austria', code: 'AT'},
+		                    {name: 'Azerbaijan', code: 'AZ'},
+		                    {name: 'Bahamas', code: 'BS'},
+		                    {name: 'Bahrain', code: 'BH'},
+		                    {name: 'Bangladesh', code: 'BD'},
+		                    {name: 'Barbados', code: 'BB'},
+		                    {name: 'Belarus', code: 'BY'},
+		                    {name: 'Belgium', code: 'BE'},
+		                    {name: 'Belize', code: 'BZ'},
+		                    {name: 'Benin', code: 'BJ'},
+		                    {name: 'Bermuda', code: 'BM'},
+		                    {name: 'Bhutan', code: 'BT'},
+		                    {name: 'Bolivia', code: 'BO'},
+		                    {name: 'Bosnia and Herzegovina', code: 'BA'},
+		                    {name: 'Botswana', code: 'BW'},
+		                    {name: 'Bouvet Island', code: 'BV'},
+		                    {name: 'Brazil', code: 'BR'},
+		                    {name: 'Brunei Darussalam', code: 'BN'},
+		                    {name: 'Bulgaria', code: 'BG'},
+		                    {name: 'Burkina Faso', code: 'BF'},
+		                    {name: 'Burundi', code: 'BI'},
+		                    {name: 'Cambodia', code: 'KH'},
+		                    {name: 'Cameroon', code: 'CM'},
+		                    {name: 'Canada', code: 'CA'},
+		                    {name: 'Cape Verde', code: 'CV'},
+		                    {name: 'Cayman Islands', code: 'KY'},
+		                    {name: 'Central African Republic', code: 'CF'},
+		                    {name: 'Chad', code: 'TD'},
+		                    {name: 'Chile', code: 'CL'},
+		                    {name: 'China', code: 'CN'},
+		                    {name: 'Christmas Island', code: 'CX'},
+		                    {name: 'Cocos (Keeling) Islands', code: 'CC'},
+		                    {name: 'Colombia', code: 'CO'},
+		                    {name: 'Comoros', code: 'KM'},
+		                    {name: 'Congo', code: 'CG'},
+		                    {name: 'Cook Islands', code: 'CK'},
+		                    {name: 'Costa Rica', code: 'CR'},
+		                    {name: 'Cote D\'Ivoire', code: 'CI'},
+		                    {name: 'Croatia', code: 'HR'},
+		                    {name: 'Cuba', code: 'CU'},
+		                    {name: 'Cyprus', code: 'CY'},
+		                    {name: 'Czech Republic', code: 'CZ'},
+		                    {name: 'Denmark', code: 'DK'},
+		                    {name: 'Djibouti', code: 'DJ'},
+		                    {name: 'Dominica', code: 'DM'},
+		                    {name: 'Dominican Republic', code: 'DO'},
+		                    {name: 'Ecuador', code: 'EC'},
+		                    {name: 'Egypt', code: 'EG'},
+		                    {name: 'El Salvador', code: 'SV'},
+		                    {name: 'Equatorial Guinea', code: 'GQ'},
+		                    {name: 'Eritrea', code: 'ER'},
+		                    {name: 'Estonia', code: 'EE'},
+		                    {name: 'Ethiopia', code: 'ET'},
+		                    {name: 'Falkland Islands (Malvinas)', code: 'FK'},
+		                    {name: 'Faroe Islands', code: 'FO'},
+		                    {name: 'Fiji', code: 'FJ'},
+		                    {name: 'Finland', code: 'FI'},
+		                    {name: 'France', code: 'FR'},
+		                    {name: 'French Guiana', code: 'GF'},
+		                    {name: 'French Polynesia', code: 'PF'},
+		                    {name: 'French Southern Territories', code: 'TF'},
+		                    {name: 'Gabon', code: 'GA'},
+		                    {name: 'Gambia', code: 'GM'},
+		                    {name: 'Georgia', code: 'GE'},
+		                    {name: 'Germany', code: 'DE'},
+		                    {name: 'Ghana', code: 'GH'},
+		                    {name: 'Gibraltar', code: 'GI'},
+		                    {name: 'Greece', code: 'GR'},
+		                    {name: 'Greenland', code: 'GL'},
+		                    {name: 'Grenada', code: 'GD'},
+		                    {name: 'Guadeloupe', code: 'GP'},
+		                    {name: 'Guam', code: 'GU'},
+		                    {name: 'Guatemala', code: 'GT'},
+		                    {name: 'Guernsey', code: 'GG'},
+		                    {name: 'Guinea', code: 'GN'},
+		                    {name: 'Guinea-Bissau', code: 'GW'},
+		                    {name: 'Guyana', code: 'GY'},
+		                    {name: 'Haiti', code: 'HT'},
+		                    {name: 'Honduras', code: 'HN'},
+		                    {name: 'Hong Kong', code: 'HK'},
+		                    {name: 'Hungary', code: 'HU'},
+		                    {name: 'Iceland', code: 'IS'},
+		                    {name: 'India', code: 'IN'},
+		                    {name: 'Indonesia', code: 'ID'},
+		                    {name: 'Iraq', code: 'IQ'},
+		                    {name: 'Ireland', code: 'IE'},
+		                    {name: 'Isle of Man', code: 'IM'},
+		                    {name: 'Israel', code: 'IL'},
+		                    {name: 'Italy', code: 'IT'},
+		                    {name: 'Jamaica', code: 'JM'},
+		                    {name: 'Japan', code: 'JP'},
+		                    {name: 'Jersey', code: 'JE'},
+		                    {name: 'Jordan', code: 'JO'},
+		                    {name: 'Kazakhstan', code: 'KZ'},
+		                    {name: 'Kenya', code: 'KE'},
+		                    {name: 'Kiribati', code: 'KI'},
+		                    {name: 'Korea, Republic of', code: 'KR'},
+		                    {name: 'Kuwait', code: 'KW'},
+		                    {name: 'Kyrgyzstan', code: 'KG'},
+		                    {name: 'Latvia', code: 'LV'},
+		                    {name: 'Lebanon', code: 'LB'},
+		                    {name: 'Lesotho', code: 'LS'},
+		                    {name: 'Liberia', code: 'LR'},
+		                    {name: 'Libyan Arab Jamahiriya', code: 'LY'},
+		                    {name: 'Liechtenstein', code: 'LI'},
+		                    {name: 'Lithuania', code: 'LT'},
+		                    {name: 'Luxembourg', code: 'LU'},
+		                    {name: 'Macao', code: 'MO'},
+		                    {name: 'Madagascar', code: 'MG'},
+		                    {name: 'Malawi', code: 'MW'},
+		                    {name: 'Malaysia', code: 'MY'},
+		                    {name: 'Maldives', code: 'MV'},
+		                    {name: 'Mali', code: 'ML'},
+		                    {name: 'Malta', code: 'MT'},
+		                    {name: 'Marshall Islands', code: 'MH'},
+		                    {name: 'Martinique', code: 'MQ'},
+		                    {name: 'Mauritania', code: 'MR'},
+		                    {name: 'Mauritius', code: 'MU'},
+		                    {name: 'Mayotte', code: 'YT'},
+		                    {name: 'Mexico', code: 'MX'},
+		                    {name: 'Moldova, Republic of', code: 'MD'},
+		                    {name: 'Monaco', code: 'MC'},
+		                    {name: 'Mongolia', code: 'MN'},
+		                    {name: 'Montserrat', code: 'MS'},
+		                    {name: 'Morocco', code: 'MA'},
+		                    {name: 'Mozambique', code: 'MZ'},
+		                    {name: 'Myanmar', code: 'MM'},
+		                    {name: 'Namibia', code: 'NA'},
+		                    {name: 'Nauru', code: 'NR'},
+		                    {name: 'Nepal', code: 'NP'},
+		                    {name: 'Netherlands', code: 'NL'},
+		                    {name: 'Netherlands Antilles', code: 'AN'},
+		                    {name: 'New Caledonia', code: 'NC'},
+		                    {name: 'New Zealand', code: 'NZ'},
+		                    {name: 'Nicaragua', code: 'NI'},
+		                    {name: 'Niger', code: 'NE'},
+		                    {name: 'Nigeria', code: 'NG'},
+		                    {name: 'Niue', code: 'NU'},
+		                    {name: 'Norfolk Island', code: 'NF'},
+		                    {name: 'Northern Mariana Islands', code: 'MP'},
+		                    {name: 'Norway', code: 'NO'},
+		                    {name: 'Oman', code: 'OM'},
+		                    {name: 'Pakistan', code: 'PK'},
+		                    {name: 'Palau', code: 'PW'},
+		                    {name: 'Palestinian Territory, Occupied', code: 'PS'},
+		                    {name: 'Panama', code: 'PA'},
+		                    {name: 'Papua New Guinea', code: 'PG'},
+		                    {name: 'Paraguay', code: 'PY'},
+		                    {name: 'Peru', code: 'PE'},
+		                    {name: 'Philippines', code: 'PH'},
+		                    {name: 'Pitcairn', code: 'PN'},
+		                    {name: 'Poland', code: 'PL'},
+		                    {name: 'Portugal', code: 'PT'},
+		                    {name: 'Puerto Rico', code: 'PR'},
+		                    {name: 'Qatar', code: 'QA'},
+		                    {name: 'Reunion', code: 'RE'},
+		                    {name: 'Romania', code: 'RO'},
+		                    {name: 'Russian Federation', code: 'RU'},
+		                    {name: 'RWANDA', code: 'RW'},
+		                    {name: 'Saint Helena', code: 'SH'},
+		                    {name: 'Saint Kitts and Nevis', code: 'KN'},
+		                    {name: 'Saint Lucia', code: 'LC'},
+		                    {name: 'Saint Pierre and Miquelon', code: 'PM'},
+		                    {name: 'Samoa', code: 'WS'},
+		                    {name: 'San Marino', code: 'SM'},
+		                    {name: 'Sao Tome and Principe', code: 'ST'},
+		                    {name: 'Saudi Arabia', code: 'SA'},
+		                    {name: 'Senegal', code: 'SN'},
+		                    {name: 'Serbia and Montenegro', code: 'CS'},
+		                    {name: 'Seychelles', code: 'SC'},
+		                    {name: 'Sierra Leone', code: 'SL'},
+		                    {name: 'Singapore', code: 'SG'},
+		                    {name: 'Slovakia', code: 'SK'},
+		                    {name: 'Slovenia', code: 'SI'},
+		                    {name: 'Solomon Islands', code: 'SB'},
+		                    {name: 'Somalia', code: 'SO'},
+		                    {name: 'South Africa', code: 'ZA'},
+		                    {name: 'Spain', code: 'ES'},
+		                    {name: 'Sri Lanka', code: 'LK'},
+		                    {name: 'Sudan', code: 'SD'},
+		                    {name: 'Suriname', code: 'SR'},
+		                    {name: 'Svalbard and Jan Mayen', code: 'SJ'},
+		                    {name: 'Swaziland', code: 'SZ'},
+		                    {name: 'Sweden', code: 'SE'},
+		                    {name: 'Switzerland', code: 'CH'},
+		                    {name: 'Syrian Arab Republic', code: 'SY'},
+		                    {name: 'Tajikistan', code: 'TJ'},
+		                    {name: 'Thailand', code: 'TH'},
+		                    {name: 'Timor-Leste', code: 'TL'},
+		                    {name: 'Togo', code: 'TG'},
+		                    {name: 'Tokelau', code: 'TK'},
+		                    {name: 'Tonga', code: 'TO'},
+		                    {name: 'Trinidad and Tobago', code: 'TT'},
+		                    {name: 'Tunisia', code: 'TN'},
+		                    {name: 'Turkey', code: 'TR'},
+		                    {name: 'Turkmenistan', code: 'TM'},
+		                    {name: 'Tuvalu', code: 'TV'},
+		                    {name: 'Uganda', code: 'UG'},
+		                    {name: 'Ukraine', code: 'UA'},
+		                    {name: 'United Arab Emirates', code: 'AE'},
+		                    {name: 'United Kingdom', code: 'GB'},
+		                    {name: 'United States', code: 'US'},
+		                    {name: 'Uruguay', code: 'UY'},
+		                    {name: 'Uzbekistan', code: 'UZ'},
+		                    {name: 'Vanuatu', code: 'VU'},
+		                    {name: 'Venezuela', code: 'VE'},
+		                    {name: 'Vietnam', code: 'VN'},
+		                    {name: 'Virgin Islands, British', code: 'VG'},
+		                    {name: 'Virgin Islands, U.S.', code: 'VI'},
+		                    {name: 'Wallis and Futuna', code: 'WF'},
+		                    {name: 'Western Sahara', code: 'EH'},
+		                    {name: 'Yemen', code: 'YE'},
+		                    {name: 'Zambia', code: 'ZM'},
+		                    {name: 'Zimbabwe', code: 'ZW'}
+		                ];
+		
+	
+	
+	</script>
 
-document.registerElement("ns-textBox", {prototype: nsTextBox});
+</body>
+</html>
