@@ -1,255 +1,184 @@
-var nsContainerBase = Object.create(HTMLDivElement.prototype);
 
-nsContainerBase.INITIALIZE = "initialize";
-nsContainerBase.CREATION_COMPLETE = "creationComplete";
-nsContainerBase.PROPERTY_CHANGE = "propertyChange";
-nsContainerBase.REMOVE = "remove";
-nsContainerBase.RESIZE = "resize";
 
-/*start of private variables */
-nsContainerBase.base = null;
-nsContainerBase.__isCreationCompleted = false;
-nsContainerBase.__setProperty = true; 
-nsContainerBase.__id = null;
-nsContainerBase.__shadow = null;
-nsContainerBase.__focused = false;
-nsContainerBase.__focusHandlerRef = null;
-nsContainerBase.__blurHandlerRef = null;
-nsContainerBase.__resizeHandlerRef = null;
-/*end of private variables */
 
-/*start of functions */
-nsContainerBase.__setBase = function() 
-{
-	if(this.__proto__ && this.__proto__.__proto__)
-	{
-		this.base = this.__proto__.__proto__;
-	}
-};
 
-nsContainerBase.__setID = function()
-{
-	if(this.hasAttribute("id"))
-	{
-		this.__id = this.getAttribute("id");
-	}
-	else if(this.hasAttribute("name"))
-	{
-		this.__id = this.getAttribute("name");
-	}
-	else
-	{
-		this.__id = "comp" + this.util.getUniqueId();
-	}
-};
+/** page structure **/
+/*#w {
+  display: block;
+  width: 750px;
+  margin: 0 auto;
+  padding-top: 30px;
+  padding-bottom: 45px;
+}*/
 
-nsContainerBase.createdCallback = function() 
-{
-	this.util = new NSUtil();
-	this.__setBase();
-	this.__setID();
-	this.initializeComponent();
-	this.__focusHandlerRef = this.focusHandler.bind(this);
-	this.__blurHandlerRef = this.blurHandler.bind(this);
-	this.__resizeHandlerRef = this.resizeHandler.bind(this);
-	this.util.addEvent(this,"focus",this.__focusHandlerRef);
-	this.util.addEvent(this,"blur",this.__blurHandlerRef);
-	this.util.addEvent(window,"resize",this.__resizeHandlerRef);
-	this.dispatchCustomEvent(this.INITIALIZE);
-};
+/*#content {
+  display: block;
+  width: 100%;
+  background: #fff;
+  padding: 25px 20px;
+  padding-bottom: 35px;
+  -webkit-box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 2px 0px;
+  -moz-box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 2px 0px;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 2px 0px;
+}*/
 
-nsContainerBase.attachedCallback = function()
-{
-	this.setComponentProperties();
-	this.dispatchCustomEvent(this.CREATION_COMPLETE);
-};
 
-nsContainerBase.attributeChangedCallback = function(attrName, oldVal, newVal)
-{
-	var data = {};
-	data.propertyName = attrName;
-	data.oldValue = oldVal;
-	data.newValue = newVal;
-	this.dispatchCustomEvent(this.PROPERTY_CHANGE,data);
-	this.propertyChange(attrName, oldVal, newVal, this.__setProperty);
-	this.__setProperty = true;
-};
 
-nsContainerBase.detachedCallback = function()
-{
-	this.dispatchCustomEvent(this.REMOVE);
-	if(this.__resizeHandlerRef)
-	{
-		this.util.removeEvent(window,"resize",this.__resizeHandlerRef);
-	}
-	this.removeComponent();
-};
+/** tooltip styles
+  * based on http://www.flatypo.net/tutorials/how-to-create-animated-tooltips-css3-hiperlink/ 
+ **/
+a.tooltip{
+  position: relative;
+  display: inline;
+}
+a.tooltip:after{
+  display: block;
+  visibility: hidden;
+  position: absolute;
+  bottom: 0;
+  left: 20%;
+  opacity: 0;
+  content: attr(data-tool); /* might also use attr(title) */
+  height: auto;
+  min-width: 100px;
+  padding: 5px 8px;
+  z-index: 999;
+  color: #fff;
+  text-decoration: none;
+  text-align: center;
+  background: rgba(0,0,0,0.85);
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+}
 
-nsContainerBase.resizeHandler = function() 
-{
-	//this.dispatchCustomEvent(this.RESIZE);
-	this.componentResized();
-};
+a.tooltip:before {
+  position: absolute;
+  visibility: hidden;
+  width: 0;
+  height: 0;
+  left: 50%;
+  bottom: 0px;
+  opacity: 0;
+  content: "";
+  border-style: solid;
+  border-width: 6px 6px 0 6px;
+  border-color: rgba(0,0,0,0.85) transparent transparent transparent;
+}
+a.tooltip:hover:after{ visibility: visible; opacity: 1; bottom: 20px; }
+a.tooltip:hover:before{ visibility: visible; opacity: 1; bottom: 14px; }
 
-nsContainerBase.initializeComponent = function() 
-{
-};
+a.tooltip.animate:after, a.tooltip.animate:before {
+  -webkit-transition: all 0.2s ease-in-out;
+  -moz-transition: all 0.2s ease-in-out;
+  -ms-transition: all 0.2s ease-in-out;
+  -o-transition: all 0.2s ease-in-out;
+  transition: all 0.2s ease-in-out;
+}
 
-nsContainerBase.setComponentProperties = function() 
-{
-	this.__isCreationCompleted = true;
-};
 
-nsContainerBase.propertyChange = function(attrName, oldVal, newVal, setProperty) 
-{
-};
+/* tips on bottom */
+a.tooltip.bottom:after { bottom: auto; top: 0; }
+a.tooltip.bottom:hover:after { top: 28px; }
+a.tooltip.bottom:before {
+  border-width: 0 5px 8.7px 5px;
+  border-color: transparent transparent rgba(0,0,0,0.85) transparent;
+  top: 0px
+}
+a.tooltip.bottom:hover:before { top: 20px; }
 
-nsContainerBase.removeComponent = function() 
-{
-};
 
-nsContainerBase.componentResized = function() 
-{
-};
+/* tips on the right */
+a.tooltip.right:after { left: 100%; bottom: -45%; }
+a.tooltip.right:hover:after { left: 110%; bottom: -45%; }
+a.tooltip.right:before {
+  border-width: 5px 10px 5px 0;
+  border-color: transparent rgba(0,0,0,0.85) transparent transparent;
+  left: 90%;
+  bottom: 2%;
+}
+a.tooltip.right:hover:before { left: 100%; bottom: 2%; }
 
-nsContainerBase.initializeDOM = function(requireStyleClass)
-{
-	if(document.head.createShadowRoot) 
-	{
-	    if(!this.__shadow)
-	    {
-	    	this.__shadow = this.createShadowRoot();
-	    }
-	    if(requireStyleClass)
-	    {
-	    	var shadow = this.__shadow;
-	    	new this.util.ajax(ns.__dicPath["component.css"], function (response) {
-	    		if(response)
-	    		{
-	    			var sheet = document.createElement("style");
-			    	sheet.innerHTML = response;
-			    	shadow.appendChild(sheet);
-	    		}
-		    });
-	    	new this.util.ajax(requireStyleClass, function (response) {
-	    		if(response)
-	    		{
-	    			var sheet = document.createElement("style");
-			    	sheet.innerHTML = response;
-			    	shadow.appendChild(sheet);
-	    		}
-		    });
-	    	
-	    }
-	}
-};
 
-nsContainerBase.getID = function() 
-{
-	return this.__id;
-};
+/* tips on the left */
+a.tooltip.left:after { left: auto; right: 100%; bottom: -45%; }
+a.tooltip.left:hover:after { right: 110%; bottom: -45%; }
+a.tooltip.left:before {
+  border-width: 5px 0 5px 10px;
+  border-color: transparent transparent transparent rgba(0,0,0,0.85);
+  left: auto;
+  right: 90%;
+  bottom: 2%;
+}
+a.tooltip.left:hover:before { right: 100%; bottom: 2%; }
 
-nsContainerBase.focusHandler = function(event)
-{
-	this.__focused = true;
-};
 
-nsContainerBase.blurHandler = function(event)
-{
-	this.__focused = false;
-};
+/* tooltip colors (add your own!) */
+a.tooltip.blue:after { background:rgba(46,182,238,.8); }
+a.tooltip.blue:before { border-color: rgba(46,182,238,.8) transparent transparent transparent; }
+a.tooltip.bottom.blue:before{ border-color: transparent transparent rgba(46,182,238,.8) transparent; }
+a.tooltip.right.blue:before { border-color: transparent rgba(46,182,238,.8) transparent transparent; }
+a.tooltip.left.blue:before { border-color: transparent transparent transparent rgba(46,182,238,.8); }
 
-nsContainerBase.addChild = function(element)
-{
-	if(element)
-	{
-	    if(this.__shadow)
-	    {
-	    	 this.__shadow.appendChild(element);
-	    }
-		else 
-		{
-		    this.appendChild(element);
-		}
-	}
-};
 
-nsContainerBase.deleteChild = function(element)
-{
-	if(element)
-	{
-	    if(this.__shadow)
-	    {
-	    	 this.__shadow.removeChild(element);
-	    }
-		else 
-		{
-		    this.removeChild(element);
-		}
-	}
-};
 
-nsContainerBase.getElement = function(elementId)
-{
-	if(this.__shadow) 
-	{
-		if(elementId && elementId.length > 0)
-		{
-			return this.__shadow.getElementById(elementId);
-		}
-	} 
-    return this.util.getElement(elementId);
-};
+/* input field tooltips */
+input + .fieldtip {
+  visibility: hidden;
+  position: relative;
+  bottom: 0;
+  left: 15px;
+  opacity: 0;
+  content: attr(data-tool);
+  height: auto;
+  min-width: 100px;
+  padding: 5px 8px;
+  z-index: 9999;
+	padding:10px 5px; /* padding */
+	color:#fff; /* text color */
+	font:bold 75%/1.5 Arial, Helvetica, sans-serif; /* font */
+	text-align:center; /* center text */
+	pointer-events:none; /* no unintended tooltip popup for modern browsers */
+	border-radius:6px; /* round corners */
+	text-shadow:1px 1px 2px rgba(0, 0, 0, 0.6); /* text shadow */
+	background:rgb(46,182,238); /* IE6/7/8 */
+	background:rgba(46,182,238,.8); /* modern browsers */
+	border:2px solid rgb(255,255,255); /* IE6/7/8 */
+	border:2px solid rgba(255,255,255,.8); /* modern browsers */
+	box-shadow:0px 2px 4px rgba(0,0,0,0.5); /* shadow */
+	-webkit-transition:all 0.3s ease-in-out; /* animate tooltip */
+	-moz-transition:all 0.3s ease-in-out; /* animate tooltip */
+	-o-transition:all 0.3s ease-in-out; /* animate tooltip */
+	-ms-transition:all 0.3s ease-in-out; /* animate tooltip */
+	transition:all 0.3s ease-in-out; /* animate tooltip */
+}
 
-nsContainerBase.hasFocus = function()
-{
-    return this.__focused;
-};
+input + .fieldtip:after {
+  display: block;
+  position: absolute;
+  visibility: hidden;
+  content:'';
+  width: 0;
+  height: 0;
+  top: 8px;
+  left: -8px;
+  border-style: solid;
+   margin-left:-15px;
+  border-width: 10px;
+  border-color: transparent rgba(46,182,238,.8) transparent transparent;
+  -webkit-transition: all 0.2s ease-in-out;
+  -moz-transition: all 0.2s ease-in-out;
+  -ms-transition: all 0.2s ease-in-out;
+  -o-transition: all 0.2s ease-in-out;
+  transition: all 0.2s ease-in-out;
+}
 
-nsContainerBase.dispatchCustomEvent = function(eventType,data,bubbles,cancelable) 
-{
-	if(this.util.isUndefined(data))
-	{
-		data = null;
-	}
-	if(typeof bubbles == "undefined")
-	{
-		bubbles = true;
-	}
-	if(typeof cancelable == "undefined")
-	{
-		cancelable = true;
-	}
-	var event = new CustomEvent(eventType, 
-	{
-		detail: data,
-		bubbles: bubbles,
-		cancelable: cancelable
-	});
-	if (this.hasAttribute(eventType)) 
-	{
-		var attributeValue = this.getAttribute(eventType);
-		if(attributeValue)
-		{
-			this.util.callFunctionFromString(attributeValue,function(paramValue){
-				if(paramValue === 'true' || paramValue === 'false')
-				{
-					return Boolean.parse(paramValue);
-				}
-				else if(paramValue === 'this')
-				{
-					return this;
-				}
-				else if(paramValue === 'event')
-				{
-					return event;
-				}
-				return paramValue;
-			});
-		}
-	}
-	this.dispatchEvent(event);
-};
-/*end of functions */
 
-document.registerElement('ns-containerbase', {prototype: nsContainerBase});
+
+input:focus + .fieldtip, input:focus + .fieldtip:after {
+  visibility: visible;
+  opacity: 1;
+}
+
+
+/** clearfix **/
