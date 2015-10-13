@@ -1,184 +1,266 @@
+<!--https://github.com/720kb/angular-tooltips -->
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html">
+  <title>Full CSS3 Tooltips - Design Shack Demo</title>
+    <link rel="stylesheet" type="text/css" href="http:cdnjs.cloudflare.com/ajax/libs/font-awesome/4.3.0/css/font-awesome.min.css"/>
+  <link rel="stylesheet" type="text/css" media="all" href="styles.css">
+</head>
 
+<body>
+	<div class="col5">
+		<div class="line-compress">
+		 <a class="btn btn-medium center-content radius3 bg-purple color-white ng-isolate-scope" tooltips="" tooltip-size="medium" title="Top tooltip" tooltip-side="top">
+		  Top
+		</a>
+	  </div>
+	</div>
+	<!--<div class="_720kb-tooltip _720kb-tooltip-medium _720kb-tooltip-right _720kb-tooltip-open" style="top: 282px; left: 156px;">
+		<div class="_720kb-tooltip-title"> Left tooltip</div> 
+		<span class="_720kb-tooltip-caret"></span>
+	</div>
+	<div class="_720kb-tooltip _720kb-tooltip-medium _720kb-tooltip-top _720kb-tooltip-open" style="top: 238px; left: 168.5px;">
+		<div class="_720kb-tooltip-title"> Top tooltip</div> 
+		<span class="_720kb-tooltip-caret"></span>
+	</div>
+	<div class="_720kb-tooltip _720kb-tooltip-medium _720kb-tooltip-bottom _720kb-tooltip-open" style="top: 326px; left: 295px;">
+		<div class="_720kb-tooltip-title"> Bottom tooltip</div> 
+		<span class="_720kb-tooltip-caret"></span>
+	</div>
+	<div class="_720kb-tooltip _720kb-tooltip-medium _720kb-tooltip-right _720kb-tooltip-open" style="top: 273px; left: 572px;">
+		<div class="_720kb-tooltip-title"> Right tooltip</div> 
+		<span class="_720kb-tooltip-caret"></span>
+	</div> -->
+	<button onclick="showToolTip()">Add Tip</button>
+	<button id="btnRemove" onclick="hideTip()">Remove Tip</button>
+	<input id="txtTest" type="text" onmouseover="showToolTip()" onmouseleave="hideTip()">
+	</input>
+	<script>
+		function showToolTip()
+		{
+			var btnRemove = document.querySelector("#btnRemove");
+			var txtTest = document.querySelector("#txtTest");
+			showTip(txtTest,'This is a tip','bottom');
+		}
+		var divTipContainer = null;
+		var divTip = null;
+		function showTip(component,tipText,position)
+		{
+			if(!divTipContainer)
+			{
+				createTip(component,tipText,position);
+			}
+			removeAllChildren(divTip);
+			divTip.appendChild(document.createTextNode(tipText));
+			addStyleClass(divTipContainer,"_720kb-tooltip-open");
+		}
+		
+		function removeTip()
+		{
+			if(divTipContainer)
+			{
+				document.body.removeChild(divTipContainer);
+				divTipContainer = null;
+			}
+		}
+		
+		function hideTip()
+		{
+			if(divTipContainer)
+			{
+				removeStyleClass(divTipContainer,"_720kb-tooltip-open");
+			}
+		}
+		
+		function createTip(component,tipText,position)
+		{
+			if(!divTipContainer)
+			{
+				divTipContainer = document.createElement("div");
+				addStyleClass(divTipContainer,"_720kb-tooltip");
+				addStyleClass(divTipContainer,"_720kb-tooltip-medium");
+				var posStyle = "_720kb-tooltip-top";
+				switch (position.toLowerCase())
+				{
+					case "top":
+						posStyle = "_720kb-tooltip-top";
+						break;
+					case "bottom":
+						posStyle = "_720kb-tooltip-bottom";
+						break;
+					case "left":
+						posStyle = "_720kb-tooltip-left";
+						break;
+					case "right":
+						posStyle = "_720kb-tooltip-right";
+						break;
+				}
+				addStyleClass(divTipContainer,posStyle);
+				document.body.appendChild(divTipContainer);
+				divTip = document.createElement("div");
+				addStyleClass(divTip,"_720kb-tooltip-title");
+				divTipContainer.appendChild(divTip);
+				var span = document.createElement("span");
+				addStyleClass(span,"_720kb-tooltip-caret");
+				divTipContainer.appendChild(span);
+				placeToolTip(component,position);
+			}
+		}
+		
+		function placeToolTip(component,position)
+		{
+			var offsetTop = getOffsetTop(component);
+			var offsetLeft = getOffsetLeft(component);
+			var height = component.offsetHeight;
+			var width = component.offsetWidth;
+			var theTooltipHeight = divTipContainer.offsetHeight;
+			var theTooltipWidth = divTipContainer.offsetWidth;
+			var theTooltipMargin = 9;
+			var topValue = 0;
+            var leftValue = 0;
 
+			switch (position.toLowerCase())
+			{
+				case "top":
+					topValue = offsetTop - theTooltipMargin - theTooltipHeight;
+					leftValue = offsetLeft + width / 2 - theTooltipWidth / 2;
 
+					divTipContainer.style.top = topValue + "px";
+					divTipContainer.style.left = leftValue + "px";
+					break;
+				case "bottom":
+					topValue = offsetTop + height + theTooltipMargin;
+					leftValue = offsetLeft + width / 2 - theTooltipWidth / 2;
+					divTipContainer.style.top = topValue + 'px';
+					divTipContainer.style.left = leftValue + 'px';
+					break;
+				case "left":
+					topValue = offsetTop + height / 2 - theTooltipHeight / 2;
+					leftValue = offsetLeft - (theTooltipWidth + theTooltipMargin);
 
-/** page structure **/
-/*#w {
-  display: block;
-  width: 750px;
-  margin: 0 auto;
-  padding-top: 30px;
-  padding-bottom: 45px;
-}*/
+					divTipContainer.style.top = topValue + 'px';
+					divTipContainer.style.left = leftValue + 'px';
+					break;
+				case "right":
+					topValue = offsetTop + height / 2 - theTooltipHeight / 2;
+					leftValue = offsetLeft + width + theTooltipMargin;
 
-/*#content {
-  display: block;
-  width: 100%;
-  background: #fff;
-  padding: 25px 20px;
-  padding-bottom: 35px;
-  -webkit-box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 2px 0px;
-  -moz-box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 2px 0px;
-  box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 2px 0px;
-}*/
+					divTipContainer.style.top = topValue + 'px';
+					divTipContainer.style.left = leftValue + 'px';
+					break;
+			}
+		}
+		
+		function getOffsetTop(elem) 
+		{
+          var offtop = elem.getBoundingClientRect().top + window.scrollY;
+          //ie8 - 11 fix - window.scrollY is undefied, and offtop is NaN.
+          if (isNaN(offtop)) 
+		  {
+            //get the offset on old properties
+            offtop = elem.getBoundingClientRect().top + window.pageYOffset;
+          }
+          return offtop;
+        }
 
+        function getOffsetLeft(elem) 
+		{
+          var offleft = elem.getBoundingClientRect().left + window.scrollX;
+          //ie8 - 11 fix - window.scrollX is undefied, and offtop is NaN.
+          if (isNaN(offleft)) 
+		  {
+            //get the offset on old properties
+            offleft = elem.getBoundingClientRect().left + window.pageXOffset;
+          }
+          return offleft;
+        }
+		
+		function addStyleClass(divAlert,styleClass)
+		{
+			if(divAlert && styleClass && styleClass.length > 0)
+			{
+				if(document.body.classList)
+				{
+					if(!hasStyleClass(divAlert,styleClass))
+					{
+						divAlert.className += " " + styleClass;
+					}
+				}
+				else
+				{
+					if(!hasStyleClass(divAlert,styleClass))
+					{
+						divAlert.classList.add(styleClass);
+					}
+				}
+			}
+		}
+		
+		function hasStyleClass(divAlert,styleClass)
+		{
+			if(divAlert && styleClass && styleClass.length > 0)
+			{
+				try
+				{
+					if(document.body.classList)
+					{
+						return (divAlert.className.indexOf(" " + styleClass) > -1);
+					}
+					else if(divAlert.classList.contains)
+					{
+						return divAlert.classList.contains(styleClass);
+					}
+				}
+				catch(error)
+				{
+					
+				}
+				
+			}
+			return false;
+		}
+		
+		function removeStyleClass(divAlert,styleClass)
+		{
+			if(divAlert && styleClass && styleClass.length > 0)
+			{
+				if(document.body.classList)
+				{
+					if(divAlert.className)
+					{
+						divAlert.className = divAlert.className.replace(styleClass,"");
+					}
+				}
+				else
+				{
+					divAlert.classList.remove(styleClass);
+				}
+			}
+		}
+		
+		function removeAllChildren(element) 
+		{
+			if(element)
+			{
+				var node = element;
+				while (element.hasChildNodes()) 
+				{              
 
+					if (node.hasChildNodes()) 
+					{                
+						node = node.lastChild;                 
+					}
+					else 
+					{                                     
+						node = node.parentNode;                
+						node.removeChild(node.lastChild);      
+					}
+				}
+			}
+		}
+	</script>
 
-/** tooltip styles
-  * based on http://www.flatypo.net/tutorials/how-to-create-animated-tooltips-css3-hiperlink/ 
- **/
-a.tooltip{
-  position: relative;
-  display: inline;
-}
-a.tooltip:after{
-  display: block;
-  visibility: hidden;
-  position: absolute;
-  bottom: 0;
-  left: 20%;
-  opacity: 0;
-  content: attr(data-tool); /* might also use attr(title) */
-  height: auto;
-  min-width: 100px;
-  padding: 5px 8px;
-  z-index: 999;
-  color: #fff;
-  text-decoration: none;
-  text-align: center;
-  background: rgba(0,0,0,0.85);
-  -webkit-border-radius: 5px;
-  -moz-border-radius: 5px;
-  border-radius: 5px;
-}
-
-a.tooltip:before {
-  position: absolute;
-  visibility: hidden;
-  width: 0;
-  height: 0;
-  left: 50%;
-  bottom: 0px;
-  opacity: 0;
-  content: "";
-  border-style: solid;
-  border-width: 6px 6px 0 6px;
-  border-color: rgba(0,0,0,0.85) transparent transparent transparent;
-}
-a.tooltip:hover:after{ visibility: visible; opacity: 1; bottom: 20px; }
-a.tooltip:hover:before{ visibility: visible; opacity: 1; bottom: 14px; }
-
-a.tooltip.animate:after, a.tooltip.animate:before {
-  -webkit-transition: all 0.2s ease-in-out;
-  -moz-transition: all 0.2s ease-in-out;
-  -ms-transition: all 0.2s ease-in-out;
-  -o-transition: all 0.2s ease-in-out;
-  transition: all 0.2s ease-in-out;
-}
-
-
-/* tips on bottom */
-a.tooltip.bottom:after { bottom: auto; top: 0; }
-a.tooltip.bottom:hover:after { top: 28px; }
-a.tooltip.bottom:before {
-  border-width: 0 5px 8.7px 5px;
-  border-color: transparent transparent rgba(0,0,0,0.85) transparent;
-  top: 0px
-}
-a.tooltip.bottom:hover:before { top: 20px; }
-
-
-/* tips on the right */
-a.tooltip.right:after { left: 100%; bottom: -45%; }
-a.tooltip.right:hover:after { left: 110%; bottom: -45%; }
-a.tooltip.right:before {
-  border-width: 5px 10px 5px 0;
-  border-color: transparent rgba(0,0,0,0.85) transparent transparent;
-  left: 90%;
-  bottom: 2%;
-}
-a.tooltip.right:hover:before { left: 100%; bottom: 2%; }
-
-
-/* tips on the left */
-a.tooltip.left:after { left: auto; right: 100%; bottom: -45%; }
-a.tooltip.left:hover:after { right: 110%; bottom: -45%; }
-a.tooltip.left:before {
-  border-width: 5px 0 5px 10px;
-  border-color: transparent transparent transparent rgba(0,0,0,0.85);
-  left: auto;
-  right: 90%;
-  bottom: 2%;
-}
-a.tooltip.left:hover:before { right: 100%; bottom: 2%; }
-
-
-/* tooltip colors (add your own!) */
-a.tooltip.blue:after { background:rgba(46,182,238,.8); }
-a.tooltip.blue:before { border-color: rgba(46,182,238,.8) transparent transparent transparent; }
-a.tooltip.bottom.blue:before{ border-color: transparent transparent rgba(46,182,238,.8) transparent; }
-a.tooltip.right.blue:before { border-color: transparent rgba(46,182,238,.8) transparent transparent; }
-a.tooltip.left.blue:before { border-color: transparent transparent transparent rgba(46,182,238,.8); }
-
-
-
-/* input field tooltips */
-input + .fieldtip {
-  visibility: hidden;
-  position: relative;
-  bottom: 0;
-  left: 15px;
-  opacity: 0;
-  content: attr(data-tool);
-  height: auto;
-  min-width: 100px;
-  padding: 5px 8px;
-  z-index: 9999;
-	padding:10px 5px; /* padding */
-	color:#fff; /* text color */
-	font:bold 75%/1.5 Arial, Helvetica, sans-serif; /* font */
-	text-align:center; /* center text */
-	pointer-events:none; /* no unintended tooltip popup for modern browsers */
-	border-radius:6px; /* round corners */
-	text-shadow:1px 1px 2px rgba(0, 0, 0, 0.6); /* text shadow */
-	background:rgb(46,182,238); /* IE6/7/8 */
-	background:rgba(46,182,238,.8); /* modern browsers */
-	border:2px solid rgb(255,255,255); /* IE6/7/8 */
-	border:2px solid rgba(255,255,255,.8); /* modern browsers */
-	box-shadow:0px 2px 4px rgba(0,0,0,0.5); /* shadow */
-	-webkit-transition:all 0.3s ease-in-out; /* animate tooltip */
-	-moz-transition:all 0.3s ease-in-out; /* animate tooltip */
-	-o-transition:all 0.3s ease-in-out; /* animate tooltip */
-	-ms-transition:all 0.3s ease-in-out; /* animate tooltip */
-	transition:all 0.3s ease-in-out; /* animate tooltip */
-}
-
-input + .fieldtip:after {
-  display: block;
-  position: absolute;
-  visibility: hidden;
-  content:'';
-  width: 0;
-  height: 0;
-  top: 8px;
-  left: -8px;
-  border-style: solid;
-   margin-left:-15px;
-  border-width: 10px;
-  border-color: transparent rgba(46,182,238,.8) transparent transparent;
-  -webkit-transition: all 0.2s ease-in-out;
-  -moz-transition: all 0.2s ease-in-out;
-  -ms-transition: all 0.2s ease-in-out;
-  -o-transition: all 0.2s ease-in-out;
-  transition: all 0.2s ease-in-out;
-}
-
-
-
-input:focus + .fieldtip, input:focus + .fieldtip:after {
-  visibility: visible;
-  opacity: 1;
-}
-
-
-/** clearfix **/
+</body>
+</html>
