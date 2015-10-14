@@ -1,92 +1,291 @@
-._720kb-tooltip {
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  position: absolute;
-  z-index: 9;
-  padding: 0.4% 1%;
-  opacity: 0;
-  -webkit-border-radius: 3px;
-  -moz-border-radius: 3px;
-  border-radius: 3px;
-  left: -200%;
-  top: 0;
-  max-width: 200px;
-}
+<!--https://github.com/720kb/angular-tooltips -->
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html">
+  <title>Full CSS3 Tooltips - Design Shack Demo</title>
+    <link rel="stylesheet" type="text/css" href="http:cdnjs.cloudflare.com/ajax/libs/font-awesome/4.3.0/css/font-awesome.min.css"/>
+	 <link rel="stylesheet" type="text/css" href="http://720kb.github.io/csshelper/assets/ext/src/helper.css">
+  <link rel="stylesheet" type="text/css" media="all" href="styles.css">
+</head>
 
-._720kb-tooltip-title {
-  color: rgba(255, 255, 255, 0.95);
-  font-weight: 500;
-  width: 100%;
-  clear: both;
-}
+<body class="center-content">
+	<input id="txtTest" type="text" style="width:100px;"onmouseover="showToolTip()" onmouseleave="hideTip()">
+	</input>
+	<div class="col5">
+		<div class="line-compress">
+		 <a class="btn btn-medium center-content radius3 bg-purple color-white ng-isolate-scope" tooltips="" tooltip-size="medium" title="Top tooltip" tooltip-side="top">
+		  Top
+		</a>
+	  </div>
+	</div>
+	<!--<div class="_720kb-tooltip _720kb-tooltip-medium _720kb-tooltip-right _720kb-tooltip-open" style="top: 282px; left: 156px;">
+		<div class="_720kb-tooltip-title"> Left tooltip</div> 
+		<span class="_720kb-tooltip-caret"></span>
+	</div>
+	<div class="_720kb-tooltip _720kb-tooltip-medium _720kb-tooltip-top _720kb-tooltip-open" style="top: 238px; left: 168.5px;">
+		<div class="_720kb-tooltip-title"> Top tooltip</div> 
+		<span class="_720kb-tooltip-caret"></span>
+	</div>
+	<div class="_720kb-tooltip _720kb-tooltip-medium _720kb-tooltip-bottom _720kb-tooltip-open" style="top: 326px; left: 295px;">
+		<div class="_720kb-tooltip-title"> Bottom tooltip</div> 
+		<span class="_720kb-tooltip-caret"></span>
+	</div>
+	<div class="_720kb-tooltip _720kb-tooltip-medium _720kb-tooltip-right _720kb-tooltip-open" style="top: 273px; left: 572px;">
+		<div class="_720kb-tooltip-title"> Right tooltip</div> 
+		<span class="_720kb-tooltip-caret"></span>
+	</div> -->
+	<button onclick="showToolTip()">Add Tip</button>
+	<button id="btnRemove" onclick="hideTip()">Remove Tip</button>
+	
+	<script>
+		function showToolTip()
+		{
+			var btnRemove = document.querySelector("#btnRemove");
+			var txtTest = document.querySelector("#txtTest");
+			showTip(txtTest,'This is a tip','bottom');
+		}
+		var divTipContainer = null;
+		var divTip = null;
+		function showTip(component,tipText,position)
+		{
+			if(!divTipContainer)
+			{
+				createTip(component,tipText,position);
+			}
+			removeAllChildren(divTip);
+			divTip.appendChild(document.createTextNode(tipText));
+			addStyleClass(divTipContainer,"_720kb-tooltip-open");
+		}
+		
+		function removeTip()
+		{
+			if(divTipContainer)
+			{
+				document.body.removeChild(divTipContainer);
+				divTipContainer = null;
+			}
+		}
+		
+		function hideTip()
+		{
+			if(divTipContainer)
+			{
+				removeStyleClass(divTipContainer,"_720kb-tooltip-open");
+			}
+		}
+		
+		function createTip(component,tipText,position)
+		{
+			if(!divTipContainer)
+			{
+				divTipContainer = document.createElement("div");
+				addStyleClass(divTipContainer,"_720kb-tooltip");
+				addStyleClass(divTipContainer,"_720kb-tooltip-medium");
+				var posStyle = "_720kb-tooltip-top";
+				switch (position.toLowerCase())
+				{
+					case "top":
+						posStyle = "_720kb-tooltip-top";
+						break;
+					case "bottom":
+						posStyle = "_720kb-tooltip-bottom";
+						break;
+					case "left":
+						posStyle = "_720kb-tooltip-left";
+						break;
+					case "right":
+						posStyle = "_720kb-tooltip-right";
+						break;
+				}
+				addStyleClass(divTipContainer,posStyle);
+				document.body.appendChild(divTipContainer);
+				divTip = document.createElement("div");
+				addStyleClass(divTip,"_720kb-tooltip-title");
+				divTipContainer.appendChild(divTip);
+				var span = document.createElement("span");
+				addStyleClass(span,"_720kb-tooltip-caret");
+				divTipContainer.appendChild(span);
+				placeToolTip(component,position);
+			}
+		}
+		
+		function placeToolTip(component,position)
+		{
+		//offsetTop:0,offsetLeft:265,height:30,width:100,theTooltipHeight:32,theTooltipWidth:102,theTooltipMargin:9
+			var offsetTop = getOffsetTop(component);
+			var offsetLeft = getOffsetLeft(component);
+			var height = component.offsetHeight;
+			var width = component.offsetWidth;
+			var theTooltipHeight = divTipContainer.offsetHeight;//50
+			var theTooltipWidth = 97;//divTipContainer.offsetWidth;//97
+			var theTooltipMargin = 9;
+			var topValue = 0;
+            var leftValue = 0;
+			console.log(divTipContainer.classList);
+			console.log("offsetTop:" + offsetTop + ",offsetLeft:" + offsetLeft + ",height:" + height +",width:" + width + ",theTooltipHeight:" + theTooltipHeight
+			+ ",theTooltipWidth:" + theTooltipWidth + ",theTooltipMargin:" + theTooltipMargin);
+			var offset = getOffSet(component);
+			console.log(offset.left,offset.top);
+			/*offsetTop = offset.top;
+			offsetLeft = offset.left;*/
+			switch (position.toLowerCase())
+			{
+				case "top":
+					topValue = offsetTop - theTooltipMargin - theTooltipHeight;
+					leftValue = offsetLeft + width / 2 - theTooltipWidth / 2;
+					console.log("top:" + topValue + "left:" + leftValue);
+					divTipContainer.style.top = topValue + "px";
+					divTipContainer.style.left = leftValue + "px";
+					break;
+				case "bottom":
+					topValue = offsetTop + height + theTooltipMargin;
+					leftValue = offsetLeft + width / 2 - theTooltipWidth / 2;
+					console.log("top:" + topValue + "left:" + leftValue);
+					divTipContainer.style.top = topValue + 'px';
+					divTipContainer.style.left = leftValue + 'px';
+					break;
+				case "left":
+					topValue = offsetTop + height / 2 - theTooltipHeight / 2;
+					leftValue = offsetLeft - (theTooltipWidth + theTooltipMargin);
+					console.log("top:" + topValue + "left:" + leftValue);
+					divTipContainer.style.top = topValue + 'px';
+					divTipContainer.style.left = leftValue + 'px';
+					break;
+				case "right":
+					topValue = offsetTop + height / 2 - theTooltipHeight / 2;
+					leftValue = offsetLeft + width + theTooltipMargin;
+					console.log("top:" + topValue + "left:" + leftValue);
+					divTipContainer.style.top = topValue + 'px';
+					divTipContainer.style.left = leftValue + 'px';
+					break;
+			}
+		}
+		
+		function getOffsetTop(elem) 
+		{
+          var offtop = elem.getBoundingClientRect().top + window.scrollY;
+          //ie8 - 11 fix - window.scrollY is undefied, and offtop is NaN.
+          if (isNaN(offtop)) 
+		  {
+            //get the offset on old properties
+            offtop = elem.getBoundingClientRect().top + window.pageYOffset;
+          }
+          return offtop;
+        }
 
-._720kb-tooltip._720kb-tooltip-small {
-  padding: 4.5px 10px;
-  font-size: 12px;
-}
+        function getOffsetLeft(elem) 
+		{
+          var offleft = elem.getBoundingClientRect().left + window.scrollX;
+          //ie8 - 11 fix - window.scrollX is undefied, and offtop is NaN.
+          if (isNaN(offleft)) 
+		  {
+            //get the offset on old properties
+            offleft = elem.getBoundingClientRect().left + window.pageXOffset;
+          }
+          return offleft;
+        }
+		
+		function getOffSet(element, offset) 
+		 {
+			 if(!offset)
+			 {
+				 offset = {left : 0, top : 0};
+			 }
+			 if(element)
+			 {
+				offset.left += (element.offsetLeft - element.scrollLeft + element.clientLeft);
+				offset.top += (element.offsetTop - element.scrollTop + element.clientTop);
+				offset = this.getOffSet(element.offsetParent, offset);
+			 }
+			 return offset;
+		 };
+		
+		function addStyleClass(divAlert,styleClass)
+		{
+			if(divAlert && styleClass && styleClass.length > 0)
+			{
+				if(document.body.classList)
+				{
+					if(!hasStyleClass(divAlert,styleClass))
+					{
+						divAlert.className += " " + styleClass;
+					}
+				}
+				else
+				{
+					if(!hasStyleClass(divAlert,styleClass))
+					{
+						divAlert.classList.add(styleClass);
+					}
+				}
+			}
+		}
+		
+		function hasStyleClass(divAlert,styleClass)
+		{
+			if(divAlert && styleClass && styleClass.length > 0)
+			{
+				try
+				{
+					if(document.body.classList)
+					{
+						return (divAlert.className.indexOf(" " + styleClass) > -1);
+					}
+					else if(divAlert.classList.contains)
+					{
+						return divAlert.classList.contains(styleClass);
+					}
+				}
+				catch(error)
+				{
+					
+				}
+				
+			}
+			return false;
+		}
+		
+		function removeStyleClass(divAlert,styleClass)
+		{
+			if(divAlert && styleClass && styleClass.length > 0)
+			{
+				if(document.body.classList)
+				{
+					if(divAlert.className)
+					{
+						divAlert.className = divAlert.className.replace(styleClass,"");
+					}
+				}
+				else
+				{
+					divAlert.classList.remove(styleClass);
+				}
+			}
+		}
+		
+		function removeAllChildren(element) 
+		{
+			if(element)
+			{
+				var node = element;
+				while (element.hasChildNodes()) 
+				{              
 
-._720kb-tooltip._720kb-tooltip-medium {
-  padding: 7px 15px;
-  font-size: 13.5px;
-}
+					if (node.hasChildNodes()) 
+					{                
+						node = node.lastChild;                 
+					}
+					else 
+					{                                     
+						node = node.parentNode;                
+						node.removeChild(node.lastChild);      
+					}
+				}
+			}
+		}
+	</script>
 
-._720kb-tooltip._720kb-tooltip-large {
-  padding: 10px 20px;
-  font-size: 14px;
-}
-
-._720kb-tooltip._720kb-tooltip-open {
-  visibility: visible;
-  opacity: 1;
-}
-
-._720kb-tooltip-caret:before {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 0;
-  border: 6px solid rgba(0, 0, 0, 0.8);
-}
-
-._720kb-tooltip-left ._720kb-tooltip-caret:before {
-  top: 70%;
-  left: 100%;
-  margin-left: 0;
-  margin-top: -6px;
-  border-top-color: transparent;
-  border-bottom-color: transparent;
-  border-right-width: 0;
-}
-
-._720kb-tooltip-right ._720kb-tooltip-caret:before {
-  top: 30%;
-  left: 0;
-  margin-left: -6px;
-  margin-top: -6px;
-  border-top-color: transparent;
-  border-bottom-color: transparent;
-  border-left-width: 0;
-}
-
-._720kb-tooltip-top ._720kb-tooltip-caret:before {
-  top: 100%;
-  left: 70%;
-  margin-left: -6px;
-  margin-bottom: -6px;
-  border-right-color: transparent;
-  border-left-color: transparent;
-  border-bottom-width: 0;
-}
-
-._720kb-tooltip-bottom ._720kb-tooltip-caret:before {
-  bottom: 100%;
-  left: 50%;
-  margin-left: -6px;
-  border-right-color: transparent;
-  border-left-color: transparent;
-  border-top-width: 0;
-}
-
-._720kb-tooltip-close-button {
-  float: right;
-}
+</body>
+</html>
