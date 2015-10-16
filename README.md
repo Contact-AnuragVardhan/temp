@@ -1,291 +1,303 @@
-<!--https://github.com/720kb/angular-tooltips -->
-<!doctype html>
-<html lang="en-US">
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="Content-Type" content="text/html">
-  <title>Full CSS3 Tooltips - Design Shack Demo</title>
-    <link rel="stylesheet" type="text/css" href="http:cdnjs.cloudflare.com/ajax/libs/font-awesome/4.3.0/css/font-awesome.min.css"/>
-	 <link rel="stylesheet" type="text/css" href="http://720kb.github.io/csshelper/assets/ext/src/helper.css">
-  <link rel="stylesheet" type="text/css" media="all" href="styles.css">
-</head>
-
-<body class="center-content">
-	<input id="txtTest" type="text" style="width:100px;"onmouseover="showToolTip()" onmouseleave="hideTip()">
-	</input>
-	<div class="col5">
-		<div class="line-compress">
-		 <a class="btn btn-medium center-content radius3 bg-purple color-white ng-isolate-scope" tooltips="" tooltip-size="medium" title="Top tooltip" tooltip-side="top">
-		  Top
-		</a>
-	  </div>
-	</div>
-	<!--<div class="_720kb-tooltip _720kb-tooltip-medium _720kb-tooltip-right _720kb-tooltip-open" style="top: 282px; left: 156px;">
-		<div class="_720kb-tooltip-title"> Left tooltip</div> 
-		<span class="_720kb-tooltip-caret"></span>
-	</div>
-	<div class="_720kb-tooltip _720kb-tooltip-medium _720kb-tooltip-top _720kb-tooltip-open" style="top: 238px; left: 168.5px;">
-		<div class="_720kb-tooltip-title"> Top tooltip</div> 
-		<span class="_720kb-tooltip-caret"></span>
-	</div>
-	<div class="_720kb-tooltip _720kb-tooltip-medium _720kb-tooltip-bottom _720kb-tooltip-open" style="top: 326px; left: 295px;">
-		<div class="_720kb-tooltip-title"> Bottom tooltip</div> 
-		<span class="_720kb-tooltip-caret"></span>
-	</div>
-	<div class="_720kb-tooltip _720kb-tooltip-medium _720kb-tooltip-right _720kb-tooltip-open" style="top: 273px; left: 572px;">
-		<div class="_720kb-tooltip-title"> Right tooltip</div> 
-		<span class="_720kb-tooltip-caret"></span>
-	</div> -->
-	<button onclick="showToolTip()">Add Tip</button>
-	<button id="btnRemove" onclick="hideTip()">Remove Tip</button>
+function NSPinTip(component,option)
+{
+	this.POS_TOP = "top";
+	this.POS_BOTTOM = "bottom";
+	this.POS_LEFT = "left";
+	this.POS_RIGHT = "right";
+	this.POS_TOPLEFT = "top-left";
+	this.POS_TOPRIGHT = "top-right";
+	this.POS_BOTTOMLEFT = "bottom-left";
+	this.POS_BOTTOMRIGHT = "bottom-right";
+	this.SIZE_LARGE = "large";
+	this.SIZE_MEDIUM = "medium";
+	this.SIZE_LOW = "low";
 	
-	<script>
-		function showToolTip()
+	this.__component = component;
+	this.__position = option["position"];
+	this.__size = option["size"];
+	this.__showOnMouseHover = option["showOnMouseHover"];
+	this.__tipText = option["text"];
+	this.__id = null;
+	this.__divTipContainer = null;
+	this.__divTip = null;
+	this.__currentPosition = null;
+	this.__styleSuffix = "nsPinTip";
+	
+	this.util = new NSUtil();
+	this.__componentMouseOverRef = null;
+	this.__componentMouseOutRef = null;
+	this.__initialize();
+};
+
+NSPinTip.prototype.showTip = function(tipText)
+{
+	if(tipText && tipText!= "")
+	{
+		this.__tipText = tipText;
+	}
+	if(this.__tipText && this.__tipText!= "")
+	{
+		if(!this.__divTipContainer)
 		{
-			var btnRemove = document.querySelector("#btnRemove");
-			var txtTest = document.querySelector("#txtTest");
-			showTip(txtTest,'This is a tip','bottom');
+			this.__createTip(this.__position);
 		}
-		var divTipContainer = null;
-		var divTip = null;
-		function showTip(component,tipText,position)
-		{
-			if(!divTipContainer)
-			{
-				createTip(component,tipText,position);
-			}
-			removeAllChildren(divTip);
-			divTip.appendChild(document.createTextNode(tipText));
-			addStyleClass(divTipContainer,"_720kb-tooltip-open");
-		}
-		
-		function removeTip()
-		{
-			if(divTipContainer)
-			{
-				document.body.removeChild(divTipContainer);
-				divTipContainer = null;
-			}
-		}
-		
-		function hideTip()
-		{
-			if(divTipContainer)
-			{
-				removeStyleClass(divTipContainer,"_720kb-tooltip-open");
-			}
-		}
-		
-		function createTip(component,tipText,position)
-		{
-			if(!divTipContainer)
-			{
-				divTipContainer = document.createElement("div");
-				addStyleClass(divTipContainer,"_720kb-tooltip");
-				addStyleClass(divTipContainer,"_720kb-tooltip-medium");
-				var posStyle = "_720kb-tooltip-top";
-				switch (position.toLowerCase())
-				{
-					case "top":
-						posStyle = "_720kb-tooltip-top";
-						break;
-					case "bottom":
-						posStyle = "_720kb-tooltip-bottom";
-						break;
-					case "left":
-						posStyle = "_720kb-tooltip-left";
-						break;
-					case "right":
-						posStyle = "_720kb-tooltip-right";
-						break;
-				}
-				addStyleClass(divTipContainer,posStyle);
-				document.body.appendChild(divTipContainer);
-				divTip = document.createElement("div");
-				addStyleClass(divTip,"_720kb-tooltip-title");
-				divTipContainer.appendChild(divTip);
-				var span = document.createElement("span");
-				addStyleClass(span,"_720kb-tooltip-caret");
-				divTipContainer.appendChild(span);
-				placeToolTip(component,position);
-			}
-		}
-		
-		function placeToolTip(component,position)
-		{
-		//offsetTop:0,offsetLeft:265,height:30,width:100,theTooltipHeight:32,theTooltipWidth:102,theTooltipMargin:9
-			var offsetTop = getOffsetTop(component);
-			var offsetLeft = getOffsetLeft(component);
-			var height = component.offsetHeight;
-			var width = component.offsetWidth;
-			var theTooltipHeight = divTipContainer.offsetHeight;//50
-			var theTooltipWidth = 97;//divTipContainer.offsetWidth;//97
-			var theTooltipMargin = 9;
-			var topValue = 0;
-            var leftValue = 0;
-			console.log(divTipContainer.classList);
-			console.log("offsetTop:" + offsetTop + ",offsetLeft:" + offsetLeft + ",height:" + height +",width:" + width + ",theTooltipHeight:" + theTooltipHeight
-			+ ",theTooltipWidth:" + theTooltipWidth + ",theTooltipMargin:" + theTooltipMargin);
-			var offset = getOffSet(component);
-			console.log(offset.left,offset.top);
-			/*offsetTop = offset.top;
-			offsetLeft = offset.left;*/
-			switch (position.toLowerCase())
-			{
-				case "top":
-					topValue = offsetTop - theTooltipMargin - theTooltipHeight;
-					leftValue = offsetLeft + width / 2 - theTooltipWidth / 2;
-					console.log("top:" + topValue + "left:" + leftValue);
-					divTipContainer.style.top = topValue + "px";
-					divTipContainer.style.left = leftValue + "px";
-					break;
-				case "bottom":
-					topValue = offsetTop + height + theTooltipMargin;
-					leftValue = offsetLeft + width / 2 - theTooltipWidth / 2;
-					console.log("top:" + topValue + "left:" + leftValue);
-					divTipContainer.style.top = topValue + 'px';
-					divTipContainer.style.left = leftValue + 'px';
-					break;
-				case "left":
-					topValue = offsetTop + height / 2 - theTooltipHeight / 2;
-					leftValue = offsetLeft - (theTooltipWidth + theTooltipMargin);
-					console.log("top:" + topValue + "left:" + leftValue);
-					divTipContainer.style.top = topValue + 'px';
-					divTipContainer.style.left = leftValue + 'px';
-					break;
-				case "right":
-					topValue = offsetTop + height / 2 - theTooltipHeight / 2;
-					leftValue = offsetLeft + width + theTooltipMargin;
-					console.log("top:" + topValue + "left:" + leftValue);
-					divTipContainer.style.top = topValue + 'px';
-					divTipContainer.style.left = leftValue + 'px';
-					break;
-			}
-		}
-		
-		function getOffsetTop(elem) 
-		{
-          var offtop = elem.getBoundingClientRect().top + window.scrollY;
-          //ie8 - 11 fix - window.scrollY is undefied, and offtop is NaN.
-          if (isNaN(offtop)) 
+		this.util.removeStyleClass(this.__divTipContainer,this.__getStyleName("hide"));
+		this.util.removeAllChildren(this.__divTip);
+		this.__divTip.appendChild(document.createTextNode(tipText));
+		this.__placeTip(this.__position);
+	}
+};
+
+NSPinTip.prototype.removeTip = function()
+{
+	if(this.__divTipContainer)
+	{
+		document.body.removeChild(this.__divTipContainer);
+		this.__divTipContainer = null;
+	}
+};
+
+NSPinTip.prototype.hideTip = function()
+{
+	if(this.__divTipContainer)
+	{
+		this.util.addStyleClass(this.__divTipContainer,this.__getStyleName("hide"));
+	}
+};
+
+NSPinTip.prototype.destroyObject =  function(styleName)
+{
+	if(this.__componentMouseOverRef)
+	{
+		this.util.removeEvent(this.__component,"mouseover",this.__componentMouseOverRef);
+		this.__componentMouseOverRef = null;
+	}
+	if(this.__componentMouseOutRef)
+	{
+		this.util.removeEvent(this.__component,"mouseout",this.__componentMouseOutRef);
+		this.__componentMouseOutRef = null;
+	}
+};
+
+NSPinTip.prototype.__initialize = function(properties)
+{
+	
+	if(!this.__position)
+	{
+		this.__position = this.POS_BOTTOM;
+	}
+	if(!this.__size)
+	{
+		this.__size = this.SIZE_MEDIUM;
+	}
+	this.__position = this.__position.toLowerCase();
+	this.__size = this.__size.toLowerCase();
+	if(Boolean.parse(this.__showOnMouseHover))
+	{
+		this.__componentMouseOverRef = this.__componentMouseOverHandler.bind(this);
+		this.__componentMouseOutRef = this.__componentMouseOutHandler.bind(this);
+		this.util.addEvent(this.__component,"mouseover",this.__componentMouseOverRef);
+		this.util.addEvent(this.__component,"mouseout",this.__componentMouseOutRef);
+	}
+	
+};
+
+NSPinTip.prototype.__createTip = function(position)
+{
+	if(!this.__divTipContainer)
+	{
+		this.__divTipContainer = this.util.createDiv(this.__getID() + "#nsTipContainer",null);
+		this.__setTipStyle(position);
+		document.body.appendChild(this.__divTipContainer);
+		var divArrow = this.util.createDiv(this.__getID() + "#nsTipArrow", this.__getStyleName("arrow"));
+		this.__divTipContainer.appendChild(divArrow);
+		this.__divTip = this.util.createDiv(this.__getID() + "#nsTip", this.__getStyleName("content"));
+		this.__divTipContainer.appendChild(this.__divTip);
+	}
+};
+
+NSPinTip.prototype.__placeTip = function(position)
+{
+	var offset = this.__getOffset(position);
+	var newPosition = this.__getSuggestedPosition(position, offset);
+	if (newPosition && newPosition !== position) 
+	{
+		position = newPosition;
+		offset = this.__getOffset(position);
+	}
+	this.__setTipStyle(position);
+	this.__divTipContainer.style.top = offset.top + "px";
+	this.__divTipContainer.style.left = offset.left + "px";
+};
+
+NSPinTip.prototype.__getOffset = function(position)
+{
+	  var pad = 15;
+	  var rectTip = this.__divTipContainer.getBoundingClientRect();
+	  var rectComponent = this.__component.getBoundingClientRect();
+	  var item = {top: 0,left:0};
+	  if(rectTip && rectComponent)
+	  {
+		  var tipWidth = rectTip.width;
+		  var tipHeight = rectTip.height;
+		  var componentWidth = rectComponent.width;
+		  var componentHeight = rectComponent.height;
+		  var componentOffset = this.util.getOffSetForElementRectangle(rectComponent);
+		  switch(position) 
 		  {
-            //get the offset on old properties
-            offtop = elem.getBoundingClientRect().top + window.pageYOffset;
-          }
-          return offtop;
-        }
+			case this.POS_TOP:
+				item.top = componentOffset.top - tipHeight;
+				item.left = componentOffset.left + componentWidth / 2 - tipWidth / 2;
+				break;
+			case this.POS_BOTTOM:
+				item.top = componentOffset.top + componentHeight;
+				item.left = componentOffset.left + componentWidth / 2 - tipWidth / 2;
+				break;
+			case this.POS_LEFT:
+				item.top =  componentOffset.top + componentHeight / 2 - tipHeight / 2;
+				item.left = componentOffset.left - tipWidth;
+				break;
+			case this.POS_RIGHT:
+				item.top =  componentOffset.top + componentHeight / 2 - tipHeight / 2,
+				item.left = componentOffset.left + componentWidth;
+				break;
+			case this.POS_TOPLEFT:
+				item.top =  componentOffset.top - tipHeight;
+				item.left = componentOffset.left + componentWidth / 2 - tipWidth + pad;
+				break;
+			case this.POS_TOPRIGHT:
+				item.top =  componentOffset.top - tipHeight;
+				item.left = componentOffset.left + componentWidth / 2 - pad;
+				break;
+			case this.POS_BOTTOMLEFT:
+				item.top =  componentOffset.top + componentHeight;
+				item.left = componentOffset.left + componentWidth / 2 - tipWidth + pad;
+				break;
+			case this.POS_BOTTOMRIGHT:
+				item.top =  componentOffset.top + componentHeight;
+				item.left = componentOffset.left + componentWidth / 2 - pad;
+				break;
+		  }
+	  }
+	  return item;
+};
 
-        function getOffsetLeft(elem) 
+NSPinTip.prototype.__getSuggestedPosition = function(position,offset)
+{
+	  var tipWidth = this.__divTipContainer.clientWidth;
+	  var tipHeight = this.__divTipContainer.clientHeight;
+	  var top = window.scrollY;
+	  var left = window.scrollX;
+	  var totalWidth = window.innerWidth;
+	  var totalHeight = window.innerHeight;
+	
+	  var objPosition = {};
+	  objPosition[this.POS_TOP] = true;
+	  objPosition[this.POS_BOTTOM] = true;
+	  objPosition[this.POS_LEFT] = true;
+	  objPosition[this.POS_RIGHT] = true;
+	  
+	  if (offset.top < top) 
+	  {
+		  objPosition[this.POS_TOP] = false;
+	  }
+	  if (offset.top + tipHeight > top + totalHeight) 
+	  {
+		  objPosition[this.POS_BOTTOM] = false;
+	  }
+	  if (offset.left < left)
+	  {
+		  objPosition[this.POS_LEFT] = false;
+	  }
+	  if (offset.left + tipWidth > left + totalWidth) 
+	  {
+		  objPosition[this.POS_RIGHT] = false;
+	  }
+	
+	  var positions = position.split("-");
+	  //below loop tries to give favourable position like bottom-right so if position has bottom and right both true it returns that position
+	  for (var count = 0; count < positions.length; count++) 
+	  {
+		if (!objPosition[positions[count]]) 
 		{
-          var offleft = elem.getBoundingClientRect().left + window.scrollX;
-          //ie8 - 11 fix - window.scrollX is undefied, and offtop is NaN.
-          if (isNaN(offleft)) 
+			break;
+		}
+		if (count === positions.length - 1) 
+		{
+		  return position;
+		}
+	  }
+	  //below loop tries to give one favourable position like in bottom-right if bottom is true or right is true it gets returned
+	  for (var count = 0; count < positions.length; count++) 
+	  {
+		if (objPosition[positions[count]]) 
+		{
+			return positions[count];
+		}
+	  }
+	  if (objPosition[position]) 
+	  {
+		  return position;
+	  }
+	  for(var tmpPosition in objPosition)
+	  {
+		  if (objPosition[tmpPosition]) 
 		  {
-            //get the offset on old properties
-            offleft = elem.getBoundingClientRect().left + window.pageXOffset;
-          }
-          return offleft;
-        }
-		
-		function getOffSet(element, offset) 
-		 {
-			 if(!offset)
-			 {
-				 offset = {left : 0, top : 0};
-			 }
-			 if(element)
-			 {
-				offset.left += (element.offsetLeft - element.scrollLeft + element.clientLeft);
-				offset.top += (element.offsetTop - element.scrollTop + element.clientTop);
-				offset = this.getOffSet(element.offsetParent, offset);
-			 }
-			 return offset;
-		 };
-		
-		function addStyleClass(divAlert,styleClass)
-		{
-			if(divAlert && styleClass && styleClass.length > 0)
-			{
-				if(document.body.classList)
-				{
-					if(!hasStyleClass(divAlert,styleClass))
-					{
-						divAlert.className += " " + styleClass;
-					}
-				}
-				else
-				{
-					if(!hasStyleClass(divAlert,styleClass))
-					{
-						divAlert.classList.add(styleClass);
-					}
-				}
-			}
-		}
-		
-		function hasStyleClass(divAlert,styleClass)
-		{
-			if(divAlert && styleClass && styleClass.length > 0)
-			{
-				try
-				{
-					if(document.body.classList)
-					{
-						return (divAlert.className.indexOf(" " + styleClass) > -1);
-					}
-					else if(divAlert.classList.contains)
-					{
-						return divAlert.classList.contains(styleClass);
-					}
-				}
-				catch(error)
-				{
-					
-				}
-				
-			}
-			return false;
-		}
-		
-		function removeStyleClass(divAlert,styleClass)
-		{
-			if(divAlert && styleClass && styleClass.length > 0)
-			{
-				if(document.body.classList)
-				{
-					if(divAlert.className)
-					{
-						divAlert.className = divAlert.className.replace(styleClass,"");
-					}
-				}
-				else
-				{
-					divAlert.classList.remove(styleClass);
-				}
-			}
-		}
-		
-		function removeAllChildren(element) 
-		{
-			if(element)
-			{
-				var node = element;
-				while (element.hasChildNodes()) 
-				{              
+			  return tmpPosition;
+		  }
+	  }
+};
 
-					if (node.hasChildNodes()) 
-					{                
-						node = node.lastChild;                 
-					}
-					else 
-					{                                     
-						node = node.parentNode;                
-						node.removeChild(node.lastChild);      
-					}
-				}
-			}
-		}
-	</script>
+NSPinTip.prototype.__componentMouseOverHandler = function(event)
+{
+	 this.showTip(this.__tipText);
+};
 
-</body>
-</html>
+NSPinTip.prototype.__componentMouseOutHandler = function(event)
+{
+	this.removeTip();
+};
+
+NSPinTip.prototype.__setTipStyle = function(position)
+{
+	var classname = this.__styleSuffix;
+	var posStyle = this.__getStyleName(position.toLowerCase());
+	if(!posStyle)
+	{
+		posStyle = this.__getStyleName("top");
+	}
+	classname += " " + posStyle;
+	if(!this.__size)
+	{
+		this.__size = "medium";
+	}
+	classname += " " + this.__getStyleName(this.__size);
+	this.__divTipContainer.setAttribute("class", classname);
+};
+
+NSPinTip.prototype.__getStyleName =  function(styleName)
+{
+	return this.__styleSuffix + "-" + styleName;
+};
+
+NSPinTip.prototype.__getID = function()
+{
+	if(!this.__id)
+	{
+		if(this.__component.hasAttribute("id"))
+		{
+			this.__id = this.__component.getAttribute("id");
+		}
+		else if(this.__component.hasAttribute("name"))
+		{
+			this.__id = this.__component.getAttribute("name");
+		}
+		else
+		{
+			this.__id = "comp" + this.util.getUniqueId();
+		}
+	}
+	
+	return this.__id;
+};
+
