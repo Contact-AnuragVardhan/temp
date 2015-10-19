@@ -1,303 +1,414 @@
-function NSPinTip(component,option)
+var nsUIComponent = Object.create(HTMLDivElement.prototype);
+
+nsUIComponent.INITIALIZE = "initialize";
+nsUIComponent.CREATION_COMPLETE = "creationComplete";
+nsUIComponent.PROPERTY_CHANGE = "propertyChange";
+nsUIComponent.REMOVE = "remove";
+
+/*start of private variables */
+nsUIComponent.base = null;
+nsUIComponent.util = null;
+nsUIComponent.nsTip = null;
+nsUIComponent.__setProperty = true; 
+nsUIComponent.__isCreationCompleted = false;
+nsUIComponent.__isAttachedCallbackComplete = false;
+nsUIComponent.__id = null;
+nsUIComponent.__shadow = null;
+nsUIComponent.__coreElement = null;
+nsUIComponent.__resizeHandlerRef = null;
+nsUIComponent.__autoApplyChanges = true;
+nsUIComponent.__applyTipToCoreComp = false;
+nsUIComponent.__showCustomValidation = false;
+/*end of private variables */
+
+/*start of functions */
+nsUIComponent.__setBase = function() 
 {
-	this.POS_TOP = "top";
-	this.POS_BOTTOM = "bottom";
-	this.POS_LEFT = "left";
-	this.POS_RIGHT = "right";
-	this.POS_TOPLEFT = "top-left";
-	this.POS_TOPRIGHT = "top-right";
-	this.POS_BOTTOMLEFT = "bottom-left";
-	this.POS_BOTTOMRIGHT = "bottom-right";
-	this.SIZE_LARGE = "large";
-	this.SIZE_MEDIUM = "medium";
-	this.SIZE_LOW = "low";
-	
-	this.__component = component;
-	this.__position = option["position"];
-	this.__size = option["size"];
-	this.__showOnMouseHover = option["showOnMouseHover"];
-	this.__tipText = option["text"];
-	this.__id = null;
-	this.__divTipContainer = null;
-	this.__divTip = null;
-	this.__currentPosition = null;
-	this.__styleSuffix = "nsPinTip";
-	
+	if(this.__proto__ && this.__proto__.__proto__)
+	{
+		this.base = this.__proto__.__proto__;
+	}
+};
+
+nsUIComponent.__setID = function()
+{
+	if(this.hasAttribute("id"))
+	{
+		this.__id = this.getAttribute("id");
+	}
+	else if(this.hasAttribute("name"))
+	{
+		this.__id = this.getAttribute("name");
+	}
+	else
+	{
+		this.__id = "comp" + this.util.getUniqueId();
+	}
+};
+
+nsUIComponent.createdCallback = function() 
+{
 	this.util = new NSUtil();
-	this.__componentMouseOverRef = null;
-	this.__componentMouseOutRef = null;
-	this.__initialize();
+	this.__setBase();
+	this.__setID();
+	this.initializeComponent();
+	this.__resizeHandlerRef = this.resizeHandler.bind(this);
+	this.util.addEvent(window,"resize",this.__resizeHandlerRef);
+	this.dispatchCustomEvent(this.INITIALIZE);
 };
-
-NSPinTip.prototype.showTip = function(tipText)
+nsUIComponent.attachedCallback = function()
 {
-	if(tipText && tipText!= "")
+	//set __autoApplyChanges = false to stop attachedCallback making chnages and these changes can then be applied by calling applyChanges()
+	if(this.__autoApplyChanges)
 	{
-		this.__tipText = tipText;
-	}
-	if(this.__tipText && this.__tipText!= "")
-	{
-		if(!this.__divTipContainer)
+		this.__isAttachedCallbackComplete = false;
+		this.setComponentProperties();
+		this.checkForToolTip();
+		if(this.__coreElement)
 		{
-			this.__createTip(this.__position);
+			if(this.hasAttribute("class")) 
+			{
+				this.setCoreComponentProperty("class");
+			}
+			if(this.hasAttribute("enabled"))
+			{
+				this.setCoreComponentProperty("enabled");
+			}
+			this.util.addEvent(this.__coreElement,"invalid",this.__invalidEventHandler.bind(this));
 		}
-		this.util.removeStyleClass(this.__divTipContainer,this.__getStyleName("hide"));
-		this.util.removeAllChildren(this.__divTip);
-		this.__divTip.appendChild(document.createTextNode(tipText));
-		this.__placeTip(this.__position);
-	}
-};
-
-NSPinTip.prototype.removeTip = function()
-{
-	if(this.__divTipContainer)
-	{
-		document.body.removeChild(this.__divTipContainer);
-		this.__divTipContainer = null;
-	}
-};
-
-NSPinTip.prototype.hideTip = function()
-{
-	if(this.__divTipContainer)
-	{
-		this.util.addStyleClass(this.__divTipContainer,this.__getStyleName("hide"));
-	}
-};
-
-NSPinTip.prototype.destroyObject =  function(styleName)
-{
-	if(this.__componentMouseOverRef)
-	{
-		this.util.removeEvent(this.__component,"mouseover",this.__componentMouseOverRef);
-		this.__componentMouseOverRef = null;
-	}
-	if(this.__componentMouseOutRef)
-	{
-		this.util.removeEvent(this.__component,"mouseout",this.__componentMouseOutRef);
-		this.__componentMouseOutRef = null;
-	}
-};
-
-NSPinTip.prototype.__initialize = function(properties)
-{
-	
-	if(!this.__position)
-	{
-		this.__position = this.POS_BOTTOM;
-	}
-	if(!this.__size)
-	{
-		this.__size = this.SIZE_MEDIUM;
-	}
-	this.__position = this.__position.toLowerCase();
-	this.__size = this.__size.toLowerCase();
-	if(Boolean.parse(this.__showOnMouseHover))
-	{
-		this.__componentMouseOverRef = this.__componentMouseOverHandler.bind(this);
-		this.__componentMouseOutRef = this.__componentMouseOutHandler.bind(this);
-		this.util.addEvent(this.__component,"mouseover",this.__componentMouseOverRef);
-		this.util.addEvent(this.__component,"mouseout",this.__componentMouseOutRef);
-	}
-	
-};
-
-NSPinTip.prototype.__createTip = function(position)
-{
-	if(!this.__divTipContainer)
-	{
-		this.__divTipContainer = this.util.createDiv(this.__getID() + "#nsTipContainer",null);
-		this.__setTipStyle(position);
-		document.body.appendChild(this.__divTipContainer);
-		var divArrow = this.util.createDiv(this.__getID() + "#nsTipArrow", this.__getStyleName("arrow"));
-		this.__divTipContainer.appendChild(divArrow);
-		this.__divTip = this.util.createDiv(this.__getID() + "#nsTip", this.__getStyleName("content"));
-		this.__divTipContainer.appendChild(this.__divTip);
-	}
-};
-
-NSPinTip.prototype.__placeTip = function(position)
-{
-	var offset = this.__getOffset(position);
-	var newPosition = this.__getSuggestedPosition(position, offset);
-	if (newPosition && newPosition !== position) 
-	{
-		position = newPosition;
-		offset = this.__getOffset(position);
-	}
-	this.__setTipStyle(position);
-	this.__divTipContainer.style.top = offset.top + "px";
-	this.__divTipContainer.style.left = offset.left + "px";
-};
-
-NSPinTip.prototype.__getOffset = function(position)
-{
-	  var pad = 15;
-	  var rectTip = this.__divTipContainer.getBoundingClientRect();
-	  var rectComponent = this.__component.getBoundingClientRect();
-	  var item = {top: 0,left:0};
-	  if(rectTip && rectComponent)
-	  {
-		  var tipWidth = rectTip.width;
-		  var tipHeight = rectTip.height;
-		  var componentWidth = rectComponent.width;
-		  var componentHeight = rectComponent.height;
-		  var componentOffset = this.util.getOffSetForElementRectangle(rectComponent);
-		  switch(position) 
-		  {
-			case this.POS_TOP:
-				item.top = componentOffset.top - tipHeight;
-				item.left = componentOffset.left + componentWidth / 2 - tipWidth / 2;
-				break;
-			case this.POS_BOTTOM:
-				item.top = componentOffset.top + componentHeight;
-				item.left = componentOffset.left + componentWidth / 2 - tipWidth / 2;
-				break;
-			case this.POS_LEFT:
-				item.top =  componentOffset.top + componentHeight / 2 - tipHeight / 2;
-				item.left = componentOffset.left - tipWidth;
-				break;
-			case this.POS_RIGHT:
-				item.top =  componentOffset.top + componentHeight / 2 - tipHeight / 2,
-				item.left = componentOffset.left + componentWidth;
-				break;
-			case this.POS_TOPLEFT:
-				item.top =  componentOffset.top - tipHeight;
-				item.left = componentOffset.left + componentWidth / 2 - tipWidth + pad;
-				break;
-			case this.POS_TOPRIGHT:
-				item.top =  componentOffset.top - tipHeight;
-				item.left = componentOffset.left + componentWidth / 2 - pad;
-				break;
-			case this.POS_BOTTOMLEFT:
-				item.top =  componentOffset.top + componentHeight;
-				item.left = componentOffset.left + componentWidth / 2 - tipWidth + pad;
-				break;
-			case this.POS_BOTTOMRIGHT:
-				item.top =  componentOffset.top + componentHeight;
-				item.left = componentOffset.left + componentWidth / 2 - pad;
-				break;
-		  }
-	  }
-	  return item;
-};
-
-NSPinTip.prototype.__getSuggestedPosition = function(position,offset)
-{
-	  var tipWidth = this.__divTipContainer.clientWidth;
-	  var tipHeight = this.__divTipContainer.clientHeight;
-	  var top = window.scrollY;
-	  var left = window.scrollX;
-	  var totalWidth = window.innerWidth;
-	  var totalHeight = window.innerHeight;
-	
-	  var objPosition = {};
-	  objPosition[this.POS_TOP] = true;
-	  objPosition[this.POS_BOTTOM] = true;
-	  objPosition[this.POS_LEFT] = true;
-	  objPosition[this.POS_RIGHT] = true;
-	  
-	  if (offset.top < top) 
-	  {
-		  objPosition[this.POS_TOP] = false;
-	  }
-	  if (offset.top + tipHeight > top + totalHeight) 
-	  {
-		  objPosition[this.POS_BOTTOM] = false;
-	  }
-	  if (offset.left < left)
-	  {
-		  objPosition[this.POS_LEFT] = false;
-	  }
-	  if (offset.left + tipWidth > left + totalWidth) 
-	  {
-		  objPosition[this.POS_RIGHT] = false;
-	  }
-	
-	  var positions = position.split("-");
-	  //below loop tries to give favourable position like bottom-right so if position has bottom and right both true it returns that position
-	  for (var count = 0; count < positions.length; count++) 
-	  {
-		if (!objPosition[positions[count]]) 
+		if(this.hasAttribute("showCustomValidation")) 
 		{
-			break;
+			this.__showCustomValidation = Boolean.parse(this.hasAttribute("showCustomValidation"));
 		}
-		if (count === positions.length - 1) 
-		{
-		  return position;
-		}
-	  }
-	  //below loop tries to give one favourable position like in bottom-right if bottom is true or right is true it gets returned
-	  for (var count = 0; count < positions.length; count++) 
-	  {
-		if (objPosition[positions[count]]) 
-		{
-			return positions[count];
-		}
-	  }
-	  if (objPosition[position]) 
-	  {
-		  return position;
-	  }
-	  for(var tmpPosition in objPosition)
-	  {
-		  if (objPosition[tmpPosition]) 
-		  {
-			  return tmpPosition;
-		  }
-	  }
-};
-
-NSPinTip.prototype.__componentMouseOverHandler = function(event)
-{
-	 this.showTip(this.__tipText);
-};
-
-NSPinTip.prototype.__componentMouseOutHandler = function(event)
-{
-	this.removeTip();
-};
-
-NSPinTip.prototype.__setTipStyle = function(position)
-{
-	var classname = this.__styleSuffix;
-	var posStyle = this.__getStyleName(position.toLowerCase());
-	if(!posStyle)
-	{
-		posStyle = this.__getStyleName("top");
+		this.dispatchCustomEvent(this.CREATION_COMPLETE);
+		this.__isAttachedCallbackComplete = true;
 	}
-	classname += " " + posStyle;
-	if(!this.__size)
+};
+nsUIComponent.attributeChangedCallback = function(attrName, oldVal, newVal)
+{
+	//below condition is to stop this method from getting fired when any property change in attachedCallback triggers this method
+	if(this.__isAttachedCallbackComplete)
 	{
-		this.__size = "medium";
+		var data = {};
+		data.propertyName = attrName;
+		data.oldValue = oldVal;
+		data.newValue = newVal;
+		this.dispatchCustomEvent(this.PROPERTY_CHANGE,data);
+		var attributeName = attrName.toLowerCase();
+		this.setCoreComponentProperty(attributeName);
+		if(!this.nsTip)
+		{
+			if(attributeName === "tooltip" || attributeName === "nspintip")
+			{
+				this.checkForToolTip();
+			}
+			if(attributeName === "tooltiptype")
+			{
+				this.checkForToolTip();
+			}
+		}
+		//call child handler if parent is not handling it
+		this.propertyChange(attrName, oldVal, newVal, this.__setProperty);
+		this.__setProperty = true;
 	}
-	classname += " " + this.__getStyleName(this.__size);
-	this.__divTipContainer.setAttribute("class", classname);
 };
-
-NSPinTip.prototype.__getStyleName =  function(styleName)
+nsUIComponent.detachedCallback = function()
 {
-	return this.__styleSuffix + "-" + styleName;
-};
-
-NSPinTip.prototype.__getID = function()
-{
-	if(!this.__id)
+	this.dispatchCustomEvent(this.REMOVE);
+	if(this.__resizeHandlerRef)
 	{
-		if(this.__component.hasAttribute("id"))
+		this.util.removeEvent(window,"resize",this.__resizeHandlerRef);
+	}
+	this.removeComponent();
+};
+nsUIComponent.resizeHandler = function() 
+{
+	//this.dispatchCustomEvent(this.RESIZE);
+	this.componentResized();
+};
+nsUIComponent.__invalidEventHandler = function(event)
+{
+	if(this.__showCustomValidation)
+	{
+		event = this.util.getEvent(event);
+		event.preventDefault();
+		console.log(this.__coreElement.validationMessage);
+		var param = {position:"right",showOnMouseHover:false,text:this.__coreElement.validationMessage,style:"background-color: #e13c37"};
+		var component = this;
+		if(this.__applyTipToCoreComp)
 		{
-			this.__id = this.__component.getAttribute("id");
+			component = this.__coreElement;
 		}
-		else if(this.__component.hasAttribute("name"))
+		if(!this.nsTip)
 		{
-			this.__id = this.__component.getAttribute("name");
+			this.nsTip = new NSPinTip(component,param);
 		}
-		else
+		if(this.nsTip && !this.nsTip.isVisible())
 		{
-			this.__id = "comp" + this.util.getUniqueId();
+			this.nsTip.show();
 		}
 	}
-	
+};
+
+nsUIComponent.initializeComponent = function() 
+{
+};
+
+nsUIComponent.setComponentProperties = function() 
+{
+	this.__isCreationCompleted = true;
+};
+
+nsUIComponent.propertyChange = function(attrName, oldVal, newVal, setProperty) 
+{
+};
+
+nsUIComponent.removeComponent = function() 
+{
+};
+
+nsUIComponent.componentResized = function() 
+{
+};
+
+nsUIComponent.initializeDOM = function(requireStyleClass)
+{
+	if(document.head.createShadowRoot) 
+	{
+	    if(!this.__shadow)
+	    {
+	    	this.__shadow = this.createShadowRoot();
+	    }
+	    if(requireStyleClass)
+	    {
+	    	var shadow = this.__shadow;
+	    	new this.util.ajax(ns.__dicPath["component.css"], function (response) {
+	    		if(response)
+	    		{
+	    			var sheet = document.createElement("style");
+			    	sheet.innerHTML = response;
+			    	shadow.appendChild(sheet);
+	    		}
+		    });
+	    	new this.util.ajax(requireStyleClass, function (response) {
+	    		if(response)
+	    		{
+	    			var sheet = document.createElement("style");
+			    	sheet.innerHTML = response;
+			    	shadow.appendChild(sheet);
+	    		}
+		    });
+	    	
+	    }
+	}
+};
+
+nsUIComponent.setCoreComponentProperty = function(attributeName)
+{
+	if(this.__coreElement)
+	{
+		if(attributeName === "class")
+		{
+			var className = this.getAttribute("class");
+			this.util.removeStyleClass(this,className);
+			this.util.addStyleClass(this.__coreElement,className);
+		}
+		else if(attributeName === "enabled")
+		{
+			this.__coreElement.setAttribute("disabled",!Boolean.parse(this.getAttribute("enabled"))) ;
+		}
+	}
+};
+
+nsUIComponent.getID = function() 
+{
 	return this.__id;
 };
 
+nsUIComponent.addChild = function(element)
+{
+	if(element)
+	{
+	    if(this.__shadow)
+	    {
+	    	 this.__shadow.appendChild(element);
+	    }
+		else 
+		{
+		    this.appendChild(element);
+		}
+	}
+};
+
+nsUIComponent.deleteChild = function(element)
+{
+	if(element)
+	{
+	    if(this.__shadow)
+	    {
+	    	 this.__shadow.removeChild(element);
+	    }
+		else 
+		{
+		    this.removeChild(element);
+		}
+	}
+};
+
+nsUIComponent.getElement = function(elementId)
+{
+	if(this.__shadow) 
+	{
+		if(elementId && elementId.length > 0)
+		{
+			return this.__shadow.getElementById(elementId);
+		}
+	} 
+    return this.util.getElement(elementId);
+};
+
+nsUIComponent.applyChanges = function()
+{
+	var origValue = this.__autoApplyChanges;
+	this.__autoApplyChanges = true;
+	this.attachedCallback();
+	this.__autoApplyChanges = origValue;
+};
+
+nsUIComponent.checkForToolTip = function() 
+{
+	if(this.hasAttribute("nsPinTip"))
+	{
+		//this.__coreElement.setAttribute("nsPinTip",this.getAttribute("nsPinTip"));
+		var position = null;
+		if(this.hasAttribute("nsPinTipPos"))
+		{
+			position = this.getAttribute("nsPinTipPos");
+		}
+		if(!this.nsTip)
+		{
+			var param = {position:position,showOnMouseHover:true,text:this.getAttribute("nsPinTip")};
+			var component = this;
+			if(this.__applyTipToCoreComp)
+			{
+				component = this.__coreElement;
+			}
+			this.nsTip = new NSPinTip(component,param);
+		}
+	}
+	else
+	{
+		if(this.hasAttribute("toolTip"))
+		{
+			var message = this.getAttribute("toolTip");
+			var type = "";
+			if(this.hasAttribute("toolTipType"))
+			{
+				type = this.getAttribute("toolTipType");
+			}
+			this.addToolTip(type,message);
+		}
+		else
+		{
+			this.removeToolTip();
+		}
+	}
+};
+
+nsUIComponent.addToolTip = function(type,message) 
+{
+	this.removeToolTip();
+	this.util.addStyleClass(this,"nsTooltip");
+	var title = "";
+	var toolTipClass = "nsTooltipClassic";
+	switch(type)
+	{
+		case "critical":
+			title = "Critical";
+			toolTipClass = "nsTooltipCritical";
+		break;
+		case "help":
+			title = "Help";
+			toolTipClass = "nsTooltipHelp";
+		break;
+		case "info":
+			title = "Information";
+			toolTipClass = "nsTooltipInfo";
+		break;
+		case "warning":
+			title = "Warning";
+			toolTipClass = "nsTooltipWarning";
+		break;
+	}
+	var toolTip = document.createElement("SPAN");
+	toolTip.setAttribute("id",this.getID() + "#toolTip");
+	if(title && title != "")
+	{
+		compTitle = document.createElement("em");
+		compTitle.appendChild(document.createTextNode(title));
+		toolTip.appendChild(compTitle);
+		this.util.addStyleClass(toolTip,"nsTooltipCustom");
+	}
+	this.util.addStyleClass(toolTip,toolTipClass);
+	var toolTipText = document.createTextNode(message);
+	toolTip.appendChild(toolTipText);
+	this.appendChild(toolTip);
+};
+
+nsUIComponent.removeToolTip = function()
+{
+	var toolTip = document.getElementById(this.getID() + "#toolTip");
+	if(toolTip)
+	{
+		this.removeChild(toolTip);
+		this.util.removeStyleClass(this,"nsTooltip");
+	}
+};
+
+nsUIComponent.dispatchCustomEvent = function(eventType,data,bubbles,cancelable) 
+{
+	if(this.util.isUndefined(data))
+	{
+		data = null;
+	}
+	if(typeof bubbles == "undefined")
+	{
+		bubbles = true;
+	}
+	if(typeof cancelable == "undefined")
+	{
+		cancelable = true;
+	}
+	var event = new CustomEvent(eventType, 
+	{
+		detail: data,
+		bubbles: bubbles,
+		cancelable: cancelable
+	});
+	if (this.hasAttribute(eventType)) 
+	{
+		var attributeValue = this.getAttribute(eventType);
+		if(attributeValue)
+		{
+			this.util.callFunctionFromString(attributeValue,function(paramValue){
+				if(paramValue === 'true' || paramValue === 'false')
+				{
+					return Boolean.parse(paramValue);
+				}
+				else if(paramValue === 'this')
+				{
+					return this;
+				}
+				else if(paramValue === 'event')
+				{
+					return event;
+				}
+				return paramValue;
+			});
+		}
+	}
+	this.dispatchEvent(event);
+};
+/*end of functions */
+
+document.registerElement('ns-uicomponent', {prototype: nsUIComponent});
