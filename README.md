@@ -78,7 +78,7 @@ nsUIComponent.attachedCallback = function()
 		}
 		if(this.hasAttribute("showCustomValidation")) 
 		{
-			this.__showCustomValidation = Boolean.parse(this.hasAttribute("showCustomValidation"));
+			this.__showCustomValidation = Boolean.parse(this.getAttribute("showCustomValidation"));
 		}
 		this.dispatchCustomEvent(this.CREATION_COMPLETE);
 		this.__isAttachedCallbackComplete = true;
@@ -145,7 +145,7 @@ nsUIComponent.__invalidEventHandler = function(event)
 		}
 		if(this.nsTip && !this.nsTip.isVisible())
 		{
-			this.nsTip.show();
+			this.nsTip.show(this.__coreElement.validationMessage);
 		}
 	}
 };
