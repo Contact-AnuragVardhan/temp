@@ -1,414 +1,339 @@
-var nsUIComponent = Object.create(HTMLDivElement.prototype);
+var biologistBody = "";
+var actionbioscienceBody = "";
+var fishbaseBody = "";
 
-nsUIComponent.INITIALIZE = "initialize";
-nsUIComponent.CREATION_COMPLETE = "creationComplete";
-nsUIComponent.PROPERTY_CHANGE = "propertyChange";
-nsUIComponent.REMOVE = "remove";
+var objDashBoard = null;
 
-/*start of private variables */
-nsUIComponent.base = null;
-nsUIComponent.util = null;
-nsUIComponent.nsTip = null;
-nsUIComponent.__setProperty = true; 
-nsUIComponent.__isCreationCompleted = false;
-nsUIComponent.__isAttachedCallbackComplete = false;
-nsUIComponent.__id = null;
-nsUIComponent.__shadow = null;
-nsUIComponent.__coreElement = null;
-nsUIComponent.__resizeHandlerRef = null;
-nsUIComponent.__autoApplyChanges = true;
-nsUIComponent.__applyTipToCoreComp = false;
-nsUIComponent.__showCustomValidation = false;
-/*end of private variables */
+var item = null;
+var tempID = "Item";
+var divDrag = null;
 
-/*start of functions */
-nsUIComponent.__setBase = function() 
+function initializeCompliancePortal()
 {
-	if(this.__proto__ && this.__proto__.__proto__)
-	{
-		this.base = this.__proto__.__proto__;
-	}
-};
+	biologistBody = "#template1";
+	actionbioscienceBody = "#template2";
+	fishbaseBody = "#template3";
+	
+	var dashBoardSource = [
+	                       {title:"Biologist",templateID:biologistBody,footerRequired:false},
+	                       {title:"Action Bioscience",templateID:actionbioscienceBody,footerRequired:false},
+	                       {title:"FishBase",templateID:fishbaseBody,footerRequired:false},
+	                  ];
+	objDashBoard = new DashBoard("divPortlets",dashBoardSource);
+	syncDivWidth();
+	addClickHandler();
+	document.ondragstart = dragstartHandler;
+	document.ondragover = dragoverHandler;
+	document.ondrop = dropHandler;
+	document.ondragend = dragendHandler;
+}
 
-nsUIComponent.__setID = function()
+function addClickHandler()
 {
-	if(this.hasAttribute("id"))
-	{
-		this.__id = this.getAttribute("id");
-	}
-	else if(this.hasAttribute("name"))
-	{
-		this.__id = this.getAttribute("name");
-	}
-	else
-	{
-		this.__id = "comp" + this.util.getUniqueId();
-	}
-};
+	 var arrLI = document.getElementsByTagName("LI");
+	 if(arrLI && arrLI.length > 0)
+	 {
+		 for(var count = 0;count < arrLI.length;count++)
+		 {
+			 arrLI[count].onmousedown = liMouseDownHandler;
+			 arrLI[count].onmouseup = liMouseUpHandler;
+		 }
+	 }
+}
 
-nsUIComponent.createdCallback = function() 
+function syncDivWidth()
 {
-	this.util = new NSUtil();
-	this.__setBase();
-	this.__setID();
-	this.initializeComponent();
-	this.__resizeHandlerRef = this.resizeHandler.bind(this);
-	this.util.addEvent(window,"resize",this.__resizeHandlerRef);
-	this.dispatchCustomEvent(this.INITIALIZE);
-};
-nsUIComponent.attachedCallback = function()
-{
-	//set __autoApplyChanges = false to stop attachedCallback making chnages and these changes can then be applied by calling applyChanges()
-	if(this.__autoApplyChanges)
+	for(var count = 0;count < 3;count++)
 	{
-		this.__isAttachedCallbackComplete = false;
-		this.setComponentProperties();
-		this.checkForToolTip();
-		if(this.__coreElement)
+		var panel = document.getElementById("divPortlets#panelParent" + count); 
+		var div = document.getElementById("div" + count); 
+		var txt = document.getElementById("txt" + count); 
+		if(panel && div)
 		{
-			if(this.hasAttribute("class")) 
-			{
-				this.setCoreComponentProperty("class");
-			}
-			if(this.hasAttribute("enabled"))
-			{
-				this.setCoreComponentProperty("enabled");
-			}
-			this.util.addEvent(this.__coreElement,"invalid",this.__invalidEventHandler.bind(this));
-		}
-		if(this.hasAttribute("showCustomValidation")) 
-		{
-			this.__showCustomValidation = Boolean.parse(this.getAttribute("showCustomValidation"));
-		}
-		this.dispatchCustomEvent(this.CREATION_COMPLETE);
-		this.__isAttachedCallbackComplete = true;
-	}
-};
-nsUIComponent.attributeChangedCallback = function(attrName, oldVal, newVal)
-{
-	//below condition is to stop this method from getting fired when any property change in attachedCallback triggers this method
-	if(this.__isAttachedCallbackComplete)
-	{
-		var data = {};
-		data.propertyName = attrName;
-		data.oldValue = oldVal;
-		data.newValue = newVal;
-		this.dispatchCustomEvent(this.PROPERTY_CHANGE,data);
-		var attributeName = attrName.toLowerCase();
-		this.setCoreComponentProperty(attributeName);
-		if(!this.nsTip)
-		{
-			if(attributeName === "tooltip" || attributeName === "nspintip")
-			{
-				this.checkForToolTip();
-			}
-			if(attributeName === "tooltiptype")
-			{
-				this.checkForToolTip();
-			}
-		}
-		//call child handler if parent is not handling it
-		this.propertyChange(attrName, oldVal, newVal, this.__setProperty);
-		this.__setProperty = true;
-	}
-};
-nsUIComponent.detachedCallback = function()
-{
-	this.dispatchCustomEvent(this.REMOVE);
-	if(this.__resizeHandlerRef)
-	{
-		this.util.removeEvent(window,"resize",this.__resizeHandlerRef);
-	}
-	this.removeComponent();
-};
-nsUIComponent.resizeHandler = function() 
-{
-	//this.dispatchCustomEvent(this.RESIZE);
-	this.componentResized();
-};
-nsUIComponent.__invalidEventHandler = function(event)
-{
-	if(this.__showCustomValidation)
-	{
-		event = this.util.getEvent(event);
-		event.preventDefault();
-		console.log(this.__coreElement.validationMessage);
-		var param = {position:"right",showOnMouseHover:false,text:this.__coreElement.validationMessage,style:"background-color: #e13c37"};
-		var component = this;
-		if(this.__applyTipToCoreComp)
-		{
-			component = this.__coreElement;
-		}
-		if(!this.nsTip)
-		{
-			this.nsTip = new NSPinTip(component,param);
-		}
-		if(this.nsTip && !this.nsTip.isVisible())
-		{
-			this.nsTip.show(this.__coreElement.validationMessage);
-		}
-	}
-};
-
-nsUIComponent.initializeComponent = function() 
-{
-};
-
-nsUIComponent.setComponentProperties = function() 
-{
-	this.__isCreationCompleted = true;
-};
-
-nsUIComponent.propertyChange = function(attrName, oldVal, newVal, setProperty) 
-{
-};
-
-nsUIComponent.removeComponent = function() 
-{
-};
-
-nsUIComponent.componentResized = function() 
-{
-};
-
-nsUIComponent.initializeDOM = function(requireStyleClass)
-{
-	if(document.head.createShadowRoot) 
-	{
-	    if(!this.__shadow)
-	    {
-	    	this.__shadow = this.createShadowRoot();
-	    }
-	    if(requireStyleClass)
-	    {
-	    	var shadow = this.__shadow;
-	    	new this.util.ajax(ns.__dicPath["component.css"], function (response) {
-	    		if(response)
-	    		{
-	    			var sheet = document.createElement("style");
-			    	sheet.innerHTML = response;
-			    	shadow.appendChild(sheet);
-	    		}
-		    });
-	    	new this.util.ajax(requireStyleClass, function (response) {
-	    		if(response)
-	    		{
-	    			var sheet = document.createElement("style");
-			    	sheet.innerHTML = response;
-			    	shadow.appendChild(sheet);
-	    		}
-		    });
-	    	
-	    }
-	}
-};
-
-nsUIComponent.setCoreComponentProperty = function(attributeName)
-{
-	if(this.__coreElement)
-	{
-		if(attributeName === "class")
-		{
-			var className = this.getAttribute("class");
-			this.util.removeStyleClass(this,className);
-			this.util.addStyleClass(this.__coreElement,className);
-		}
-		else if(attributeName === "enabled")
-		{
-			this.__coreElement.setAttribute("disabled",!Boolean.parse(this.getAttribute("enabled"))) ;
-		}
-	}
-};
-
-nsUIComponent.getID = function() 
-{
-	return this.__id;
-};
-
-nsUIComponent.addChild = function(element)
-{
-	if(element)
-	{
-	    if(this.__shadow)
-	    {
-	    	 this.__shadow.appendChild(element);
-	    }
-		else 
-		{
-		    this.appendChild(element);
-		}
-	}
-};
-
-nsUIComponent.deleteChild = function(element)
-{
-	if(element)
-	{
-	    if(this.__shadow)
-	    {
-	    	 this.__shadow.removeChild(element);
-	    }
-		else 
-		{
-		    this.removeChild(element);
-		}
-	}
-};
-
-nsUIComponent.getElement = function(elementId)
-{
-	if(this.__shadow) 
-	{
-		if(elementId && elementId.length > 0)
-		{
-			return this.__shadow.getElementById(elementId);
+			var offset = getOffSet(panel);
+			div.style.width = (panel.offsetWidth - 30) + "px";
+			//txt.style.width = (panel.offsetWidth - 50) + "px";
+			div.style.left = (offset.left + 15) + "px";
+			txt.style.left = ((offset.left + 15) + ((panel.offsetWidth - 30)/2) - 40) + "px";
+			div.style.top = (offset.top + panel.offsetHeight + 40) + "px";
+			txt.style.top = (offset.top + panel.offsetHeight + 80) + "px";
+			
 		}
 	} 
-    return this.util.getElement(elementId);
-};
+}
 
-nsUIComponent.applyChanges = function()
+function liMouseDownHandler(event)
 {
-	var origValue = this.__autoApplyChanges;
-	this.__autoApplyChanges = true;
-	this.attachedCallback();
-	this.__autoApplyChanges = origValue;
-};
-
-nsUIComponent.checkForToolTip = function() 
-{
-	if(this.hasAttribute("nsPinTip"))
+	var liTarget = findParent(event.target,"li");
+	if(liTarget && !Boolean.parse(liTarget.getAttribute("isDragged")))
 	{
-		//this.__coreElement.setAttribute("nsPinTip",this.getAttribute("nsPinTip"));
-		var position = null;
-		if(this.hasAttribute("nsPinTipPos"))
+		for(var count = 0;count < 3;count++)
 		{
-			position = this.getAttribute("nsPinTipPos");
-		}
-		if(!this.nsTip)
-		{
-			var param = {position:position,showOnMouseHover:true,text:this.getAttribute("nsPinTip")};
-			var component = this;
-			if(this.__applyTipToCoreComp)
+			var div = document.getElementById("div" + count); 
+			if(div && div.children.length === 0)
 			{
-				component = this.__coreElement;
+				div.style.border = "2px dashed #00cc00";
+				div.style.borderTop = "0px";
 			}
-			this.nsTip = new NSPinTip(component,param);
 		}
+	}
+}
+
+function liMouseUpHandler(event)
+{
+	for(var count = 0;count < 3;count++)
+	{
+		var div = document.getElementById("div" + count); 
+		div.style.border = "1px solid #aaaaaa";
+		div.style.borderTop = "0px";
+	}
+}
+
+function dragstartHandler(event)
+{
+	item = findParent(event.target,"li");
+	if(item && !Boolean.parse(item.getAttribute("isDragged")))
+	{
+		divDrag = document.createElement("DIV");
+		divDrag.id = tempID + "-extra";
+		divDrag.innerHTML = item.getAttribute("dragData");
+		divDrag.style.backgroundColor = "red";
+		divDrag.style.position = "absolute";
+		document.body.appendChild(divDrag);
+		var divCoverup = document.getElementById("divCoverup");		
+		divDrag.style.left = (divCoverup.offsetLeft) + "px";
+		divDrag.style.top = (divCoverup.offsetTop) + "px";
+		event.dataTransfer.setDragImage(divDrag, 0, 0);
+		event.dataTransfer.setData('text', '');
 	}
 	else
 	{
-		if(this.hasAttribute("toolTip"))
-		{
-			var message = this.getAttribute("toolTip");
-			var type = "";
-			if(this.hasAttribute("toolTipType"))
-			{
-				type = this.getAttribute("toolTipType");
-			}
-			this.addToolTip(type,message);
-		}
-		else
-		{
-			this.removeToolTip();
-		}
+		item = null;
+		event.preventDefault();
 	}
-};
+}
 
-nsUIComponent.addToolTip = function(type,message) 
+function dragoverHandler(event)
 {
-	this.removeToolTip();
-	this.util.addStyleClass(this,"nsTooltip");
-	var title = "";
-	var toolTipClass = "nsTooltipClassic";
-	switch(type)
-	{
-		case "critical":
-			title = "Critical";
-			toolTipClass = "nsTooltipCritical";
-		break;
-		case "help":
-			title = "Help";
-			toolTipClass = "nsTooltipHelp";
-		break;
-		case "info":
-			title = "Information";
-			toolTipClass = "nsTooltipInfo";
-		break;
-		case "warning":
-			title = "Warning";
-			toolTipClass = "nsTooltipWarning";
-		break;
-	}
-	var toolTip = document.createElement("SPAN");
-	toolTip.setAttribute("id",this.getID() + "#toolTip");
-	if(title && title != "")
-	{
-		compTitle = document.createElement("em");
-		compTitle.appendChild(document.createTextNode(title));
-		toolTip.appendChild(compTitle);
-		this.util.addStyleClass(toolTip,"nsTooltipCustom");
-	}
-	this.util.addStyleClass(toolTip,toolTipClass);
-	var toolTipText = document.createTextNode(message);
-	toolTip.appendChild(toolTipText);
-	this.appendChild(toolTip);
-};
+	 if (item) 
+	 {
+		 event.preventDefault();
+     }
+}
 
-nsUIComponent.removeToolTip = function()
+function dropHandler(event)
 {
-	var toolTip = document.getElementById(this.getID() + "#toolTip");
-	if(toolTip)
-	{
-		this.removeChild(toolTip);
-		this.util.removeStyleClass(this,"nsTooltip");
-	}
-};
+	liMouseUpHandler(event);
+    if(event.target.getAttribute('data-draggable') == 'target') 
+    {
+    	var divAdd = document.createElement("DIV");
+    	divAdd.style.backgroundColor = "green";
+    	divAdd.style.color = "white";
+    	divAdd.setAttribute("dragKey",item.getAttribute("dragKey"));
+    	var img = document.createElement("img");
+    	img.src="delete-icon.png";
+    	img.alt="Delete";
+    	img.height=16;
+    	img.width=16;
+    	img.style.marginRight = 20 + "px";
+    	img.style.cursor = "pointer";
+    	img.onclick = imageClickHandler;
+    	divAdd.appendChild(img);
+    	divAdd.appendChild(document.createTextNode(divDrag.innerHTML));
+    	event.target.appendChild(divAdd);
+    	event.preventDefault();
+    }
+}
 
-nsUIComponent.dispatchCustomEvent = function(eventType,data,bubbles,cancelable) 
+function dragendHandler(event)
 {
-	if(this.util.isUndefined(data))
+	document.body.removeChild(document.getElementById(tempID + "-extra"));
+	//item.parentNode.removeChild(item);
+	markItemSelected(item.getAttribute("dragKey"),true);
+    item = null;
+    divDrag = null;
+}
+
+function markItemSelected(key,isMark)
+{
+	 var arrLI = document.getElementsByTagName("LI");
+	 if(arrLI && arrLI.length > 0)
+	 {
+		 for(var count = 0;count < arrLI.length;count++)
+		 {
+			 if(arrLI[count].getAttribute("dragKey") == key)
+			 {
+				 arrLI[count].children[0].style.backgroundColor = (isMark? "green":"gray");
+				 arrLI[count].setAttribute("isDragged",isMark);
+			 }
+		 }
+	 }
+}
+
+function imageClickHandler(event)
+{
+	var div = findParent(event.target,"div");
+	markItemSelected(div.getAttribute("dragKey"),false);
+	div.parentNode.removeChild(div);
+}
+
+function updateText()
+{
+	var arrVal = [0,0,0];
+	for(var count = 0;count < 3;count++)
 	{
-		data = null;
-	}
-	if(typeof bubbles == "undefined")
-	{
-		bubbles = true;
-	}
-	if(typeof cancelable == "undefined")
-	{
-		cancelable = true;
-	}
-	var event = new CustomEvent(eventType, 
-	{
-		detail: data,
-		bubbles: bubbles,
-		cancelable: cancelable
-	});
-	if (this.hasAttribute(eventType)) 
-	{
-		var attributeValue = this.getAttribute(eventType);
-		if(attributeValue)
+		var panel = document.getElementById("divPortlets#panelParent" + count); 
+		var div = document.getElementById("div" + count); 
+		var txt = document.getElementById("txt" + count); 
+		if(div && div.children.length > 0)
 		{
-			this.util.callFunctionFromString(attributeValue,function(paramValue){
-				if(paramValue === 'true' || paramValue === 'false')
-				{
-					return Boolean.parse(paramValue);
-				}
-				else if(paramValue === 'this')
-				{
-					return this;
-				}
-				else if(paramValue === 'event')
-				{
-					return event;
-				}
-				return paramValue;
-			});
+			arrVal[count] = 1;
 		}
 	}
-	this.dispatchEvent(event);
-};
-/*end of functions */
+	for(var count = 0;count < 3;count++)
+	{
+		var txt = document.getElementById("txt" + count); 
+		if(div && div.children.length > 0)
+		{
+			arrVal[count] = 1;
+		}
+	}
+}
 
-document.registerElement('ns-uicomponent', {prototype: nsUIComponent});
+function getElement(elementId)
+{
+	if(elementId && elementId.length > 0)
+	{
+		return document.getElementById(elementId);
+	}
+	return null;
+}
+
+function getOffSet(element, offset) 
+{
+	 if(!offset)
+	 {
+		 offset = {left : 0, top : 0};
+	 }
+	 if(element)
+     {
+		offset.left += (element.offsetLeft - element.scrollLeft + element.clientLeft);
+		offset.top += (element.offsetTop - element.scrollTop + element.clientTop);
+	    offset = this.getOffSet(element.offsetParent, offset);
+     }
+	 return offset;
+}
+
+function addStyleClass(divAlert,styleClass)
+{
+    if(divAlert && styleClass && styleClass.length > 0)
+    {
+        if(document.body.classList)
+        {
+            if(!hasStyleClass(divAlert,styleClass))
+            {
+                divAlert.className += " " + styleClass;
+            }
+        }
+        else
+        {
+            if(!hasStyleClass(divAlert,styleClass))
+            {
+                divAlert.classList.add(styleClass);
+            }
+        }
+    }
+}
+
+function hasStyleClass(divAlert,styleClass)
+{
+    if(divAlert && styleClass && styleClass.length > 0)
+    {
+    	try
+    	{
+    		if(document.body.classList)
+            {
+                return (divAlert.className.indexOf(" " + styleClass) > -1);
+            }
+            else if(divAlert.classList.contains)
+            {
+                return divAlert.classList.contains(styleClass);
+            }
+    	}
+    	catch(error)
+    	{
+    		
+    	}
+        
+    }
+    return false;
+}
+
+function removeStyleClass(divAlert,styleClass)
+{
+    if(divAlert && styleClass && styleClass.length > 0)
+    {
+        if(document.body.classList)
+        {
+            if(divAlert.className)
+            {
+                divAlert.className = divAlert.className.replace(styleClass,"");
+            }
+        }
+        else
+        {
+            divAlert.classList.remove(styleClass);
+        }
+    }
+}
+
+function getEvent(event)
+{
+	if (!event)
+	{
+		event = window.event;
+	}
+	return event;
+}
+
+function getTarget(event)
+{
+	event = getEvent(event);
+	var target = event.target ? event.target : event.srcElement;
+	
+	return target;
+}
+
+function getParentByType(element,type)
+{
+	if(element && type)
+	{
+		var parent = element;
+	    while(parent && parent.nodeName != type.toUpperCase())
+	    {
+	       parent = parent.parentNode;
+	    }
+	    return parent;
+	}
+	return element;
+}
+
+function findParent(element,parentTag)
+{
+    if(element && parentTag)
+    {
+        while (element && element.tagName && element.tagName.toLowerCase()!=parentTag.toLowerCase())
+        {
+            element = element.parentNode;
+        }
+    }  
+    return element;
+}
+
+var falseExpression = /^(?:f(?:alse)?|no?|0+)$/i;
+Boolean.parse = function(value) 
+{ 
+   return !falseExpression.test(value) && !!value;
+};
+
+window.onload = initializeCompliancePortal;
