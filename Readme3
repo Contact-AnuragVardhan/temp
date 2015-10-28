@@ -1,1274 +1,972 @@
-function NSUtil()
-{
-	this.__sheetId = "nsStyle";
-	this.KEYCODE = {TAB:9, ENTER:13, SHIFT:16, CTRL:17, ESC:27, LEFT:37, UP:38, RIGHT:39, DOWN:40};
-};
+/*   .grid { */
+/*   width: 650px; */
+/*   height: 400px; */
+/* }  */
 
-NSUtil.prototype.getElement = function (elementId)
-{
-	if(elementId && elementId.length > 0)
-	{
-		return document.getElementById(elementId);
-	}
-	return null;
-};
+/* .header-filtered {
+  color: blue;
+}  */
 
-NSUtil.prototype.createDiv = function (id,styleName)
-{
-    var div = document.createElement("div");
-    if(id)
-    {
-    	div.setAttribute("id",id);
-    }
-    if(styleName)
-    {
-        div.className = styleName;   
-    }
-    return div;
-};
-
-NSUtil.prototype.setDivVisibility = function (id,isVisible)
-{
-    var div = document.getElementById(id);
-    if(div)
-    {
-        if(isVisible)
-        {
-            div.style.display = "block";
-        }
-        else
-        {
-            div.style.display = "none";
-        }
-    }
-};
-
-NSUtil.prototype.removeDiv = function (id)
-{
-    var div = document.getElementById(id);
-    if (div)
-    {
-        var parent = div.parentNode;
-        if(parent)
-        {
-            parent.removeChild(div);
-        }
-    }
-};
-
-/*Utility Methods */
-NSUtil.prototype.getKeys = function (object) 
-{
-    var keys = [];
-    for (var property in object)
-    {
-    	keys.push(property);
-    }
-    return keys;
-};
-
-NSUtil.prototype.getValues = function (object)
-{
-	var values = [];
-	for (var property in object)
-	{
-		values.push(object[property]);
-	}
-	return values;
-};
-   
-NSUtil.prototype.clone = function (object) 
-{
-    return Object.extend({ }, object);
+#ui-grid-twbs #ui-grid-twbs .form-horizontal .form-group:before,
+#ui-grid-twbs #ui-grid-twbs .form-horizontal .form-group:after,
+#ui-grid-twbs #ui-grid-twbs .btn-toolbar:before,
+#ui-grid-twbs #ui-grid-twbs .btn-toolbar:after,
+#ui-grid-twbs #ui-grid-twbs .btn-group-vertical > .btn-group:before,
+#ui-grid-twbs #ui-grid-twbs .btn-group-vertical > .btn-group:after {
+  content: " ";
+  display: table;
 }
-;
-NSUtil.prototype.isElement = function (refElement)
-{
-    return !!(refElement && refElement.nodeType == 1);
-};
+#ui-grid-twbs #ui-grid-twbs .form-horizontal .form-group:after,
+#ui-grid-twbs #ui-grid-twbs .btn-toolbar:after,
+#ui-grid-twbs #ui-grid-twbs .btn-group-vertical > .btn-group:after {
+  clear: both;
+}
+.ui-grid {
+  border: 1px solid #94c0d2;
+  box-sizing: content-box;
+  -webkit-border-radius: 0px;
+  -moz-border-radius: 0px;
+  border-radius: 0px;
+  -webkit-transform: translateZ(0);
+  -moz-transform: translateZ(0);
+  -o-transform: translateZ(0);
+  -ms-transform: translateZ(0);
+  transform: translateZ(0);
+}
+.ui-grid-vertical-bar {
+  position: absolute;
+  right: 0;
+  width: 0;
+}
+.ui-grid-header-cell:not(:last-child) .ui-grid-vertical-bar,
+.ui-grid-cell:not(:last-child) .ui-grid-vertical-bar {
+  width: 1px;
+}
+.ui-grid-scrollbar-placeholder {
+  background-color: transparent;
+}
+.ui-grid-header-cell:not(:last-child) .ui-grid-vertical-bar {
+  background-color: #94c0d2;
+}
+.ui-grid-cell:not(:last-child) .ui-grid-vertical-bar {
+  background-color: #94c0d2;
+}
+.ui-grid-header-cell:last-child .ui-grid-vertical-bar {
+  right: -1px;
+  width: 1px;
+  background-color: #94c0d2;
+}
+.ui-grid-clearfix:before,
+.ui-grid-clearfix:after {
+  content: "";
+  display: table;
+}
+.ui-grid-clearfix:after {
+  clear: both;
+}
+.ui-grid-invisible {
+  visibility: hidden;
+}
+.ui-grid-contents-wrapper {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+.ui-grid-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+.ui-grid-top-panel-background {
+  background: #daecf4;
+  background: -webkit-gradient(linear, left bottom, left top, color-stop(0, #daecf4), color-stop(1, #ffffff));
+  background: -ms-linear-gradient(bottom, #daecf4, #ffffff);
+  background: -moz-linear-gradient(center bottom, #daecf4 0%, #ffffff 100%);
+  background: -o-linear-gradient(#ffffff, #daecf4);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffffff', endColorstr='#daecf4', GradientType=0);
+}
+.ui-grid-header {
+  border-bottom: 1px solid #94c0d2;
+  box-sizing: border-box;
+}
+.ui-grid-top-panel {
+  position: relative;
+  overflow: hidden;
+  font-weight: bold;
+  background: #daecf4;
+  background: -webkit-gradient(linear, left bottom, left top, color-stop(0, #daecf4), color-stop(1, #ffffff));
+  background: -ms-linear-gradient(bottom, #daecf4, #ffffff);
+  background: -moz-linear-gradient(center bottom, #daecf4 0%, #ffffff 100%);
+  background: -o-linear-gradient(#ffffff, #daecf4);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffffff', endColorstr='#daecf4', GradientType=0);
+  -webkit-border-top-right-radius: -1px;
+  -webkit-border-bottom-right-radius: 0;
+  -webkit-border-bottom-left-radius: 0;
+  -webkit-border-top-left-radius: -1px;
+  -moz-border-radius-topright: -1px;
+  -moz-border-radius-bottomright: 0;
+  -moz-border-radius-bottomleft: 0;
+  -moz-border-radius-topleft: -1px;
+  border-top-right-radius: -1px;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-left-radius: -1px;
+  -moz-background-clip: padding-box;
+  -webkit-background-clip: padding-box;
+  background-clip: padding-box;
+}
+.ui-grid-header-viewport {
+  overflow: hidden;
+}
+.ui-grid-header-canvas:before,
+.ui-grid-header-canvas:after {
+  content: "";
+  display: table;
+  line-height: 0;
+}
+.ui-grid-header-canvas:after {
+  clear: both;
+}
+.ui-grid-header-cell-wrapper {
+  position: relative;
+  display: table;
+  box-sizing: border-box;
+  height: 100%;
+}
+.ui-grid-header-cell-row {
+  display: table-row;
+  position: relative;
+}
+.ui-grid-header-cell {
+  position: relative;
+  box-sizing: border-box;
+  background-color: inherit;
+  border-right: 1px solid;
+  border-color: #94c0d2;
+  display: table-cell;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  width: 0;
+}
+.ui-grid-header-cell:last-child {
+  border-right: 0;
+}
+.ui-grid-header-cell .sortable {
+  cursor: pointer;
+}
+.ui-grid-header-cell .ui-grid-sort-priority-number {
+  margin-left: -8px;
+}
+.ui-grid-header .ui-grid-vertical-bar {
+  top: 0;
+  bottom: 0;
+}
+.ui-grid-column-menu-button {
+  position: absolute;
+  right: 1px;
+  top: 0;
+}
+.ui-grid-column-menu-button .ui-grid-icon-angle-down {
+  vertical-align: sub;
+}
+.ui-grid-column-menu-button-last-col {
+  margin-right: 25px;
+}
+.ui-grid-column-menu {
+  position: absolute;
+}
+Slide up/down animations
+.ui-grid-column-menu .ui-grid-menu .ui-grid-menu-mid.ng-hide-add,
+.ui-grid-column-menu .ui-grid-menu .ui-grid-menu-mid.ng-hide-remove {
+  -webkit-transition: all 0.05s linear;
+  -moz-transition: all 0.05s linear;
+  -o-transition: all 0.05s linear;
+  transition: all 0.05s linear;
+  display: block !important;
+}
+.ui-grid-column-menu .ui-grid-menu .ui-grid-menu-mid.ng-hide-add.ng-hide-add-active,
+.ui-grid-column-menu .ui-grid-menu .ui-grid-menu-mid.ng-hide-remove {
+  -webkit-transform: translateY(-100%);
+  -moz-transform: translateY(-100%);
+  -o-transform: translateY(-100%);
+  -ms-transform: translateY(-100%);
+  transform: translateY(-100%);
+}
+.ui-grid-column-menu .ui-grid-menu .ui-grid-menu-mid.ng-hide-add,
+.ui-grid-column-menu .ui-grid-menu .ui-grid-menu-mid.ng-hide-remove.ng-hide-remove-active {
+  -webkit-transform: translateY(0);
+  -moz-transform: translateY(0);
+  -o-transform: translateY(0);
+  -ms-transform: translateY(0);
+  transform: translateY(0);
+}
+Slide up/down animations
+.ui-grid-menu-button .ui-grid-menu .ui-grid-menu-mid.ng-hide-add,
+.ui-grid-menu-button .ui-grid-menu .ui-grid-menu-mid.ng-hide-remove {
+  -webkit-transition: all 0.05s linear;
+  -moz-transition: all 0.05s linear;
+  -o-transition: all 0.05s linear;
+  transition: all 0.05s linear;
+  display: block !important;
+}
+.ui-grid-menu-button .ui-grid-menu .ui-grid-menu-mid.ng-hide-add.ng-hide-add-active,
+.ui-grid-menu-button .ui-grid-menu .ui-grid-menu-mid.ng-hide-remove {
+  -webkit-transform: translateY(-100%);
+  -moz-transform: translateY(-100%);
+  -o-transform: translateY(-100%);
+  -ms-transform: translateY(-100%);
+  transform: translateY(-100%);
+}
+.ui-grid-menu-button .ui-grid-menu .ui-grid-menu-mid.ng-hide-add,
+.ui-grid-menu-button .ui-grid-menu .ui-grid-menu-mid.ng-hide-remove.ng-hide-remove-active {
+  -webkit-transform: translateY(0);
+  -moz-transform: translateY(0);
+  -o-transform: translateY(0);
+  -ms-transform: translateY(0);
+  transform: translateY(0);
+}
+.ui-grid-filter-container {
+  padding: 4px 10px;
+  position: relative;
+}
+.ui-grid-filter-container .ui-grid-filter-button {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+}
+.ui-grid-filter-container .ui-grid-filter-button [class^="ui-grid-icon"] {
+  position: absolute;
+  top: 50%;
+  line-height: 32px;
+  margin-top: -16px;
+  right: 10px;
+  opacity: 0.66;
+}
+.ui-grid-filter-container .ui-grid-filter-button [class^="ui-grid-icon"]:hover {
+  opacity: 1;
+}
+.ui-grid-filter-container .ui-grid-filter-button-select {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+}
+.ui-grid-filter-container .ui-grid-filter-button-select [class^="ui-grid-icon"] {
+  position: absolute;
+  top: 50%;
+  line-height: 32px;
+  margin-top: -16px;
+  right: 0px;
+  opacity: 0.66;
+}
+.ui-grid-filter-container .ui-grid-filter-button-select [class^="ui-grid-icon"]:hover {
+  opacity: 1;
+}
+input[type="text"].ui-grid-filter-input {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  width: 100%;
+  border: 1px solid #94c0d2;
+  -webkit-border-top-right-radius: 0px;
+  -webkit-border-bottom-right-radius: 0;
+  -webkit-border-bottom-left-radius: 0;
+  -webkit-border-top-left-radius: 0;
+  -moz-border-radius-topright: 0px;
+  -moz-border-radius-bottomright: 0;
+  -moz-border-radius-bottomleft: 0;
+  -moz-border-radius-topleft: 0;
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+  -moz-background-clip: padding-box;
+  -webkit-background-clip: padding-box;
+  background-clip: padding-box;
+}
+input[type="text"].ui-grid-filter-input:hover {
+  border: 1px solid #94c0d2;
+}
+select.ui-grid-filter-select {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  width: 90%;
+  border: 1px solid #94c0d2;
+  -webkit-border-top-right-radius: 0px;
+  -webkit-border-bottom-right-radius: 0;
+  -webkit-border-bottom-left-radius: 0;
+  -webkit-border-top-left-radius: 0;
+  -moz-border-radius-topright: 0px;
+  -moz-border-radius-bottomright: 0;
+  -moz-border-radius-bottomleft: 0;
+  -moz-border-radius-topleft: 0;
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+  -moz-background-clip: padding-box;
+  -webkit-background-clip: padding-box;
+  background-clip: padding-box;
+}
+select.ui-grid-filter-select:hover {
+  border: 1px solid #94c0d2;
+}
+.ui-grid-filter-cancel-button-hidden select.ui-grid-filter-select {
+  width: 100%;
+}
+.ui-grid-render-container {
+  position: inherit;
+  -webkit-border-top-right-radius: 0;
+  -webkit-border-bottom-right-radius: 0px;
+  -webkit-border-bottom-left-radius: 0px;
+  -webkit-border-top-left-radius: 0;
+  -moz-border-radius-topright: 0;
+  -moz-border-radius-bottomright: 0px;
+  -moz-border-radius-bottomleft: 0px;
+  -moz-border-radius-topleft: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0px;
+  border-bottom-left-radius: 0px;
+  border-top-left-radius: 0;
+  -moz-background-clip: padding-box;
+  -webkit-background-clip: padding-box;
+  background-clip: padding-box;
+}
+.ui-grid-render-container:focus {
+  outline: none;
+}
+.ui-grid-viewport {
+  min-height: 20px;
+  position: relative;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+}
+.ui-grid-viewport:focus {
+  outline: none !important;
+}
+.ui-grid-canvas {
+  position: relative;
+  padding-top: 1px;
+}
+.ui-grid-row:nth-child(odd) .ui-grid-cell {
+  background-color: #ffffff;
+}
+.ui-grid-row:nth-child(even) .ui-grid-cell {
+  background-color: #eaf4f9;
+}
+.ui-grid-row:last-child .ui-grid-cell {
+  border-bottom-color: #94c0d2;
+  border-bottom-style: solid;
+}
+.ui-grid-no-row-overlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: 10%;
+  background: #daecf4;
+  background: -webkit-gradient(linear, left bottom, left top, color-stop(0, #daecf4), color-stop(1, #ffffff));
+  background: -ms-linear-gradient(bottom, #daecf4, #ffffff);
+  background: -moz-linear-gradient(center bottom, #daecf4 0%, #ffffff 100%);
+  background: -o-linear-gradient(#ffffff, #daecf4);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffffff', endColorstr='#daecf4', GradientType=0);
+  -webkit-border-top-right-radius: 0px;
+  -webkit-border-bottom-right-radius: 0;
+  -webkit-border-bottom-left-radius: 0;
+  -webkit-border-top-left-radius: 0;
+  -moz-border-radius-topright: 0px;
+  -moz-border-radius-bottomright: 0;
+  -moz-border-radius-bottomleft: 0;
+  -moz-border-radius-topleft: 0;
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+  -moz-background-clip: padding-box;
+  -webkit-background-clip: padding-box;
+  background-clip: padding-box;
+  border: 1px solid #94c0d2;
+  font-size: 2em;
+  text-align: center;
+}
+.ui-grid-no-row-overlay > * {
+  position: absolute;
+  display: table;
+  margin: auto 0;
+  width: 100%;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  opacity: 0.66;
+}
+This file contains variable declarations (do not remove this line)
+-- VARIABLES (DO NOT REMOVE THESE COMMENTS) --
+*
+* @section Grid styles
 
-NSUtil.prototype.isArray = function (refArr) 
-{
-    return refArr != null && typeof refArr == "object" &&
-      "splice" in refArr && "join" in refArr;
-};
+*
+* @section Header styles
 
-NSUtil.prototype.isVariable = function (variableName) 
-{
-	return !this.isUndefined(window[variableName]); 
-};
+* @description Colors for header gradient
+*
+* @section Grid body styles
 
-NSUtil.prototype.callFunction = function (functionName) 
-{
-	var returnValue = null;
-	if (typeof window[functionName] === "function") 
-	{
-		returnValue = window[functionName]();
-	}
-	return returnValue;
-};
+* @description Colors used for row alternation
+*
+* @section Sort arrow colors
 
-NSUtil.prototype.callFunctionFromString = function (functionString,replaceParameterFunction)
-{
-	var returnValue = null;
-	if(functionString)
-	{
-		var functionName = null;
-		var arrParameter = null;
-		if(functionString.indexOf("(") > -1)
-		{
-			var param = functionString.split("(");
-			if(param && param.length > 0)
-			{
-				functionName = param[0];
-				var parameter = param[1];
-				if(parameter && parameter.charAt(parameter.length - 1) === ")")
-				{
-					parameter = parameter.substring(0,parameter.length - 1);
-					var arrParam = parameter.split(",");
-					if(arrParam && arrParam.length > 0)
-					{
-						arrParameter = arrParam;
-					}
-				}
-			}
-		}
-		else
-		{
-			functionName = functionString;
-		}
-		if(this.isFunction(functionName))
-		{
-			if(!arrParameter || arrParameter.length === 0)
-			{
-				returnValue = this.callFunction(functionName);
-			}
-			else
-			{
-				if(replaceParameterFunction)
-				{
-					for(var count = 0;count < arrParameter.length;count++)
-					{
-						 var newValue = replaceParameterFunction(arrParameter[count]);
-						 if(!this.isUndefined(newValue))
-						 {
-							 arrParameter[count] = newValue;
-						 }
-					}	
-				}
-				switch (arrParameter.length) 
-				{
-				    case 1:
-				    	returnValue = window[functionName](arrParameter[0]);
-				        break;
-				    case 2:
-				    	returnValue = window[functionName](arrParameter[0],arrParameter[1]);
-				        break;
-				    case 3:
-				    	returnValue = window[functionName](arrParameter[0],arrParameter[1],arrParameter[2]);
-				        break;
-				    case 4:
-				    	returnValue = window[functionName](arrParameter[0],arrParameter[1],arrParameter[2],arrParameter[3]);
-				        break;
-				    case 5:
-				    	returnValue = window[functionName](arrParameter[0],arrParameter[1],arrParameter[2],arrParameter[3],arrParameter[4]);
-				        break;
-				    case 6:
-				    	returnValue = window[functionName](arrParameter[0],arrParameter[1],arrParameter[2],arrParameter[3],arrParameter[4],arrParameter[5]);
-				        break;
-				    case 7:
-				    	returnValue = window[functionName](arrParameter[0],arrParameter[1],arrParameter[2],arrParameter[3],arrParameter[4],arrParameter[5],arrParameter[6]);
-				        break;
-				    case 8:
-				    	returnValue = window[functionName](arrParameter[0],arrParameter[1],arrParameter[2],arrParameter[3],arrParameter[4],arrParameter[5],arrParameter[6],arrParameter[7]);
-				        break;
-				    case 9:
-				    	returnValue = window[functionName](arrParameter[0],arrParameter[1],arrParameter[2],arrParameter[3],arrParameter[4],arrParameter[5],arrParameter[6],arrParameter[7],arrParameter[8]);
-				        break;
-				    case 10:
-				    	returnValue = window[functionName](arrParameter[0],arrParameter[1],arrParameter[2],arrParameter[3],arrParameter[4],arrParameter[5],arrParameter[6],arrParameter[7],arrParameter[8],arrParameter[9]);
-				        break;
-				}
-			}
-		}
-	}
-	return returnValue;
-};
+*
+* @section Scrollbar styles
 
-NSUtil.prototype.isFunction = function (refFunction) 
-{
-    if(refFunction && ((typeof refFunction == "function") || (typeof window[refFunction] === "function")))
-    {
-    	return true;
-    }
-    return false;
-};
+*
+* @section font library path
 
-NSUtil.prototype.isString = function (object) 
-{
-    return typeof object == "string";
-};
+-- END VARIABLES (DO NOT REMOVE THESE COMMENTS) --
+.ui-grid-cell {
+  overflow: hidden;
+  float: left;
+  background-color: inherit;
+  border-right: 1px solid;
+  border-color: #94c0d2;
+  box-sizing: border-box;
+}
+.ui-grid-cell:last-child {
+  border-right: 0;
+}
+.ui-grid-cell-contents {
+  padding: 5px;
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  white-space: nowrap;
+  -ms-text-overflow: ellipsis;
+  -o-text-overflow: ellipsis;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  height: 100%;
+}
+.ui-grid-cell-contents-hidden {
+  visibility: hidden;
+  width: 0;
+  height: 0;
+  display: none;
+}
+.ui-grid-row .ui-grid-cell.ui-grid-row-header-cell {
+  background-color: #f0f0ee;
+  border-bottom: solid 1px #94c0d2;
+}
+.ui-grid-footer-panel-background {
+  background: #daecf4;
+  background: -webkit-gradient(linear, left bottom, left top, color-stop(0, #daecf4), color-stop(1, #ffffff));
+  background: -ms-linear-gradient(bottom, #daecf4, #ffffff);
+  background: -moz-linear-gradient(center bottom, #daecf4 0%, #ffffff 100%);
+  background: -o-linear-gradient(#ffffff, #daecf4);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffffff', endColorstr='#daecf4', GradientType=0);
+}
+.ui-grid-footer-panel {
+  position: relative;
+  border-bottom: 1px solid #94c0d2;
+  border-top: 1px solid #94c0d2;
+  overflow: hidden;
+  font-weight: bold;
+  background: #daecf4;
+  background: -webkit-gradient(linear, left bottom, left top, color-stop(0, #daecf4), color-stop(1, #ffffff));
+  background: -ms-linear-gradient(bottom, #daecf4, #ffffff);
+  background: -moz-linear-gradient(center bottom, #daecf4 0%, #ffffff 100%);
+  background: -o-linear-gradient(#ffffff, #daecf4);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffffff', endColorstr='#daecf4', GradientType=0);
+  -webkit-border-top-right-radius: -1px;
+  -webkit-border-bottom-right-radius: 0;
+  -webkit-border-bottom-left-radius: 0;
+  -webkit-border-top-left-radius: -1px;
+  -moz-border-radius-topright: -1px;
+  -moz-border-radius-bottomright: 0;
+  -moz-border-radius-bottomleft: 0;
+  -moz-border-radius-topleft: -1px;
+  border-top-right-radius: -1px;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-left-radius: -1px;
+  -moz-background-clip: padding-box;
+  -webkit-background-clip: padding-box;
+  background-clip: padding-box;
+}
+.ui-grid-grid-footer {
+  float: left;
+  width: 100%;
+}
+.ui-grid-footer-viewport {
+  overflow: hidden;
+}
+.ui-grid-footer-canvas {
+  position: relative;
+}
+.ui-grid-footer-canvas:before,
+.ui-grid-footer-canvas:after {
+  content: "";
+  display: table;
+  line-height: 0;
+}
+.ui-grid-footer-canvas:after {
+  clear: both;
+}
+.ui-grid-footer-cell-wrapper {
+  position: relative;
+  display: table;
+  box-sizing: border-box;
+  height: 100%;
+}
+.ui-grid-footer-cell-row {
+  display: table-row;
+}
+.ui-grid-footer-cell {
+  overflow: hidden;
+  background-color: inherit;
+  border-right: 1px solid;
+  border-color: #94c0d2;
+  box-sizing: border-box;
+  display: table-cell;
+}
+.ui-grid-footer-cell:last-child {
+  border-right: 0;
+}
+input[type="text"].ui-grid-filter-input {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  width: 100%;
+  border: 1px solid #94c0d2;
+  -webkit-border-top-right-radius: 0px;
+  -webkit-border-bottom-right-radius: 0;
+  -webkit-border-bottom-left-radius: 0;
+  -webkit-border-top-left-radius: 0;
+  -moz-border-radius-topright: 0px;
+  -moz-border-radius-bottomright: 0;
+  -moz-border-radius-bottomleft: 0;
+  -moz-border-radius-topleft: 0;
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+  -moz-background-clip: padding-box;
+  -webkit-background-clip: padding-box;
+  background-clip: padding-box;
+}
+input[type="text"].ui-grid-filter-input:hover {
+  border: 1px solid #94c0d2;
+}
+.ui-grid-menu-button {
+  z-index: 2;
+  position: absolute;
+  right: 0;
+  top: 0;
+  background: #daecf4;
+  border: 1px solid #94c0d2;
+  cursor: pointer;
+  height: 31px;
+  font-weight: normal;
+}
+.ui-grid-menu-button .ui-grid-icon-container {
+  margin-top: 3px;
+}
+.ui-grid-menu-button .ui-grid-menu {
+  right: 0;
+}
+.ui-grid-menu-button .ui-grid-menu .ui-grid-menu-mid {
+  overflow: scroll;
+  max-height: 300px;
+  border: 1px solid #94c0d2;
+}
+.ui-grid-menu {
+  z-index: 2;
+  position: absolute;
+  padding: 0 10px 20px 10px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.ui-grid-menu .ui-grid-menu-inner {
+  background: #daecf4;
+  border: 1px solid #94c0d2;
+  position: relative;
+  white-space: nowrap;
+  -webkit-border-radius: 0px;
+  -moz-border-radius: 0px;
+  border-radius: 0px;
+  -webkit-box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), inset 0 12px 12px -14px rgba(0, 0, 0, 0.2);
+  -moz-box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), inset 0 12px 12px -14px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), inset 0 12px 12px -14px rgba(0, 0, 0, 0.2);
+}
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button {
+  position: absolute;
+  right: 0px;
+  top: 0px;
+  display: inline-block;
+  margin-bottom: 0;
+  font-weight: normal;
+  text-align: center;
+  vertical-align: middle;
+  touch-action: manipulation;
+  cursor: pointer;
+  background-image: none;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  padding: 6px 12px;
+  font-size: 14px;
+  line-height: 1.42857143;
+  border-radius: 4px;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  padding: 1px 1px;
+  font-size: 10px;
+  line-height: 1;
+  border-radius: 2px;
+  color: transparent;
+  background-color: transparent;
+  border-color: transparent;
+}
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button:focus,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button:active:focus,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.active:focus,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.focus,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button:active.focus,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.active.focus {
+  outline: thin dotted;
+  outline: 5px auto -webkit-focus-ring-color;
+  outline-offset: -2px;
+}
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button:hover,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button:focus,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.focus {
+  color: #333333;
+  text-decoration: none;
+}
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button:active,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.active {
+  outline: 0;
+  background-image: none;
+  -webkit-box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+  box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+}
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.disabled,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button[disabled],
+fieldset[disabled] .ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button {
+  cursor: not-allowed;
+  opacity: 0.65;
+  filter: alpha(opacity=65);
+  -webkit-box-shadow: none;
+  box-shadow: none;
+}
+a.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.disabled,
+fieldset[disabled] a.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button {
+  pointer-events: none;
+}
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button:focus,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.focus {
+  color: transparent;
+  background-color: rgba(0, 0, 0, 0);
+  border-color: rgba(0, 0, 0, 0);
+}
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button:hover {
+  color: transparent;
+  background-color: rgba(0, 0, 0, 0);
+  border-color: rgba(0, 0, 0, 0);
+}
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button:active,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.active,
+.open > .dropdown-toggle.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button {
+  color: transparent;
+  background-color: rgba(0, 0, 0, 0);
+  border-color: rgba(0, 0, 0, 0);
+}
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button:active:hover,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.active:hover,
+.open > .dropdown-toggle.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button:hover,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button:active:focus,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.active:focus,
+.open > .dropdown-toggle.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button:focus,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button:active.focus,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.active.focus,
+.open > .dropdown-toggle.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.focus {
+  color: transparent;
+  background-color: rgba(0, 0, 0, 0);
+  border-color: rgba(0, 0, 0, 0);
+}
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button:active,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.active,
+.open > .dropdown-toggle.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button {
+  background-image: none;
+}
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.disabled,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button[disabled],
+fieldset[disabled] .ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.disabled:hover,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button[disabled]:hover,
+fieldset[disabled] .ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button:hover,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.disabled:focus,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button[disabled]:focus,
+fieldset[disabled] .ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button:focus,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.disabled.focus,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button[disabled].focus,
+fieldset[disabled] .ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.focus,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.disabled:active,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button[disabled]:active,
+fieldset[disabled] .ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button:active,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.disabled.active,
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button[disabled].active,
+fieldset[disabled] .ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button.active {
+  background-color: transparent;
+  border-color: transparent;
+}
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button .badge {
+  color: transparent;
+  background-color: transparent;
+}
+.ui-grid-menu .ui-grid-menu-inner .ui-grid-menu-close-button > i {
+  opacity: 0.75;
+  color: black;
+}
+.ui-grid-menu .ui-grid-menu-inner ul {
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+}
+.ui-grid-menu .ui-grid-menu-inner ul li {
+  padding: 0px;
+}
+.ui-grid-menu .ui-grid-menu-inner ul li button {
+  min-width: 100%;
+  padding: 8px;
+  text-align: left;
+  background: transparent;
+  border: none;
+}
+.ui-grid-menu .ui-grid-menu-inner ul li button:hover,
+.ui-grid-menu .ui-grid-menu-inner ul li button:focus {
+  -webkit-box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.2);
+  -moz-box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.2);
+}
+.ui-grid-menu .ui-grid-menu-inner ul li button.ui-grid-menu-item-active {
+  -webkit-box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.2);
+  -moz-box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.2);
+  background-color: #cecece;
+}
+.ui-grid-menu .ui-grid-menu-inner ul li:not(:last-child) > button {
+  border-bottom: 1px solid #94c0d2;
+}
+.ui-grid-sortarrow {
+  right: 5px;
+  position: absolute;
+  width: 20px;
+  top: 0;
+  bottom: 0;
+  background-position: center;
+}
+.ui-grid-sortarrow.down {
+  -webkit-transform: rotate(180deg);
+  -moz-transform: rotate(180deg);
+  -o-transform: rotate(180deg);
+  -ms-transform: rotate(180deg);
+  transform: rotate(180deg);
+}
+@font-face {
+  font-family: 'ui-grid';
+  src: url('ui-grid.eot');
+  src: url('ui-grid.eot#iefix') format('embedded-opentype'), url('ui-grid.woff') format('woff'), url('ui-grid.ttf') format('truetype'), url('ui-grid.svg?#ui-grid') format('svg');
+  font-weight: normal;
+  font-style: normal;
+}
+Chrome hack: SVG is rendered more smooth in Windozze. 100% magic, uncomment if you need it.
+Note, that will break hinting! In other OS-es font will be not as sharp as it could be
 
-NSUtil.prototype.isNumber = function (object) 
-{
-    return typeof object == "number";
-};
-  
-NSUtil.prototype.isUndefined = function (object) 
-{
-    return typeof object == "undefined";
-};
-
-/*
- * 1001 - function validation failure
- */
-NSUtil.prototype.throwException = function (exceptionCode,exceptionName,exceptionDetails)
-{
-    //alert("Error Occured with details code: " + exceptionCode + ",name: " + exceptionName + ",details: " + exceptionDetails);
-    throw{code: exceptionCode,name: exceptionName,details: exceptionDetails};
-};
-
-//other values of navigator.appName is "Netscape","Opera"
-//From IE 11 navigator.appName returns "Netscape" instead of "Microsoft Internet Explorer"
-//and From IE 11 it follows standard API.
-NSUtil.prototype.isBrowserIE = function ()
-{
-    if(navigator && navigator.appName && navigator.appName == "Microsoft Internet Explorer")
-    {
-        return true;
-    }
-    return false;
-};
-
-//navigates to the DOM Heirarchy to find the nearest parent of the specified HTML tag 
-NSUtil.prototype.findParent = function (element,parentTag)
-{
-    if(element && parentTag)
-    {
-        while (element && element.tagName && element.tagName.toLowerCase()!=parentTag.toLowerCase())
-        {
-            element = element.parentNode;
-        }
-    }  
-    return element;
-};
-//returns the top y coordinate of the given div used while listening to scrolling events(vertical scrolling)
-NSUtil.prototype.scrollTop = function (div)
-{
-	 if(div)
-	 {
-	    return (div.scrollHeight - div.clientHeight);
-	 }
-};
-
-//returns the top x coordinate of the given div used while listening to scrolling events(horizontal scrolling)
-NSUtil.prototype.scrollLeft = function (div)
-{
-	 if(div)
-	 {
-		 return (div.scrollWidth - div.clientWidth);
-	 }
-};
-
-//adds Style class to an element's styles list 
-NSUtil.prototype.addStyleClass = function (divAlert,styleClass)
-{
-    if(divAlert && styleClass && styleClass.length > 0)
-    {
-        if(document.body.classList)
-        {
-            if(!this.hasStyleClass(divAlert,styleClass))
-            {
-                divAlert.className += " " + styleClass;
-            }
-        }
-        else
-        {
-            if(!this.hasStyleClass(divAlert,styleClass))
-            {
-                divAlert.classList.add(styleClass);
-            }
-        }
-    }
-};
-
-//returns true if a Style class is present in element's styles list
-NSUtil.prototype.hasStyleClass = function (divAlert,styleClass)
-{
-    if(divAlert && styleClass && styleClass.length > 0)
-    {
-    	try
-    	{
-    		if(document.body.classList)
-            {
-                return (divAlert.className.indexOf(" " + styleClass) > -1);
-            }
-            else if(divAlert.classList.contains)
-            {
-                return divAlert.classList.contains(styleClass);
-            }
-    	}
-    	catch(error)
-    	{
-    		
-    	}
-        
-    }
-    return false;
-};
-
-//removes Style class from an element's styles list
-NSUtil.prototype.removeStyleClass = function (divAlert,styleClass)
-{
-    if(divAlert && styleClass && styleClass.length > 0)
-    {
-        if(document.body.classList)
-        {
-            if(divAlert.className)
-            {
-                divAlert.className = divAlert.className.replace(styleClass,"");
-            }
-        }
-        else
-        {
-            divAlert.classList.remove(styleClass);
-        }
-    }
-};
-
-//change Style class from an element's styles list
-NSUtil.prototype.changeStyleClass = function (divAlert,oldStyleClass,newStyleClass)
-{
-    if(divAlert && oldStyleClass && oldStyleClass.length > 0 && newStyleClass && newStyleClass.length > 0)
-    {
-        if(divAlert.classList)
-        {
-            if(divAlert.className)
-            {
-                divAlert.className = divAlert.className.replace(oldStyleClass,newStyleClass);
-            }
-        }
-        else
-        {
-            divAlert.classList.remove(oldStyleClass);
-            if(!divAlert.classList.contains(newStyleClass))
-            {
-                divAlert.classList.add(newStyleClass);
-            }
-        }
-    }
-};
-
-NSUtil.prototype.addEvent = function(element, eventType, listener)
-{
-	 var retValue = false;
-	 if (element.addEventListener)
-	 {
-		 element.addEventListener(eventType, listener);
-		 retValue = true;
-	 } 
-	 else if (element.attachEvent)
-	 {
-	    retValue = element.attachEvent("on" + eventType, listener);
-	 } 
-	 else 
-	 {
-	    retValue = false;
-	 }
-	 
-	 return retValue;
-};
-
-NSUtil.prototype.removeEvent = function(element, eventType, listener)
-{
-	 var retValue = false;
-	 var bindedFunction = listener;
-	 if(listener && listener.bindedFunction)
-	 {
-		 bindedFunction = listener.bindedFunction;
-		 listener.bindedFunction = null;
-	 }
-	 if (element.removeEventListener)
-	 {
-		 element.removeEventListener(eventType, bindedFunction);
-		 retValue = true;
-	 } 
-	 else if (element.detachEvent)
-	 {
-	    retValue = element.detachEvent("on" + eventType, bindedFunction);
-	 } 
-	 else 
-	 {
-	    retValue = false;
-	 }
-	 
-	 return retValue;
-};
-
-NSUtil.prototype.dispatchEvent = function(element,eventType,data,param)
-{
-	 var event = null;
-	 if (document.createEvent) 
-	 {
-	    event = document.createEvent("HTMLEvents",{ "detail": data});
-	    event.initEvent(eventType, true, true);
-	 } 
-	 else 
-	 {
-	    event = document.createEventObject();
-	    event.eventType = eventType;
-	 }
-	 event.eventName = eventType;
-	 event.detail = data;
-	 if(param)
-	 {
-		 for (var key in param) 
-		 {
-			 if(param.hasOwnProperty(key)) 
-			 {
-				 event[key] = param[key];
-			 } 
-		 }   
-	 }
-	 if(document.createEvent) 
-	 {
-	    element.dispatchEvent(event);
-	 } 
-	 else 
-	 {
-	    element.fireEvent("on" + event.eventType, event);
-	 }
-};
-
-//returns event for all kind of browser
-NSUtil.prototype.getEvent = function (event)
-{
-	// IE is evil and doesn't pass the event object
-	if (!event)
-	{
-		event = window.event;
-	}
-	return event;
-};
-
-//returns target for all kind of browser
-NSUtil.prototype.getTarget = function (event)
-{
-	// we assume we have a standards compliant browser, but check if we have IE
-	event = this.getEvent(event);
-	var target = event.target ? event.target : event.srcElement;
-	return target;
-};
-
-
-//copied from http://www.broofa.com/Tools/Math.uuid.js
-NSUtil.prototype.getUniqueId = function () 
-{
-    var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".split("");
-    var uuid = new Array(36);
-    var rnd=0;
-    var r;
-    
-    for (var count = 0; count < 36; count++) 
-    {
-      if (count==8 || count==13 ||  count==18 || count==23) 
-      {
-        uuid[count] = '-';
-      } 
-      else if (count==14) 
-      {
-        uuid[count] = '4';
-      } 
-      else 
-      {
-        if (rnd <= 0x02) 
-        {
-        	rnd = 0x2000000 + (Math.random()*0x1000000) | 0;
-        }
-        r = rnd & 0xf;
-        rnd = rnd >> 4;
-        uuid[count] = chars[(count == 19) ? (r & 0x3) | 0x8 : r];
-      }
-    }
-    return uuid.join('');
- };
- 
- NSUtil.prototype.addShadowStyle = function (control,className,property,cssClassName,checkClassCallBack)
- {
- 	var styleProperties = this.getCSSClass(cssClassName);
- 	if(checkClassCallBack)
- 	{
- 		styleProperties = checkClassCallBack(styleProperties);
- 	}
- 	var _head = document.head || document.getElementsByTagName('head')[0];
- 	var _sheet = document.getElementById(this.__sheetId) || document.createElement('style');
- 	_sheet.id = this.__sheetId;
- 	control.className +=  " " + className; 
- 	_sheet.innerHTML += "\n." + className + ":" + property + "{" +styleProperties + "}";
- 	_head.appendChild(_sheet);
- };
-
- NSUtil.prototype.getCSSClass = function (cssClassName)
- {
-     if(!document.styleSheets) 
- 	{
- 		return "";
- 	}
- 	var regEx = null;
- 	var styleSheets = document.styleSheets;
- 	var counter = styleSheets.length;
- 	var result = [];
-     if(typeof cssClassName == "string") 
- 	{
- 		regEx = RegExp('\\b' + cssClassName + '\\b','i');
- 	}
-     while(counter)
- 	{
-     	var currentSheet = styleSheets[--counter];
-     	var cssRules = (currentSheet.rules) ? currentSheet.rules: currentSheet.cssRules;
- 		var cssRulesLength = cssRules.length;
-     	for(var count = 0 ; count < cssRulesLength; count++)
- 		{
-     		var tempClassDetails = cssRules[count].selectorText ? [cssRules[count].selectorText, cssRules[count].style.cssText]: [cssRules[count]+''];
-     		if(regEx.test(tempClassDetails[0])) 
- 			{
- 				result[result.length]= tempClassDetails;
- 			}
-     	}
-     }
- 	if(result && result.length === 1 && result[0] && result[0].length > 1)
- 	{
- 		return result[0][1];
- 	}
-     return result.join('\n\n');
- };
- 
- NSUtil.prototype.convertCSSPropToJS = function(cssClassProp)
- {
-	 if(cssClassProp)
-	 {
-		 var arrIndex = this.indexesOf(cssClassProp,"-");
-		 if(arrIndex && arrIndex.length > 0)
-		 {
-			 for(var count = 0;count < arrIndex.length; count++)
-			 {
-				 var index = arrIndex[count] + 1;
-				 cssClassProp = cssClassProp.substring(0,index) + cssClassProp[index].toUpperCase() + cssClassProp.slice(index + 1);
-			 }
-			 cssClassProp = cssClassProp.replaceAll("-","");
-		 }
-	 }
-	 return cssClassProp;
- };
- 
- NSUtil.prototype.throwNSError = function(componentName,message)
- {
- 	throw new Error("Error in " + componentName + " with details::" + message);
- };
- 
- //gets the offset of the element 
- //equivalent offset() of jquery
- NSUtil.prototype.getOffSet = function(element, offset) 
- {
-	 if(!offset)
-	 {
-		 offset = {left : 0, top : 0};
-	 }
-	 if(element)
-     {
-		offset.left += (element.offsetLeft - element.scrollLeft + element.clientLeft);
-		offset.top += (element.offsetTop - element.scrollTop + element.clientTop);
-	    offset = this.getOffSet(element.offsetParent, offset);
-     }
-	 return offset;
- };
- 
-//equivalent position() of jquery
- NSUtil.prototype.getPosition = function(element) 
- {
-	 var offset = {left : 0, top : 0};
-	 if(element)
-     {
-		 offset = {left : element.offsetLeft, top : element.offsetTop};
-     }
-	 return offset;
- };
- 
- NSUtil.prototype.getOffSetForElementRectangle = function(rectElement) 
- {
-	  var body = document.body || document.getElementsByTagName('body')[0];
-	  var docElement = document.documentElement || body.parentNode;
-	  var clientTop  = docElement.clientTop  || body.clientTop  || 0;
-	  var clientLeft = docElement.clientLeft || body.clientLeft || 0;
-	  var scrollTop  = window.pageYOffset || docElement.scrollTop;
-	  var scrollLeft = window.pageXOffset || docElement.scrollLeft;
-	  
-	  var top = rectElement.top  + scrollTop  - clientTop;
-	  var left = rectElement.left + scrollLeft - clientLeft;
-
-	  return {top:top,left:left};
- };
- 
- NSUtil.prototype.getMaxScrollPosition = function(element) 
- {
-	 var offset = {left : 0, top : 0};
-	 if(element)
-     {
-		 var maxX = element.scrollWidth - element.clientWidth;
-         var maxY = element.scrollHeight - element.clientHeight;
-		 offset = {left : maxX, top : maxY};
-     }
-	 return offset;
- };
- 
- 
- NSUtil.prototype.addTemplateInContainer = function(container,templateID) 
- {
-	 if(container && templateID)
-	 {
-		 var templateClone = this.getTemplate(templateID);
-		 if(templateClone)
-		 {
-			 container.appendChild(templateClone);
-		 }
-	 }
- };
- 
- NSUtil.prototype.getTemplate = function(templateID) 
- {
-	 var templateClone = null;
-	 if(templateID)
-	 {
-		 if(typeof templateID === "string")
-		 {
-			 var template = document.getElementById(templateID);
-			 if(template)
-			 {
-				 if(this.supportsTemplate())
-				 {
-					 templateClone = template.content.children[0]; //document.importNode(template.content, true); 
-				 }
-				 else
-				 {
-					 templateClone = template.cloneNode(true);
-					 template.style.display = "none";
-				 }
-			 }
-		 }
-		 else
-		 {
-			 templateClone = templateID.cloneNode(true);
-		 }
-	 }
-	 return templateClone;
- };
- 
- NSUtil.prototype.supportsTemplate = function(element, offset) 
- {
-	 return ("content" in document.createElement('template'));
- };
- 
- NSUtil.prototype.removeAllChildren = function(element) 
- {
-	if(element)
-	{
-		var node = element;
-	    while (element.hasChildNodes()) 
-	    {              
-
-	        if (node.hasChildNodes()) 
-	        {                
-	            node = node.lastChild;                 
-	        }
-	        else 
-	        {                                     
-	            node = node.parentNode;                
-	            node.removeChild(node.lastChild);      
-	        }
-	    }
-	}
- };
- 
- NSUtil.prototype.getScrollBarWidth = function(element)
- {
- 	var scrollBarWidth = 0;
- 	if(element)
- 	{
- 		scrollBarWidth = element.offsetWidth - element.clientWidth;
- 	}
- 	else
- 	{
- 		var divScroll = this.createDiv(null,"nsGetScrollBar");
-        document.body.appendChild(divScroll);
-        scrollBarWidth = divScroll.offsetWidth - divScroll.clientWidth;
-        document.body.removeChild(divScroll);
- 	}
- 	
- 	return scrollBarWidth;
- };
- 
- NSUtil.prototype.getKeyUnicode = function(event) 
- {
-	 event = this.getEvent(event);
-     var unicode=event.keyCode ? event.keyCode : event.charCode;
-     return unicode;
- };
-
- NSUtil.prototype.getDimensionAsNumber = function(element,dimension)
- {
- 	var retValue = 0;
- 	if(element && dimension)
- 	{
- 		if(dimension.substring(dimension.length - 1) == "%")
- 		{
- 			dimension = dimension.substring(0,dimension.length - 1);
- 			retValue = (dimension / 100) * element.parent.offsetHeight;
- 		}
- 		else if(dimension.substring(dimension.length - 2) == "px")
- 		{
- 			retValue = dimension.substring(0,dimension.length - 2);
- 		}
- 		else
- 		{
- 			retValue = dimension;
- 		}
- 	}
- 	if(isNaN(retValue))
- 	{
- 		retValue = 0;
- 	}
- 	return parseInt(retValue);
- };
- 
- NSUtil.prototype.getCumulativeOffset = function(element)
- {
-     var x = 0;
-     var y = 0;
-     var currentElement = (element) ? element : this;
-     do
-     {
-         if (currentElement.nodeName.toLowerCase != 'td')
-         {
-             x += currentElement.offsetLeft;
-             y += currentElement.offsetTop;
-         }
-     }
-     while ((currentElement = currentElement.offsetParent) && currentElement.nodeName.toLowerCase() != 'body');   
-  
-     return { x: x, y: y };
- };
- 
- NSUtil.prototype.makeElementUnselectable = function(element,makeChildrenUnselectable)
- {
-	 if(element)
-	 {
-		 if (element.nodeType == 1) 
-	     {
-			 element.setAttribute("unselectable", "on");
-	     }
-		 if(makeChildrenUnselectable)
-		 {
-			 var childElement = element.firstChild;
-		     while (childElement) 
-		     {
-		    	 this.makeElementUnselectable(childElement,makeChildrenUnselectable);
-		         childElement = childElement.nextSibling;
-		     }
-		 }
-	 }
- };
- 
-
-NSUtil.prototype.startsWith = function(sourceString,searchString,caseSensitive) 
-{
-	if(!sourceString || !searchString)
-	{
-		return false;
-	}
-	if(caseSensitive)
-	{
-		return sourceString.length >= searchString.length && sourceString.substring(0, searchString.length) === searchString;
-	}
-	return sourceString.length >= searchString.length && sourceString.substring(0, searchString.length).toLowerCase() === searchString.toLowerCase();
-};
-
-NSUtil.prototype.endsWith = function(sourceString,searchString,caseSensitive) 
-{
-	if(!sourceString || !searchString)
-	{
-		return false;
-	}
-	if(caseSensitive)
-	{
-		return sourceString.length >= searchString.length && sourceString.substring(sourceString.length - searchString.length,sourceString.length) === searchString;
-	}
-	return sourceString.length >= searchString.length && sourceString.substring(sourceString.length - searchString.length,sourceString.length).toLowerCase() === searchString.toLowerCase();
-};
-
-NSUtil.prototype.contains = function(sourceString,searchString,startIndex,caseSensitive) 
-{
-	if(!sourceString || !searchString)
-	{
-		return false;
-	}
-	if(isNaN(startIndex))
-	{
-		startIndex = 0;
-	}
-	if(caseSensitive)
-	{
-		return sourceString.length >= searchString.length && ''.indexOf.call(sourceString, searchString, startIndex) !== -1;
-	}
-	return sourceString.length >= searchString.length && ''.indexOf.call(sourceString.toLowerCase(), searchString.toLowerCase(), startIndex) !== -1;
-};
-
-NSUtil.prototype.indexesOf = function(sourceString,charToFind) 
-{
-	var match = "";
-    var arrIndexes = [] ;
-	if(sourceString && charToFind)
-	{
-		var regex = new RegExp(charToFind,"g");
-		while (match = regex.exec(sourceString)) 
-		{
-			arrIndexes.push(match.index);
-	    }
-	}
-	return arrIndexes;
-};
-
-NSUtil.prototype.checkRegexValue = function(strRegex,value) 
-{
-	try
-	{
-		var regex = new RegExp(strRegex,"g");
-	    return regex.test(value);
-	}
-    catch(error)
-    {
-    	console.log("Invalid Regex with details::" + error.message);
-    }
-    return false;
-};
-
-NSUtil.prototype.isValueNull = function(value) 
-{
-	if(value === null || this.isUndefined(value))
-	{
-		return true;
-	}
-	var nullValues = ["null"];
-	var len = nullValues.length;
-	for (var count = 0;count < len; count++)
-	{
-	    if (value === nullValues[count]) 
-	    {
-	    	return true;
-	    }
-	}
-	return false;
-};
-
-
- var falseExpression = /^(?:f(?:alse)?|no?|0+)$/i;
- Boolean.parse = function(value) 
- { 
-    return !falseExpression.test(value) && !!value;
- };
-
-//Defining the indexOf function (before you call it!) if it doesnÃ¯Â¿Â½t exist Ã¯Â¿Â½ taken from MDN (for Internet Explorer 8 and below)
-if (!Array.prototype.indexOf)
-{
-   Array.prototype.indexOf = function (searchElement /*, fromIndex */ )
-   {
-     'use strict';
-     if (this == null)
-     {
-       throw new TypeError();
-     }
-     var n, k, t = Object(this),
-         len = t.length >>> 0;
-     if (len === 0)
-     {
-       return -1;
-     }
-     n = 0;
-     if (arguments.length > 1) 
-     {
-       n = Number(arguments[1]);
-       if (n != n)
-       { // shortcut for verifying if it's NaN
-         n = 0;
-       }
-       else if (n != 0 && n != Infinity && n != -Infinity)
-       {
-         n = (n > 0 || -1) * Math.floor(Math.abs(n));
-       }
-     }
-     if (n >= len)
-     {
-       return -1;
-     }
-     for (k = n >= 0 ? n : Math.max(len - Math.abs(n), 0); k < len; k++)
-     {
-       if (k in t && t[k] === searchElement)
-       {
-         return k;
-       }
-     }
-     return -1;
-   };
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+  @font-face {
+    font-family: 'ui-grid';
+    src: url('../font/ui-grid.svg?12312827#ui-grid') format('svg');
+  }
 }
 
-//JavaScript Array filter
-if (!Array.prototype.filter) 
-{
-    Array.prototype.filter = function(fun /*, thisp*/) 
-    {
-        var len = this.length >>> 0;
-        if (typeof fun != "function") 
-        {
-            throw new TypeError();
-        }
-        var res = [];
-        var thisp = arguments[1];
-        for (var count = 0; count < len; count++) 
-        {
-            if (count in this) 
-            {
-                var val = this[count]; // in case fun mutates this
-                if (fun.call(thisp, val, count, this)) 
-                {
-                    res.push(val);
-                }
-            }
-        }
-
-        return res;
-    };
+[class^="ui-grid-icon"]:before,
+[class*=" ui-grid-icon"]:before {
+  font-family: "ui-grid";
+  font-style: normal;
+  font-weight: normal;
+  speak: none;
+  display: inline-block;
+  text-decoration: inherit;
+  width: 1em;
+  margin-right: .2em;
+  text-align: center;
+  opacity: .8;
+  For safety - reset parent styles, that can break glyph codes
+  font-variant: normal;
+  text-transform: none;
+  fix buttons height, for twitter bootstrap
+  line-height: 1em;
+  Animation center compensation - margins should be symmetric
+  remove if not needed
+  margin-left: .2em;
+  you can be more comfortable with increased icons size
+  font-size: 120%;
+  Uncomment for 3D effect
+  text-shadow: 1px 1px 1px rgba(127, 127, 127, 0.3);
+}
+.ui-grid-icon-blank::before {
+  width: 1em;
+  content: ' ';
 }
 
-if (!String.prototype.replaceAll) 
-{
-	String.prototype.replaceAll = function(character,replaceChar)
-	{
-	    var word = this.valueOf();
-	    while(word.indexOf(character) != -1)
-	    {
-	    	word = word.replace(character,replaceChar);
-	    }
-	    return word;
-	};
+* RTL Styles
+
+.ui-grid[dir=rtl] .ui-grid-header-cell,
+.ui-grid[dir=rtl] .ui-grid-footer-cell,
+.ui-grid[dir=rtl] .ui-grid-cell {
+  float: right !important;
+}
+.ui-grid[dir=rtl] .ui-grid-column-menu-button {
+  position: absolute;
+  left: 1px;
+  top: 0;
+  right: inherit;
+}
+.ui-grid[dir=rtl] .ui-grid-cell:first-child,
+.ui-grid[dir=rtl] .ui-grid-header-cell:first-child,
+.ui-grid[dir=rtl] .ui-grid-footer-cell:first-child {
+  border-right: 0;
+}
+.ui-grid[dir=rtl] .ui-grid-cell:last-child,
+.ui-grid[dir=rtl] .ui-grid-header-cell:last-child {
+  border-right: 1px solid #94c0d2;
+  border-left: 0;
+}
+.ui-grid[dir=rtl] .ui-grid-header-cell:first-child .ui-grid-vertical-bar,
+.ui-grid[dir=rtl] .ui-grid-footer-cell:first-child .ui-grid-vertical-bar,
+.ui-grid[dir=rtl] .ui-grid-cell:first-child .ui-grid-vertical-bar {
+  width: 0;
+}
+.ui-grid[dir=rtl] .ui-grid-menu-button {
+  z-index: 2;
+  position: absolute;
+  left: 0;
+  right: auto;
+  background: #daecf4;
+  border: 1px solid #94c0d2;
+  cursor: pointer;
+  min-height: 27px;
+  font-weight: normal;
+}
+.ui-grid[dir=rtl] .ui-grid-menu-button .ui-grid-menu {
+  left: 0;
+  right: auto;
+}
+.ui-grid[dir=rtl] .ui-grid-filter-container .ui-grid-filter-button {
+  right: initial;
+  left: 0;
+}
+.ui-grid[dir=rtl] .ui-grid-filter-container .ui-grid-filter-button [class^="ui-grid-icon"] {
+  right: initial;
+  left: 10px;
 }
 
-NSUtil.prototype.defaultRenderer = function()
-{
-	this.util = new NSUtil();
-	this.divItemRenderer = null;
-	
-	this.getRenderer = function()
-	{
-		if(!this.divItemRenderer)
-		{
-			this.__createComponents();
-		}
-		return this.divItemRenderer;
-	};
-	
-	this.setData = function(renderer,item,labelField)
-	{
-		if(renderer)
-		{
-			if(item && item[labelField])
-			{
-				renderer.rendererBody.rendererLabel.innerHTML = item[labelField];
-				//renderer.rendererBody.rendererLabel.appendChild(document.createTextNode(item[labelField]));
-			}
-			else
-			{
-				this.clearData(renderer);
-			}
-		}
-		
-	};
-	
-	this.clearData = function(renderer)
-	{
-		if(renderer)
-		{
-			renderer.rendererBody.rendererLabel.innerHTML = "";
-		}
-	};
-	
-	this.__createComponents = function()
-	{
-		this.divItemRenderer = this.util.createDiv(null,"imageHolder"); 
-		this.divItemRenderer.style.height = 20 + "px";
-		this.divItemRenderer.style.padding = 4 + "px";
-		this.divItemRenderer.setAttribute("accessor-name","rendererBody"); 
-		var lblItemRenderer = document.createElement("LABEL");
-		lblItemRenderer.setAttribute("accessor-name","rendererLabel");
-		this.divItemRenderer.appendChild(lblItemRenderer);
-	};
-};
+   Animation example, for spinners
 
-NSUtil.prototype.fadeIn = function(element,displayType,callback)
-{
-	if(element)
-	{
-		var util = this;
-		element.style.opacity = 0;
-		element.style.display = displayType || "block";
-		(function fade() 
-		 {
-		    var value = parseFloat(element.style.opacity);
-		    if (!((value += .1) > 1)) 
-		    {
-		    	element.style.opacity = value;
-		    	util.__requestAnimationFrame.bind(window)(fade.bind(util));
-		    }
-		    else
-		    {
-		    	if(callback)
-		      	{
-		    		callback(element);
-		      	}
-		    }
-		 })();
-	}
-};
-
-NSUtil.prototype.fadeOut = function(element,callback)
-{
-	var util = this;
-	element.style.opacity = 1;
-	(function fade() 
-	{
-	    if((element.style.opacity -= .1) < 0) 
-	    {
-	      element.style.display = "none";
-	      if(callback)
-	      {
-	    	  callback(element);
-	      }
-	    } 
-	    else 
-	    {
-	    	util.__requestAnimationFrame.bind(window)(fade.bind(util));
-	    }
-	})();
-};
-
-/** Expalination http://javascript.info/tutorial/animation of animation .. not the code **/
-NSUtil.prototype.animation = function(element,arrOptions)
-{
-	this.__element = element;
-	this.__arrOptions = arrOptions;
-	this.__util = new NSUtil();
-	
-	this.DELAY = 10;
-	
-	this.__duration = 0;
-	this.__currentOption = null;
-	this.__currentStart = 0;
-	this.__currentEnd = 0;
-	
-	this.animate = function()
-	{
-		this.__run();
-	};
-	
-	this.__run = function() 
-	{
-	    var current = +new Date();
-	    var remaining = this.__currentEnd - current;
-	    if(remaining < this.DELAY) 
-	    {
-		      if(this.__currentOption) 
-		      {
-		    	  this.__step(1);  //1 = progress is at 100%
-		    	  if(this.__currentOption.animationCompleteHandler)
-		    	  {
-		    		  this.__currentOption.animationCompleteHandler(this.__currentOption);
-		    	  }
-		      }
-		      this.__currentOption = this.__arrOptions.shift();  //get the next item
-		      if(this.__currentOption) 
-		      {
-		    	  if(this.__currentOption["style"])
-		    	  {
-		    		  this.__currentStart = this.__util.getDimensionAsNumber(this.__element,this.__element.style[this.__currentOption.style]);
-		    	  }
-		    	  else
-		    	  {
-		    		  this.__currentStart = this.__element[this.__currentOption.property];
-		    	  }
-		    	  this.__duration = this.__currentOption.time * 1000;
-		    	  this.__currentEnd = current + this.__duration;
-		    	  this.__step(0);  //0 = progress is at 0%
-		      }
-		      else 
-		      {
-		        return;
-		      }
-	    }
-	    else 
-	    {
-		      var progress = remaining / this.__duration;
-		      var delta = this.__delta(progress);
-		      this.__step(delta);
-	    }
-	    this.__util.__requestAnimationFrame.bind(window)(this.__run.bind(this));
-	};
-	
-	this.__delta = function(progress)
-	{
-		return (1 - Math.pow(progress, 3));  //easing formula
-	};
-	
-	this.__step = function(progress) 
-	{
-		var newValue = progress * (this.__currentOption.target - this.__currentStart) + this.__currentStart;
-		if(this.__currentOption["style"])
-  	  	{
-			this.__element.style[this.__currentOption.style] = newValue + "px";
-			//this.__element.style[this.__currentOption.style] = (progress * this.__currentOption.target) + "px";
-  	  	}
-		else
-		{
-			this.__element[this.__currentOption.property] = newValue;
-		}
-	};
-	
-};
-
-NSUtil.prototype.__requestAnimationFrame = (function()
-{
-	  return  window.requestAnimationFrame       ||
-	          window.webkitRequestAnimationFrame ||
-	          window.mozRequestAnimationFrame    ||
-	          window.oRequestAnimationFrame      ||
-	          function(callback)
-	          {
-	              window.setTimeout(callback,this.DELAY);
-	          };
-})();
-
-
-NSUtil.prototype.loader = function(parentContainer)
-{
-	this.parentContainer = parentContainer;
-	this.util = new NSUtil();
-	this.divLoaderContainerParent = null;
-	
-	this.createComponents = function()
-	{
-		this.divLoaderContainerParent = this.util.createDiv("divLoaderContainerParent","loaderContainerParent"); 
-		this.parentContainer.appendChild(this.divLoaderContainerParent);
-		var divLoaderContainer = this.util.createDiv("divLoaderContainer","loaderContainer"); 
-		this.divLoaderContainerParent.appendChild(divLoaderContainer);
-		var divLoadingIcon = this.util.createDiv("divLoadingIcon","progress"); 
-		divLoaderContainer.appendChild(divLoadingIcon);
-		var divLoadingIconText = this.util.createDiv(null); 
-		divLoadingIconText.appendChild(document.createTextNode("LoadingÃ¢â‚¬Â¦"));
-		divLoadingIcon.appendChild(divLoadingIconText);
-		var compBreak = document.createElement("br");
-		divLoaderContainer.appendChild(compBreak);
-		compBreak = document.createElement("br");
-		divLoaderContainer.appendChild(compBreak);
-		var divLoadingLabel = this.util.createDiv("divLoadingLabel","loaderText"); 
-		divLoadingLabel.appendChild(document.createTextNode("Loading"));
-		divLoaderContainer.appendChild(divLoadingLabel);
-		
-		this.centerElement(this.divLoaderContainerParent);
-		this.centerElement(divLoadingLabel);
-		divLoadingLabel.style.top = (this.util.getDimensionAsNumber(divLoadingLabel.style.top) + 40) + "px";
-	};
-	
-	this.centerElement = function(component)
-	{
-		if(component)
-		{
-			var parent = component.parentNode;
-			component.style.left = ((parent.offsetWidth - component.offsetWidth) / 2) + "px";
-			console.log("parent.id::" + parent.id + " component.id::" + component.id + " parent.offsetWidth::" + parent.offsetWidth + " component.offsetWidth::" + component.offsetWidth);
-			component.style.top = ((parent.offsetHeight - component.offsetHeight) / 2) + "px";
-		}
-	};
-	
-	this.show = function()
-	{
-		if(!this.divLoaderContainerParent)
-		{
-			this.createComponents();
-		}
-		this.divLoaderContainerParent.style.display = "inline-block";
-	};
-	
-	this.hide = function()
-	{
-		if(this.divLoaderContainerParent)
-		{
-			this.divLoaderContainerParent.style.display = "none";
-		}
-	};
-	
-};
-
-NSUtil.prototype.ajax = function(url, callbackFunction)
-{
-	this.callbackFunction = callbackFunction;
-	this.url = url;
-	this.postBody = (arguments[2] || "");
-	
-	this.bindFunction = function (caller, object) 
-	{
-		return function() 
-		{
-			return caller.apply(object, [object]);
-		};
-	};
-
-	this.stateChange = function (object) 
-	{
-		if (this.request.readyState == 4)
-		{
-			this.callbackFunction(this.request.responseText);
-		}
-	};
-
-	this.getRequest = function() 
-	{
-		if (window.ActiveXObject)
-		{
-			return new ActiveXObject('Microsoft.XMLHTTP');
-		}
-		else if (window.XMLHttpRequest)
-		{
-			return new XMLHttpRequest();
-		}
-		return false;
-	};
-	
-	this.request = this.getRequest();
-	
-	if(this.request) 
-	{
-		var req = this.request;
-		req.onreadystatechange = this.bindFunction(this.stateChange, this);
-
-		if (this.postBody!=="") 
-		{
-			req.open("POST", url, true);
-			req.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-			req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-			req.setRequestHeader('Connection', 'close');
-		} 
-		else 
-		{
-			req.open("GET", url, true);
-		}
-
-		req.send(this.postBody);
-	}
-};
+.ui-grid-animate-spin {
+  -moz-animation: ui-grid-spin 2s infinite linear;
+  -o-animation: ui-grid-spin 2s infinite linear;
+  -webkit-animation: ui-grid-spin 2s infinite linear;
+  animation: ui-grid-spin 2s infinite linear;
+  display: inline-block;
+}
+@-moz-keyframes ui-grid-spin {
+  0% {
+    -moz-transform: rotate(0deg);
+    -o-transform: rotate(0deg);
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -moz-transform: rotate(359deg);
+    -o-transform: rotate(359deg);
+    -webkit-transform: rotate(359deg);
+    transform: rotate(359deg);
+  }
+}
+@-webkit-keyframes ui-grid-spin {
+  0% {
+    -moz-transform: rotate(0deg);
+    -o-transform: rotate(0deg);
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -moz-transform: rotate(359deg);
+    -o-transform: rotate(359deg);
+    -webkit-transform: rotate(359deg);
+    transform: rotate(359deg);
+  }
+}
+@-o-keyframes ui-grid-spin {
+  0% {
+    -moz-transform: rotate(0deg);
+    -o-transform: rotate(0deg);
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -moz-transform: rotate(359deg);
+    -o-transform: rotate(359deg);
+    -webkit-transform: rotate(359deg);
+    transform: rotate(359deg);
+  }
+}
+@-ms-keyframes ui-grid-spin {
+  0% {
+    -moz-transform: rotate(0deg);
+    -o-transform: rotate(0deg);
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -moz-transform: rotate(359deg);
+    -o-transform: rotate(359deg);
+    -webkit-transform: rotate(359deg);
+    transform: rotate(359deg);
+  }
+}
+@keyframes ui-grid-spin {
+  0% {
+    -moz-transform: rotate(0deg);
+    -o-transform: rotate(0deg);
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -moz-transform: rotate(359deg);
+    -o-transform: rotate(359deg);
+    -webkit-transform: rotate(359deg);
+    transform: rotate(359deg);
+  }
+}
+---------------------------------------------------
+    LESS Elements 0.9
+  ---------------------------------------------------
+    A set of useful LESS mixins
+    More info at: http://lesselements.com
+  ---------------------------------------------------
+.ui-grid {
+  color: #003f59;
+} 
