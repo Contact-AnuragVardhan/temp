@@ -1,339 +1,125 @@
-var biologistBody = "";
-var actionbioscienceBody = "";
-var fishbaseBody = "";
+//app.js
+var app = angular.module('app', ['ngTouch', 'ui.grid']);
 
-var objDashBoard = null;
-
-var item = null;
-var tempID = "Item";
-var divDrag = null;
-
-function initializeCompliancePortal()
-{
-	biologistBody = "#template1";
-	actionbioscienceBody = "#template2";
-	fishbaseBody = "#template3";
+app.controller('MainCtrl', ['$scope','$http', '$timeout','uiGridConstants', function ($scope, $http, $timeout,uiGridConstants) {
+ 
+	 var today = new Date();
+	 var nextWeek = new Date();
+	 nextWeek.setDate(nextWeek.getDate() + 7);
 	
-	var dashBoardSource = [
-	                       {title:"Biologist",templateID:biologistBody,footerRequired:false},
-	                       {title:"Action Bioscience",templateID:actionbioscienceBody,footerRequired:false},
-	                       {title:"FishBase",templateID:fishbaseBody,footerRequired:false},
-	                  ];
-	objDashBoard = new DashBoard("divPortlets",dashBoardSource);
-	syncDivWidth();
-	addClickHandler();
-	document.ondragstart = dragstartHandler;
-	document.ondragover = dragoverHandler;
-	document.ondrop = dropHandler;
-	document.ondragend = dragendHandler;
-}
+	$scope.gridOptions = {
+    enableSorting: true,
+    enableFiltering: true
+  };
 
-function addClickHandler()
-{
-	 var arrLI = document.getElementsByTagName("LI");
-	 if(arrLI && arrLI.length > 0)
-	 {
-		 for(var count = 0;count < arrLI.length;count++)
-		 {
-			 arrLI[count].onmousedown = liMouseDownHandler;
-			 arrLI[count].onmouseup = liMouseUpHandler;
-		 }
-	 }
-}
+  var colCount = 20;
+  var rowCount = 500;
 
-function syncDivWidth()
-{
-	for(var count = 0;count < 3;count++)
-	{
-		var panel = document.getElementById("divPortlets#panelParent" + count); 
-		var div = document.getElementById("div" + count); 
-		var txt = document.getElementById("txt" + count); 
-		if(panel && div)
-		{
-			var offset = getOffSet(panel);
-			div.style.width = (panel.offsetWidth - 30) + "px";
-			//txt.style.width = (panel.offsetWidth - 50) + "px";
-			div.style.left = (offset.left + 15) + "px";
-			txt.style.left = ((offset.left + 15) + ((panel.offsetWidth - 30)/2) - 40) + "px";
-			div.style.top = (offset.top + panel.offsetHeight + 40) + "px";
-			txt.style.top = (offset.top + panel.offsetHeight + 80) + "px";
-			
-		}
-	} 
-}
+  $scope.gridOptions.columnDefs = [
+          {field:'name',width:200 , enableColumnMenu:false},
+          {field:'gender',width:200 , enableColumnMenu:false, filter: {
+              term: '1',
+              type: uiGridConstants.filter.SELECT,
+              selectOptions: [ { value: '1', label: 'male' }, { value: '2', label: 'female' }, 
+                               { value: '3', label: 'unknown'}, { value: '4', label: 'not stated' }, 
+                               { value: '5', label: 'a really long value that extends things' } ]
+            },
+            cellFilter: 'mapGender'},
+          {field:'company',width:200 , enableColumnMenu:false},
+          {field:'email',width:200 , enableColumnMenu:false},
+          {field:'phone',width:200 , enableColumnMenu:false},
+          {field:'age',width:200 , enableColumnMenu:false},
+          {field:'mixedDate',width:300, enableColumnMenu:false, cellFilter: 'date',  
+        	  filters:[{ condition: checkStart}, {condition:checkEnd}],
+        	  filterHeaderTemplate: '<div class="ui-grid-filter-container">from : <input style="display:inline; width:30%"  class="ui-grid-filter-input" date-picker type="text" ng-model="col.filters[0].term"/> to : <input style="display:inline; width:30%" class="ui-grid-filter-input" date-picker type="text" ng-model="col.filters[1].term"/></div>'
+        		  },
+          { field: 'mixedDate', width:200, displayName: "Long Date", cellFilter: 'date:"longDate"', filterCellFiltered:true}
+    
+    ];
+  
+  $scope.getData = function(){
+	  $http.get('https://cdn.rawgit.com/angular-ui/ui-grid.info/gh-pages/data/500_complex.json')
+	  .success(function(data) {
+	    $scope.gridOptions.data = data;
+	    
+	    data.forEach( function addDates( row, index ){
+	        row.mixedDate = new Date();
+	        row.mixedDate.setDate(today.getDate() + ( index % 14 ) );
+	        row.gender = row.gender==='male' ? '1' : '2';
+	     });
+	    
+	  });
+  };
+ 
+  $scope.getData();
+  
+  
+  function checkStart(term, value, row, column) {
+      term = term.replace(/\\/g,"")
+      var now = moment(value);
+      if(term) {
+          if(moment(term).isAfter(now, 'day')) return false;
+      } 
+      return true;
+  }
 
-function liMouseDownHandler(event)
-{
-	var liTarget = findParent(event.target,"li");
-	if(liTarget && !Boolean.parse(liTarget.getAttribute("isDragged")))
-	{
-		for(var count = 0;count < 3;count++)
-		{
-			var div = document.getElementById("div" + count); 
-			if(div && div.children.length === 0)
-			{
-				div.style.border = "2px dashed #00cc00";
-				div.style.borderTop = "0px";
-			}
-		}
-	}
-}
+  function checkEnd(term, value, row, column) {
+      term = term.replace(/\\/g,"")
+      var now = moment(value);
+      if(term) {
+          if(moment(term).isBefore(now, 'day')) return false;
+      } 
+      return true;
+  }
 
-function liMouseUpHandler(event)
-{
-	for(var count = 0;count < 3;count++)
-	{
-		var div = document.getElementById("div" + count); 
-		div.style.border = "1px solid #aaaaaa";
-		div.style.borderTop = "0px";
-	}
-}
+  $scope.$on("destroy", function(){
+    $timeout.cancel();
+  });
+}]);
 
-function dragstartHandler(event)
-{
-	item = findParent(event.target,"li");
-	if(item && !Boolean.parse(item.getAttribute("isDragged")))
-	{
-		divDrag = document.createElement("DIV");
-		divDrag.id = tempID + "-extra";
-		divDrag.innerHTML = item.getAttribute("dragData");
-		divDrag.style.backgroundColor = "red";
-		divDrag.style.position = "absolute";
-		document.body.appendChild(divDrag);
-		var divCoverup = document.getElementById("divCoverup");		
-		divDrag.style.left = (divCoverup.offsetLeft) + "px";
-		divDrag.style.top = (divCoverup.offsetTop) + "px";
-		event.dataTransfer.setDragImage(divDrag, 0, 0);
-		event.dataTransfer.setData('text', '');
-	}
-	else
-	{
-		item = null;
-		event.preventDefault();
-	}
-}
+app.filter('mapGender', function() {
+	  var genderHash = {
+			    1: 'male',
+			    2: 'female'
+			  };
 
-function dragoverHandler(event)
-{
-	 if (item) 
-	 {
-		 event.preventDefault();
-     }
-}
+			  return function(input) {
+			    if (!input){
+			      return '';
+			    } else {
+			      return genderHash[input];
+			    }
+			  };
+});
 
-function dropHandler(event)
-{
-	liMouseUpHandler(event);
-    if(event.target.getAttribute('data-draggable') == 'target') 
-    {
-    	var divAdd = document.createElement("DIV");
-    	divAdd.style.backgroundColor = "green";
-    	divAdd.style.color = "white";
-    	divAdd.setAttribute("dragKey",item.getAttribute("dragKey"));
-    	var img = document.createElement("img");
-    	img.src="delete-icon.png";
-    	img.alt="Delete";
-    	img.height=16;
-    	img.width=16;
-    	img.style.marginRight = 20 + "px";
-    	img.style.cursor = "pointer";
-    	img.onclick = imageClickHandler;
-    	divAdd.appendChild(img);
-    	divAdd.appendChild(document.createTextNode(divDrag.innerHTML));
-    	event.target.appendChild(divAdd);
-    	event.preventDefault();
-    }
-}
-
-function dragendHandler(event)
-{
-	document.body.removeChild(document.getElementById(tempID + "-extra"));
-	//item.parentNode.removeChild(item);
-	markItemSelected(item.getAttribute("dragKey"),true);
-    item = null;
-    divDrag = null;
-}
-
-function markItemSelected(key,isMark)
-{
-	 var arrLI = document.getElementsByTagName("LI");
-	 if(arrLI && arrLI.length > 0)
-	 {
-		 for(var count = 0;count < arrLI.length;count++)
-		 {
-			 if(arrLI[count].getAttribute("dragKey") == key)
-			 {
-				 arrLI[count].children[0].style.backgroundColor = (isMark? "green":"gray");
-				 arrLI[count].setAttribute("isDragged",isMark);
-			 }
-		 }
-	 }
-}
-
-function imageClickHandler(event)
-{
-	var div = findParent(event.target,"div");
-	markItemSelected(div.getAttribute("dragKey"),false);
-	div.parentNode.removeChild(div);
-}
-
-function updateText()
-{
-	var arrVal = [0,0,0];
-	for(var count = 0;count < 3;count++)
-	{
-		var panel = document.getElementById("divPortlets#panelParent" + count); 
-		var div = document.getElementById("div" + count); 
-		var txt = document.getElementById("txt" + count); 
-		if(div && div.children.length > 0)
-		{
-			arrVal[count] = 1;
-		}
-	}
-	for(var count = 0;count < 3;count++)
-	{
-		var txt = document.getElementById("txt" + count); 
-		if(div && div.children.length > 0)
-		{
-			arrVal[count] = 1;
-		}
-	}
-}
-
-function getElement(elementId)
-{
-	if(elementId && elementId.length > 0)
-	{
-		return document.getElementById(elementId);
-	}
-	return null;
-}
-
-function getOffSet(element, offset) 
-{
-	 if(!offset)
-	 {
-		 offset = {left : 0, top : 0};
-	 }
-	 if(element)
-     {
-		offset.left += (element.offsetLeft - element.scrollLeft + element.clientLeft);
-		offset.top += (element.offsetTop - element.scrollTop + element.clientTop);
-	    offset = this.getOffSet(element.offsetParent, offset);
-     }
-	 return offset;
-}
-
-function addStyleClass(divAlert,styleClass)
-{
-    if(divAlert && styleClass && styleClass.length > 0)
-    {
-        if(document.body.classList)
-        {
-            if(!hasStyleClass(divAlert,styleClass))
-            {
-                divAlert.className += " " + styleClass;
-            }
-        }
-        else
-        {
-            if(!hasStyleClass(divAlert,styleClass))
-            {
-                divAlert.classList.add(styleClass);
-            }
+app.directive('datePicker', function(){
+    return {
+        restrict : "A",
+        require: 'ngModel',
+        link : function(scope, element, attrs, ngModel){
+            $(function(){
+                $(element).datepicker({
+                     changeMonth: true,
+                     changeYear: true,
+                     closeText: 'Clear',
+                     showButtonPanel: true,
+                     onClose: function () {
+                        var event = arguments.callee.caller.caller.arguments[0];
+                        // If "Clear" gets clicked, then really clear it
+                        if ($(event.delegateTarget).hasClass('ui-datepicker-close')) {
+                            $(this).val('');
+                            scope.$apply(function() {
+                               ngModel.$setViewValue(null);
+                            });
+                        }
+                    },
+                    onSelect: function(date){
+                        scope.$apply(function() {
+                           ngModel.$setViewValue(date);
+                        });
+                    }
+               });
+            })
         }
     }
-}
-
-function hasStyleClass(divAlert,styleClass)
-{
-    if(divAlert && styleClass && styleClass.length > 0)
-    {
-    	try
-    	{
-    		if(document.body.classList)
-            {
-                return (divAlert.className.indexOf(" " + styleClass) > -1);
-            }
-            else if(divAlert.classList.contains)
-            {
-                return divAlert.classList.contains(styleClass);
-            }
-    	}
-    	catch(error)
-    	{
-    		
-    	}
-        
-    }
-    return false;
-}
-
-function removeStyleClass(divAlert,styleClass)
-{
-    if(divAlert && styleClass && styleClass.length > 0)
-    {
-        if(document.body.classList)
-        {
-            if(divAlert.className)
-            {
-                divAlert.className = divAlert.className.replace(styleClass,"");
-            }
-        }
-        else
-        {
-            divAlert.classList.remove(styleClass);
-        }
-    }
-}
-
-function getEvent(event)
-{
-	if (!event)
-	{
-		event = window.event;
-	}
-	return event;
-}
-
-function getTarget(event)
-{
-	event = getEvent(event);
-	var target = event.target ? event.target : event.srcElement;
-	
-	return target;
-}
-
-function getParentByType(element,type)
-{
-	if(element && type)
-	{
-		var parent = element;
-	    while(parent && parent.nodeName != type.toUpperCase())
-	    {
-	       parent = parent.parentNode;
-	    }
-	    return parent;
-	}
-	return element;
-}
-
-function findParent(element,parentTag)
-{
-    if(element && parentTag)
-    {
-        while (element && element.tagName && element.tagName.toLowerCase()!=parentTag.toLowerCase())
-        {
-            element = element.parentNode;
-        }
-    }  
-    return element;
-}
-
-var falseExpression = /^(?:f(?:alse)?|no?|0+)$/i;
-Boolean.parse = function(value) 
-{ 
-   return !falseExpression.test(value) && !!value;
-};
-
-window.onload = initializeCompliancePortal;
+});
