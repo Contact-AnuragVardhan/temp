@@ -1,32 +1,71 @@
-//index.html
-<!doctype html>
-<html ng-app="app">
-  <head>
-   <script type="text/javascript" src="moment.js"></script>
-    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular.js"></script>
-    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular-touch.js"></script>
-    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular-animate.js"></script>
-    <script src="http://ui-grid.info/docs/grunt-scripts/csv.js"></script>
-    <script src="http://ui-grid.info/docs/grunt-scripts/pdfmake.js"></script>
-    <script src="http://ui-grid.info/docs/grunt-scripts/vfs_fonts.js"></script>
-    <script src="http://ui-grid.info/release/ui-grid.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
-	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
-	
-    <link rel="stylesheet" href="http://ui-grid.info/release/ui-grid.css" type="text/css">
-    <link rel="stylesheet" href="main.css" type="text/css">
-  </head>
-  <body>
+function arrayFromObject(obj) {
+    	    var arr = [];
+    	    for (var i in obj) {
+    	        arr.push(obj[i]);
+    	    }
+    	    return arr;
+    	}
+      
+        function groupBy(list,arrGroupField) 
+	  	{
+        	var arrResult = list;
+	  	    if(arrGroupField && arrGroupField.length > 0)
+	  	    {
+	  	    	arrResult = groupByField(list,arrGroupField[0]);
+	  	    	if(arrResult && arrResult.length > 0 && arrGroupField.length > 1)
+	  	    	{
+	  	    		for(var count = 0;count < arrResult.length;count++)
+	  	    		{
+	  	    			var item = arrResult[count];
+	  	    			if(item && item.hasOwnProperty("children"))
+	  	    			{
+	  	    				var result = groupByField(item["children"],arrGroupField[1]); 
+	  	    				item["children"] = result;
+	  	    				arrResult[count] = item;
+	  	    			}
+	  	    		}
+	  	    	}
+	  	    }
+	  	    return arrResult;
+	  	}
 
-<div ng-controller="MainCtrl">
-  <strong>{{ gridOptions.columnDefs.length }} Columns and {{gridOptions.data.length}} Row</strong>
-  <br>
-  <br>
-  <div id="grid1" ui-grid="gridOptions" class="grid"></div>
-</div>
+    	function groupByField(list,groupField) 
+    	{
+    	    var groups = {};
+    	    for (var i = 0; i < list.length; i++) 
+    	    {
+    	    	var item = list[i];
+    	        var group = JSON.stringify(item[groupField]);
+    	        if (group in groups) 
+    	        {
+    	            groups[group].children.push(item); 
+    	        } 
+    	        else 
+    	        {
+    	        	var objEmpty = createEmptyItem(list[i]);
+    	        	objEmpty[groupField] = item[groupField];
+    	        	objEmpty.children = [];
+    	        	objEmpty.children.push(item); 
+    	            groups[group] = objEmpty;
+    	        }
+    	    }
+    	    return arrayFromObject(groups);
+    	}
+    	
+    	function createEmptyItem(objSource)
+    	{
+    		var objCopy = {};
+    		if (objSource instanceof Object) 
+    		{
+    	        for (var attr in objSource) 
+    	        {
+    	            if (objSource.hasOwnProperty(attr))
+    	            {
+    	            	objCopy[attr] = null;
+    	            }
+    	        }
+    	    }
+    		return objCopy;
+    	}
 
-
-    <script src="app.js"></script>
-  </body>
-</html>
+    	var result = groupBy(list123,["lastname","age"]);
