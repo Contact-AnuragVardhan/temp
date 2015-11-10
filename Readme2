@@ -216,47 +216,76 @@ nsGrid.collapseAll = function()
 
 //assuming column is added at last
 //if reposition then use swapColumn
-nsGrid.addColumn = function(column)
+nsGrid.addColumn = function(objColumn)
 {
-	if(column)
+	if(objColumn)
 	{
-		this.__processColumnObject(column,this.columns.length);
-		this.columns[this.columns.length] = column;
+		this.__processColumnObject(objColumn,this.columns.length);
+		var isSetFixed = false;
+		if(objColumn.hasOwnProperty("width"))
+		{
+			var widthUnit = this.util.getDimensionUnit(objColumn["width"]);
+			//if width in px 
+			if(widthUnit === 2)
+			{
+				isSetFixed = true;
+			}
+		}
+		this.columns[this.columns.length] = objColumn;
 		if(this.__tblHeader && this.__tblHeader.tHead && this.__tblHeader.tHead.rows && this.__tblHeader.tHead.rows.length > 0)
 		{
+			if(isSetFixed)
+			{
+				this.__tblHeader.style.tableLayout = "fixed";
+			}
 			var headerRow = this.__tblHeader.tHead.rows[0];
 			if(this.__tblHeader.tBodies && this.__tblHeader.tBodies.length > 0 && this.__tblHeader.tBodies[0].rows && this.__tblHeader.tBodies[0].rows.length > 0)
 			{
 				var headerBodyRow = this.__tblHeader.tBodies[0].rows[0];
-				this.__createHeaderHeaderCell(column,headerRow);
-			    this.__createHeaderBodyCell(column,headerBodyRow,this.columns.length - 1);
+				this.__createHeaderHeaderCell(objColumn,headerRow);
+			    this.__createHeaderBodyCell(objColumn,headerBodyRow,this.columns.length - 1);
 			}
 		}
 		if(this.__tblBody && this.__tblBody.tHead && this.__tblBody.tHead.rows && this.__tblBody.tHead.rows.length > 0)
 	    {
+			if(isSetFixed)
+			{
+				this.__tblBody.style.tableLayout = "fixed";
+			}
 			var bodyRow = this.__tblBody.tHead.rows[0];
 	    	if(this.__tblBody.tBodies && this.__tblBody.tBodies.length > 0 && this.__tblBody.tBodies[0].rows && this.__tblBody.tBodies[0].rows.length > 0)
 			{
 	    		var arrRows = this.__tblBody.tBodies[0].rows;
 	    		var arrItems = this.__getAllItems();
-	    		this.__createBodyHeaderCell(column,bodyRow);
+	    		this.__createBodyHeaderCell(objColumn,bodyRow);
 	    		var row = null;
 	    		var item = null;
 	    		for (var rowCount = 0; rowCount < arrRows.length; rowCount++) 
 	    		{
 	    			row = arrRows[rowCount];
 	    			item = arrItems[rowCount];
-	    			this.__createBodyRowCell(row,item,column,this.columns.length - 1,-1,null,0,true);
+	    			this.__createBodyRowCell(row,item,objColumn,this.columns.length - 1,-1,null,0,true);
 	    	    }
 			}
 	    }
 		this.__alignTables(false);
-		this.__setHeaderSortFunctionForItem(column);
+		this.__setHeaderSortFunctionForItem(objColumn);
+		if(isSetFixed)
+		{
+			if(this.__tblHeader)
+			{
+				this.__tblHeader.style.tableLayout = "auto";
+			}
+			if(this.__tblBody)
+			{
+				this.__tblBody.style.tableLayout = "auto";
+			}
+		}
 		return true;
 	}
 	else
 	{
-		this.util.throwNSError("NSGrid","Please pass valid column object to be added.");
+		this.util.throwNSError("NSGrid","Please pass valid Column object to be added.");
 		return false;
 	}
 };
@@ -307,6 +336,14 @@ nsGrid.__processColumnObject = function(objColumn,index)
 		objColumn[this.__fieldColIndex] = index;
 		objColumn["sortable"] = Boolean.parse(objColumn["sortable"]);
 		objColumn["sortDescending"] = Boolean.parse(objColumn["sortDescending"]);
+		if(objColumn.hasOwnProperty("width"))
+		{
+			var widthUnit = this.util.getDimensionUnit(objColumn["width"]);
+			if(widthUnit === 0)
+			{
+				objColumn["width"] = objColumn["width"] + "px";
+			}
+		}
 		//setData should be before template for checking
 		if(objColumn.hasOwnProperty("setData"))
 		{
@@ -620,14 +657,6 @@ nsGrid.__createBodyHeaderCell= function(colItem,headerRow)
 	{
 		var headerCell = headerRow.insertCell(-1);
 		headerCell.style.width = (colItem["width"]);
-	    /*if(colItem.hasOwnProperty("width") && !isNaN(colItem["width"]))
-	    {
-	    	headerCell.style.width = Number(colItem["width"]) + "px";
-	    }
-	    else
-	    {
-	    	headerCell.style.width = this.__DEFAULT_COLUMN_WIDTH + "px";
-	    }*/
 	    headerCell.style.height = "0px";
 	}
 };
@@ -1132,7 +1161,7 @@ nsGrid.__endResize = function(event)
 	var tableHeader = this.__tblHeader;
 	var tableBody = this.__tblBody;
 	var desiredWidth = event.clientX - this.util.getCumulativeOffset(selectedHeader).x;
-	//this.__resize(tableHeader,this.__resizingHeaderCell,desiredWidth);
+	this.__resize(tableHeader,this.__resizingHeaderCell,desiredWidth);
 	this.__resize(tableBody,this.__resizingBodyCell,desiredWidth);
 	
 	if(this.__resizeHandler)
@@ -1496,7 +1525,7 @@ nsGrid.__determineSortFunction= function(item)
       {
           sortFunction = "__sortDate";
       }
-      if (item.match(/^[Ãƒâ€šÃ‚Â£$]/))
+      if (item.match(/^[ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£$]/))
       {
           sortFunction = "__sortCurrency";
       }
@@ -1715,11 +1744,10 @@ nsGrid.__alignTables = function(fromSort)
 	var tableHeader = this.__tblHeader;
 	var tableBody = this.__tblBody;
 	var scrollBarWidth = this.util.getScrollBarWidth(divBody);
-	divHeader.style.width = (divBody.offsetWidth) + "px";
+	divHeader.style.width = (divBody.offsetWidth - scrollBarWidth) + "px";
 	//divHeader.style.backgroundColor = "#D8D8D8";
 	this.__synchronizeTablesRef = this.__synchronizeTables.bind(this);
 	this.util.addEvent(divBody,"scroll",this.__synchronizeTablesRef);
-	//tableHeader.style.width = (divBody.offsetWidth - scrollBarWidth) + "px";
 	
 	if(tableHeader.tHead && tableHeader.tHead.rows.length > 0 && tableBody.tHead && tableBody.tHead.rows.length)
 	{
@@ -1734,11 +1762,11 @@ nsGrid.__alignTables = function(fromSort)
 			{
 				for(count = 0;count < headerCells.length;count++)
 				{
-					//widthToBeSet = this.util.getDimensionAsNumber(headerCells[count],headerCells[count].style.width);
-					//if(widthToBeSet === 0)
-					//{
-						widthToBeSet = headerCells[count].offsetWidth;
-					//}
+					widthToBeSet = this.util.getDimensionAsNumber(headerCells[count],headerCells[count].style.width);
+					if(widthToBeSet === 0)
+					{
+						widthToBeSet = headerCells[count].getBoundingClientRect().width;//headerCells[count].offsetWidth;
+					}
 					totalWidth += widthToBeSet;
 					bodyCells[count].style.width = widthToBeSet + "px";
 					headerCells[count].style.width = widthToBeSet + "px";
@@ -1746,13 +1774,13 @@ nsGrid.__alignTables = function(fromSort)
 			}
 			else
 			{
-				for(count = 0;count < headerCells.length;count++)
+				for(count = 0;count < bodyCells.length;count++)
 				{
-					//widthToBeSet = this.util.getDimensionAsNumber(bodyCells[count],bodyCells[count].style.width);
-					//if(widthToBeSet === 0)
-					//{
-						widthToBeSet = bodyCells[count].offsetWidth;
-					//}
+					widthToBeSet = this.util.getDimensionAsNumber(bodyCells[count],bodyCells[count].style.width);
+					if(widthToBeSet === 0)
+					{
+						widthToBeSet = bodyCells[count].getBoundingClientRect().width;//bodyCells[count].offsetWidth;
+					}
 					totalWidth += widthToBeSet;
 					headerCells[count].style.width = widthToBeSet + "px";
 					bodyCells[count].style.width = widthToBeSet + "px";
