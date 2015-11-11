@@ -30,8 +30,8 @@ nsGrid.initializeComponent = function()
 	this.__DEFAULT_COLUMN_WIDTH = 100;
 	this.__MIN_DRAG_OFFSET = 100;
 	
-	this.columns = [];
-	this.selectedItems = [];
+	this.__columns = [];
+	this.__selectedItems = [];
 	
 	this.__title = null;
 	this.__dataSource = [];
@@ -40,11 +40,14 @@ nsGrid.initializeComponent = function()
 	this.__enableMouseHover = false;
 	this.__enableMultiSelection = false;
 	this.__customScrollerRequired = false;
+	this.__columnResizable = false;
+	this.__columnDraggable = false;
 	this.__childField = "children";
 	this.__groupByField = null;
-	this.__columnMinWidth = 10;
+	this.__columnMinWidth = 30;
 	//stores initial Column Count 
 	this.__initialColumnCount = 0;
+	this.__initialTableWidth = 0;
 	
 	this.__tblHeader = null;
 	this.__tblBody = null;
@@ -72,6 +75,7 @@ nsGrid.initializeComponent = function()
 	this.__fieldHasChild = this.getID() + "_row_hasChild";
 	this.__fieldHasParent = this.getID() + "_row_hasParent";
 	this.__fieldIsCollapsed = this.getID() + "_row_isCollapsed";
+	this.__fieldColNameArrow = this.getID() + "_arrow_field";
 	
 	this.__headerClickRef = null;
 	this.__headerMouseOverRef = null;
@@ -128,6 +132,19 @@ nsGrid.setComponentProperties = function()
 	{
 		this.__customScrollerRequired =  Boolean.parse(this.getAttribute("customScrollerRequired"));
 	}
+	if(this.hasAttribute("columnResizable"))
+	{
+		this.__columnResizable =  Boolean.parse(this.getAttribute("columnResizable"));
+	}
+	if(this.hasAttribute("columnDraggable"))
+	{
+		this.__columnDraggable =  Boolean.parse(this.getAttribute("columnDraggable"));
+	}
+	//preference to enableHierarchical
+	if(this.__enableHierarchical)
+	{
+		this.__enableGrouping = false;
+	}
 };
 
 nsGrid.propertyChange = function(attrName, oldVal, newVal, setProperty) 
@@ -148,16 +165,17 @@ nsGrid.setColumn = function(arrColumns)
 {
 	if(arrColumns && arrColumns.length > 0)
 	{
-		this.columns = arrColumns;
-		for(var count = 0;count < this.columns.length;count++)
+		this.__columns = arrColumns;
+		this.__checkForAdditionalColumns();
+		for(var count = 0;count < this.__columns.length;count++)
 		{
-			var item = this.columns[count];
+			var item = this.__columns[count];
 			this.__processColumnObject(item,count);
 		}
 	}
 	else
 	{
-		this.columns = [];
+		this.__columns = [];
 	}
 	this.__createStructure();
 	
@@ -185,6 +203,7 @@ nsGrid.dataSource = function(source)
 	{
 		this.__arrWrapper = null;
 	}
+	this.__initialTableWidth = 0;
 	this.__resetColumnHeaders();
 	this.__renderBody(false);
 	this.__setHeaderSortFunction();
@@ -220,38 +239,21 @@ nsGrid.addColumn = function(objColumn)
 {
 	if(objColumn)
 	{
-		this.__processColumnObject(objColumn,this.columns.length);
+		this.__processColumnObject(objColumn,this.__columns.length);
 		var isSetFixed = false;
-		if(objColumn.hasOwnProperty("width"))
-		{
-			var widthUnit = this.util.getDimensionUnit(objColumn["width"]);
-			//if width in px 
-			if(widthUnit === 2)
-			{
-				isSetFixed = true;
-			}
-		}
-		this.columns[this.columns.length] = objColumn;
+		this.__columns[this.__columns.length] = objColumn;
 		if(this.__tblHeader && this.__tblHeader.tHead && this.__tblHeader.tHead.rows && this.__tblHeader.tHead.rows.length > 0)
 		{
-			if(isSetFixed)
-			{
-				this.__tblHeader.style.tableLayout = "fixed";
-			}
 			var headerRow = this.__tblHeader.tHead.rows[0];
 			if(this.__tblHeader.tBodies && this.__tblHeader.tBodies.length > 0 && this.__tblHeader.tBodies[0].rows && this.__tblHeader.tBodies[0].rows.length > 0)
 			{
 				var headerBodyRow = this.__tblHeader.tBodies[0].rows[0];
 				this.__createHeaderHeaderCell(objColumn,headerRow);
-			    this.__createHeaderBodyCell(objColumn,headerBodyRow,this.columns.length - 1);
+			    this.__createHeaderBodyCell(objColumn,headerBodyRow,this.__columns.length - 1);
 			}
 		}
 		if(this.__tblBody && this.__tblBody.tHead && this.__tblBody.tHead.rows && this.__tblBody.tHead.rows.length > 0)
 	    {
-			if(isSetFixed)
-			{
-				this.__tblBody.style.tableLayout = "fixed";
-			}
 			var bodyRow = this.__tblBody.tHead.rows[0];
 	    	if(this.__tblBody.tBodies && this.__tblBody.tBodies.length > 0 && this.__tblBody.tBodies[0].rows && this.__tblBody.tBodies[0].rows.length > 0)
 			{
@@ -264,28 +266,17 @@ nsGrid.addColumn = function(objColumn)
 	    		{
 	    			row = arrRows[rowCount];
 	    			item = arrItems[rowCount];
-	    			this.__createBodyRowCell(row,item,objColumn,this.columns.length - 1,-1,null,0,true);
+	    			this.__createBodyRowCell(row,item,objColumn,this.__columns.length - 1,-1,null,0,true);
 	    	    }
 			}
 	    }
 		this.__alignTables(false);
 		this.__setHeaderSortFunctionForItem(objColumn);
-		if(isSetFixed)
-		{
-			if(this.__tblHeader)
-			{
-				this.__tblHeader.style.tableLayout = "auto";
-			}
-			if(this.__tblBody)
-			{
-				this.__tblBody.style.tableLayout = "auto";
-			}
-		}
 		return true;
 	}
 	else
 	{
-		this.util.throwNSError("NSGrid","Please pass valid Column object to be added.");
+		this.util.warning("NSGrid","Please pass valid Column object to be added.");
 		return false;
 	}
 };
@@ -300,7 +291,7 @@ nsGrid.removeColumn = function(column)
 			this.__removeHeaderCell(index);
 			this.__removeBodyColumn(index);
 			this.__alignTables(false);
-			this.columns.splice(index, 1);
+			this.__columns.splice(index, 1);
 
 			return true;
 		}
@@ -321,7 +312,7 @@ nsGrid.swapColumns = function(sourceColumn,destinationColumn)
 			this.__swapHeaderCell(sourceIndex,destinationIndex);
 			this.__swapBodyCell(sourceIndex,destinationIndex);
 			this.__alignTables(false);
-			this.util.swapArrayItems(this.columns,sourceIndex,destinationIndex);
+			this.util.swapArrayItems(this.__columns,sourceIndex,destinationIndex);
 			
 			return true;
 		}
@@ -329,13 +320,24 @@ nsGrid.swapColumns = function(sourceColumn,destinationColumn)
 	return false;
 };
 
+nsGrid.sortBy = function(column)
+{
+	var index = this.__getColumnIndexForSwapOrRemove(column);
+	if(index > -1 && this.__tblHeader.tBodies && this.__tblHeader.tBodies.length > 0 && this.__tblHeader.tBodies[0].rows && this.__tblHeader.tBodies[0].rows.length > 0)
+	{
+		var headerBodyRow = this.__tblHeader.tBodies[0].rows[0];
+		var arrHeaderCells = headerBodyRow.getElementsByTagName("td");
+		var cell = arrHeaderCells[index];
+	    var columnDetail = this.__getColumnObject(cell.getAttribute("currentColumnIndex"));
+	    this.__handleSorting(cell,columnDetail);
+	}
+};
+
 nsGrid.__processColumnObject = function(objColumn,index)
 {
 	if(objColumn)
 	{
 		objColumn[this.__fieldColIndex] = index;
-		objColumn["sortable"] = Boolean.parse(objColumn["sortable"]);
-		objColumn["sortDescending"] = Boolean.parse(objColumn["sortDescending"]);
 		if(objColumn.hasOwnProperty("width"))
 		{
 			var widthUnit = this.util.getDimensionUnit(objColumn["width"]);
@@ -343,6 +345,46 @@ nsGrid.__processColumnObject = function(objColumn,index)
 			{
 				objColumn["width"] = objColumn["width"] + "px";
 			}
+		}
+		objColumn["sortable"] = Boolean.parse(objColumn["sortable"]);
+		objColumn["sortDescending"] = Boolean.parse(objColumn["sortDescending"]);
+		if(this.__columnResizable)
+		{
+			if(objColumn.hasOwnProperty("resizable"))
+			{
+				objColumn["resizable"] = Boolean.parse(objColumn["resizable"]);
+			}
+			else
+			{
+				objColumn["resizable"] = true;
+			}
+		}
+		else
+		{
+			objColumn["resizable"] = false;
+		}
+		if(this.__columnDraggable)
+		{
+			if(objColumn.hasOwnProperty("draggable"))
+			{
+				objColumn["draggable"] = Boolean.parse(objColumn["draggable"]);
+			}
+			else
+			{
+				objColumn["draggable"] = true;
+			}
+		}
+		else
+		{
+			objColumn["draggable"] = false;
+		}
+		if(objColumn.hasOwnProperty("minWidth"))
+		{
+			objColumn["minWidth"] = this.util.getDimensionAsNumber(null,objColumn["minWidth"]);
+		}
+		else
+		{
+			objColumn["minWidth"] = this.__columnMinWidth;
 		}
 		//setData should be before template for checking
 		if(objColumn.hasOwnProperty("setData"))
@@ -447,7 +489,7 @@ nsGrid.__createHeader= function(parentElement)
 
 nsGrid.__createHeaderRows= function()
 {
-	if(this.__tblHeader && this.columns && this.columns.length > 0)
+	if(this.__tblHeader && this.__columns && this.__columns.length > 0)
 	{
 		var header = this.__tblHeader.createTHead();
 		var headerRow = header.insertRow(-1);
@@ -455,9 +497,9 @@ nsGrid.__createHeaderRows= function()
 	    var body = document.createElement("tbody");
 		this.__tblHeader.appendChild(body);
 	    var bodyRow = body.insertRow(-1);
-	    for (var colIndex = 0; colIndex < this.columns.length; colIndex++)
+	    for (var colIndex = 0; colIndex < this.__columns.length; colIndex++)
 	    {
-	    	var colItem = this.columns[colIndex];
+	    	var colItem = this.__columns[colIndex];
 	        this.__createHeaderHeaderCell(colItem,headerRow);
 	        this.__createHeaderBodyCell(colItem,bodyRow,colIndex);
 	    }
@@ -470,14 +512,6 @@ nsGrid.__createHeaderHeaderCell = function(colItem,headerRow)
 	{
 		var headerCell = headerRow.insertCell(-1);
 		headerCell.style.width = (colItem["width"]) ; 
-	/*	if(colItem.hasOwnProperty("width") && !isNaN(colItem["width"]))
-        {
-        	headerCell.style.width = Number(colItem["width"]) + "px";
-        }
-        else
-        {
-        	headerCell.style.width = this.__DEFAULT_COLUMN_WIDTH + "px";
-        }*/
 	}
 };
 
@@ -525,7 +559,7 @@ nsGrid.__setHeaderSortFunction = function()
 	        for(var colIndex = 0; colIndex < headerCells.length; colIndex++)
 	        {
 	        	var headerCell = headerCells[colIndex];
-	        	var colItem = this.columns[colIndex];
+	        	var colItem = this.__columns[colIndex];
 	        	this.__setHeaderSortFunctionForItem(colItem,dataSource);
 	        }
 		}
@@ -566,7 +600,7 @@ nsGrid.__setHeaderSortFunctionForItem = function(colItem,dataSource)
 
 nsGrid.__removeHeaderCell = function(colIndex)
 {
-	if(colIndex > -1 && colIndex < this.columns.length)
+	if(colIndex > -1 && colIndex < this.__columns.length)
 	{
 		if(this.__tblHeader && this.__tblHeader.tHead && this.__tblHeader.tHead.rows && this.__tblHeader.tHead.rows.length > 0)
 		{
@@ -644,9 +678,9 @@ nsGrid.__createBodyHeader= function()
 	var header = this.__tblBody.createTHead();
 	var headerRow = header.insertRow(-1);
     headerRow.style.height = "auto";
-    for (var colIndex = 0; colIndex < this.columns.length; colIndex++)
+    for (var colIndex = 0; colIndex < this.__columns.length; colIndex++)
     {
-        var colItem = this.columns[colIndex];
+        var colItem = this.__columns[colIndex];
         this.__createBodyHeaderCell(colItem,headerRow);
     }
 };
@@ -721,9 +755,9 @@ nsGrid.__createBodyRow= function(row,item,className,parentIndex,level,isReset)
 {
     if(item)
     {
-        for (var colIndex = 0; colIndex < this.columns.length; colIndex++)
+        for (var colIndex = 0; colIndex < this.__columns.length; colIndex++)
         {
-        	var colItem = this.columns[colIndex];
+        	var colItem = this.__columns[colIndex];
         	this.__createBodyRowCell(row,item,colItem,colIndex,parentIndex,className,level,isReset);
         }
     }
@@ -735,24 +769,32 @@ nsGrid.__createBodyRowCell= function(row,item,colItem,colIndex,parentIndex,class
 	{
 		var dataField = colItem["dataField"];
         var cell = row.insertCell(-1);
-        //if(className && className.length > 0)
-        //{
-            this.util.addStyleClass(cell , "dataGridCell");
-        //}
+        this.util.addStyleClass(cell , "dataGridCell");
         var cellDiv = this.util.createDiv(null);
         cell.appendChild(cellDiv);
-        if((this.__enableHierarchical || this.__enableGrouping) && colIndex == 0)
+        if(colIndex == 0)
         {
-        	if(level == 0)
+        	if(this.__enableHierarchical)
+            {
+            	if(level === 0)
+            	{
+            		cell.style.paddingLeft = "1px";
+            	}
+            	else
+            	{
+            		cell.style.paddingLeft = (10 * level) + "px";
+            	}
+            }
+        	else if(this.__enableGrouping)
         	{
-        		cell.style.paddingLeft = "1px";
+        		if(level === 0)
+        		{
+        			cell.style.paddingLeft = "1px";
+        		}
+        		console.log(level);
         	}
-        	else
-        	{
-        		cell.style.paddingLeft = (20 * level) + "px";
-        	}
-        	
         }
+        
         if((this.__enableHierarchical || this.__enableGrouping) && colIndex == 0 && item.hasOwnProperty(this.__childField) && item[this.__childField]  && item[this.__childField].length > 0)
         {
         	this.util.addStyleClass(cellDiv,this.__CLASS_GROUP_CELL);
@@ -775,7 +817,7 @@ nsGrid.__createBodyRowCell= function(row,item,colItem,colIndex,parentIndex,class
 
 nsGrid.__removeBodyColumn= function(colIndex)
 {
-	if(colIndex > -1 && colIndex < this.columns.length)
+	if(colIndex > -1 && colIndex < this.__columns.length)
 	{
 		if(this.__tblBody && this.__tblBody.tHead && this.__tblBody.tHead.rows && this.__tblBody.tHead.rows.length > 0)
 	    {
@@ -881,7 +923,7 @@ nsGrid.__addAscendingIndicator = function(target)
      {
           var indicator_Asc = document.createElement("span");
           indicator_Asc.setAttribute("id",this.getID() + "indicator_Asc");
-          indicator_Asc.innerHTML = this.util.isBrowserIE() ? "&nbsp<font size='5px' face='webdings'></font>" : "&nbsp;<font size='3px'>&#x25B4;</font>";
+          indicator_Asc.innerHTML = this.util.isBrowserIE() ? "&nbsp<font face='webdings'>5</font>" : "&nbsp;<font size='3px'>&#x25B4;</font>";
           target.firstChild.appendChild(indicator_Asc);
           this.util.addStyleClass(target,this.__CLASS_SORTING_ASC);
      }
@@ -1013,15 +1055,19 @@ nsGrid.__headerMouseMoveHandler = function(event)
 	event = this.util.getEvent(event);
 	var target = this.util.getTarget(event);
 	target = this.util.findParent(target,"TD");
-	if(this.__isMouseOnElement(target,event.clientX,event.clientY))
+	var objColumn = this.__getColumnObject(target.getAttribute("currentColumnIndex"));
+	if(objColumn && objColumn["resizable"])
 	{
-		this.util.addStyleClass(target,"resize-handle-active");
-		this.__onGridLine = true;
-	}
-	else
-	{
-		this.util.removeStyleClass(target,"resize-handle-active");
-		this.__onGridLine = false;
+		if(this.__isMouseOnElement(target,event.clientX,event.clientY))
+		{
+			this.util.addStyleClass(target,"resize-handle-active");
+			this.__onGridLine = true;
+		}
+		else
+		{
+			this.util.removeStyleClass(target,"resize-handle-active");
+			this.__onGridLine = false;
+		}
 	}
 };
 
@@ -1030,8 +1076,18 @@ nsGrid.__headerMouseDownHandler = function(event)
 	event = this.util.getEvent(event);
     var target = this.util.getTarget(event);
     target = this.util.findParent(target,"TD");
-    this.__startResize(event,target);
-    this.__startColumnMove(event,target);
+    var objColumn = this.__getColumnObject(target.getAttribute("currentColumnIndex"));
+    if(objColumn)
+	{
+    	if(objColumn["resizable"])
+    	{
+    		this.__startResize(event,target);
+    	}
+    	if(objColumn["draggable"])
+    	{
+		    this.__startColumnMove(event,target);
+    	}
+	}
 };
 
 nsGrid.__rowMouseHover= function(event)
@@ -1085,13 +1141,19 @@ nsGrid.__rowClickHandler= function(event)
 
 /******************************Column Resize Logic*************************************/
 
-nsGrid.__resize = function(table,cell, desirableWidth)
+nsGrid.__resize = function(table,cell,desirableWidth)
 {
 	var cellIndex = cell.cellIndex;
 	var cellPaddingLeft = this.util.getDimensionAsNumber(cell,cell.style.paddingLeft);
 	var cellPaddingRight = this.util.getDimensionAsNumber(cell,cell.style.paddingRight);
 	var pad = parseInt(cellPaddingLeft,10) + parseInt(cellPaddingRight,10);
-	var setWidth = Math.max(desirableWidth - pad, this.__columnMinWidth);
+	var objColumn = this.__getColumnObject(this.__resizingHeader.getAttribute("currentColumnIndex"));
+	var minWidth = this.__columnMinWidth;
+	if(objColumn)
+	{
+		minWidth = objColumn["minWidth"];
+	}
+	var setWidth = Math.max((desirableWidth - pad), minWidth);
 	cell.style.width = setWidth + "px";
 };
 
@@ -1161,7 +1223,7 @@ nsGrid.__endResize = function(event)
 	var tableHeader = this.__tblHeader;
 	var tableBody = this.__tblBody;
 	var desiredWidth = event.clientX - this.util.getCumulativeOffset(selectedHeader).x;
-	this.__resize(tableHeader,this.__resizingHeaderCell,desiredWidth);
+	//this.__resize(tableHeader,this.__resizingHeaderCell,desiredWidth);
 	this.__resize(tableBody,this.__resizingBodyCell,desiredWidth);
 	
 	if(this.__resizeHandler)
@@ -1341,7 +1403,7 @@ nsGrid.__markRowSelected= function(row)
         if(!this.__isRowSelected(row))
         {
         	this.util.addStyleClass(row,"dataGridSelection");   
-            this.selectedItems.push(row);
+            this.__selectedItems.push(row);
         	var index = parseInt(row.getAttribute("index"));
         	var item = this.__getItemByIndex(index);
             this.util.dispatchEvent(this,this.ITEM_SELECTED,item,{index:item[this.__fieldIndex]});
@@ -1354,11 +1416,11 @@ nsGrid.__markRowUnselected= function(row)
     if(this.__isRowSelected(row))
     {
     	this.util.removeStyleClass(row,"dataGridSelection");
-        for (var count=0; count < this.selectedItems.length ; count++)
+        for (var count=0; count < this.__selectedItems.length ; count++)
         {
-            if (parseInt(this.selectedItems[count].getAttribute("index")) === parseInt(row.getAttribute("index")))
+            if (parseInt(this.__selectedItems[count].getAttribute("index")) === parseInt(row.getAttribute("index")))
             {
-                this.selectedItems.splice(count,1);
+                this.__selectedItems.splice(count,1);
                 break;
             }
         }
@@ -1370,14 +1432,14 @@ nsGrid.__markRowUnselected= function(row)
 
 nsGrid.__clearAllRowSelection= function()
 {
-    for (var count=0; count < this.selectedItems.length ; count++)
+    for (var count=0; count < this.__selectedItems.length ; count++)
     {
-        if (this.selectedItems[count])
+        if (this.__selectedItems[count])
         {
-        	this.util.removeStyleClass(this.selectedItems[count],"dataGridSelection");
+        	this.util.removeStyleClass(this.__selectedItems[count],"dataGridSelection");
         }
     }
-    this.selectedItems = [];
+    this.__selectedItems = [];
 };
 
 nsGrid.__multiSectionHandler= function(lastRow)
@@ -1386,12 +1448,12 @@ nsGrid.__multiSectionHandler= function(lastRow)
 	 {
 		 return;
 	 }
-	 if (this.selectedItems.length === 0)
+	 if (this.__selectedItems.length === 0)
 	 {
 		 this.__isRowSelected(lastRow);
 	     return;
 	 }
-	 var firstRow = this.selectedItems[this.selectedItems.length - 1];
+	 var firstRow = this.__selectedItems[this.__selectedItems.length - 1];
 	 if(parseInt(lastRow.getAttribute("index")) === parseInt(firstRow.getAttribute("index")))
 	 {
 		 this.__markRowUnselected(lastRow);
@@ -1492,6 +1554,10 @@ nsGrid.__handleSorting= function(header,columnDetail)
    	  }
       this.__renderBody(true);
     }
+	else
+	{
+		this.util.warning("NSGrid","This column is not sortable.");
+	}
 };
 
 nsGrid.__sortHierarchicalStructure= function(dataSource,columnDetail,sortAscending)
@@ -1525,7 +1591,7 @@ nsGrid.__determineSortFunction= function(item)
       {
           sortFunction = "__sortDate";
       }
-      if (item.match(/^[ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£$]/))
+      if (item.match(/^[ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£$]/))
       {
           sortFunction = "__sortCurrency";
       }
@@ -1746,8 +1812,11 @@ nsGrid.__alignTables = function(fromSort)
 	var scrollBarWidth = this.util.getScrollBarWidth(divBody);
 	divHeader.style.width = (divBody.offsetWidth - scrollBarWidth) + "px";
 	//divHeader.style.backgroundColor = "#D8D8D8";
-	this.__synchronizeTablesRef = this.__synchronizeTables.bind(this);
-	this.util.addEvent(divBody,"scroll",this.__synchronizeTablesRef);
+	if(!this.__synchronizeTablesRef)
+	{
+		this.__synchronizeTablesRef = this.__synchronizeTables.bind(this);
+		this.util.addEvent(divBody,"scroll",this.__synchronizeTablesRef);
+	}
 	
 	if(tableHeader.tHead && tableHeader.tHead.rows.length > 0 && tableBody.tHead && tableBody.tHead.rows.length)
 	{
@@ -1785,6 +1854,14 @@ nsGrid.__alignTables = function(fromSort)
 					headerCells[count].style.width = widthToBeSet + "px";
 					bodyCells[count].style.width = widthToBeSet + "px";
 				}
+			}
+			if(this.__initialTableWidth < 1)
+			{
+				this.__initialTableWidth = totalWidth;
+			}
+			if(this.__initialTableWidth > totalWidth)
+			{
+				totalWidth = this.__initialTableWidth;
 			}
 			tableBody.style.width = totalWidth + "px";
 			tableHeader.style.width = totalWidth + "px";
@@ -2144,15 +2221,32 @@ nsGrid.__getItemByIndex = function(indexToFind,source)
 	return retValue;
 };
 
+nsGrid.__checkForAdditionalColumns = function()
+{
+	if(this.__enableGrouping)
+	{
+		var colArrow = {};
+		colArrow.headerText = "";
+		colArrow.dataField = this.__fieldColNameArrow;
+		colArrow.width = "50px";
+		colArrow.sortable = false;
+		colArrow.sortDescending = true;
+		colArrow.draggable = false;
+		colArrow.resizable = false;
+		
+		this.__columns.splice(0, 0, colArrow);
+	}
+};
+
 nsGrid.__getColumnObject = function(index)
 {
 	index = parseInt(index);
-	if(this.columns && index > -1 && index < this.columns.length)
+	if(this.__columns && index > -1 && index < this.__columns.length)
 	{
 		var item = null;
-		for(var count = 0;count < this.columns.length;count++)
+		for(var count = 0;count < this.__columns.length;count++)
 		{
-			item = this.columns[count];
+			item = this.__columns[count];
 			if(item[this.__fieldColIndex] === index)
 			{
 				return item;
@@ -2164,12 +2258,12 @@ nsGrid.__getColumnObject = function(index)
 
 nsGrid.__getColumnIndexByObject = function(objColumn)
 {
-	if(this.columns && objColumn)
+	if(this.__columns && objColumn)
 	{
 		var item = null;
-		for(var count = 0;count < this.columns.length;count++)
+		for(var count = 0;count < this.__columns.length;count++)
 		{
-			if(this.columns[count][this.__fieldColIndex] === objColumn[this.__fieldColIndex])
+			if(this.__columns[count][this.__fieldColIndex] === objColumn[this.__fieldColIndex])
 			{
 				return count;
 			}
@@ -2185,15 +2279,15 @@ nsGrid.__getColumnIndexForSwapOrRemove = function(column)
 	//checking below like this because column = 0 then column will return false;
 	if(!this.util.isUndefined(column) && column != null)
 	{
-		if(this.util.isNumber(column) && this.columns && column < this.columns.length)
+		if(this.util.isNumber(column) && this.__columns && column < this.__columns.length)
 		{
 			index = column;
 		}
 		else if(this.util.isString(column))
 		{
-			for(var count = 0;count < this.columns.length;count++)
+			for(var count = 0;count < this.__columns.length;count++)
 			{
-				var item = this.columns[count];
+				var item = this.__columns[count];
 				if(item["dataField"] === column)
 				{
 					index = count;
@@ -2204,7 +2298,7 @@ nsGrid.__getColumnIndexForSwapOrRemove = function(column)
 	}
 	else
 	{
-		this.util.throwNSError("NSGrid","Please pass valid column information.");
+		this.util.warning("NSGrid","Please pass valid column information.");
 	}
 	return index;
 };
@@ -2213,9 +2307,9 @@ nsGrid.__isColumnValidForSwapOrRemove = function(columnIndex,operation)
 {
 	if(this.__isColumnIndexValid(columnIndex))
 	{
-		if((this.__enableHierarchical && columnIndex === 0) || (this.__enableGrouping && (columnIndex === 0 || this.columns[columnIndex]["dataField"] === this.__groupByField)))
+		if((this.__enableHierarchical && columnIndex === 0) || (this.__enableGrouping && (columnIndex === 0 || this.__columns[columnIndex]["dataField"] === this.__groupByField)))
 		{
-			this.util.throwNSError("NSGrid","This column cannot be " + operation + ".");
+			this.util.warning("NSGrid","This column cannot be " + operation + ".");
 			return false;
 		}
 		return true;
@@ -2238,7 +2332,7 @@ nsGrid.__swapCell = function(sourceCell,destinationCell)
 
 nsGrid.__isColumnIndexValid = function(columnIndex)
 {
-	if(columnIndex > -1 && columnIndex < this.columns.length)
+	if(columnIndex > -1 && columnIndex < this.__columns.length)
 	{
 		return true;
 	}
