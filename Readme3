@@ -1,302 +1,41 @@
-NSUtil.prototype.ajax = function(setting)
-{
-	this.__setting = setting;
-	this.__config = null;
-	this.__request = null;
-	this.__requestDone = false;
-	this.__functionNameInitials = "nsjsonp";
-	this.__instanceNameInitials = "nsjsonpIns";
-	this.__random = -1;
-	this.util = new NSUtil();
-	
-	this.__bindFunction = function (caller, object) 
+this.addCircle = function (id,centerX,centerY,radius,className) 
 	{
-		return function() 
-		{
-			return caller.apply(object, [object]);
-		};
-	};
-	
-	this.__handleJSONP = function()
-	{
-		if(this.__random === -1)
-		{
-			this.__random = this.util.getUniqueId();
-		}
-		var functionName = this.__functionNameInitials + this.__random;
-		var instanceName = this.__instanceNameInitials + this.__random;
-		window[instanceName] = this;
-		window[functionName] = function(json){
-			if(window[instanceName])
-			{
-				window[instanceName].__defaultSuccessHandler(json,"jsonp");
-			}
-		};
-		var url = this.__config.url + "?callback=" + functionName;
-		var strParam = this.__getParam();
-		if(strParam && strParam != "")
-		{
-			url += "&" + strParam;
-		}
-		this.__createScript(url);	
-	};
-	
-	this.__createScript = function(url)
-	{
-        var domPosition = document.getElementsByTagName("body")[0];
-        var script = document.createElement("script");
-        script.async = true;
-        script.setAttribute("id", url);
-        script.setAttribute("type","text/javascript");
-        script.setAttribute("src",url);
-        script.onload = script.onreadystatechange = function()
-        {
-        	if (!script.readyState || /loaded|complete/.test(script.readyState)) 
-        	{
-				script.onload = script.onreadystatechange = null;
-				if (script.parentNode) 
-				{
-					script.parentNode.removeChild(script);
-				}
-				script = null;
-			}
-        }; 
-        domPosition.appendChild(script);
-	};
-
-	this.__stateChange = function (object) 
-	{
-		if (this.__request.readyState === 4 && !this.__requestDone)
-		{
-			var data = this.__getResponseData();
-			if (this.__isRequestSuccess()) 
-			{
-				this.__defaultSuccessHandler(data,this.__config.dataType);
-			}
-			else 
-			{
-				this.__defaultErrorHandler(data);
-			}
-			this.__defaultCompleteHandler(data);
-			this.__request = null;
-		}
-		else if (this.__request.readyState != 4 && this.__requestDone) 
-		{
-			console.log("Ajax Request has timed out");
-			this.__request.onreadystatechange = null;
-		}
-	};
-	
-	this.__isRequestSuccess = function()
-	{
-		var retValue = false;
-		//if requesting a local resource
-		if(!this.__request.status && location.protocol == "file:")
-		{
-			retValue = true;
-		}
-		// Any status in the 200 range is good
-		else if (this.__request.status >= 200 && this.__request.status < 300)
-		{
-			retValue = true;
-		}
-		//Successful if the document has not been modified and Safari returns an empty status if the file has not been modified
-		else if(this.__request.status == 304 || (navigator.userAgent.indexOf("Safari") >= 0 && typeof this.__request.status == "undefined"))
-		{
-			retValue = true;
-		}
-		return retValue;
-	};
-	
-	this.__getResponseData = function()
-	{
-		var contentType = this.__request.getResponseHeader("content-type");
-		var data = null;
-		var isXMLData = false;
-		var dataType = this.__requestDone.dataType;
-		if(!dataType && contentType && contentType.indexOf("xml") > -1)
-		{
-			isXMLData = true;
-		}
-		if(isXMLData || (dataType && dataType.indexOf("xml") > -1))
-		{
-			data = this.__request.responseXML;
-		}
-		else
-		{
-			data = this.__request.responseText;
-		}
-		// If the specified type is "script", execute the returned text response as if it was JavaScript
-		if (dataType == "script") 
-		{
-			eval.call(window, data);
-		}
-		return data;
-	};
-
-	this.__getRequest = function() 
-	{
-		if (window.ActiveXObject)
-		{
-			return new ActiveXObject('Microsoft.XMLHTTP');
-		}
-		else if (window.XMLHttpRequest)
-		{
-			return new XMLHttpRequest();
-		}
-		return false;
-	};
-	
-	this.__getParam = function()
-	{
-		var strParam = "";
-		var param = this.__config.param;
-		for(var paramKey in param)
-		{
-			if(param[paramKey])
-			{
-				strParam += "&" + paramKey + "=" + param[paramKey];
-			}
-		}
-		if(strParam && strParam.length > 1)
-		{
-			strParam = strParam.substring(1);
-		}
-		return strParam;
-	};
-	
-	this.__defaultSuccessHandler = function(response,dataType)
-	{
-		if(dataType === "jsonp")
-		{
-			 var functionName = this.__functionNameInitials + this.__random;
-			 var instanceName = this.__instanceNameInitials + this.__random;
-			 if(window[instanceName])
-			 {
-				 window[instanceName] = null;
-			 }
-			 if(window[functionName])
-			 {
-				 window[functionName] = null;
-			 }
-		}
-		if(this.__config.successHandler)
-		{
-			this.__config.successHandler(response);
-		}
-	};
-	
-	this.__defaultErrorHandler = function(response)
-	{
-		if(this.__config.errorHandler)
-		{
-			this.__config.errorHandler(response);
-		}
-	};
-	
-	this.__defaultCompleteHandler = function()
-	{
-		if(this.__config.completeHandler)
-		{
-			this.__config.completeHandler();
-		}
-	};
-	
-	this.__initialize = function()
-	{
-		if(!this.__setting)
-		{
-			return;
-		}
-		this.__config = {
-			method: this.__setting["method"] || "POST",
-			url: this.__setting["url"] || "",
-			param: this.__setting["param"] || {},
-			dataType: this.__setting["dataType"] || "",
-			successHandler: this.__setting["successHandler"] || function(){},
-			errorHandler: this.__setting["errorHandler"] || function(){},
-			completeHandler: this.__setting["completeHandler"] || function(){},
-			timeout: this.__setting.timeout || -1
-		};
-		if(this.__config.dataType.toUpperCase() === "JSONP")
-		{
-			this.__handleJSONP();
-		}
-		else
-		{
-			if(this.__config.timeout > 0)
-			{
-				var ref = this;
-				window.setTimeout(function() 
-				{
-					ref.requestDone = true;
-				}, this.config.timeout);
-			}
-			this.__request = this.__getRequest();
-			if(this.__request) 
-			{
-				var req = this.__request;
-				var strParam = this.__getParam();
-				if (this.__config.method.toUpperCase === "POST") 
-				{
-					req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-					req.open("POST",this.__config.url, true);
-				} 
-				else 
-				{
-					var url = this.__config.url;
-					if(strParam && strParam != "")
-					{
-						url += "?" + strParam;
-						//so that send method sends as null for GET
-						strParam = null;
-					}
-					req.open("GET",url, true);
-				}
-				req.onreadystatechange = this.__bindFunction(this.__stateChange, this);
-				if(this.__config.dataType)
-				{
-					//req.responseType = this.__config.dataType;
-				}
-				req.send(this.postBody);
-			}
-		}
-	};
-	this.__initialize();
-};
-
-NSUtil.prototype.svgUtil = function()
-{
-	this.util = new NSUtil();
-	
-	this.changePathValue = function (objPath,pathString) 
-	{
-		 var path = this.util.getElement(objPath);
-		 if(path)
+		 var circle = document.createElementNS(this.namespace,"circle");
+		 if(id)
 		 {
-			 path.setAttribute("d", pathString);
-			 return true;
+			 circle.setAttributeNS(null,"id",id);
 		 }
-		 return false;
-	};
-	
-	this.getPathValue = function (objPath) 
-	{
-		 var path = this.util.getElement(objPath);
-		 if(path)
+		 circle.setAttributeNS(null,"cx",centerX);
+		 circle.setAttributeNS(null,"cy",centerY);
+		 circle.setAttributeNS(null,"r",radius);
+		 if(className)
 		 {
-			 return path.getAttribute("d");
+			 this.util.addStyleClass(circle,className);
 		 }
-		 return null;
+		 this.__svg.appendChild(circle);
 	};
 	
+	this.addline = function (id,xFrom,yFrom,xTo,yTo,className) 
+	{
+		 var line = document.createElementNS(this.namespace,"line");
+		 if(id)
+		 {
+			 line.setAttributeNS(null,"id",id);
+		 }
+		 line.setAttributeNS(null,"x1",xFrom);
+		 line.setAttributeNS(null,"y1",yFrom);
+		 line.setAttributeNS(null,"x2",xTo);
+		 line.setAttributeNS(null,"y2",yTo);
+		 if(className)
+		 {
+			 this.util.addStyleClass(line,className);
+		 }
+		 this.__svg.appendChild(line);
+	};
 	
-	
-	nsGrid.__setInitialTableWidth = function()
+	.nsGridGroupIcon
 {
-	var divBody = this.getElement(this.getID() + this.__TABLE_BODY_CONTAINER_ID);
-	var scrollBarWidth = this.util.getScrollBarWidth(divBody);
-	var divOuterContainer = this.getElement(this.getID() + this.__OUTER_CONTAINER_ID);
-	this.__initialTableWidth = divOuterContainer.offsetWidth - scrollBarWidth;
-};
-};
+    /*fill:#FFFFFF;*/
+	stroke:#FFFFFF;
+	stroke-width:2.5;
+}
