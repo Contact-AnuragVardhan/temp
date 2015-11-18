@@ -38,6 +38,7 @@ nsGrid.initializeComponent = function()
 	this.__DEFAULT_COLUMN_WIDTH = 100;
 	this.__MIN_DRAG_OFFSET = 100;
 	this.__INFINITE_SCROLL_PADDING = 40;
+	this.__INFINITE_SCROLL_INITIAL_LOAD = 250;
 	
 	this.__columns = [];
 	this.__selectedItems = [];
@@ -159,10 +160,6 @@ nsGrid.setComponentProperties = function()
 	{
 		this.__enablePagination =  Boolean.parse(this.getAttribute("enablePagination"));
 	}
-	if(this.hasAttribute("type"))
-	{
-		this.__type = this.getAttribute("type");
-	}
 	if(this.hasAttribute("paginationType"))
 	{
 		this.__paginationType =  this.getAttribute("paginationType");
@@ -234,20 +231,31 @@ nsGrid.setColumn = function(arrColumns)
 
 nsGrid.dataSource = function(source)
 {
+	var start = new Date().getTime();
 	this.__dataSource = source;
 	if(this.__dataSource && this.__dataSource.length > 0)
 	{
 		if(this.__enableGrouping && this.__groupByField && this.__groupByField.length > 0)
 		{
+			var arrGroupField = this.__groupByField.split(",");
 			if(!this.__groupCollection)
 			{
 				this.__groupCollection = new this.util.groupCollection(this.__dataSource,this.__childField);
 			}
-			this.__arrWrapper = this.__groupCollection.groupBy([this.__groupByField]);
+			this.__arrWrapper = this.__groupCollection.groupBy(arrGroupField);
 		}
 		else
 		{
-			this.__arrWrapper = this.__dataSource.slice(0);
+			if(!this.__enableHierarchical && !this.__enableGrouping && this.__enablePagination && this.__isPaginationTypeScroll && this.__isPaginationModeAuto)
+			{
+				this.__arrWrapper = this.__dataSource.slice(0,this.__INFINITE_SCROLL_INITIAL_LOAD);
+				this.__totalRecords = this.__dataSource.length;
+				this.__fetchRecordCallBack = this.__addRowsforPagination.bind(this);
+			}
+			else
+			{
+				this.__arrWrapper = this.__dataSource.slice(0);
+			}
 		}
 	}
 	else
@@ -258,6 +266,9 @@ nsGrid.dataSource = function(source)
 	this.__resetColumnHeaders();
 	this.__renderBody(false);
 	this.__setHeaderSortFunction();
+	var end = new Date().getTime();
+	var time = end - start;
+	console.log('Execution time: ' + (time / 1000.0));
 };
 
 nsGrid.addRows = function(source)
@@ -297,6 +308,18 @@ nsGrid.collapseAll = function()
 	if(this.__enableHierarchical || this.__enableGrouping)
 	{
 		this.__expandCollapseAll(this.__arrWrapper,true);
+	}
+};
+
+nsGrid.setFontSize = function(fontSize)
+{
+	if(this.__tblHeader)
+	{
+		this.__tblHeader.style.fontSize = fontSize;
+	}
+	if(this.__tblBody)
+	{
+		this.__tblBody.style.fontSize = fontSize;
 	}
 };
 
@@ -452,27 +475,42 @@ nsGrid.__processColumnObject = function(objColumn,index)
 		{
 			objColumn["minWidth"] = this.__columnMinWidth;
 		}
-		//setData should be before template for checking
-		if(objColumn.hasOwnProperty("setData"))
+		//itemRendrer property gets precedence over template
+		if(objColumn.hasOwnProperty("itemRenderer"))
 		{
-			var setData = objColumn["setData"];
-			if (typeof setData === "string" || setData instanceof String)
+			var itemRenderer = objColumn["itemRenderer"];
+			if (typeof itemRenderer === "string" || itemRenderer instanceof String)
 			{
-				if(this.util.isFunction(setData))
+				if(this.util.isFunction(itemRenderer))
 				{
-					objColumn.setData = window[setData];
+					objColumn.itemRenderer = window[itemRenderer];
 				}
 			}
 		}
-		if(objColumn.hasOwnProperty("template") && objColumn["template"])
-		{
-			objColumn.itemRenderer = this.util.getTemplate(objColumn["template"]);
-		}
 		else
 		{
-			var renderer = new this.util.defaultRenderer();
-			objColumn.itemRenderer = renderer.getRenderer();
-			objColumn.setData = renderer.setData.bind(renderer);
+			//setData should be before template for checking
+			if(objColumn.hasOwnProperty("setData"))
+			{
+				var setData = objColumn["setData"];
+				if (typeof setData === "string" || setData instanceof String)
+				{
+					if(this.util.isFunction(setData))
+					{
+						objColumn.setData = window[setData];
+					}
+				}
+			}
+			if(objColumn.hasOwnProperty("template") && objColumn["template"])
+			{
+				objColumn.templateRenderer = this.util.getTemplate(objColumn["template"]);
+			}
+			/*else
+			{
+				var renderer = new this.util.defaultRenderer();
+				objColumn.templateRenderer = renderer.getRenderer();
+				objColumn.setData = renderer.setData.bind(renderer);
+			}*/
 		}
 	}
 	return objColumn;
@@ -646,14 +684,14 @@ nsGrid.__setHeaderSortFunctionForItem = function(colItem,dataSource)
     		for(var count = 0; count < dataSource.length; count++)
             {
                  item = dataSource[count][colItem["dataField"]];
-                 if(item && item != "")
+                 if(!this.util.isUndefined(item) && item != null && item != "")
                  {
                 	 break;
                  }
             }
-            if(item && item != "")
+    		if(!this.util.isUndefined(item) && item != null && item != "")
             {
-            	colItem.sortFunction = this.__determineSortFunction(item);
+            	colItem.sortFunction = this.__determineSortFunction(item.toString());
             }
             else
             {
@@ -732,7 +770,7 @@ nsGrid.__renderBody = function(fromSort)
     var body = document.createElement("tbody");
 	this.__tblBody.appendChild(body);
 	this.__createBodyHeader();
-	this.__createBodyBody(this.__arrWrapper,0,0,!fromSort);
+	this.__createBodyBody(this.__arrWrapper,0,0,!fromSort,0,this.__arrWrapper.length);
 	this.__alignTables(fromSort);
 	var divBodyContainer = this.getElement(this.getID() + this.__TABLE_BODY_CONTAINER_ID);
 	if(this.__customScrollerRequired && !this.__scroller)
@@ -765,12 +803,12 @@ nsGrid.__createBodyHeaderCell= function(colItem,headerRow)
 	}
 };
 
-nsGrid.__createBodyBody= function(dataSet,parentIndex,level,isReset)
+nsGrid.__createBodyBody= function(dataSet,parentIndex,level,isReset,startIndex,endIndex)
 {
     if(dataSet)
     {
     	 var body = this.__tblBody.tBodies[0];
-    	 for (var rowIndex = 0; rowIndex < dataSet.length; rowIndex++)
+    	 for (var rowIndex = startIndex; rowIndex < endIndex; rowIndex++)
 	     {
     		var item = dataSet[rowIndex];
     		this.__createBodyRow(body,item,parentIndex,level,isReset);
@@ -797,7 +835,7 @@ nsGrid.__createBodyRow= function(body,item,parentIndex,level,isReset)
     if((this.__enableHierarchical || this.__enableGrouping) && item.hasOwnProperty(this.__childField) && item[this.__childField]  && item[this.__childField].length > 0)
     {
     	hasChild = true;
-    	this.__createBodyBody(item[this.__childField],totalRowCount,level + 1,isReset);
+    	this.__createBodyBody(item[this.__childField],totalRowCount,level + 1,isReset,0,item[this.__childField].length);
     }
     item[this.__fieldIndex] = index;
 	item[this.__fieldRow] = row;
@@ -864,7 +902,6 @@ nsGrid.__createBodyRowCell= function(row,item,colItem,colIndex,parentIndex,class
         		{
         			cell.style.paddingLeft = "1px";
         		}
-        		console.log(level);
         	}
         }
         
@@ -946,8 +983,19 @@ nsGrid.__createArrow = function(parentRowCount,parentElement,isCollapsed)
 		 var compArrow = this.util.createDiv(arrowID);
 		 compArrow.setAttribute("parent-row-count",parentRowCount);
 		 
-		 var objSVG = new this.util.svg(compArrow,arrowID + "_svg",20,20,0,0);
-		 objSVG.addPath(arrowID + "_path",this.__ARROW_EXPANDED_PATH,this.__CLASS_ARROW);
+		 var objSVG = null;
+		 if(this.__enableHierarchical)
+		 {
+			 objSVG = new this.util.svg(compArrow,arrowID + "_svg",20,20,0,0);
+			 objSVG.addPath(arrowID + "_path",this.__ARROW_EXPANDED_PATH,this.__CLASS_ARROW);
+		 }
+		 else if(this.__enableGrouping)
+		 {
+			 objSVG = new this.util.svg(compArrow,arrowID + "_svg",16,16,0,0);
+			 objSVG.addCircle(arrowID + "_circle",8,8,8);
+			 objSVG.addline(arrowID + "_horizontalLine",2,7.5,14,7.5,"nsGridGroupIcon");
+			 objSVG.addline(arrowID + "_verticalLine",8,2,8,14,"nsGridGroupIcon");
+		 }
 		 
 		 this.__arrowClickRef = this.__arrowClickHandler.bind(this);
 		 this.util.addEvent(compArrow,"click",this.__arrowClickRef);
@@ -963,26 +1011,47 @@ nsGrid.__setArrowDirection = function(compArrow,isCollapsed)
 {
 	if(compArrow)
 	{
-		var svgUtil = new this.util.svgUtil();
-		var pathID = compArrow.getAttribute("id") + "_path";
-		if(isCollapsed)
+		if(this.__enableHierarchical)
 		{
-			svgUtil.changePathValue(pathID,this.__ARROW_COLLAPSE_PATH);
+			var svgUtil = new this.util.svgUtil();
+			var pathID = compArrow.getAttribute("id") + "_path";
+			if(isCollapsed)
+			{
+				svgUtil.changePathValue(pathID,this.__ARROW_COLLAPSE_PATH);
+			}
+			else
+			{
+				svgUtil.changePathValue(pathID,this.__ARROW_EXPANDED_PATH);
+			}
 		}
-		else
+		else if(this.__enableGrouping)
 		{
-			svgUtil.changePathValue(pathID,this.__ARROW_EXPANDED_PATH);
+			var verticalLine = this.util.getElement(compArrow.getAttribute("id") + "_verticalLine");
+			if(verticalLine)
+			{
+				if(isCollapsed)
+				{
+					verticalLine.style.display = "none";
+				}
+				else
+				{
+					verticalLine.style.display = "inline";
+				}
+			}
 		}
 	}
 };
 
 nsGrid.__isArrowCollapsed = function(compArrow)
 {
-	if(compArrow)
+	if(compArrow && compArrow.hasAttribute("parent-row-count"))
 	{
-		var svgUtil = new this.util.svgUtil();
-		var pathValue = svgUtil.getPathValue(compArrow.getAttribute("id") + "_path");
-		return (pathValue === this.__ARROW_COLLAPSE_PATH);
+		var rowIndex = parseInt(compArrow.getAttribute("parent-row-count"));
+		var item = this.__getItemByIndex(rowIndex);
+		if(item)
+		{
+			return item[this.__fieldIsCollapsed];
+		}
 	}
 	return false;
 };
@@ -1661,7 +1730,7 @@ nsGrid.__determineSortFunction= function(item)
       {
           sortFunction = "__sortDate";
       }
-      if (item.match(/^[ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£$]/))
+      if (item.match(/^[Ã‚Â£$]/))
       {
           sortFunction = "__sortCurrency";
       }
@@ -1952,7 +2021,7 @@ nsGrid.__bodyScrollHandler = function(event)
 	var scrollPos = target.scrollTop;
 	if(((this.__bodyMeasuredScroll - this.__INFINITE_SCROLL_PADDING) <= scrollPos) && (scrollPos > this.__bodyScrollPos))
 	{
-		if(this.__fetchRecordCallBack)
+		if(this.__fetchRecordCallBack && this.__totalRecords > this.__arrWrapper.length)
 		{
 			this.__fetchRecordCallBack(this.__arrWrapper.length,this.__pageSize);
 		}
@@ -2082,22 +2151,37 @@ nsGrid.__isNodeLastParent = function(item)
 
 nsGrid.__addCellText = function(item,div,colItem,colIndex)
 {
-	var dataField = colItem["dataField"];
-	var itemRenderer = colItem["itemRenderer"];
-	var setData = colItem["setData"];
-	if(itemRenderer)
+	if(item && div && colItem)
 	{
-		div.appendChild(itemRenderer.cloneNode(true));
-		this.__setDataInCell(div,item,dataField,setData,colItem);
-		var expectedHeight = this.__calculateCellExpectedHeight(itemRenderer);
-		if(expectedHeight > 0)
+		var dataField = colItem["dataField"];
+		var templateRenderer = colItem["templateRenderer"];
+		var setData = colItem["setData"];
+		var itemRenderer = colItem["itemRenderer"];
+		if(itemRenderer)
 		{
-			//div.children[0].style.height = expectedHeight + "px";
+			var strRenderer = itemRenderer(item,dataField,this.__getTotalRows() - 1,colIndex);
+			if(strRenderer)
+			{
+				var compBodySpan = document.createElement("span");
+				compBodySpan.innerHTML = strRenderer;
+				div.appendChild(compBodySpan);
+				return ;
+			}
 		}
+		else if(templateRenderer)
+		{
+			div.appendChild(templateRenderer.cloneNode(true));
+			this.__setDataInTemplateRenderer(div,item,dataField,setData,colItem);
+		}
+		else if(item.hasOwnProperty(dataField) && !this.util.isUndefined(item[dataField]) && item[dataField] != null)
+	    {
+			var text = item[dataField];
+			div.appendChild(document.createTextNode(text));
+	    }
 	}
 };
 
-nsGrid.__setDataInCell = function(cellItem,data,dataField,setData,colItem)
+nsGrid.__setDataInTemplateRenderer = function(cellItem,data,dataField,setData,colItem)
 {
 	if(cellItem && setData)
 	{
@@ -2187,12 +2271,12 @@ nsGrid.__setRendererProperties = function(cellItem)
 	}
 };
 
-nsGrid.__calculateCellExpectedHeight = function(itemRenderer)
+nsGrid.__calculateCellExpectedHeight = function(templateRenderer)
 {
 	var retHeight =  -1;
-	if(itemRenderer)
+	if(templateRenderer)
 	{
-		var tempRenderer = itemRenderer.cloneNode(true);
+		var tempRenderer = templateRenderer.cloneNode(true);
 		tempRenderer.removeAttribute("id");
 		this.addChild(tempRenderer);
 		retHeight = tempRenderer.offsetHeight;
@@ -2422,14 +2506,14 @@ nsGrid.__swapCell = function(sourceCell,destinationCell)
 
 nsGrid.__addRowsforPagination = function(startCount,pageSize)
 {
-	if(sourceCell && destinationCell)
-	{
-		var cellSource = this.util.copyElement(sourceCell);
-		this.util.copyElement(destinationCell,sourceCell);
-		this.util.copyElement(cellSource,destinationCell);
-		return true;
-	}
-	return false;
+	//if(sourceCell && destinationCell)
+	//{
+		//console.log(this.__dataSource.slice(startCount,startCount + pageSize));
+		var arrArray = this.__dataSource.slice(startCount,startCount + pageSize); 
+		this.addRows(arrArray);
+		//this.__arrWrapper = this.__arrWrapper.concat(arrArray);
+		//this.__createBodyBody(this.__arrWrapper,0,0,false,startCount,this.__arrWrapper.length);
+	//}
 };
 
 nsGrid.__isColumnIndexValid = function(columnIndex)
@@ -2457,7 +2541,7 @@ nsGrid.__setGridType = function()
 	{
 		this.__enableHierarchical = true;
 	}
-	else if(this.__type === this.GRID_TYPE_HIERARCHICAL)
+	else if(this.__type === this.GRID_TYPE_GROUP)
 	{
 		this.__enableGrouping = true;
 	}
@@ -2480,7 +2564,6 @@ nsGrid.__setPaginationMode = function()
 	if(!this.__paginationMode || this.__paginationMode === this.PAGINATION_MODE_AUTO)
 	{
 		this.__isPaginationModeAuto = true;
-		this.__fetchRecordCallBack = this.
 	}
 	else
 	{
