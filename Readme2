@@ -1,2 +1,17 @@
 http://www.ifadey.com/2011/07/context-menu-using-raw-javascript/
 https://github.com/battatech/battatech_excelexport/blob/master/src/Scripts/jquery.battatech.excelexport.js
+
+//returns event for all kind of browser
+NSUtil.prototype.preventDefault = function(event)
+{
+	event = this.getEvent(event);
+	if(event.preventDefault) 
+	{
+	   event.preventDefault();
+	}
+	else
+	{
+	   event.returnValue = false;
+	}
+};
+
