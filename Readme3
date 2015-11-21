@@ -1,41 +1,250 @@
-this.addCircle = function (id,centerX,centerY,radius,className) 
-	{
-		 var circle = document.createElementNS(this.namespace,"circle");
-		 if(id)
-		 {
-			 circle.setAttributeNS(null,"id",id);
-		 }
-		 circle.setAttributeNS(null,"cx",centerX);
-		 circle.setAttributeNS(null,"cy",centerY);
-		 circle.setAttributeNS(null,"r",radius);
-		 if(className)
-		 {
-			 this.util.addStyleClass(circle,className);
-		 }
-		 this.__svg.appendChild(circle);
-	};
-	
-	this.addline = function (id,xFrom,yFrom,xTo,yTo,className) 
-	{
-		 var line = document.createElementNS(this.namespace,"line");
-		 if(id)
-		 {
-			 line.setAttributeNS(null,"id",id);
-		 }
-		 line.setAttributeNS(null,"x1",xFrom);
-		 line.setAttributeNS(null,"y1",yFrom);
-		 line.setAttributeNS(null,"x2",xTo);
-		 line.setAttributeNS(null,"y2",yTo);
-		 if(className)
-		 {
-			 this.util.addStyleClass(line,className);
-		 }
-		 this.__svg.appendChild(line);
-	};
-	
-	.nsGridGroupIcon
+ "use strict"; 
+function NSMenu(parantElement,dataSource,isContextMenu,eventType) 
 {
-    /*fill:#FFFFFF;*/
-	stroke:#FFFFFF;
-	stroke-width:2.5;
+	this.ESC_KEYCODE = 27;
+	
+	this.__parentElement = parantElement;
+	this.__dataSource = dataSource;
+	this.__isContextMenu = isContextMenu;
+	this.__eventType = eventType;
+	
+	this.__id = null;
+	this.__menu = null;
+	this.__fieldItem = this.__getID() + "_item";
+	this.__fieldChild = "children";
+	this.util = new NSUtil();
+	
+	this.__documentClickRef = null;
+	this.__documentKeyUpRef = null;
+	this.__lastSelectedTarget = null;
+	
+	this.__initialize();
 }
+
+NSMenu.prototype.show = function (event) 
+{ 
+	event = this.util.getEvent(event);
+	this.util.addStyleClass(this.__menu,"show-menu");
+	var position = this.util.getEventPosition(event);
+	this.__menu.style.left = position.left + "px";
+	this.__menu.style.top = position.top + "px";
+	if(!this.__documentClickRef)
+	{
+		this.__documentClickRef = this.__documentClickHandler.bind(this);
+		this.util.addEvent(document.documentElement,"click", this.__documentClickRef);
+	}
+	if(!this.__documentKeyUpRef)
+	{
+		this.__documentKeyUpRef = this.__documentKeyUpHandler.bind(this);
+		this.util.addEvent(document.documentElement,"keyup", this.__documentKeyUpRef);
+	}
+	this.util.preventDefault(event);
+};
+
+NSMenu.prototype.hide = function() 
+{
+	this.__lastSelectedTarget = null;
+	this.util.removeStyleClass(this.__menu,"show-menu");
+	if(this.__documentClickRef)
+	{
+		this.util.removeEvent(document.documentElement,"click", this.__documentClickRef, false);
+		this.__documentClickRef = null;
+	}
+	if(this.__documentKeyUpRef)
+	{
+		this.util.removeEvent(document.documentElement,"keyup", this.__documentKeyUpRef, false);
+		this.__documentKeyUpRef = null;
+	}
+};
+
+NSMenu.prototype.__initialize = function ()
+{
+	if(this.__parentElement)
+	{
+		this.__menu = this.__createElement(this.__dataSource);
+		this.__menu.setAttribute("id",this.__getID() + "menu");
+		document.body.appendChild(this.__menu);
+		if(this.__isContextMenu)
+		{
+			this.util.addEvent(this.__parentElement,"contextmenu", this.__parentContextMenuHandler.bind(this));
+		}
+		else
+		{
+			if(!this.__eventType)
+			{
+				this.__eventType = "click";
+			}
+			this.util.addEvent(this.__parentElement,this.__eventType, this.__parentClickHandler.bind(this),false);
+		}
+	}
+};
+
+NSMenu.prototype.__createElement = function (dataSource) 
+{
+	var parentNode = document.createElement("ul"); 
+	this.util.addStyleClass(parentNode,"nsMenu");
+	for (var count = 0; count < dataSource.length; count++) 
+	{
+		var item = dataSource[count];
+		this.__createItem(item,parentNode);
+	}
+	return parentNode;
+};
+
+NSMenu.prototype.__createItem = function(item,parent)
+{
+	var menuItem = null;
+	if(item)
+	{
+		menuItem = document.createElement("li");
+		this.util.addStyleClass(menuItem,"nsMenuItem");
+		if(item["disabled"])
+		{
+			this.util.addStyleClass(menuItem,"disabled");
+		}
+		var button = document.createElement("BUTTON");
+		this.util.addStyleClass(button,"nsMenuButton");
+		if(item["iconHTML"])
+		{
+			var spanIcon = document.createElement("span");
+			this.util.addStyleClass(spanIcon,"nsMenuAlign");
+			spanIcon.innerHTML = item["iconHTML"];
+			button.appendChild(spanIcon);
+		}
+		var spanText = document.createElement("span");
+		this.util.addStyleClass(spanText,"nsMenuText");
+		spanText.appendChild(document.createTextNode(item["title"]));
+		button.appendChild(spanText);
+		menuItem.appendChild(button);
+		if(item["action"])
+		{
+			this.util.addEvent(menuItem,"click",this.__itemClickHandler.bind(this));
+	    }
+		if(item[this.__fieldChild]) 
+		{
+			this.util.addStyleClass(menuItem,"nsSubMenu");
+	    	var subMenu = this.__createElement(item[this.__fieldChild]);
+	    	menuItem.appendChild(subMenu);
+		}
+		if(parent)
+		{
+			parent.appendChild(menuItem);
+			if(item["separatorBelow"])
+			{
+				var lineMenuItem = document.createElement("li");
+				this.util.addStyleClass(lineMenuItem,"nsMenuSeparator");
+				parent.appendChild(lineMenuItem);
+			}
+		}
+		item[this.__fieldItem] = menuItem;
+	}
+	return menuItem;
+};
+
+NSMenu.prototype.__itemClickHandler = function(event) 
+{
+	var target = this.util.getTarget(event);
+	target = this.util.findParent(target,"LI");
+	var item = this.__getItem(target,this.__dataSource);
+	if(item && item["action"])
+	{
+		var action = item["action"];
+		if ((typeof action === "string" || action instanceof String) && this.util.isFunction(action))
+		{
+			window[action](this.__lastSelectedTarget,item);
+		}
+		else
+		{
+			action(this.__lastSelectedTarget,item);
+		}
+	}
+};
+
+NSMenu.prototype.__documentClickHandler = function(event) 
+{
+	event = this.util.getEvent(event);
+	if(!this.__isContextMenu && this.__isParentPresent(event.target, this.__parentElement))
+	{
+		return;
+	}
+	this.hide();
+};
+
+
+NSMenu.prototype.__documentKeyUpHandler = function(event) 
+{
+	event = this.util.getEvent(event);
+	if(event.keyCode === this.ESC_KEYCODE) 
+	{
+		this.hide();
+	}
+};
+
+NSMenu.prototype.__parentContextMenuHandler = function(event)
+{
+	this.__lastSelectedTarget = this.util.getTarget(event);
+	this.show(event);
+};
+
+NSMenu.prototype.__parentClickHandler = function(event)
+{
+	this.__lastSelectedTarget = this.util.getTarget(event);
+	this.show(event);
+};
+
+NSMenu.prototype.__getItem = function(objItem,dataSource)
+{
+	if(objItem)
+	{
+		for (var count = 0; count < dataSource.length; count++) 
+		{
+			var item = dataSource[count];
+			if(item[this.__fieldItem] == objItem)
+			{
+				return item;
+			}
+			if(item.hasOwnProperty(this.__fieldChild))
+			{
+				var childItem = this.__getItem(objItem,item[this.__fieldChild]);
+				if(childItem)
+				{
+					return childItem;
+				}
+			}
+		}
+	}
+	return null;
+};
+
+NSMenu.prototype.__getID = function()
+{
+	if(!this.__id)
+	{
+		if(this.__parentElement.hasAttribute("id"))
+		{
+			this.__id = this.__parentElement.getAttribute("id");
+		}
+		else if(this.__parentElement.hasAttribute("name"))
+		{
+			this.__id = this.__parentElement.getAttribute("name");
+		}
+		else
+		{
+			this.__id = "comp" + this.util.getUniqueId();
+		}
+	}
+	return this.__id;
+};
+
+NSMenu.prototype.__isParentPresent =  function(node,parentNode) 
+{
+	while (node && node!== document.body)
+	{
+		if(node.id === parentNode.id) 
+		{
+			return true;
+		}
+		node = node.parentNode;
+	}
+	return false;
+};
