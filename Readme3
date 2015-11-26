@@ -1,33 +1,81 @@
  "use strict"; 
-function NSMenu(parantElement,dataSource,isContextMenu,eventType) 
+function NSMenu(setting) 
 {
 	this.ESC_KEYCODE = 27;
 	
-	this.__parentElement = parantElement;
-	this.__dataSource = dataSource;
-	this.__isContextMenu = isContextMenu;
-	this.__eventType = eventType;
+	this.__setting = setting;
+	this.__config = null;
 	
 	this.__id = null;
 	this.__menu = null;
-	this.__fieldItem = this.__getID() + "_item";
+	this.__fieldItem = null;
+	this.__fieldItemChild = null;
 	this.__fieldChild = "children";
+	this.__isInternalCall = false;
 	this.util = new NSUtil();
 	
 	this.__documentClickRef = null;
 	this.__documentKeyUpRef = null;
 	this.__lastSelectedTarget = null;
+	this.POS_TOP = "top";
+	this.POS_BOTTOM = "bottom";
+	this.POS_LEFT = "left";
+	this.POS_RIGHT = "right";
+	this.POS_TOPLEFT = "top-left";
+	this.POS_TOPRIGHT = "top-right";
+	this.POS_BOTTOMLEFT = "bottom-left";
+	this.POS_BOTTOMRIGHT = "bottom-right";
 	
 	this.__initialize();
 }
 
+NSMenu.prototype.create = function (dataSource) 
+{ 
+	if(dataSource && (this.__config.createRunTime || this.__isInternalCall))
+	{
+		if(this.__menu)
+		{
+			this.remove();
+		}
+		this.__isInternalCall = false;
+		this.__config.dataSource = dataSource;
+		this.__menu = this.__createElement(this.__config.dataSource);
+		this.util.addStyleClass(this.__menu,"nsMainMenu");
+		this.__menu.setAttribute("id",this.__getID() + "menu");
+		document.body.appendChild(this.__menu);
+	}
+};
+
+NSMenu.prototype.remove = function () 
+{ 
+	if(this.__config.createRunTime || this.__isInternalCall)
+	{
+		this.__isInternalCall = false;
+		document.body.removeChild(this.__menu);
+		this.__menu = null;
+	}
+};
+
 NSMenu.prototype.show = function (event) 
 { 
 	event = this.util.getEvent(event);
-	this.util.addStyleClass(this.__menu,"show-menu");
-	var position = this.util.getEventPosition(event);
+	this.__hideOtherNSMenu();
+	if(this.__config.createRunTime)
+	{
+		this.__isInternalCall = true;
+		var dataSource = null;
+		if(this.__config.sourceProvider)
+		{
+			dataSource = this.__config.sourceProvider(this.__lastSelectedTarget);
+		}
+		this.create(dataSource);
+	}
+	this.util.addStyleClass(this.__menu,"nsShowMenu");
+	/*var position = this.util.getEventPosition(event);
+	console.log(this.__getSuggestedPosition(event,this.POS_BOTTOMRIGHT));
 	this.__menu.style.left = position.left + "px";
-	this.__menu.style.top = position.top + "px";
+	this.__menu.style.top = position.top + "px";*/
+	this.__placeTip(event);
 	if(!this.__documentClickRef)
 	{
 		this.__documentClickRef = this.__documentClickHandler.bind(this);
@@ -44,7 +92,16 @@ NSMenu.prototype.show = function (event)
 NSMenu.prototype.hide = function() 
 {
 	this.__lastSelectedTarget = null;
-	this.util.removeStyleClass(this.__menu,"show-menu");
+	this.__hideAllSubMenus();
+	if(this.__config.createRunTime)
+	{
+		this.__isInternalCall = true;
+		this.remove();
+	}
+	else
+	{
+		this.util.removeStyleClass(this.__menu,"nsShowMenu");
+	}
 	if(this.__documentClickRef)
 	{
 		this.util.removeEvent(document.documentElement,"click", this.__documentClickRef, false);
@@ -59,22 +116,37 @@ NSMenu.prototype.hide = function()
 
 NSMenu.prototype.__initialize = function ()
 {
-	if(this.__parentElement)
+	if(this.__setting)
 	{
-		this.__menu = this.__createElement(this.__dataSource);
-		this.__menu.setAttribute("id",this.__getID() + "menu");
-		document.body.appendChild(this.__menu);
-		if(this.__isContextMenu)
+		//eventHandler:extra eventHandler which developer wants to execute on the event i.e. click,customEvent etc
+		this.__config = {
+				parent: this.__setting["parent"] || null,
+				dataSource: this.__setting["dataSource"] || null,
+				isContextMenu: (this.util.isUndefined(this.__setting["isContextMenu"]) || this.__setting["isContextMenu"] === null) ? true : Boolean.parse(this.__setting["isContextMenu"]),
+				eventType: this.__setting["eventType"] || "click",
+				createRunTime: (this.util.isUndefined(this.__setting["createRunTime"]) || this.__setting["createRunTime"] === null) ? false : Boolean.parse(this.__setting["createRunTime"]),
+				sourceProvider: this.__setting["sourceProvider"] || null,
+				targetType: this.__setting["targetType"] || null,
+				defaultHandler: (this.__setting["defaultHandler"] ? this.util.getFunction(this.__setting["defaultHandler"]) : null),
+				eventHandler: (this.__setting["eventHandler"] ? this.util.getFunction(this.__setting["eventHandler"]) : null)
+			};
+		if(this.__config.parent)
 		{
-			this.util.addEvent(this.__parentElement,"contextmenu", this.__parentContextMenuHandler.bind(this));
-		}
-		else
-		{
-			if(!this.__eventType)
+			this.__fieldItem = this.__getID() + "_item";
+			this.__fieldItemChild = this.__getID() + "_child";
+			if(!this.__config.createRunTime)
 			{
-				this.__eventType = "click";
+				this.__isInternalCall = true;
+				this.create(this.__config.dataSource);
 			}
-			this.util.addEvent(this.__parentElement,this.__eventType, this.__parentClickHandler.bind(this),false);
+			if(this.__config.isContextMenu)
+			{
+				this.util.addEvent(this.__config.parent,"contextmenu", this.__parentContextMenuHandler.bind(this));
+			}
+			else
+			{
+				this.util.addEvent(this.__config.parent,this.__config.eventType, this.__parentClickHandler.bind(this),false);
+			}
 		}
 	}
 };
@@ -116,15 +188,20 @@ NSMenu.prototype.__createItem = function(item,parent)
 		spanText.appendChild(document.createTextNode(item["title"]));
 		button.appendChild(spanText);
 		menuItem.appendChild(button);
-		if(item["action"])
-		{
-			this.util.addEvent(menuItem,"click",this.__itemClickHandler.bind(this));
-	    }
+		this.util.addEvent(menuItem,"click",this.__itemClickHandler.bind(this));
+		this.util.addEvent(menuItem,"mouseenter",this.__itemMouseOverHandler.bind(this));
+		this.util.addEvent(menuItem,"mouseleave",this.__itemMouseOutHandler.bind(this));
 		if(item[this.__fieldChild]) 
 		{
 			this.util.addStyleClass(menuItem,"nsSubMenu");
 	    	var subMenu = this.__createElement(item[this.__fieldChild]);
 	    	menuItem.appendChild(subMenu);
+	    	item[this.__fieldItemChild] = subMenu;
+	    	menuItem.setAttribute("hasChild",true);
+		}
+		else
+		{
+			menuItem.setAttribute("hasChild",false);
 		}
 		if(parent)
 		{
@@ -145,17 +222,51 @@ NSMenu.prototype.__itemClickHandler = function(event)
 {
 	var target = this.util.getTarget(event);
 	target = this.util.findParent(target,"LI");
-	var item = this.__getItem(target,this.__dataSource);
-	if(item && item["action"])
+	var item = this.__getItem(target,this.__config.dataSource);
+	if(item)
 	{
-		var action = item["action"];
-		if ((typeof action === "string" || action instanceof String) && this.util.isFunction(action))
+		var handler = null;
+		if(item["handler"])
 		{
-			window[action](this.__lastSelectedTarget,item);
+			handler = this.util.getFunction(item["handler"]);
 		}
-		else
+		if(!handler)
 		{
-			action(this.__lastSelectedTarget,item);
+			handler = this.__config.defaultHandler;
+		}
+		if(handler)
+		{
+			handler(this.__lastSelectedTarget,item);
+		}
+	}
+};
+
+NSMenu.prototype.__itemMouseOverHandler = function(event) 
+{
+	var target = this.util.getTarget(event);
+	target = this.util.findParent(target,"LI");
+	if(target.getAttribute("hasChild") === "true")
+	{
+		var item = this.__getItem(target,this.__config.dataSource);
+		if(item && item[this.__fieldItemChild])
+		{
+			var childMenu = item[this.__fieldItemChild];
+			this.util.addStyleClass(childMenu,"nsShowMenu");
+		}
+	}
+};
+
+NSMenu.prototype.__itemMouseOutHandler = function(event) 
+{
+	var target = this.util.getTarget(event);
+	target = this.util.findParent(target,"LI");
+	if(target.getAttribute("hasChild") === "true")
+	{
+		var item = this.__getItem(target,this.__config.dataSource);
+		if(item && item[this.__fieldItemChild])
+		{
+			var childMenu = item[this.__fieldItemChild];
+			this.util.removeStyleClass(childMenu,"nsShowMenu");
 		}
 	}
 };
@@ -163,7 +274,7 @@ NSMenu.prototype.__itemClickHandler = function(event)
 NSMenu.prototype.__documentClickHandler = function(event) 
 {
 	event = this.util.getEvent(event);
-	if(!this.__isContextMenu && this.__isParentPresent(event.target, this.__parentElement))
+	if(!this.__config.isContextMenu && this.__isParentPresent(event.target,this.__config.parent))
 	{
 		return;
 	}
@@ -182,13 +293,21 @@ NSMenu.prototype.__documentKeyUpHandler = function(event)
 
 NSMenu.prototype.__parentContextMenuHandler = function(event)
 {
-	this.__lastSelectedTarget = this.util.getTarget(event);
+	if(this.__config.eventHandler)
+	{
+		this.__config.eventHandler(event);
+	}
+	this.__setLastSelectedTarget(this.util.getTarget(event));
 	this.show(event);
 };
 
 NSMenu.prototype.__parentClickHandler = function(event)
 {
-	this.__lastSelectedTarget = this.util.getTarget(event);
+	if(this.__config.eventHandler)
+	{
+		this.__config.eventHandler(event);
+	}
+	this.__setLastSelectedTarget(this.util.getTarget(event));
 	this.show(event);
 };
 
@@ -216,17 +335,54 @@ NSMenu.prototype.__getItem = function(objItem,dataSource)
 	return null;
 };
 
+NSMenu.prototype.__hideOtherNSMenu = function()
+{
+	var arrMenus = document.querySelectorAll(".nsMainMenu");
+	if(arrMenus && arrMenus.length > 0)
+	{
+		var menu = null;
+		for(var count = 0;count < arrMenus.length;count++)
+		{
+			menu = arrMenus[count];
+			this.util.removeStyleClass(menu,"nsShowMenu");
+		}
+	}
+};
+
+NSMenu.prototype.__hideAllSubMenus = function()
+{
+	var arrSubMenus = this.__menu.querySelectorAll("ul");
+	if(arrSubMenus && arrSubMenus.length > 0)
+	{
+		var subMenu = null;
+		for(var count = 0;count < arrSubMenus.length;count++)
+		{
+			subMenu = arrSubMenus[count];
+			this.util.removeStyleClass(subMenu,"nsShowMenu");
+		}
+	}
+};
+
+NSMenu.prototype.__setLastSelectedTarget = function(target)
+{
+	if(target && this.__config.targetType)
+	{
+		target = this.util.findParent(target,this.__config.targetType);
+	}
+	this.__lastSelectedTarget = target;
+};
+
 NSMenu.prototype.__getID = function()
 {
 	if(!this.__id)
 	{
-		if(this.__parentElement.hasAttribute("id"))
+		if(this.__config.parent.hasAttribute("id"))
 		{
-			this.__id = this.__parentElement.getAttribute("id");
+			this.__id = this.__config.parent.getAttribute("id");
 		}
-		else if(this.__parentElement.hasAttribute("name"))
+		else if(this.__config.parent.hasAttribute("name"))
 		{
-			this.__id = this.__parentElement.getAttribute("name");
+			this.__id = this.__config.parent.getAttribute("name");
 		}
 		else
 		{
@@ -247,4 +403,140 @@ NSMenu.prototype.__isParentPresent =  function(node,parentNode)
 		node = node.parentNode;
 	}
 	return false;
+};
+
+NSMenu.prototype.__placeTip = function(event)
+{
+	var position = this.POS_BOTTOMRIGHT;
+	/*
+	var offset = this.__getOffset(position);
+	var newPosition = this.__getSuggestedPosition(position, offset);
+	if (newPosition && newPosition !== position) 
+	{
+		position = newPosition;
+		offset = this.__getOffset(position);
+	}
+	this.__currentPosition = position;*/
+	position = this.__getSuggestedPosition(event,position);
+	var offset = this.__getOffset(position);
+	this.__menu.style.top = offset.top + "px";
+	this.__menu.style.left = offset.left + "px";
+};
+
+NSMenu.prototype.__getOffset = function(position)
+{
+	  var pad = 15;
+	  var rectTip = this.__menu.getBoundingClientRect();
+	  var rectComponent = this.__config.parent.getBoundingClientRect();
+	  var item = {top: 0,left:0};
+	  if(rectTip && rectComponent)
+	  {
+		  var tipWidth = rectTip.width;
+		  var tipHeight = rectTip.height;
+		  var offset = this.util.getEventPosition(event);
+		  switch(position) 
+		  {
+			case this.POS_TOP:
+				item.top = offset.top - tipHeight;
+				item.left = offset.left - tipWidth / 2;
+				break;
+			case this.POS_BOTTOM:
+				item.top = offset.top;
+				item.left = offset.left - tipWidth / 2;
+				break;
+			case this.POS_LEFT:
+				item.top =  offset.top - tipHeight / 2;
+				item.left = offset.left - tipWidth;
+				break;
+			case this.POS_RIGHT:
+				item.top =  offset.top - tipHeight / 2,
+				item.left = offset.left;
+				break;
+			case this.POS_TOPLEFT:
+				item.top = offset.top - tipHeight;
+				item.left = offset.left - tipWidth;
+				break;
+			case this.POS_TOPRIGHT:
+				item.top =  offset.top - tipHeight;
+				item.left = offset.left;
+				break;
+			case this.POS_BOTTOMLEFT:
+				item.top =  offset.top;
+				item.left = offset.left - tipWidth;
+				break;
+			case this.POS_BOTTOMRIGHT:
+				item.top =  offset.top;
+				item.left = offset.left;
+				break;
+		  }
+	  }
+	  return item;
+};
+
+NSMenu.prototype.__getSuggestedPosition = function(event,position)
+{
+	  var tipWidth = this.__menu.clientWidth;
+	  var tipHeight = this.__menu.clientHeight;
+	  var offset = this.util.getEventPosition(event);
+		//this.__menu.style.left = position.left + "px";
+		//this.__menu.style.top = position.top + "px";
+	  var top = window.scrollY;
+	  var left = window.scrollX;
+	  var totalWidth = window.innerWidth;
+	  var totalHeight = window.innerHeight;
+	
+	  var objPosition = {};
+	  objPosition[this.POS_TOP] = true;
+	  objPosition[this.POS_BOTTOM] = true;
+	  objPosition[this.POS_LEFT] = true;
+	  objPosition[this.POS_RIGHT] = true;
+	  if (offset.top < top) 
+	  {
+		  objPosition[this.POS_TOP] = false;
+	  }
+	  if (offset.top + tipHeight > top + totalHeight) 
+	  {
+		  objPosition[this.POS_BOTTOM] = false;
+	  }
+	  if (offset.left < left)
+	  {
+		  objPosition[this.POS_LEFT] = false;
+	  }
+	  if (offset.left + tipWidth > left + totalWidth) 
+	  {
+		  objPosition[this.POS_RIGHT] = false;
+	  }
+	
+	  var positions = position.split("-");
+	  //below loop tries to give favourable position like bottom-right so if position has bottom and right both true it returns that position
+	  for (var count = 0; count < positions.length; count++) 
+	  {
+		if (!objPosition[positions[count]]) 
+		{
+			break;
+		}
+		if (count === positions.length - 1) 
+		{
+		  return position;
+		}
+	  }
+	  //below loop tries to give one favourable position like in bottom-right if bottom is true or right is true it gets returned
+	  for (var count = 0; count < positions.length; count++) 
+	  {
+		if (objPosition[positions[count]]) 
+		{
+			return positions[count];
+		}
+	  }
+	  if (objPosition[position]) 
+	  {
+		  return position;
+	  }
+	  for(var tmpPosition in objPosition)
+	  {
+		  if (objPosition[tmpPosition]) 
+		  {
+			  return tmpPosition;
+		  }
+	  }
 };
