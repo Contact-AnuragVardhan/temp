@@ -1,17 +1,43 @@
 http://www.ifadey.com/2011/07/context-menu-using-raw-javascript/
 https://github.com/battatech/battatech_excelexport/blob/master/src/Scripts/jquery.battatech.excelexport.js
 
-//returns event for all kind of browser
-NSUtil.prototype.preventDefault = function(event)
+.nsDataGridHeaderContainer
 {
-	event = this.getEvent(event);
-	if(event.preventDefault) 
-	{
-	   event.preventDefault();
-	}
-	else
-	{
-	   event.returnValue = false;
-	}
-};
+  overflow:hidden;
+  align:center;
+  display: -webkit-box;           /* OLD - iOS 6-, Safari 3.1-6 */
+  display: -moz-box;              /* OLD - Firefox 19- (doesn't work very well) */
+  display: -ms-flexbox;           /* TWEENER - IE 10 */
+  display: -webkit-flex;          /* NEW - Chrome */
+  display: flex;               /* NEW, Spec - Opera 12.1, Firefox 20+ */
+  align-items:center;
+  justify-content:center;
+  vertical-align:middle;
+}
+
+.nsDataGridHeaderContainer > *
+{
+	/*display:table-cell;*/ 
+	padding:5px;
+	vertical-align:middle;
+}
+
+.nsHeaderText
+{
+	text-align:center;
+	word-break: break-all;
+	font-weight: bold;
+}
+
+.nsHeaderText:hover
+{
+	color: red;
+}
+
+.nsHeaderSortContainer
+{
+	text-align:center;
+	word-break: break-all;
+	font-weight: bold;
+}
 
