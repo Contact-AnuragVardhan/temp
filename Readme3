@@ -1,333 +1,2097 @@
- "use strict"; 
-function NSMenu(setting) 
+"use strict";
+var nsGrid = Object.create(nsContainerBase);
+
+nsGrid.initializeComponent = function() 
 {
-	this.ESC_KEYCODE = 27;
+	this.base.initializeComponent();
+	this.GRID_TYPE_HIERARCHICAL = "heirarchical";
+	this.GRID_TYPE_GROUP = "group";
+	this.GRID_TYPE_NORMAL = "normal";
+	this.ITEM_UNSELECTED = "itemUnselected";
+	this.ITEM_SELECTED = "itemSelected";
+	this.ITEM_UNSELECTED = "itemUnselected";
+	this.PAGINATION_TYPE_SCROLL = "scroll";
+	this.PAGINATION_TYPE_PAGES = "pages";
+	this.PAGINATION_MODE_AUTO = "auto";
+	this.PAGINATION_MODE_MANUAL = "manual";
+	//this.initializeDOM(ns.NSDATAGRID_CSS);
 	
-	this.__setting = setting;
-	this.__config = null;
+	this.__OUTER_CONTAINER_ID = "divDataSet";
+	this.__TITLE_CONTAINER_ID = "divTitleBar";
+	this.__TABLE_HEADER_CONTAINER_ID = "divHeaderContainer";
+	this.__TABLE_HEADER_ID = "tblHeader";
+	this.__TABLE_BODY_CONTAINER_ID = "divBodyContainer";
+	this.__TABLE_BODY_ID = "tblBody";
 	
-	this.__id = null;
-	this.__menu = null;
-	this.__fieldItem = null;
-	this.__fieldItemChild = null;
-	this.__fieldChild = "children";
-	this.__isInternalCall = false;
-	this.util = new NSUtil();
+	this.__CLASS_TABLE = "nsDataGrid";
+	this.__CLASS_TITLEBAR = "nsDataGridTitleBar";
+	this.__CLASS_TABLE_HEADER_CELL = "nsDataGridHeader";
+	this.__CLASS_BODY_CONTAINER = "nsDataGridBodyContainer";
+	this.__CLASS_ODD_ROW = "nsDataGridOddRow";
+	this.__CLASS_EVEN_ROW = "nsDataGridEvenRow";
+	this.__CLASS_GROUP_CELL = "nsGroupCell";
+	this.__CLASS_ARROW = "nsGridArrowFill";
+	this.__CLASS_CELL_CHILD = "nsCellChild";
+	this.__CLASS_SORTING_ASC = "sorted_asc";
+	this.__CLASS_SORTING_DESC = "sorted_desc";
+	this.__ARROW_COLLAPSE_PATH = "M 0 0 L 0 10 L 10 5 Z";
+	this.__ARROW_EXPANDED_PATH = "M 0 0 L 10 0 L 5 10 Z";
 	
-	this.__documentClickRef = null;
-	this.__documentKeyUpRef = null;
-	this.__lastSelectedTarget = null;
-	this.POS_TOP = "top";
-	this.POS_BOTTOM = "bottom";
-	this.POS_LEFT = "left";
-	this.POS_RIGHT = "right";
-	this.POS_TOPLEFT = "top-left";
-	this.POS_TOPRIGHT = "top-right";
-	this.POS_BOTTOMLEFT = "bottom-left";
-	this.POS_BOTTOMRIGHT = "bottom-right";
+	this.__DEFAULT_COLUMN_WIDTH = 100;
+	this.__MIN_DRAG_OFFSET = 100;
+	this.__INFINITE_SCROLL_PADDING = 40;
+	this.__INFINITE_SCROLL_INITIAL_LOAD = 250;
 	
-	this.__initialize();
-}
-
-NSMenu.prototype.create = function (dataSource) 
-{ 
-	if(dataSource && (this.__config.createRunTime || this.__isInternalCall))
-	{
-		if(this.__menu)
-		{
-			this.remove();
-		}
-		this.__isInternalCall = false;
-		this.__config.dataSource = dataSource;
-		this.__menu = this.__createElement(this.__config.dataSource);
-		this.util.addStyleClass(this.__menu,"nsMainMenu");
-		this.__menu.setAttribute("id",this.__getID() + "menu");
-		document.body.appendChild(this.__menu);
-	}
+	this.__columns = [];
+	this.__selectedItems = [];
+	
+	this.__title = null;
+	this.__type = this.GRID_TYPE_NORMAL;
+	this.__dataSource = [];
+	this.__enableHierarchical = false;
+	this.__enableGrouping = false;
+	this.__enableMouseHover = false;
+	this.__enableMultiSelection = false;
+	this.__customScrollerRequired = false;
+	this.__columnResizable = false;
+	this.__columnDraggable = false;
+	this.__enableContextMenu = false;
+	this.__childField = "children";
+	this.__groupByField = null;
+	this.__columnMinWidth = 50;
+	this.__pageSize = 50;
+	//stores initial Column Count 
+	this.__initialColumnCount = 0;
+	this.__initialTableWidth = 0;
+	this.__bodyMeasuredScroll = 0;
+	this.__bodyScrollPos = 0;
+	this.__enablePagination = false;
+	this.__isPaginationTypeScroll = true;
+	this.__isPaginationModeAuto = true;
+	this.__fetchRecordCallBack = null;
+	this.__totalRecords = 0;
+	this.__contextMenuProvider = null;
+	
+	this.__tblHeader = null;
+	this.__tblBody = null;
+	//stores whether mouse is on GridLine
+	this.__onGridLine = false;
+	//cell which is being resized
+	this.__resizingHeader = null;
+	this.__resizingHeaderCell = null;
+	this.__resizingBodyCell = null;
+	this.__resizeHandler = null;
+	
+	//object for column dragging
+	this.__objColumnDrag = null;
+	
+	this.__loader = null;
+	this.__scroller = null;
+	this.__groupCollection = null;
+	this.__contextMenu = null;
+	
+	this.__arrWrapper = null;
+	this.__fieldColIndex = this.getID() + "_col_index";
+	this.__fieldIndex = this.getID() + "_row_index";
+	this.__fieldRow = this.getID() + "_row";
+	this.__fieldRowVisible = this.getID() + "_row_visible";
+	this.__fieldParentIndex = this.getID() + "_parent_index";
+	this.__fieldHasChild = this.getID() + "_row_hasChild";
+	this.__fieldHasParent = this.getID() + "_row_hasParent";
+	this.__fieldIsCollapsed = this.getID() + "_row_isCollapsed";
+	this.__fieldColNameArrow = this.getID() + "_arrow_field";
+	
+	this.__headerClickRef = null;
+	this.__headerMouseOverRef = null;
+	this.__headerMouseOutRef = null;
+	this.__rowMouseOverRef = null;
+	this.__rowMouseOutRef = null;
+	this.__rowClickHandlerRef = null;
+	this.__arrowClickRef = null;
+	this.__headerMouseMoveRef = null;
+	this.__headerMouseDownRef = null;
+	this.__doResizeRef = null;
+	this.__endResizeRef = null;
+	this.__synchronizeTablesRef = null;
+	this.__dragColumnMoveRef = null;
+	this.__dragColumnEndRef = null;
+	this.__bodyScrollRef = null;
 };
 
-NSMenu.prototype.remove = function () 
-{ 
-	if(this.__config.createRunTime || this.__isInternalCall)
-	{
-		this.__isInternalCall = false;
-		document.body.removeChild(this.__menu);
-		this.__menu = null;
-	}
-};
-
-NSMenu.prototype.show = function (event) 
-{ 
-	event = this.util.getEvent(event);
-	this.__hideOtherNSMenu();
-	if(this.__config.createRunTime)
-	{
-		this.__isInternalCall = true;
-		var dataSource = null;
-		if(this.__config.sourceProvider)
-		{
-			dataSource = this.__config.sourceProvider(this.__lastSelectedTarget);
-		}
-		this.create(dataSource);
-	}
-	this.util.addStyleClass(this.__menu,"nsShowMenu");
-	/*var position = this.util.getEventPosition(event);
-	console.log(this.__getSuggestedPosition(event,this.POS_BOTTOMRIGHT));
-	this.__menu.style.left = position.left + "px";
-	this.__menu.style.top = position.top + "px";*/
-	this.__placeTip(event);
-	if(!this.__documentClickRef)
-	{
-		this.__documentClickRef = this.__documentClickHandler.bind(this);
-		this.util.addEvent(document.documentElement,"click", this.__documentClickRef);
-	}
-	if(!this.__documentKeyUpRef)
-	{
-		this.__documentKeyUpRef = this.__documentKeyUpHandler.bind(this);
-		this.util.addEvent(document.documentElement,"keyup", this.__documentKeyUpRef);
-	}
-	this.util.preventDefault(event);
-};
-
-NSMenu.prototype.hide = function() 
+nsGrid.setComponentProperties = function() 
 {
-	this.__lastSelectedTarget = null;
-	this.__hideAllSubMenus();
-	if(this.__config.createRunTime)
+	this.base.setComponentProperties();
+	if(this.hasAttribute("title"))
 	{
-		this.__isInternalCall = true;
-		this.remove();
+		this.__title = this.getAttribute("title");
+	}
+	if(this.hasAttribute("type"))
+	{
+		this.__type = this.getAttribute("type");
+	}
+	if(this.hasAttribute("enableMouseHover"))
+	{
+		this.__enableMouseHover = Boolean.parse(this.getAttribute("enableMouseHover"));
+	}
+	if(this.hasAttribute("enableMultiSelection"))
+	{
+		this.__enableMultiSelection = Boolean.parse(this.getAttribute("enableMultiSelection"));
+	}
+	if(this.hasAttribute("childField"))
+	{
+		this.__childField = this.getAttribute("childField");
+	}
+	if(this.hasAttribute("groupByField"))
+	{
+		this.__groupByField = this.getAttribute("groupByField");
+	}
+	if(this.hasAttribute("columnMinWidth"))
+	{
+		this.__columnMinWidth = this.getAttribute("columnMinWidth");
+	}
+	if(this.hasAttribute("customScrollerRequired"))
+	{
+		this.__customScrollerRequired =  Boolean.parse(this.getAttribute("customScrollerRequired"));
+	}
+	if(this.hasAttribute("columnResizable"))
+	{
+		this.__columnResizable =  Boolean.parse(this.getAttribute("columnResizable"));
+	}
+	if(this.hasAttribute("columnDraggable"))
+	{
+		this.__columnDraggable = Boolean.parse(this.getAttribute("columnDraggable"));
+	}
+	if(this.hasAttribute("enablePagination"))
+	{
+		this.__enablePagination = Boolean.parse(this.getAttribute("enablePagination"));
+	}
+	if(this.hasAttribute("paginationType"))
+	{
+		this.__paginationType = this.getAttribute("paginationType");
+	}
+	if(this.hasAttribute("paginationMode"))
+	{
+		this.__paginationMode =  this.getAttribute("paginationMode");
+	}
+	if(this.hasAttribute("pageSize"))
+	{
+		this.__pageSize = parseInt(this.getAttribute("pageSize"));
+	}
+	if(this.hasAttribute("totalRecords"))
+	{
+		this.__totalRecords =  parseInt(this.getAttribute("totalRecords"));
+	}
+	if(this.hasAttribute("fetchRecordCallBack"))
+	{
+		this.__fetchRecordCallBack =  this.getAttribute("fetchRecordCallBack");
+		this.__fetchRecordCallBack = this.util.getFunction(this.__fetchRecordCallBack);
+	}
+	if(this.hasAttribute("enableContextMenu"))
+	{
+		this.__enableContextMenu = Boolean.parse(this.getAttribute("enableContextMenu"));
+	}
+	if(this.hasAttribute("contextMenuProvider"))
+	{
+		this.__contextMenuProvider =  this.getAttribute("contextMenuProvider");
+		this.__contextMenuProvider = this.util.getFunction(this.__contextMenuProvider);
+	}
+	this.__setGridType();
+	this.__setPaginationType();
+	this.__setPaginationMode();
+};
+
+nsGrid.propertyChange = function(attrName, oldVal, newVal, setProperty) 
+{
+	var attributeName = attrName.toLowerCase();
+	if(attributeName === "groupbyfield")
+	{
+		this.__groupByField = this.getAttribute("groupByField");
+		if(this.__enableGrouping)
+		{
+			this.dataSource(this.__dataSource);
+		}
+	}
+	this.base.propertyChange(attrName, oldVal, newVal, setProperty);
+};
+
+nsGrid.componentResized = function(event) 
+{
+	this.__setMeasurement();
+	this.__renderBody(false);
+	this.base.componentResized(event);
+};
+
+nsGrid.setColumn = function(arrColumns)
+{
+	if(arrColumns && arrColumns.length > 0)
+	{
+		this.__columns = arrColumns;
+		this.__checkForAdditionalColumns();
+		for(var count = 0;count < this.__columns.length;count++)
+		{
+			var item = this.__columns[count];
+			this.__processColumnObject(item,count);
+		}
 	}
 	else
 	{
-		this.util.removeStyleClass(this.__menu,"nsShowMenu");
+		this.__columns = [];
 	}
-	if(this.__documentClickRef)
-	{
-		this.util.removeEvent(document.documentElement,"click", this.__documentClickRef, false);
-		this.__documentClickRef = null;
-	}
-	if(this.__documentKeyUpRef)
-	{
-		this.util.removeEvent(document.documentElement,"keyup", this.__documentKeyUpRef, false);
-		this.__documentKeyUpRef = null;
-	}
+	this.__createStructure();
+	
 };
 
-NSMenu.prototype.__initialize = function ()
+nsGrid.dataSource = function(source)
 {
-	if(this.__setting)
+	var start = new Date().getTime();
+	this.__dataSource = source;
+	if(this.__dataSource && this.__dataSource.length > 0)
 	{
-		//eventHandler:extra eventHandler which developer wants to execute on the event i.e. click,customEvent etc
-		this.__config = {
-				parent: this.__setting["parent"] || null,
-				dataSource: this.__setting["dataSource"] || null,
-				isContextMenu: (this.util.isUndefined(this.__setting["isContextMenu"]) || this.__setting["isContextMenu"] === null) ? true : Boolean.parse(this.__setting["isContextMenu"]),
-				eventType: this.__setting["eventType"] || "click",
-				createRunTime: (this.util.isUndefined(this.__setting["createRunTime"]) || this.__setting["createRunTime"] === null) ? false : Boolean.parse(this.__setting["createRunTime"]),
-				sourceProvider: this.__setting["sourceProvider"] || null,
-				targetType: this.__setting["targetType"] || null,
-				defaultHandler: (this.__setting["defaultHandler"] ? this.util.getFunction(this.__setting["defaultHandler"]) : null),
-				eventHandler: (this.__setting["eventHandler"] ? this.util.getFunction(this.__setting["eventHandler"]) : null)
-			};
-		if(this.__config.parent)
+		if(this.__enableGrouping && this.__groupByField && this.__groupByField.length > 0)
 		{
-			this.__fieldItem = this.__getID() + "_item";
-			this.__fieldItemChild = this.__getID() + "_child";
-			if(!this.__config.createRunTime)
+			var arrGroupField = this.__groupByField.split(",");
+			if(!this.__groupCollection)
 			{
-				this.__isInternalCall = true;
-				this.create(this.__config.dataSource);
+				this.__groupCollection = new this.util.groupCollection(this.__dataSource,this.__childField);
 			}
-			if(this.__config.isContextMenu)
-			{
-				this.util.addEvent(this.__config.parent,"contextmenu", this.__parentContextMenuHandler.bind(this));
-			}
-			else
-			{
-				this.util.addEvent(this.__config.parent,this.__config.eventType, this.__parentClickHandler.bind(this),false);
-			}
-		}
-	}
-};
-
-NSMenu.prototype.__createElement = function (dataSource) 
-{
-	var parentNode = document.createElement("ul"); 
-	this.util.addStyleClass(parentNode,"nsMenu");
-	for (var count = 0; count < dataSource.length; count++) 
-	{
-		var item = dataSource[count];
-		this.__createItem(item,parentNode);
-	}
-	return parentNode;
-};
-
-NSMenu.prototype.__createItem = function(item,parent)
-{
-	var menuItem = null;
-	if(item)
-	{
-		menuItem = document.createElement("li");
-		this.util.addStyleClass(menuItem,"nsMenuItem");
-		if(item["disabled"])
-		{
-			this.util.addStyleClass(menuItem,"disabled");
-		}
-		var button = document.createElement("BUTTON");
-		this.util.addStyleClass(button,"nsMenuButton");
-		if(item["iconHTML"])
-		{
-			var spanIcon = document.createElement("span");
-			this.util.addStyleClass(spanIcon,"nsMenuAlign");
-			spanIcon.innerHTML = item["iconHTML"];
-			button.appendChild(spanIcon);
-		}
-		var spanText = document.createElement("span");
-		this.util.addStyleClass(spanText,"nsMenuText");
-		spanText.appendChild(document.createTextNode(item["title"]));
-		button.appendChild(spanText);
-		menuItem.appendChild(button);
-		this.util.addEvent(menuItem,"click",this.__itemClickHandler.bind(this));
-		this.util.addEvent(menuItem,"mouseenter",this.__itemMouseOverHandler.bind(this));
-		this.util.addEvent(menuItem,"mouseleave",this.__itemMouseOutHandler.bind(this));
-		if(item[this.__fieldChild]) 
-		{
-			this.util.addStyleClass(menuItem,"nsSubMenu");
-	    	var subMenu = this.__createElement(item[this.__fieldChild]);
-	    	menuItem.appendChild(subMenu);
-	    	item[this.__fieldItemChild] = subMenu;
-	    	menuItem.setAttribute("hasChild",true);
+			this.__arrWrapper = this.__groupCollection.groupBy(arrGroupField);
 		}
 		else
 		{
-			menuItem.setAttribute("hasChild",false);
-		}
-		if(parent)
-		{
-			parent.appendChild(menuItem);
-			if(item["separatorBelow"])
+			if(!this.__enableHierarchical && !this.__enableGrouping && this.__enablePagination && this.__isPaginationTypeScroll && this.__isPaginationModeAuto)
 			{
-				var lineMenuItem = document.createElement("li");
-				this.util.addStyleClass(lineMenuItem,"nsMenuSeparator");
-				parent.appendChild(lineMenuItem);
+				this.__arrWrapper = this.__dataSource.slice(0,this.__INFINITE_SCROLL_INITIAL_LOAD);
+				this.__totalRecords = this.__dataSource.length;
+				this.__fetchRecordCallBack = this.__addRowsforPagination.bind(this);
+			}
+			else
+			{
+				this.__arrWrapper = this.__dataSource.slice(0);
 			}
 		}
-		item[this.__fieldItem] = menuItem;
 	}
-	return menuItem;
+	else
+	{
+		this.__arrWrapper = null;
+	}
+	this.__setMeasurement();
+	this.__resetColumnHeaders();
+	this.__renderBody(false);
+	this.__setHeaderSortFunction();
+	var end = new Date().getTime();
+	var time = end - start;
+	console.log('Execution time: ' + (time / 1000.0));
 };
 
-NSMenu.prototype.__itemClickHandler = function(event) 
+nsGrid.addRows = function(source)
 {
-	var target = this.util.getTarget(event);
-	target = this.util.findParent(target,"LI");
-	var item = this.__getItem(target,this.__config.dataSource);
+	if(source && source.length > 0)
+	{
+		var body = this.__tblBody.tBodies[0];
+   	 	for (var rowIndex = 0; rowIndex < source.length; rowIndex++)
+	    {
+   	 		var item = source[rowIndex];
+   	 		this.__arrWrapper[this.__arrWrapper.length] = item;
+   	 		this.__createBodyRow(body,item,0,0,false);
+	    }
+   		var divBody = this.getElement(this.getID() + this.__TABLE_BODY_CONTAINER_ID);
+   	 	this.__bodyMeasuredScroll = divBody.scrollHeight - divBody.clientHeight;
+	}
+};
+
+nsGrid.groupBy = function(groupByField)
+{
+	if(this.__enableGrouping && groupByField && groupByField.length > 0)
+	{
+		this.setAttribute("groupByField",groupByField);
+	}
+};
+
+nsGrid.expandAll = function()
+{
+	if(this.__enableHierarchical || this.__enableGrouping)
+	{
+		this.__expandCollapseAll(this.__arrWrapper,false);
+	}
+};
+
+nsGrid.collapseAll = function()
+{
+	if(this.__enableHierarchical || this.__enableGrouping)
+	{
+		this.__expandCollapseAll(this.__arrWrapper,true);
+	}
+};
+
+nsGrid.setFontSize = function(fontSize)
+{
+	if(this.__tblHeader)
+	{
+		this.__tblHeader.style.fontSize = fontSize;
+	}
+	if(this.__tblBody)
+	{
+		this.__tblBody.style.fontSize = fontSize;
+	}
+};
+
+//assuming column is added at last
+//if reposition then use swapColumn
+nsGrid.addColumn = function(objColumn)
+{
+	if(objColumn)
+	{
+		this.__processColumnObject(objColumn,this.__columns.length);
+		this.__columns[this.__columns.length] = objColumn;
+		if(this.__tblHeader && this.__tblHeader.tHead && this.__tblHeader.tHead.rows && this.__tblHeader.tHead.rows.length > 0)
+		{
+			var headerRow = this.__tblHeader.tHead.rows[0];
+			if(this.__tblHeader.tBodies && this.__tblHeader.tBodies.length > 0 && this.__tblHeader.tBodies[0].rows && this.__tblHeader.tBodies[0].rows.length > 0)
+			{
+				var headerBodyRow = this.__tblHeader.tBodies[0].rows[0];
+				this.__createHeaderHeaderCell(objColumn,headerRow);
+			    this.__createHeaderBodyCell(objColumn,headerBodyRow,this.__columns.length - 1);
+			}
+		}
+		if(this.__tblBody && this.__tblBody.tHead && this.__tblBody.tHead.rows && this.__tblBody.tHead.rows.length > 0)
+	    {
+			var bodyRow = this.__tblBody.tHead.rows[0];
+	    	if(this.__tblBody.tBodies && this.__tblBody.tBodies.length > 0 && this.__tblBody.tBodies[0].rows && this.__tblBody.tBodies[0].rows.length > 0)
+			{
+	    		var arrRows = this.__tblBody.tBodies[0].rows;
+	    		var arrItems = this.__getAllItems();
+	    		this.__createBodyHeaderCell(objColumn,bodyRow);
+	    		var row = null;
+	    		var item = null;
+	    		for (var rowCount = 0; rowCount < arrRows.length; rowCount++) 
+	    		{
+	    			row = arrRows[rowCount];
+	    			item = arrItems[rowCount];
+	    			this.__createBodyRowCell(row,item,objColumn,this.__columns.length - 1,-1,null,0,true);
+	    	    }
+			}
+	    }
+		this.__alignTables(false);
+		this.__setHeaderSortFunctionForItem(objColumn);
+		return true;
+	}
+	else
+	{
+		this.util.warning("NSGrid","Please pass valid Column object to be added.");
+		return false;
+	}
+};
+
+nsGrid.removeColumn = function(column)
+{
+	var index = this.__getColumnIndexForSwapOrRemove(column);
+	if(index > -1)
+	{
+		if(this.__isColumnValidForSwapOrRemove(index,"deleted"))
+		{
+			this.__removeHeaderCell(index);
+			this.__removeBodyColumn(index);
+			this.__alignTables(false);
+			this.__columns.splice(index, 1);
+
+			return true;
+		}
+	}
+	return false;
+};
+
+nsGrid.swapColumns = function(sourceColumn,destinationColumn)
+{
+	var sourceIndex = this.__getColumnIndexForSwapOrRemove(sourceColumn);
+	var destinationIndex = this.__getColumnIndexForSwapOrRemove(destinationColumn);
+	if(sourceIndex > -1 && destinationIndex > -1)
+	{
+		var sourceValid = this.__isColumnValidForSwapOrRemove(sourceIndex,"swapped");
+		var destinationValid = this.__isColumnValidForSwapOrRemove(destinationIndex,"swapped");
+		if(sourceValid && destinationValid)
+		{
+			this.__swapHeaderCell(sourceIndex,destinationIndex);
+			this.__swapBodyCell(sourceIndex,destinationIndex);
+			this.__alignTables(false);
+			this.util.swapArrayItems(this.__columns,sourceIndex,destinationIndex);
+			
+			return true;
+		}
+	}
+	return false;
+};
+
+nsGrid.sortBy = function(column,isAscending)
+{
+	var index = this.__getColumnIndexForSwapOrRemove(column);
+	if(index > -1 && this.__tblHeader.tBodies && this.__tblHeader.tBodies.length > 0 && this.__tblHeader.tBodies[0].rows && this.__tblHeader.tBodies[0].rows.length > 0)
+	{
+		var headerBodyRow = this.__tblHeader.tBodies[0].rows[0];
+		var arrHeaderCells = headerBodyRow.getElementsByTagName("td");
+		var cell = arrHeaderCells[index];
+	    var columnDetail = this.__getColumnObject(cell.getAttribute("currentColumnIndex"));
+	    this.__handleSorting(cell,columnDetail,isAscending);
+	}
+};
+
+nsGrid.updateRow = function(index)
+{
+	var item = this.__getItemByIndex(index);
 	if(item)
 	{
-		var handler = null;
-		if(item["handler"])
-		{
-			handler = this.util.getFunction(item["handler"]);
-		}
-		if(!handler)
-		{
-			handler = this.__config.defaultHandler;
-		}
-		if(handler)
-		{
-			handler(this.__lastSelectedTarget,item);
-		}
+		var row = item[this.__fieldRow];
+		var cells = row.getElementsByTagName("td");
+		for (var colIndex = 0; colIndex < this.__columns.length; colIndex++)
+        {
+			var cell = cells[colIndex];
+        	var colItem = this.__columns[colIndex];
+        	this.__updateCellText(cell,item,colItem,colIndex,index,row);
+        }
 	}
 };
 
-NSMenu.prototype.__itemMouseOverHandler = function(event) 
+nsGrid.__processColumnObject = function(objColumn,index)
 {
-	var target = this.util.getTarget(event);
-	target = this.util.findParent(target,"LI");
-	if(target.getAttribute("hasChild") === "true")
+	if(objColumn)
 	{
-		var item = this.__getItem(target,this.__config.dataSource);
-		if(item && item[this.__fieldItemChild])
+		objColumn[this.__fieldColIndex] = index;
+		if(objColumn.hasOwnProperty("width"))
 		{
-			var childMenu = item[this.__fieldItemChild];
-			this.util.addStyleClass(childMenu,"nsShowMenu");
+			var widthUnit = this.util.getDimensionUnit(objColumn["width"]);
+			if(widthUnit === 0)
+			{
+				objColumn["width"] = objColumn["width"] + "px";
+			}
+		}
+		objColumn["sortable"] = Boolean.parse(objColumn["sortable"]);
+		objColumn["sortDescending"] = Boolean.parse(objColumn["sortDescending"]);
+		if(this.__columnResizable)
+		{
+			if(objColumn.hasOwnProperty("resizable"))
+			{
+				objColumn["resizable"] = Boolean.parse(objColumn["resizable"]);
+			}
+			else
+			{
+				objColumn["resizable"] = true;
+			}
+		}
+		else
+		{
+			objColumn["resizable"] = false;
+		}
+		if(this.__columnDraggable)
+		{
+			if(objColumn.hasOwnProperty("draggable"))
+			{
+				objColumn["draggable"] = Boolean.parse(objColumn["draggable"]);
+			}
+			else
+			{
+				objColumn["draggable"] = true;
+			}
+		}
+		else
+		{
+			objColumn["draggable"] = false;
+		}
+		if(objColumn.hasOwnProperty("minWidth"))
+		{
+			objColumn["minWidth"] = this.util.getDimensionAsNumber(null,objColumn["minWidth"]);
+		}
+		else
+		{
+			objColumn["minWidth"] = this.__columnMinWidth;
+		}
+		//itemRendrer property gets precedence over template
+		if(objColumn.hasOwnProperty("itemRenderer"))
+		{
+			var itemRenderer = objColumn["itemRenderer"];
+			if (typeof itemRenderer === "string" || itemRenderer instanceof String)
+			{
+				if(this.util.isFunction(itemRenderer))
+				{
+					objColumn.itemRenderer = window[itemRenderer];
+				}
+			}
+		}
+		else
+		{
+			//setData should be before template for checking
+			if(objColumn.hasOwnProperty("setData"))
+			{
+				var setData = objColumn["setData"];
+				if (typeof setData === "string" || setData instanceof String)
+				{
+					if(this.util.isFunction(setData))
+					{
+						objColumn.setData = window[setData];
+					}
+				}
+			}
+			if(objColumn.hasOwnProperty("template") && objColumn["template"])
+			{
+				objColumn.templateRenderer = this.util.getTemplate(objColumn["template"]);
+			}
+			/*else
+			{
+				var renderer = new this.util.defaultRenderer();
+				objColumn.templateRenderer = renderer.getRenderer();
+				objColumn.setData = renderer.setData.bind(renderer);
+			}*/
 		}
 	}
+	return objColumn;
 };
 
-NSMenu.prototype.__itemMouseOutHandler = function(event) 
+nsGrid.__createStructure = function()
 {
-	var target = this.util.getTarget(event);
-	target = this.util.findParent(target,"LI");
-	if(target.getAttribute("hasChild") === "true")
+	//this.util.removeAllChildren(this);
+	var divOuterContainer = this.__createOuterContainer();
+	this.__createTitleBar(divOuterContainer);
+	this.__createTableStructure(divOuterContainer);
+};
+
+nsGrid.__createOuterContainer = function()
+{
+	var divOuterContainer = this.util.createDiv(this.getID() + this.__OUTER_CONTAINER_ID);
+	if(this.style.width != "")
 	{
-		var item = this.__getItem(target,this.__config.dataSource);
-		if(item && item[this.__fieldItemChild])
+		divOuterContainer.style.width = this.style.width;
+	}
+	else if(this.offsetWidth > 0)
+	{
+		divOuterContainer.style.width = this.offsetWidth + "px";
+	}
+	else
+	{
+		divOuterContainer.style.width = "100%";
+	}
+	if(this.style.height != "")
+	{
+		divOuterContainer.style.height = this.style.height;
+	}
+	else if(this.offsetHeight > 0)
+	{
+		divOuterContainer.style.height = this.offsetHeight + "px";
+	}
+	else
+	{
+		divOuterContainer.style.height = "100%";
+	}
+	this.addChild(divOuterContainer);
+	return divOuterContainer;
+};
+
+nsGrid.__createTitleBar= function(parentElement)
+{
+	if(parentElement && this.__title && this.__title.length > 0)
+	{
+		var divTitleBar = this.util.createDiv(this.getID() + this.__TITLE_CONTAINER_ID,this.__CLASS_TITLEBAR);
+		var titleText = document.createTextNode(this.__title);
+		divTitleBar.appendChild(titleText);
+		parentElement.appendChild(divTitleBar);
+		
+		return divTitleBar;
+	}
+	return null;
+};
+
+nsGrid.__createTableStructure= function(parentElement)
+{
+	if(parentElement)
+	{
+		this.__createHeader(parentElement);
+		this.__createBody(parentElement);
+	}
+};
+
+/******************************Header Creation *************************************/
+nsGrid.__createHeader= function(parentElement)
+{	
+	if(parentElement)
+	{
+		var divHeaderContainer = this.__createTableAndParent(this.getID() + this.__TABLE_HEADER_CONTAINER_ID,null,this.getID() + this.__TABLE_HEADER_ID);
+		divHeaderContainer.style.overflow = "hidden";
+		parentElement.appendChild(divHeaderContainer);
+		this.__tblHeader = divHeaderContainer.firstChild;
+		this.__createHeaderRows();
+	}
+};
+
+nsGrid.__createHeaderRows= function()
+{
+	if(this.__tblHeader && this.__columns && this.__columns.length > 0)
+	{
+		var header = this.__tblHeader.createTHead();
+		var headerRow = header.insertRow(-1);
+	    headerRow.style.height = "auto";
+	    var body = document.createElement("tbody");
+		this.__tblHeader.appendChild(body);
+	    var bodyRow = body.insertRow(-1);
+	    for (var colIndex = 0; colIndex < this.__columns.length; colIndex++)
+	    {
+	    	var colItem = this.__columns[colIndex];
+	        this.__createHeaderHeaderCell(colItem,headerRow);
+	        this.__createHeaderBodyCell(colItem,bodyRow,colIndex);
+	    }
+	}
+};
+
+nsGrid.__createHeaderHeaderCell = function(colItem,headerRow)
+{
+	if(colItem && headerRow)
+	{
+		var headerCell = headerRow.insertCell(-1);
+		headerCell.style.width = (colItem["width"]) ; 
+	}
+};
+
+nsGrid.__createHeaderBodyCell = function(colItem,bodyRow,index)
+{
+	if(colItem && bodyRow)
+	{
+		var headerText = " ";
+		if(colItem.hasOwnProperty("headerText") && colItem["headerText"])
+        {
+        	headerText = colItem["headerText"];
+        }
+		var bodyCell = bodyRow.insertCell(-1);
+		var colID = "col" + colItem["headerText"];
+		bodyCell.setAttribute("id",colID);
+		this.util.addStyleClass(bodyCell , this.__CLASS_TABLE_HEADER_CELL);
+		bodyCell.setAttribute("orignalColumnIndex",index);
+	    bodyCell.setAttribute("currentColumnIndex",index);
+	    
+	    this.__headerClickRef = this.__headerClickHandler.bind(this);
+    	this.__headerMouseOverRef = this.__headerMouseOverHandler.bind(this);
+    	this.__headerMouseOutRef = this.__headerMouseOutHandler.bind(this);
+    	this.__headerMouseDownRef = this.__headerMouseDownHandler.bind(this);
+        this.util.addEvent(bodyCell,"click",this.__headerClickRef);
+        this.util.addEvent(bodyCell,"mouseover",this.__headerMouseOverRef);
+        this.util.addEvent(bodyCell,"mouseout",this.__headerMouseOutRef);
+        this.util.addEvent(bodyCell,"mousedown",this.__headerMouseDownRef);
+        
+        var divCell = this.util.createDiv(colID + "container","nsDataGridHeaderContainer"); 
+        bodyCell.appendChild(divCell);
+		var divText = this.util.createDiv(colID + "text","nsHeaderText");
+		var headerTextNode = document.createTextNode(headerText);
+		divText.appendChild(headerTextNode);
+		divCell.appendChild(divText);
+		if(colItem.hasOwnProperty("sortable") && colItem["sortable"])
 		{
-			var childMenu = item[this.__fieldItemChild];
-			this.util.removeStyleClass(childMenu,"nsShowMenu");
+			var divSorting = this.util.createDiv(colID + "SortContainer");
+			divCell.appendChild(divSorting);
+			var divSortAsc = this.util.createDiv(colID + "SortAsc","nsSortAsc"); 
+			divSorting.appendChild(divSortAsc);
+			var divSortSpacer = this.util.createDiv(colID + "SortSpacer","nsSortSpacer"); 
+			divSorting.appendChild(divSortSpacer);
+			var divSortDesc = this.util.createDiv(colID + "SortDesc","nsSortDesc"); 
+			divSorting.appendChild(divSortDesc);
+		}
+		var arrMenu = this.__getHeaderMenuDataProvider(bodyCell);
+		if(arrMenu && arrMenu.length > 0)
+		{
+			var divMenuContainer = this.util.createDiv(colID + "MenuContainer");
+			var objSVGMenu = new this.util.svg(divMenuContainer,colID + "menusvg",16,16,0,0);
+			objSVGMenu.addCircle(colID + "MenuCircle",8,8,8,"nsMenuCircle");
+			objSVGMenu.addPolygon(colID + "MenuArrow","2,5.5 14,5.5 8,11.5","nsMenuArrow");
+			divCell.appendChild(divMenuContainer);
+			
+			var menuSetting = {parent:divMenuContainer,isContextMenu:false,createRunTime:false,dataSource:arrMenu,targetType:"TD"
+							,defaultHandler:this.__headerMenuHandler.bind(this),eventHandler:this.__headerMenuClickHandler.bind(this)
+							,position:this.util.POS_BOTTOMRIGHT};
+			//place the menu for 2nd last and last column to bottom right
+			if(index === this.__columns.length - 1 || index === this.__columns.length - 2)
+			{
+				menuSetting.position = this.util.POS_BOTTOMLEFT;
+			}
+			var headerMenu = new NSMenu(menuSetting);
 		}
 	}
 };
 
-NSMenu.prototype.__documentClickHandler = function(event) 
+nsGrid.__setHeaderSortFunction = function()
+{
+	if(this.__arrWrapper && this.__arrWrapper.length > 0)
+    {
+		if(this.__tblHeader.tBodies.length > 0 && this.__tblHeader.tBodies[0].rows.length > 0 && this.__tblHeader.tBodies[0].rows[0].cells.length > 0)
+		{
+			var headerCells = this.__tblHeader.tBodies[0].rows[0].cells;
+			var dataSource = this.__getAllItems();
+	        for(var colIndex = 0; colIndex < headerCells.length; colIndex++)
+	        {
+	        	var colItem = this.__columns[colIndex];
+	        	this.__setHeaderSortFunctionForItem(colItem,dataSource);
+	        }
+		}
+    } 
+};
+
+nsGrid.__setHeaderSortFunctionForItem = function(colItem,dataSource)
+{
+	if(colItem)
+	{
+		if(colItem.hasOwnProperty("dataField") && colItem["dataField"] && colItem.hasOwnProperty("sortable") && colItem["sortable"] === true)
+    	{
+			//In case of addColumn() dataSource will be null 
+			if(!dataSource)
+			{
+				dataSource = this.__getAllItems();
+			}
+    		var item = null;
+    		for(var count = 0; count < dataSource.length; count++)
+            {
+                 item = dataSource[count][colItem["dataField"]];
+                 if(!this.util.isUndefined(item) && item != null && item != "")
+                 {
+                	 break;
+                 }
+            }
+    		if(!this.util.isUndefined(item) && item != null && item != "")
+            {
+            	colItem.sortFunction = this.__determineSortFunction(item.toString());
+            }
+            else
+            {
+            	colItem.sortFunction = "__sortCaseInsensitive";
+            }
+    	}
+	}
+};
+
+nsGrid.__removeHeaderCell = function(colIndex)
+{
+	if(colIndex > -1 && colIndex < this.__columns.length)
+	{
+		if(this.__tblHeader && this.__tblHeader.tHead && this.__tblHeader.tHead.rows && this.__tblHeader.tHead.rows.length > 0)
+		{
+			var headerRow = this.__tblHeader.tHead.rows[0];
+			if(this.__tblHeader.tBodies && this.__tblHeader.tBodies.length > 0 && this.__tblHeader.tBodies[0].rows && this.__tblHeader.tBodies[0].rows.length > 0)
+			{
+				headerRow.deleteCell(colIndex);
+				var headerBodyRow = this.__tblHeader.tBodies[0].rows[0];
+				headerBodyRow.deleteCell(colIndex);
+			}
+		}
+		return true;
+	}
+	return false;
+};
+
+nsGrid.__swapHeaderCell = function(sourceIndex,destinationIndex)
+{
+	if(this.__isColumnIndexValid(sourceIndex) && this.__isColumnIndexValid(destinationIndex))
+	{
+		if(this.__tblHeader && this.__tblHeader.tHead && this.__tblHeader.tHead.rows && this.__tblHeader.tHead.rows.length > 0)
+		{
+			var headerRow = this.__tblHeader.tHead.rows[0];
+			if(this.__tblHeader.tBodies && this.__tblHeader.tBodies.length > 0 && this.__tblHeader.tBodies[0].rows && this.__tblHeader.tBodies[0].rows.length > 0)
+			{
+				var arrHeaderCells = headerRow.getElementsByTagName("td");
+				this.__swapCell(arrHeaderCells[sourceIndex],arrHeaderCells[destinationIndex]);
+				var headerBodyRow = this.__tblHeader.tBodies[0].rows[0];
+				var arrBodyCells = headerBodyRow.getElementsByTagName("td");
+				this.__swapCell(arrBodyCells[sourceIndex],arrBodyCells[destinationIndex]);
+			}
+			return true;
+		}
+	}
+	return false;
+};
+
+/******************************End of Header Creation *************************************/
+
+/******************************Body Creation **********************************************/
+
+nsGrid.__createBody= function(parentElement)
+{	
+	if(parentElement)
+	{
+		var divBodyContainer = this.__createTableAndParent(this.getID() + this.__TABLE_BODY_CONTAINER_ID,this.__CLASS_BODY_CONTAINER,this.getID() + this.__TABLE_BODY_ID);
+		if(this.__enablePagination && this.__isPaginationTypeScroll)
+		{
+			this.__bodyScrollRef = this.__bodyScrollHandler.bind(this);
+			this.util.addEvent(divBodyContainer,"scroll",this.__bodyScrollRef);
+		}
+		parentElement.appendChild(divBodyContainer);
+		this.__tblBody = divBodyContainer.firstChild;
+	}
+};
+
+nsGrid.__renderBody = function(fromSort)
+{
+	this.__tblBody.deleteTHead();
+    if(this.__tblBody.tBodies && this.__tblBody.tBodies.length > 0)
+    {
+    	this.__tblBody.removeChild(this.__tblBody.tBodies[0]);
+    }
+    var body = document.createElement("tbody");
+	this.__tblBody.appendChild(body);
+	if(this.__enableContextMenu)
+	{
+		this.__initializeContextMenu();
+	}
+	this.__createBodyHeader();
+	this.__createBodyBody(this.__arrWrapper,0,0,!fromSort,0,this.__arrWrapper.length);
+	if(!fromSort)
+	{
+		this.__setBodyMeasurement();
+	}
+	this.__alignTables(fromSort);
+	if(this.__customScrollerRequired && !this.__scroller)
+	{
+		var divBodyContainer = this.getElement(this.getID() + this.__TABLE_BODY_CONTAINER_ID);
+		this.__scroller = new NSScroller(divBodyContainer);
+	}
+	//this does not make elements unselectable
+	//this.util.makeElementUnselectable(divBodyContainer,true);
+};
+
+nsGrid.__createBodyHeader= function()
+{
+	var header = this.__tblBody.createTHead();
+	var headerRow = header.insertRow(-1);
+    headerRow.style.height = "auto";
+    for (var colIndex = 0; colIndex < this.__columns.length; colIndex++)
+    {
+        var colItem = this.__columns[colIndex];
+        this.__createBodyHeaderCell(colItem,headerRow);
+    }
+};
+
+nsGrid.__createBodyHeaderCell= function(colItem,headerRow)
+{
+	if(colItem && headerRow)
+	{
+		var headerCell = headerRow.insertCell(-1);
+		headerCell.style.width = (colItem["width"]);
+	    headerCell.style.height = "0px";
+	}
+};
+
+nsGrid.__createBodyBody= function(dataSet,parentIndex,level,isReset,startIndex,endIndex)
+{
+    if(dataSet)
+    {
+    	 var body = this.__tblBody.tBodies[0];
+    	 for (var rowIndex = startIndex; rowIndex < endIndex; rowIndex++)
+	     {
+    		var item = dataSet[rowIndex];
+    		this.__createBodyRow(body,item,parentIndex,level,isReset);
+	     }
+     }
+};
+
+nsGrid.__createBodyRow= function(body,item,parentIndex,level,isReset)
+{
+	var row = body.insertRow(-1);
+    var totalRowCount = this.__getTotalRows() - 1;
+    var index = totalRowCount;
+    row.setAttribute("index",index);
+    var className = ((totalRowCount % 2) === 0) ? this.__CLASS_EVEN_ROW : this.__CLASS_ODD_ROW;
+    this.__createBodyRowChild(row,item,className,totalRowCount,level,isReset);
+    this.util.addStyleClass(row , className);
+    this.__rowMouseOverRef = this.__rowMouseHover.bind(this);
+	this.__rowMouseOutRef = this.__rowMouseHover.bind(this);
+	this.__rowClickHandlerRef = this.__rowClickHandler.bind(this);
+    this.util.addEvent(row,"mouseover",this.__rowMouseOverRef);
+    this.util.addEvent(row,"mouseout",this.__rowMouseOutRef);
+    this.util.addEvent(row,"click",this.__rowClickHandlerRef);
+    var hasChild = false;
+    if((this.__enableHierarchical || this.__enableGrouping) && item.hasOwnProperty(this.__childField) && item[this.__childField]  && item[this.__childField].length > 0)
+    {
+    	hasChild = true;
+    	this.__createBodyBody(item[this.__childField],totalRowCount,level + 1,isReset,0,item[this.__childField].length);
+    }
+    item[this.__fieldIndex] = index;
+	item[this.__fieldRow] = row;
+	item[this.__fieldParentIndex] = parentIndex;
+	if(parentIndex > 0)
+    {
+		item[this.__fieldHasParent] = true;
+    }
+	else
+	{
+		item[this.__fieldHasParent] = false;
+	}
+	item[this.__fieldHasChild] = hasChild;
+    if(!isReset && item.hasOwnProperty(this.__fieldRowVisible))
+    {
+    	row.style.display = item[this.__fieldRowVisible]? "" : "none";
+    }
+    else
+    {
+    	item[this.__fieldRowVisible] = true;
+    }
+    if(isReset || !item.hasOwnProperty(this.__fieldIsCollapsed))
+    {
+    	item[this.__fieldIsCollapsed] = false;
+    }
+};
+
+nsGrid.__createBodyRowChild= function(row,item,className,parentIndex,level,isReset)
+{
+    if(item)
+    {
+        for (var colIndex = 0; colIndex < this.__columns.length; colIndex++)
+        {
+        	var colItem = this.__columns[colIndex];
+        	this.__createBodyRowCell(row,item,colItem,colIndex,parentIndex,className,level,isReset);
+        }
+    }
+};
+
+nsGrid.__createBodyRowCell= function(row,item,colItem,colIndex,parentIndex,className,level,isReset)
+{
+	if(colItem && colItem.hasOwnProperty("dataField") && colItem["dataField"])
+	{
+        var cell = row.insertCell(-1);
+        this.util.addStyleClass(cell , "nsDataGridCell");
+        var cellDiv = this.util.createDiv(null);
+        cell.appendChild(cellDiv);
+        if(colIndex == 0)
+        {
+        	if(this.__enableHierarchical)
+            {
+            	if(level === 0)
+            	{
+            		cell.style.paddingLeft = "1px";
+            	}
+            	else
+            	{
+            		cell.style.paddingLeft = (10 * level) + "px";
+            	}
+            }
+        	else if(this.__enableGrouping)
+        	{
+        		if(level === 0)
+        		{
+        			cell.style.paddingLeft = "1px";
+        		}
+        	}
+        }
+        
+        if((this.__enableHierarchical || this.__enableGrouping) && colIndex == 0 && item.hasOwnProperty(this.__childField) && item[this.__childField]  && item[this.__childField].length > 0)
+        {
+        	this.util.addStyleClass(cellDiv,this.__CLASS_GROUP_CELL);
+        	var isCollapsed = false;
+        	if(!isReset && item.hasOwnProperty(this.__fieldIsCollapsed))
+ 	        {
+        		isCollapsed = item[this.__fieldIsCollapsed];
+ 	        }
+        	this.__createArrow(parentIndex,cellDiv,isCollapsed);
+        	var cellText = this.util.createDiv(null,this.__CLASS_CELL_CHILD);
+        	this.__addCellText(item,cellText,colItem,colIndex,row);
+        	cellDiv.appendChild(cellText);
+        }
+        else
+        {
+        	this.util.addStyleClass(cellDiv,this.__CLASS_CELL_CHILD);
+        	this.__addCellText(item,cellDiv,colItem,colIndex,row);
+        }
+	}
+};
+
+nsGrid.__removeBodyColumn= function(colIndex)
+{
+	if(colIndex > -1 && colIndex < this.__columns.length)
+	{
+		if(this.__tblBody && this.__tblBody.tHead && this.__tblBody.tHead.rows && this.__tblBody.tHead.rows.length > 0)
+	    {
+			var bodyRow = this.__tblBody.tHead.rows[0];
+	    	if(this.__tblBody.tBodies && this.__tblBody.tBodies.length > 0 && this.__tblBody.tBodies[0].rows && this.__tblBody.tBodies[0].rows.length > 0)
+			{
+	    		bodyRow.deleteCell(colIndex);
+	    		var arrRows = this.__tblBody.tBodies[0].rows;
+	    		var row = null;
+	    		for (var rowCount = 0; rowCount < arrRows.length; rowCount++) 
+	    		{
+	    			row = arrRows[rowCount];
+	    			row.deleteCell(colIndex);
+	    	    }
+			}
+	    }
+	}
+};
+
+nsGrid.__swapBodyCell = function(sourceIndex,destinationIndex)
+{
+	if(this.__isColumnIndexValid(sourceIndex) && this.__isColumnIndexValid(destinationIndex))
+	{
+		if(this.__tblBody && this.__tblBody.tHead && this.__tblBody.tHead.rows && this.__tblBody.tHead.rows.length > 0)
+		{
+			var bodyRow = this.__tblBody.tHead.rows[0];
+			if(this.__tblBody.tBodies && this.__tblBody.tBodies.length > 0 && this.__tblBody.tBodies[0].rows && this.__tblBody.tBodies[0].rows.length > 0)
+			{
+				var arrHeaderCells = bodyRow.getElementsByTagName("td");
+				this.__swapCell(arrHeaderCells[sourceIndex],arrHeaderCells[destinationIndex]);
+				var arrRows = this.__tblBody.tBodies[0].rows;
+	    		var row = null;
+	    		var arrBodyCells = [];
+	    		for (var rowCount = 0; rowCount < arrRows.length; rowCount++) 
+	    		{
+	    			row = arrRows[rowCount];
+	    			arrBodyCells = row.getElementsByTagName("td");
+					this.__swapCell(arrBodyCells[sourceIndex],arrBodyCells[destinationIndex]);
+	    	    }
+			}
+			return true;
+		}
+	}
+	return false;
+};
+
+nsGrid.__createArrow = function(parentRowCount,parentElement,isCollapsed)
+{
+	 if(parentElement)
+	 {
+		 var cellArrowParent = this.util.createDiv(null);
+		 var arrowID = this.getID() + "compArrow" + parentRowCount;
+		 var compArrow = this.util.createDiv(arrowID);
+		 compArrow.setAttribute("parent-row-count",parentRowCount);
+		 
+		 var objSVG = null;
+		 if(this.__enableHierarchical)
+		 {
+			 objSVG = new this.util.svg(compArrow,arrowID + "_svg",20,20,0,0);
+			 objSVG.addPath(arrowID + "_path",this.__ARROW_EXPANDED_PATH,this.__CLASS_ARROW);
+		 }
+		 else if(this.__enableGrouping)
+		 {
+			 objSVG = new this.util.svg(compArrow,arrowID + "_svg",16,16,0,0);
+			 objSVG.addCircle(arrowID + "_circle",8,8,8);
+			 objSVG.addline(arrowID + "_horizontalLine",2,7.5,14,7.5,"nsGridGroupIcon");
+			 objSVG.addline(arrowID + "_verticalLine",8,2,8,14,"nsGridGroupIcon");
+		 }
+		 
+		 this.__arrowClickRef = this.__arrowClickHandler.bind(this);
+		 this.util.addEvent(compArrow,"click",this.__arrowClickRef);
+		 cellArrowParent.appendChild(compArrow);
+		 parentElement.appendChild(cellArrowParent);
+		 this.__setArrowDirection(compArrow,isCollapsed);
+		 return compArrow;
+	 }
+	 return null;
+};
+
+nsGrid.__setArrowDirection = function(compArrow,isCollapsed)
+{
+	if(compArrow)
+	{
+		if(this.__enableHierarchical)
+		{
+			var svgUtil = new this.util.svgUtil();
+			var pathID = compArrow.getAttribute("id") + "_path";
+			if(isCollapsed)
+			{
+				svgUtil.changePathValue(pathID,this.__ARROW_COLLAPSE_PATH);
+			}
+			else
+			{
+				svgUtil.changePathValue(pathID,this.__ARROW_EXPANDED_PATH);
+			}
+		}
+		else if(this.__enableGrouping)
+		{
+			var verticalLine = this.util.getElement(compArrow.getAttribute("id") + "_verticalLine");
+			if(verticalLine)
+			{
+				if(isCollapsed)
+				{
+					verticalLine.style.display = "none";
+				}
+				else
+				{
+					verticalLine.style.display = "inline";
+				}
+			}
+		}
+	}
+};
+
+nsGrid.__isArrowCollapsed = function(compArrow)
+{
+	if(compArrow && compArrow.hasAttribute("parent-row-count"))
+	{
+		var rowIndex = parseInt(compArrow.getAttribute("parent-row-count"));
+		var item = this.__getItemByIndex(rowIndex);
+		if(item)
+		{
+			return item[this.__fieldIsCollapsed];
+		}
+	}
+	return false;
+};
+
+/******************************Create Sort Components*******************************/
+nsGrid.__addAscendingIndicator = function(target)
+{
+     if(target)
+     {
+    	 this.__setSortIcons(target,true,false);
+         this.util.addStyleClass(target,this.__CLASS_SORTING_ASC);
+     }
+};
+
+nsGrid.__removeAscendingIndicator= function(target)
+{
+     if(target)
+     {
+          this.util.removeStyleClass(target,this.__CLASS_SORTING_ASC);
+          this.__setSortIcons(target,false,false);
+     }
+};
+
+nsGrid.__addDescendingIndicator= function(target)
+{
+    if(target)
+    {
+    	this.__setSortIcons(target,false,true);
+        this.util.addStyleClass(target,this.__CLASS_SORTING_DESC);
+    }
+};
+
+nsGrid.__removeDescendingIndicators= function(target)
+{
+     if(target)
+     {
+    	 this.util.removeStyleClass(target,this.__CLASS_SORTING_DESC);
+    	 this.__setSortIcons(target,false,false);
+     }
+};
+
+nsGrid.__resetIndicators= function(target)
+{
+     if(target)
+     {
+          this.__removeAscendingIndicator(target);
+          this.__removeDescendingIndicators(target);
+          this.__setSortIcons(target,true,true);
+     }
+};
+
+nsGrid.__resetColumnHeaders= function()
+{
+     var tblHeaderBody = null;
+     //safari doesnot support table.tHead
+     if (this.__tblHeader.tBodies && this.__tblHeader.tBodies.length > 0)
+     {
+    	 tblHeaderBody = this.__tblHeader.tBodies[0];
+     }
+     //two header not allowed
+     if (!tblHeaderBody || !tblHeaderBody.rows || tblHeaderBody.rows.length != 1)
+     {
+          return;
+     }
+     var headers = tblHeaderBody.rows[0].cells;
+     for (var colCount = 0; colCount < headers.length; colCount++)
+     {
+          this.__resetIndicators(headers[colCount]);
+     }
+};
+
+nsGrid.__setSortIcons= function(target,isAscVisible,isDescVisible)
+{
+	if(target)
+	{
+		if(isAscVisible != null)
+		{
+			 var divSortAsc = document.getElementById(target.getAttribute("id") + "SortAsc");
+			 if(divSortAsc)
+			 {
+				 divSortAsc.style.display = isAscVisible ? "" : "none";
+			 }
+		}
+		if(isDescVisible != null)
+		{
+			 var divSortDesc = document.getElementById(target.getAttribute("id") + "SortDesc");
+			 if(divSortDesc)
+			 {
+				 divSortDesc.style.display = isDescVisible ? "" : "none";
+			 }
+		}
+	}
+};
+
+/******************************End of Create Sort Components*******************************/
+
+/******************************Event Listeners *************************************/
+
+nsGrid.__arrowClickHandler = function(event)
 {
 	event = this.util.getEvent(event);
-	if(!this.__config.isContextMenu && this.__isParentPresent(event.target,this.__config.parent))
+	var target = this.util.getTarget(event);
+	target = this.util.findParent(target,"DIV");
+	if(target && target.hasAttribute("parent-row-count"))
+	{
+		var rowIndex = target.getAttribute("parent-row-count");
+		var isCollapse = this.__isArrowCollapsed(target);
+		this.__showHideRow(parseInt(rowIndex),target,!isCollapse);
+	}
+	event.stopImmediatePropagation();
+};
+
+nsGrid.__headerClickHandler= function(event)
+{
+	if(this.__onGridLine)
+	{
+		 return;
+	}
+     var target = this.util.getTarget(event);
+     //adding the below condition so that if we add a span or a font and click on it then we should navigate till we find the header object
+     target = this.util.findParent(target,"TD");
+     var columnDetail = this.__getColumnObject(target.getAttribute("currentColumnIndex"));
+     this.__handleSorting(target,columnDetail);
+};
+
+nsGrid.__headerMouseOverHandler = function(event)
+{
+	var target = this.util.getTarget(event);
+	target = this.util.findParent(target,"TD");
+	this.__headerMouseMoveRef = this.__headerMouseMoveHandler.bind(this);
+	this.util.addEvent(target,"mousemove",this.__headerMouseMoveRef);
+};
+
+nsGrid.__headerMouseOutHandler = function(event)
+{
+	var target =  this.util.getTarget(event);
+	target =  this.util.findParent(target,"TD");
+	this.__onGridLine = false;
+	
+	this.util.removeEvent(target,"mousemove",this.__headerMouseMoveRef);
+	this.__headerMouseMoveRef = null;
+	/*this.util.removeEvent(target,"mousedown",this.__headerMouseDownRef);
+	this.__headerMouseDownRef = null;*/
+	
+	this.util.removeStyleClass(target,"nsResizeHandleActive");
+};
+
+nsGrid.__headerMouseMoveHandler = function(event)
+{
+	event = this.util.getEvent(event);
+	var target = this.util.getTarget(event);
+	target = this.util.findParent(target,"TD");
+	var objColumn = this.__getColumnObject(target.getAttribute("currentColumnIndex"));
+	//var offset = this.util.getEventPosition(event);
+	if(objColumn && objColumn["resizable"])
+	{
+		var divBody = this.getElement(this.getID() + this.__TABLE_BODY_CONTAINER_ID);
+		var posEvent = this.util.getEventPosition(event,divBody);
+		if(this.__isMouseOnElement(target,posEvent.left,posEvent.top))
+		{
+			this.util.addStyleClass(target,"nsResizeHandleActive");
+			this.__onGridLine = true;
+		}
+		else
+		{
+			this.util.removeStyleClass(target,"nsResizeHandleActive");
+			this.__onGridLine = false;
+		}
+	}
+};
+
+nsGrid.__headerMouseDownHandler = function(event)
+{
+	event = this.util.getEvent(event);
+    var target = this.util.getTarget(event);
+    target = this.util.findParent(target,"TD");
+    var objColumn = this.__getColumnObject(target.getAttribute("currentColumnIndex"));
+    if(objColumn)
+	{
+    	if(objColumn["resizable"])
+    	{
+    		this.__startResize(event,target);
+    	}
+    	if(objColumn["draggable"])
+    	{
+		    this.__startColumnMove(event,target);
+    	}
+	}
+};
+
+nsGrid.__headerMenuClickHandler = function(event)
+{
+	 event = this.util.getEvent(event);
+     event.stopImmediatePropagation();
+};
+
+nsGrid.__getHeaderMenuDataProvider = function(target)
+{
+	var source = [];
+	if(target)
+	{
+		target = this.util.findParent(target,"TD");
+		var objColumn = this.__getColumnObject(target.getAttribute("currentColumnIndex"));
+		var colIndex = objColumn[this.__fieldColIndex];
+		if(objColumn)
+		{
+			if(objColumn["sortable"])
+			{
+				source.push({id:1,title: "Sort Ascending"});
+				source.push({id:2,title: "Sort Descending"});
+			}
+			if(this.__isColumnValidForSwapOrRemove(colIndex))
+			{
+				source.push({id:3,title: "Remove Column"});
+			}
+		}
+	}
+	return source;
+};
+
+nsGrid.__headerMenuHandler = function(target,item)
+{
+	if(target && item)
+	{
+		target = this.util.findParent(target,"TD");
+		var objColumn = this.__getColumnObject(target.getAttribute("currentColumnIndex"));
+		if(objColumn)
+		{
+			var colIndex = objColumn[this.__fieldColIndex];
+			//Sort Ascending
+			if(item["id"] === 1)
+			{
+				this.sortBy(colIndex,true);
+			}
+			//Sort Descending
+			else if(item["id"] === 2)
+			{
+				this.sortBy(colIndex,false);
+			}
+			//Remove Column
+			else if(item["id"] === 3)
+			{
+				this.removeColumn(colIndex);
+			}
+		}
+	}
+};
+
+nsGrid.__rowMouseHover= function(event)
+{
+	 if(this.__enableMouseHover)
+	 {
+		 event = this.util.getEvent(event);
+	     var target = this.util.getTarget(event);
+	     target = this.util.findParent(target,"TR");
+	     if (event.type == "mouseover")
+	     {
+	    	 this.util.addStyleClass(target,"nsDataGridHover");
+	     }
+	     else if (event.type == "mouseout")
+	     {
+	    	 this.util.removeStyleClass(target,"nsDataGridHover");
+	     }
+	 }
+	 return false;
+};
+
+nsGrid.__rowClickHandler= function(event)
+{
+	event = this.util.getEvent(event);
+    var target = this.util.getTarget(event);
+    target = this.util.findParent(target,"TR");
+    //Multiselection Check
+    if (event.shiftKey && this.__enableMultiSelection)
+    {
+    	this.__multiSectionHandler(target);
+    }
+    else if(event.ctrlKey && this.__enableMultiSelection)
+    {
+      if(this.__isRowSelected(target))
+      {
+    	  this.__markRowUnselected(target);
+      }
+      else
+      {
+    	  this.__markRowSelected(target);
+      }
+    }
+    else
+    {
+    	this.__clearAllRowSelection();
+    	this.__markRowSelected(target);
+    } 
+};
+
+nsGrid.__bodyScrollHandler = function(event)
+{
+	var target = this.util.getTarget(event);
+	var scrollPos = target.scrollTop;
+	if(((this.__bodyMeasuredScroll - this.__INFINITE_SCROLL_PADDING) <= scrollPos) && (scrollPos > this.__bodyScrollPos))
+	{
+		if(this.__fetchRecordCallBack && this.__totalRecords > this.__arrWrapper.length)
+		{
+			this.__fetchRecordCallBack(this.__arrWrapper.length,this.__pageSize);
+		}
+	}
+	this.__bodyScrollPos = target.scrollTop;
+};
+/******************************End of Event Listeners*************************************/
+
+/******************************Column Resize Logic*************************************/
+
+nsGrid.__resize = function(table,cell,desirableWidth)
+{
+	var cellPaddingLeft = this.util.getDimensionAsNumber(cell,cell.style.paddingLeft);
+	var cellPaddingRight = this.util.getDimensionAsNumber(cell,cell.style.paddingRight);
+	var pad = parseInt(cellPaddingLeft,10) + parseInt(cellPaddingRight,10);
+	var objColumn = this.__getColumnObject(this.__resizingHeader.getAttribute("currentColumnIndex"));
+	var minWidth = this.__columnMinWidth;
+	if(objColumn)
+	{
+		minWidth = objColumn["minWidth"];
+	}
+	var setWidth = Math.max((desirableWidth - pad), minWidth);
+	cell.style.width = setWidth + "px";
+};
+
+nsGrid.__startResize = function(event,target)
+{
+	if(!this.__onGridLine)
 	{
 		return;
 	}
-	this.hide();
+	
+	 this.util.removeEvent(target,"click",this.__headerClickRef);
+	 this.__headerClickRef = null;
+     this.util.removeEvent(target,"mouseover",this.__headerMouseOverRef);
+     this.__headerMouseOverRef = null;
+     this.util.removeEvent(target,"mouseout",this.__headerMouseOutRef);
+     this.__headerMouseOutRef = null;
+     /*this.util.removeEvent(target,"mousedown",this.__headerMouseDownRef);
+     this.__headerMouseDownRef = null;*/
+	
+	this.__resizingHeader = target;
+	this.__resizingHeaderCell = this.__getHeaderTopCell(target);
+	this.__resizingBodyCell = this.__getBodyTopCell(target);
+	
+	this.__createResizeHandler(event);
+	
+	this.__doResizeRef = this.__doResize.bind(this);
+	this.__endResizeRef = this.__endResize.bind(this);
+	this.util.addEvent(document,"mousemove",this.__doResizeRef);
+	this.util.addEvent(document,"mouseup",this.__endResizeRef);
+	
+	event.stopImmediatePropagation();
 };
 
+nsGrid.__doResize = function(event)
+{
+	//putting this check as somehow the document evenlistener is not getting detached
+	if(!this.__resizingHeader)
+	{
+		return;
+	}
+	this.util.makeBodyUnselectable();
+	event = this.util.getEvent(event);
+	var posEvent = this.util.getEventPosition(event);
+	this.__resizeHandler.style.left = posEvent.left + "px";
+	
+	return false;
+};
 
-NSMenu.prototype.__documentKeyUpHandler = function(event) 
+nsGrid.__endResize = function(event)
+{
+	//putting this check as somehow the document evenlistener is not getting detached
+	if(!this.__resizingHeader)
+	{
+		return;
+	}
+	this.util.removeEvent(document,"mousemove",this.__doResizeRef);
+	this.__doResizeRef = null;
+	this.util.removeEvent(document,"mouseup",this.__endResizeRef);
+	this.__endResizeRef = null;
+	this.util.removeEvent(selectedHeader,"mouseout",this.__headerMouseOutRef);
+	this.__headerMouseOutRef = null;
+	this.util.removeEvent(selectedHeader,"click",this.__headerClickRef);
+	this.__headerClickRef = null;
+	
+	this.util.makeBodySelectable();
+	event = this.util.getEvent(event);
+	var selectedHeader = this.__resizingHeader;
+	var tableHeader = this.__tblHeader;
+	var tableBody = this.__tblBody;
+	var divBody = this.getElement(this.getID() + this.__TABLE_BODY_CONTAINER_ID);
+	var posEvent = this.util.getEventPosition(event,divBody);
+	var desiredWidth = posEvent.left - this.util.getCumulativeOffset(selectedHeader).x;
+	this.__resize(tableHeader,this.__resizingHeaderCell,desiredWidth);
+	this.__resize(tableBody,this.__resizingBodyCell,desiredWidth);
+	
+	if(this.__resizeHandler)
+	{
+		document.body.removeChild(this.__resizeHandler);
+	}
+	
+	this.__resizingHeader = null;
+	this.__resizingHeaderCell = null;
+	this.__resizingBodyCell = null;
+	this.__resizeHandler = null;
+	event.stopImmediatePropagation();
+	this.__alignTables(false);
+};
+
+nsGrid.__createResizeHandler = function(event)
+{
+	this.__resizeHandler = this.util.createDiv(null,"nsResizeHandle");
+	var posEvent = this.util.getEventPosition(event);
+	this.__resizeHandler.style.top = this.util.getCumulativeOffset(this.__resizingHeader).y + "px";
+	this.__resizeHandler.style.left = posEvent.left + "px";
+	var divHeader = this.getElement(this.getID() + this.__TABLE_HEADER_CONTAINER_ID);
+	var divBody = this.getElement(this.getID() + this.__TABLE_BODY_CONTAINER_ID);
+	var scrollBarWidth = this.util.getScrollBarWidth(divBody);
+	this.__resizeHandler.style.height = (divHeader.offsetHeight + divBody.offsetHeight - scrollBarWidth) + "px";
+	
+	document.body.appendChild(this.__resizeHandler);
+};
+
+nsGrid.__getHeaderTopCell = function(cell)
+{
+	if(cell)
+	{
+		var index = cell.cellIndex;
+		if(this.__tblHeader && this.__tblHeader.tHead && this.__tblHeader.tHead.rows.length > 0 && this.__tblHeader.tHead.rows[0].cells.length > 0)
+		{
+			var headerCells = this.__tblHeader.tHead.rows[0].cells;
+			return headerCells[index];
+		}
+	}
+	return null;
+};
+
+nsGrid.__getBodyTopCell = function(cell)
+{
+	if(cell)
+	{
+		var index = cell.cellIndex;
+		if(this.__tblBody && this.__tblBody.tHead && this.__tblBody.tHead.rows.length > 0 && this.__tblBody.tHead.rows[0].cells.length > 0)
+		{
+			var bodyCells = this.__tblBody.tHead.rows[0].cells;
+			return bodyCells[index];
+		}
+	}
+	return null;
+};
+
+/*******************************************************End of Column Resize Logic*************************************/
+
+/******************************************************Start of Column Move logic ********************************************************/
+nsGrid.__startColumnMove = function(event,target)
+{
+	if(this.__onGridLine)
+	{
+		return;
+	}
+	var objColumn = this.__getColumnObject(target.getAttribute("currentColumnIndex"));
+	var columnIndex = this.__getColumnIndexByObject(objColumn);
+	if(columnIndex > -1)
+	{
+		this.__objColumnDrag = {};
+		this.__objColumnDrag.source = target;
+		this.__objColumnDrag.objColumn = objColumn;
+		this.__objColumnDrag.columnIndex = columnIndex;
+		var position = this.util.getEventPosition(event);
+		this.__objColumnDrag.dragElement = this.__createCopyItem(target,position);
+		this.__objColumnDrag.dragElementAdded = false;
+		this.__objColumnDrag.position = position;
+		this.__dragColumnMoveRef = this.__dragColumnMoveHandler.bind(this);
+		this.__dragColumnEndRef = this.__dragColumnEndHandler.bind(this);
+		this.util.addEvent(document,"mousemove",this.__dragColumnMoveRef);
+		this.util.addEvent(document,"mouseup",this.__dragColumnEndRef);
+	}
+};
+
+nsGrid.__dragColumnMoveHandler = function(event)
 {
 	event = this.util.getEvent(event);
-	if(event.keyCode === this.ESC_KEYCODE) 
+	var position = this.util.getEventPosition(event);
+	var leftOffset = this.__objColumnDrag.position.left - position.left;
+    var topOffset = this.__objColumnDrag.position.top - position.top;
+    var dragRadius = (leftOffset * leftOffset) + (topOffset * topOffset);
+    if(!this.__objColumnDrag.dragElementAdded && dragRadius > this.__MIN_DRAG_OFFSET)
+    {
+    	document.body.appendChild(this.__objColumnDrag.dragElement);
+    	this.__objColumnDrag.dragElementAdded = true;
+    }
+    var posEvent = this.util.getEventPosition(event);
+    this.__objColumnDrag.dragElement.style.left = posEvent.left + "px"; //position.left + "px";
+    this.__objColumnDrag.dragElement.style.top = posEvent.top + "px";
+    event.preventDefault();
+};
+
+nsGrid.__dragColumnEndHandler = function(event)
+{
+	this.util.removeEvent(document,"mousemove",this.__dragColumnMoveRef);
+	this.__dragColumnMoveRef = null;
+	this.util.removeEvent(document,"mouseup",this.__dragColumnEndRef);
+	this.__dragColumnEndRef = null;
+	if(this.__objColumnDrag.dragElementAdded)
 	{
-		this.hide();
+		document.body.removeChild(this.__objColumnDrag.dragElement);
+		var position = this.util.getEventPosition(event);
+		var divBody = this.getElement(this.getID() + this.__TABLE_BODY_CONTAINER_ID);
+		position.top = position.top + divBody.scrollTop;
+		position.left = position.left + divBody.scrollLeft;
+		var tablePosition = this.util.getOffSet(this.__tblHeader);
+		if (position.top < tablePosition.top || position.top > (tablePosition.top + this.__tblHeader.offsetHeight)) 
+		{
+		      return;
+		}
+		var targetIndex = this.__getHeaderColumnByPosition(position);
+	    if (targetIndex > -1 && targetIndex != this.__objColumnDrag.columnIndex) 
+	    {
+	    	this.swapColumns(this.__objColumnDrag.columnIndex,targetIndex);
+	    }
 	}
 };
 
-NSMenu.prototype.__parentContextMenuHandler = function(event)
+nsGrid.__createCopyItem = function(target,position)
 {
-	if(this.__config.eventHandler)
+	var divDrag = null;
+	if(target && position)
 	{
-		this.__config.eventHandler(event);
+		divDrag = this.util.createDiv(this.getID() + "Drag","dataGridHeader");
+		divDrag.innerHTML = target.innerHTML;
+		//divDrag.style.backgroundColor = "red";
+		divDrag.style.position = "absolute";
+		divDrag.style.left = (position.left) + "px";
+		divDrag.style.top = (position.top) + "px";
+		divDrag.style.width = target.offsetWidth + "px";
+		divDrag.style.height = target.offsetHeight + "px";
+		divDrag.style.opacity = 0.7;
 	}
-	this.__setLastSelectedTarget(this.util.getTarget(event));
-	this.show(event);
+	return divDrag;
 };
 
-NSMenu.prototype.__parentClickHandler = function(event)
+nsGrid.__getHeaderColumnByPosition = function(position) 
 {
-	if(this.__config.eventHandler)
+	if(this.__tblHeader.tBodies && this.__tblHeader.tBodies.length > 0 && this.__tblHeader.tBodies[0].rows && this.__tblHeader.tBodies[0].rows.length > 0)
 	{
-		this.__config.eventHandler(event);
+		var headerBodyRowCells = this.__tblHeader.tBodies[0].rows[0].cells;;
+	    for (var count = 0; count < headerBodyRowCells.length; count++) 
+	    {
+	      var rowPosition = this.util.getOffSet(headerBodyRowCells[count]);
+	      if (rowPosition.left <= position.left && position.left <= rowPosition.left + headerBodyRowCells[count].offsetWidth) 
+	      {
+	    	  return count;
+	      }
+	    }
+	    return -1;
 	}
-	this.__setLastSelectedTarget(this.util.getTarget(event));
-	this.show(event);
 };
 
-NSMenu.prototype.__getItem = function(objItem,dataSource)
+/******************************************************End of Column Move logic ********************************************************/
+
+/******************************************************Start of Selection Functions*************************************************************/
+
+nsGrid.__isRowSelected= function(row)
 {
-	if(objItem)
+    if(row)
+    {
+        return this.util.hasStyleClass(row,"nsDataGridSelection");
+    }   
+    return false;
+};
+
+nsGrid.__markRowSelected= function(row)
+{
+    if(row)
+    {
+        if(!this.__isRowSelected(row))
+        {
+        	this.util.addStyleClass(row,"nsDataGridSelection");   
+            this.__selectedItems.push(row);
+        	var index = parseInt(row.getAttribute("index"));
+        	var item = this.__getItemByIndex(index);
+            this.util.dispatchEvent(this,this.ITEM_SELECTED,item,{index:item[this.__fieldIndex]});
+        }
+    }
+};
+
+nsGrid.__markRowUnselected= function(row)
+{
+    if(this.__isRowSelected(row))
+    {
+    	this.util.removeStyleClass(row,"nsDataGridSelection");
+        for (var count=0; count < this.__selectedItems.length ; count++)
+        {
+            if (parseInt(this.__selectedItems[count].getAttribute("index")) === parseInt(row.getAttribute("index")))
+            {
+                this.__selectedItems.splice(count,1);
+                break;
+            }
+        }
+        var index = parseInt(row.getAttribute("index"));
+        var item = this.__getItemByIndex(index);
+        this.util.dispatchEvent(this,this.ITEM_UNSELECTED,item,{index:item[this.__fieldIndex]});
+    }
+};
+
+nsGrid.__clearAllRowSelection= function()
+{
+    for (var count=0; count < this.__selectedItems.length ; count++)
+    {
+        if (this.__selectedItems[count])
+        {
+        	this.util.removeStyleClass(this.__selectedItems[count],"nsDataGridSelection");
+        }
+    }
+    this.__selectedItems = [];
+};
+
+nsGrid.__multiSectionHandler= function(lastRow)
+{
+	 if(!lastRow)
+	 {
+		 return;
+	 }
+	 if (this.__selectedItems.length === 0)
+	 {
+		 this.__isRowSelected(lastRow);
+	     return;
+	 }
+	 var firstRow = this.__selectedItems[this.__selectedItems.length - 1];
+	 if(parseInt(lastRow.getAttribute("index")) === parseInt(firstRow.getAttribute("index")))
+	 {
+		 this.__markRowUnselected(lastRow);
+		 return;
+	 }
+	 var isDown = (parseInt(lastRow.getAttribute("index")) > parseInt(firstRow.getAttribute("index")));
+	 var isSelection = !this.__isRowSelected(lastRow);
+	 var navigateRow = firstRow;
+	 do
+	 {
+		  navigateRow = isDown ? navigateRow.nextSibling : navigateRow.previousSibling;
+		  if (isSelection)
+		  {
+			  this.__markRowSelected(navigateRow);
+		  }
+		  else
+		  {
+			  this.__markRowUnselected(navigateRow);
+		  }
+	 }
+	 while(parseInt(navigateRow.getAttribute("index")) != parseInt(lastRow.getAttribute("index")));
+};
+
+nsGrid.__setVisibilityOfColumn = function(index,isVisible)
+{
+	var style;
+    if (isVisible) 
+    {
+    	style = "";
+    }
+    else
+    {
+    	style = "none";
+    }
+	var rows = this.__tblHeader.getElementsByTagName("tr");
+	for (var count = 0; count < rows.length;count++) 
 	{
-		for (var count = 0; count < dataSource.length; count++) 
+	     var cells = rows[count].getElementsByTagName("td");
+	     if(cells.length > index)
+	     {
+	    	 cells[index].style.display = style;
+	     }
+	     else
+	     {
+	    	 return;
+	     }
+	}
+	rows = this.__tblBody.getElementsByTagName("tr");
+	for (var count = 0; count < rows.length;count++) 
+	{
+	     var cells = rows[count].getElementsByTagName("td");
+	     cells[index].style.display = style;
+	}
+	
+};
+
+/******************************************************End of Selection Functions*************************************************************/
+/******************************************************Start of Sorting Logic*************************************************************/
+
+nsGrid.__handleSorting= function(header,columnDetail,customIsAscending)
+{
+	if(header && columnDetail && columnDetail.sortable)
+    {
+		  var isCustomSort = !this.util.isUndefined(customIsAscending);
+	   	  var sortAscending = false;
+	   	  if (this.util.hasStyleClass(header,this.__CLASS_SORTING_ASC) || this.util.hasStyleClass(header,this.__CLASS_SORTING_DESC))
+		  {
+	          if(this.util.hasStyleClass(header,this.__CLASS_SORTING_ASC))
+	          {
+	               this.__removeAscendingIndicator(header);
+	               sortAscending = false;
+	          }
+	          else if(this.util.hasStyleClass(header,this.__CLASS_SORTING_DESC))
+	          {
+		       	   this.__removeDescendingIndicators(header);
+		       	   sortAscending = true;
+	          }
+		  }
+	   	  else
+	   	  {
+	   		  this.__resetColumnHeaders();
+	   		  sortAscending = !columnDetail.sortDescending;
+	   	  }
+	   	  //customIsAscending is passed it overrides the setting in columnDetail
+	   	  if(isCustomSort)
+	   	  {
+	   		  sortAscending = customIsAscending;
+	   	  }
+	   	  if(sortAscending)
+	      {
+	   		  this.__addAscendingIndicator(header);
+	      }
+	   	  else
+	   	  {
+	   		  this.__addDescendingIndicator(header);
+	   	  }
+	   	  if(this.__enableHierarchical || this.__enableGrouping)
+	   	  {
+	   		  this.__sortHierarchicalStructure(this.__arrWrapper,columnDetail,sortAscending); 
+	   	  }
+	   	  else
+	   	  {
+	   		  this.__sortArrOfObjectsByParam(this.__arrWrapper,columnDetail.sortFunction,columnDetail.dataField,sortAscending);
+	   	  }
+	      this.__renderBody(true);
+    }
+	else
+	{
+		  this.util.warning("NSGrid","This column is not sortable.");
+	}
+};
+
+nsGrid.__sortHierarchicalStructure= function(dataSource,columnDetail,sortAscending)
+{
+	if(dataSource && dataSource.length > 0)
+	{
+		for(var count = 0;count < dataSource.length;count++)
 		{
 			var item = dataSource[count];
-			if(item[this.__fieldItem] == objItem)
+			if(this.__isNodeLastParent(item))
 			{
-				return item;
+				this.__sortArrOfObjectsByParam(item[this.__childField],columnDetail.sortFunction,columnDetail.dataField,sortAscending);
 			}
-			if(item.hasOwnProperty(this.__fieldChild))
+			else if(item[this.__fieldHasChild])
 			{
-				var childItem = this.__getItem(objItem,item[this.__fieldChild]);
-				if(childItem)
+				this.__sortHierarchicalStructure(item[this.__childField],columnDetail,sortAscending);
+			}
+		}
+	}
+};
+
+//This method is based on Stuart Langridge's "sorttable" code
+nsGrid.__determineSortFunction= function(item)
+{ 
+      var sortFunction = "__sortCaseInsensitive";
+      if (item.match(/^\d\d[\/-]\d\d[\/-]\d\d\d\dgetElement/))
+      {
+          sortFunction = "__sortDate";
+      }
+      if (item.match(/^\d\d[\/-]\d\d[\/-]\d\dgetElement/))
+      {
+          sortFunction = "__sortDate";
+      }
+      if (item.match(/^[Ã‚Â£$]/))
+      {
+          sortFunction = "__sortCurrency";
+      }
+      if (item.match(/^\d?\.?\d+getElement/))
+      {
+          sortFunction = "__sortNumeric";
+      }
+      if (item.match(/^[+-]?\d*\.?\d+([eE]-?\d+)?getElement/))
+      {
+          sortFunction = "__sortNumeric";
+      }
+      if(!isNaN(item))
+      {
+    	  sortFunction = "__sortNumeric";
+      }
+     
+      return sortFunction;
+};
+
+nsGrid.__sortArrOfObjectsByParam= function(arrToSort,sortFunctionName,dataField,sortAscending)
+{
+     if(sortAscending == null || sortAscending == undefined)
+     {
+         sortAscending = true;  // default to true
+     }
+     arrToSort.sort(function (item1, item2)
+     {
+         var retValue = 0;
+         if (typeof this[sortFunctionName] === "function")
+         {
+             retValue = this[sortFunctionName](item1, item2 , dataField, sortAscending);
+         }
+         return retValue;
+     }.bind(this));
+};
+ 
+nsGrid.__sortCaseInsensitive= function(item1, item2 , dataField, sortAscending)
+{
+	if(!item1[dataField] && !item2[dataField])
+	{
+		return 0;
+	}
+	var retValue = -1;
+	if(!item1[dataField])
+	{
+		retValue = -1;
+	}
+	else if(!item2[dataField])
+	{
+		retValue = 1;
+	}
+	else
+	{
+		var firstString = item1[dataField].toLowerCase();
+	    var secondString = item2[dataField].toLowerCase();
+	      
+	    if(firstString == secondString)
+	    {
+	    	return 0;
+	    }
+	    if (firstString < secondString)
+	    {
+	        retValue = -1;
+	    }
+	    else
+	    {
+	        retValue = 1;
+	    }
+	}
+	
+    if(sortAscending)
+    {
+        return retValue; 
+    }
+    return (retValue * -1);
+};
+ 
+nsGrid.__sortDate= function(item1, item2 , dataField, sortAscending)
+{
+      // y2k notes: two digit years less than 50 are treated as 20XX, greater than 50 are treated as 19XX
+      var firstDateString = item1[dataField];
+      var secondDateString = item2[dataField];
+      var firstDate, secondDate, year = -1;
+     
+      if (firstDateString.length == 10)
+      {
+           firstDate = firstDateString.substr(6,4) + firstDateString.substr(3,2) + firstDateString.substr(0,2);
+      }
+      else
+      {
+           year = firstDateString.substr(6,2);
+           if (parseInt(year) < 50)
+           {
+                year = "20" + year;
+           }
+           else
+           {
+                year = "19" + year;
+           }
+           firstDate = year + firstDateString.substr(3,2) + firstDateString.substr(0,2);
+      }
+     
+      if (secondDateString.length == 10)
+      {
+           secondDate = secondDateString.substr(6,4)+secondDateString.substr(3,2)+secondDateString.substr(0,2);
+      }
+      else
+      {
+           year = secondDateString.substr(6,2);
+           if (parseInt(year) < 50)
+           {
+                year = "20" + year;
+           }
+           else
+           {
+                year = "19" + year;
+           }
+           secondDate = year + secondDateString.substr(3,2) + secondDateString.substr(0,2);
+      }
+     
+      if (firstDate == secondDate)
+      {
+          return 0;
+      }
+      var retValue = -1;
+      if (firstDate < secondDate)
+      {
+          retValue = -1;
+      }
+      else
+      {
+          retValue = 1;
+      }
+      if(sortAscending)
+      {
+          return retValue; 
+      }
+      return (retValue * -1);
+};
+
+nsGrid.__sortCurrency= function(item1, item2 , dataField, sortAscending)
+{
+      var firstCurrency = item1[dataField].replace(/[^0-9.]/g,"");
+      var secondCurrency = item2[dataField].replace(/[^0-9.]/g,"");
+      if(sortAscending)
+      {
+          return parseFloat(firstCurrency) - parseFloat(secondCurrency); 
+      }
+      return parseFloat(secondCurrency) - parseFloat(firstCurrency);
+};
+
+nsGrid.__sortNumeric= function(item1, item2 , dataField, sortAscending)
+{
+      var firstNumber = parseFloat(item1[dataField]);
+      if (isNaN(firstNumber))
+      {
+          firstNumber = 0;
+      }
+      var secondNumber = parseFloat(item2[dataField]);
+      if (isNaN(secondNumber))
+      {
+          secondNumber = 0;
+      }
+      if(sortAscending)
+      {
+          return (firstNumber - secondNumber);
+      }
+      return (secondNumber - firstNumber);
+};
+/******************************************************End of Sorting Logic*************************************************************/
+/******************************************************Start of Context Menu*************************************************************/
+
+nsGrid.__initializeContextMenu = function()
+{
+	//if(!this.__contextMenu)
+	//{
+		var contextMenuSetting = {parent:this.__tblBody.tBodies[0],isContextMenu:true,createRunTime:true,sourceProvider:this.__getContextMenuDataProvider.bind(this),targetType:"TD"};
+		this.__contextMenu = new NSMenu(contextMenuSetting);
+	//}
+};
+
+nsGrid.__getContextMenuDataProvider = function(cell)
+{
+	if(cell)
+	{
+		cell = this.util.findParent(cell,"TD");
+		if(cell)
+		{
+			var row = this.util.findParent(cell,"TR");
+			if(row)
+			{
+				var index = parseInt(row.getAttribute("index"));
+				var item = this.__getItemByIndex(index);
+				if(item && this.__contextMenuProvider) 
 				{
-					return childItem;
+					return this.__contextMenuProvider(item,cell.cellIndex,row.rowIndex);
 				}
 			}
 		}
@@ -335,208 +2099,721 @@ NSMenu.prototype.__getItem = function(objItem,dataSource)
 	return null;
 };
 
-NSMenu.prototype.__hideOtherNSMenu = function()
+/******************************************************End of Context Menu*************************************************************/
+/******************************Custom Function *************************************/
+
+nsGrid.__createTableAndParent = function(containerID,containerStyle,tableID)
 {
-	var arrMenus = document.querySelectorAll(".nsMainMenu");
-	if(arrMenus && arrMenus.length > 0)
+	var divTableContainer = this.util.createDiv(containerID,containerStyle); 
+	var table = document.createElement("TABLE");
+	table.setAttribute("id",tableID);
+	this.util.addStyleClass(table , this.__CLASS_TABLE);
+	divTableContainer.appendChild(table);
+	return divTableContainer;
+};
+
+nsGrid.__setMeasurement = function()
+{
+	this.__bodyMeasuredScroll = 0;
+	this.__bodyScrollPos = 0;
+};
+
+nsGrid.__setBodyMeasurement = function()
+{
+	var divOuterContainer = this.getElement(this.getID() + this.__OUTER_CONTAINER_ID);
+	var divHeader = this.getElement(this.getID() + this.__TABLE_HEADER_CONTAINER_ID);
+	var divBody = this.getElement(this.getID() + this.__TABLE_BODY_CONTAINER_ID);
+	var divTitleBar = this.getElement(this.getID() + this.__TITLE_CONTAINER_ID);
+	var topHeight = divHeader.offsetHeight;
+	if(divTitleBar)
 	{
-		var menu = null;
-		for(var count = 0;count < arrMenus.length;count++)
+		topHeight += divTitleBar.offsetHeight;
+	}
+	divBody.style.height = (divOuterContainer.offsetHeight - topHeight) + "px";
+	this.__bodyMeasuredScroll = divBody.scrollHeight - divBody.clientHeight;
+	var scrollBarWidth = this.util.getScrollBarWidth(divBody);
+	this.__initialTableWidth = divOuterContainer.offsetWidth - scrollBarWidth;
+	divHeader.style.width = (divBody.offsetWidth - scrollBarWidth) + "px";
+	//divHeader.style.backgroundColor = "#D8D8D8";
+	if(!this.__synchronizeTablesRef)
+	{
+		this.__synchronizeTablesRef = this.__synchronizeTables.bind(this);
+		this.util.addEvent(divBody,"scroll",this.__synchronizeTablesRef);
+	}
+};
+
+
+nsGrid.__alignTables = function(fromSort)
+{
+	var divOuterContainer = this.getElement(this.getID() + this.__OUTER_CONTAINER_ID);
+	var divHeader = this.getElement(this.getID() + this.__TABLE_HEADER_CONTAINER_ID);
+	var divBody = this.getElement(this.getID() + this.__TABLE_BODY_CONTAINER_ID);
+	var divTitleBar = this.getElement(this.getID() + this.__TITLE_CONTAINER_ID);
+	var topHeight = divHeader.offsetHeight;
+	if(divTitleBar)
+	{
+		topHeight += divTitleBar.offsetHeight;
+	}
+	divBody.style.height = (divOuterContainer.offsetHeight - topHeight) + "px";
+	var tableHeader = this.__tblHeader;
+	var tableBody = this.__tblBody;
+	if(tableHeader.tHead && tableHeader.tHead.rows.length > 0 && tableBody.tHead && tableBody.tHead.rows.length)
+	{
+		var headerCells = tableHeader.tHead.rows[0].cells;
+		var bodyCells = tableBody.tHead.rows[0].cells;
+		if(headerCells && headerCells.length > 0 && bodyCells && bodyCells.length > 0)
 		{
-			menu = arrMenus[count];
-			this.util.removeStyleClass(menu,"nsShowMenu");
+			var totalWidth = 0;
+			var count = 0;
+			var widthToBeSet = 0;
+			if(fromSort)
+			{
+				for(count = 0;count < headerCells.length;count++)
+				{
+					widthToBeSet = this.util.getDimensionAsNumber(headerCells[count],headerCells[count].style.width);
+					if(widthToBeSet === 0)
+					{
+						widthToBeSet = headerCells[count].getBoundingClientRect().width;//headerCells[count].offsetWidth;
+					}
+					totalWidth += widthToBeSet;
+					bodyCells[count].style.width = widthToBeSet + "px";
+					headerCells[count].style.width = widthToBeSet + "px";
+				}
+			}
+			else
+			{
+				for(count = 0;count < bodyCells.length;count++)
+				{
+					widthToBeSet = this.util.getDimensionAsNumber(bodyCells[count],bodyCells[count].style.width);
+					if(widthToBeSet === 0)
+					{
+						widthToBeSet = bodyCells[count].getBoundingClientRect().width;//bodyCells[count].offsetWidth;
+					}
+					totalWidth += widthToBeSet;
+					headerCells[count].style.width = widthToBeSet + "px";
+					bodyCells[count].style.width = widthToBeSet + "px";
+				}
+			}
+			if(this.__initialTableWidth > totalWidth)
+			{
+				totalWidth = this.__initialTableWidth;
+			}
+			tableBody.style.width = totalWidth + "px";
+			tableHeader.style.width = totalWidth + "px";
 		}
 	}
 };
 
-NSMenu.prototype.__hideAllSubMenus = function()
+nsGrid.__synchronizeTables = function(event) 
 {
-	var arrSubMenus = this.__menu.querySelectorAll("ul");
-	if(arrSubMenus && arrSubMenus.length > 0)
+	var divHeader = this.getElement(this.getID() + this.__TABLE_HEADER_CONTAINER_ID);
+	if(this.__scroller)
 	{
-		var subMenu = null;
-		for(var count = 0;count < arrSubMenus.length;count++)
+		divHeader.scrollLeft = event.scrollLeft;
+	}
+	else
+	{
+		var target = this.util.getTarget(event);
+		divHeader.scrollLeft = target.scrollLeft;
+	}
+	
+};
+
+nsGrid.__expandCollapseAll = function(dataSource,isCollapse)
+{
+	if(!dataSource)
+	{
+		dataSource = this.__arrWrapper;
+	}
+	if(dataSource && dataSource.length > 0)
+	{
+		for(var count = 0;count < dataSource.length;count++)
 		{
-			subMenu = arrSubMenus[count];
-			this.util.removeStyleClass(subMenu,"nsShowMenu");
+			var item = dataSource[count];
+			if(item[this.__fieldHasChild])
+			{
+				this.__showHideRow(item[this.__fieldIndex],null,isCollapse);
+				this.__expandCollapseAll(item[this.__childField],isCollapse);
+			}
 		}
 	}
 };
 
-NSMenu.prototype.__setLastSelectedTarget = function(target)
+nsGrid.__showHideRow = function(rowIndex,compArrow,isCollapse)
 {
-	if(target && this.__config.targetType)
+	if(rowIndex > -1)
 	{
-		target = this.util.findParent(target,this.__config.targetType);
+		var item = this.__getItemByIndex(rowIndex);
+		if(!compArrow)
+		{
+			compArrow = this.__getArrows(item[this.__fieldIndex]);
+		}
+		var arrChildItems = [];
+		if(item && item[this.__fieldHasChild])
+		{
+			if(isCollapse)
+			{
+				arrChildItems = this.__getAllChildItems(arrChildItems,item);
+			}
+			else
+			{
+				arrChildItems = item[this.__childField];
+			}
+			if(arrChildItems && arrChildItems.length > 0)
+			{
+				for(var count = 0;count < arrChildItems.length;count++)
+				{
+					var rowItem = arrChildItems[count];
+					var row = rowItem[this.__fieldRow];
+					if(isCollapse)
+					{
+						row.style.display = "none";
+						rowItem[this.__fieldRowVisible] = false;
+						if(rowItem[this.__fieldHasParent])
+						{
+							var rowParentIndex = rowItem[this.__fieldParentIndex];
+							if(rowParentIndex > -1)
+							{
+								var divArrow = this.__getArrows(rowParentIndex);
+								if(divArrow)
+								{
+									this.__setArrowDirection(divArrow,true);
+									rowItem[this.__fieldIsCollapsed] = true;
+								}
+							}
+						}
+					}
+					else
+					{
+						row.style.display = "";
+						rowItem[this.__fieldRowVisible] = true;
+					}
+				}
+			}
+			this.__setArrowDirection(compArrow,isCollapse);
+			item[this.__fieldIsCollapsed] = isCollapse;
+		}
 	}
-	this.__lastSelectedTarget = target;
 };
 
-NSMenu.prototype.__getID = function()
+nsGrid.__isNodeLastParent = function(item)
 {
-	if(!this.__id)
+	var retValue = false;
+	if(item && item[this.__fieldHasChild])
 	{
-		if(this.__config.parent.hasAttribute("id"))
+		var arrChildItems = item[this.__childField];
+		if(arrChildItems && arrChildItems.length > 0)
 		{
-			this.__id = this.__config.parent.getAttribute("id");
-		}
-		else if(this.__config.parent.hasAttribute("name"))
-		{
-			this.__id = this.__config.parent.getAttribute("name");
-		}
-		else
-		{
-			this.__id = "comp" + this.util.getUniqueId();
+			var hasChild = false;
+			for(var count = 0;count < arrChildItems.length;count++)
+			{
+				var rowItem = arrChildItems[count];
+				if(rowItem && rowItem[this.__fieldHasChild])
+				{
+					hasChild = true;
+					break;
+				}
+			}
+			if(!hasChild)
+			{
+				retValue = true;
+			}
 		}
 	}
-	return this.__id;
+	return retValue;
 };
 
-NSMenu.prototype.__isParentPresent =  function(node,parentNode) 
+
+nsGrid.__addCellText = function(item,div,colItem,colIndex,row)
 {
-	while (node && node!== document.body)
+	if(item && div && colItem)
 	{
-		if(node.id === parentNode.id) 
+		var dataField = colItem["dataField"];
+		var templateRenderer = colItem["templateRenderer"];
+		var setData = colItem["setData"];
+		var itemRenderer = colItem["itemRenderer"];
+		if(itemRenderer)
 		{
-			return true;
+			var strRenderer = itemRenderer(item,dataField,this.__getTotalRows() - 1,colIndex,row);
+			if(strRenderer)
+			{
+				var compBodySpan = document.createElement("span");
+				compBodySpan.innerHTML = strRenderer;
+				div.appendChild(compBodySpan);
+				return ;
+			}
 		}
-		node = node.parentNode;
+		else if(templateRenderer)
+		{
+			div.appendChild(templateRenderer.cloneNode(true));
+			this.__setDataInTemplateRenderer(div,item,dataField,setData,colItem,row);
+		}
+		else if(item.hasOwnProperty(dataField) && !this.util.isUndefined(item[dataField]) && item[dataField] != null)
+	    {
+			var text = item[dataField];
+			div.appendChild(document.createTextNode(text));
+	    }
+	}
+};
+
+nsGrid.__updateCellText = function(cell,item,colItem,colIndex,rowIndex,row)
+{
+	if(cell && item && colItem)
+	{
+		var dataField = colItem["dataField"];
+		var templateRenderer = colItem["templateRenderer"];
+		var setData = colItem["setData"];
+		var itemRenderer = colItem["itemRenderer"];
+		var divChild = cell.getElementsByClassName(this.__CLASS_CELL_CHILD)[0];
+		//var divParent = divChild.parentNode;
+		if(itemRenderer)
+		{
+			this.util.removeAllChildren(divChild);
+        	//divParent.removeChild(divChild);
+        	//var divChild = this.util.createDiv(null,this.__CLASS_CELL_CHILD);
+        	//divParent.appendChild(divChild);
+			var strRenderer = itemRenderer(item,dataField,rowIndex,colIndex,row);
+			if(strRenderer)
+			{
+				var compBodySpan = document.createElement("span");
+				compBodySpan.innerHTML = strRenderer;
+				divChild.appendChild(compBodySpan);
+				return ;
+			}
+		}
+		else if(templateRenderer)
+		{
+			var renderer = divChild;
+			this.__setDataInTemplateRenderer(renderer,item,dataField,setData,colItem,row);
+		}
+		else if(item.hasOwnProperty(dataField) && !this.util.isUndefined(item[dataField]) && item[dataField] != null)
+	    {
+			this.util.removeAllChildren(divChild);
+			var text = item[dataField];
+			divChild.appendChild(document.createTextNode(text));
+	    }
+	}
+};
+
+nsGrid.__setDataInTemplateRenderer = function(cellItem,data,dataField,setData,colItem,row)
+{
+	if(cellItem && setData)
+	{
+		this.__setRendererProperties(cellItem);
+		this.__setRendererInData(cellItem,data,row);
+		//IE bug
+		cellItem.data = data;
+		if(this.util.isFunction(setData))
+	    {
+			var strParam = "(cellItem,data,dataField,colItem,row)"; 
+	    	if(this.util.isString(setData))
+	    	{
+	    		this.util.callFunctionFromString(setData + strParam,function(paramValue){
+					if(paramValue === "cellItem")
+					{
+						return cellItem;
+					}
+					if(paramValue === "data")
+					{
+						return data;
+					}
+					if(paramValue === "dataField")
+					{
+						return dataField;
+					}
+					if(paramValue === "colItem")
+					{
+						return colItem;
+					}
+					if(paramValue === "row")
+					{
+						return row;
+					}
+					return paramValue;
+				});
+	    	}
+	    	else
+	    	{
+	    		setData(cellItem,data,dataField,colItem,row);
+	    	}
+	    }
+	}
+};
+
+nsGrid.__setRendererInData = function(cellItem,data,row)
+{
+	if(cellItem)
+	{
+		var compChild = null;
+		for(var count = 0; count < cellItem.children.length; count++) 
+		{
+			compChild = cellItem.children[count];
+			if(compChild)
+			{
+				compChild.data = data;
+				compChild.row = row;
+			}
+			//IE 9 Bug,you got to assign it back
+			//listItem.children[count] = compChild;
+			this.__setRendererInData(compChild,data,row);
+		}
+	}
+};
+
+nsGrid.__setRendererProperties = function(cellItem)
+{
+	if(cellItem)
+	{
+		var compChild = null;
+		for(var count = 0; count < cellItem.children.length; count++) 
+		{
+			compChild = cellItem.children[count];
+			var grid = this;
+			Array.prototype.slice.call(compChild.attributes).forEach(function(attribute) 
+			{
+		        if(grid.util.isFunction(attribute.value))
+		        {
+		        	var newValue = attribute.value + "(this)";
+		        	compChild.removeAttribute(attribute.name);
+					compChild.setAttribute(attribute.name,newValue);
+		        }
+			});
+			if(compChild)
+			{
+				if(compChild.hasAttribute("accessor-name"))
+				{
+					cellItem[compChild.getAttribute("accessor-name")] = compChild;
+				}
+			}
+			this.__setRendererProperties(compChild);
+		}
+	}
+};
+
+nsGrid.__calculateCellExpectedHeight = function(templateRenderer)
+{
+	var retHeight =  -1;
+	if(templateRenderer)
+	{
+		var tempRenderer = templateRenderer.cloneNode(true);
+		tempRenderer.removeAttribute("id");
+		this.addChild(tempRenderer);
+		retHeight = tempRenderer.offsetHeight;
+		if(retHeight <= 0)
+		{
+			retHeight = this.util.getDimensionAsNumber(tempRenderer,tempRenderer.style.height);
+		}
+		this.deleteChild(tempRenderer);
+	}
+	return retHeight;
+};
+
+nsGrid.__getAllItems = function()
+{
+	var	arrItems = [];
+	if((this.__enableHierarchical || this.__enableGrouping) && this.__arrWrapper)
+	{
+		var item = null;
+		for(var count = 0;count < this.__arrWrapper.length;count++)
+		{
+			item = this.__arrWrapper[count];
+			var arrChild = [];
+			arrChild = this.__getAllChildItems(null,item);
+			arrItems.push(item);
+			if(arrChild && arrChild.length)
+			{
+				arrItems.push.apply(arrItems, arrChild);
+			}
+		}
+	}
+	else
+	{
+		arrItems = this.__arrWrapper;
+	}
+	return arrItems;
+};
+
+
+nsGrid.__getAllChildItems = function(arrItems,item)
+{
+	if(!arrItems)
+	{
+		arrItems = [];
+	}
+	if(item && item[this.__fieldHasChild])
+	{
+		var arrChild = item[this.__childField];
+		for(var count = 0;count < arrChild.length;count++)
+		{
+			var itemChild = arrChild[count];
+			arrItems[arrItems.length] = itemChild;
+			if(itemChild && itemChild[this.__fieldHasChild])
+			{
+				arrItems = this.__getAllChildItems(arrItems,itemChild);
+			}
+		}
+	}
+	return arrItems;
+};
+
+nsGrid.__getArrows = function(rowCount)
+{
+	var arrDivs = this.__tblBody.querySelectorAll("div");
+	if(arrDivs && arrDivs.length > 0)
+	{
+		for(var count = 0;count < arrDivs.length;count++)
+		{
+			var div = arrDivs[count];
+			if(div && div.hasAttribute("parent-row-count"))
+			{
+				var rowParentCount = div.getAttribute("parent-row-count");
+				if(rowParentCount && rowParentCount == rowCount)
+				{
+					return div;
+				}
+			}
+		}
+	}
+};
+
+nsGrid.__getTotalRows = function()
+{
+	if(this.__tblBody && this.__tblBody.tBodies && this.__tblBody.tBodies.length > 0)
+	{
+		return this.__tblBody.tBodies[0].rows.length;
+	}
+	return 0;
+};
+
+nsGrid.__getItemByIndex = function(indexToFind,source)
+{
+	var retValue = null;
+	if(!source)
+	{
+		source = this.__arrWrapper;
+	}
+	if(source && source.length > 0)
+	{
+		for(var count = 0;count < source.length;count++)
+		{
+			var item = source[count];
+			if(item && item[this.__fieldIndex] === indexToFind)
+			{
+				retValue = item;
+			}
+			else if(item[this.__fieldHasChild])
+			{
+				retValue = this.__getItemByIndex(indexToFind,item[this.__childField]);
+			}
+			if(retValue)
+			{
+				return retValue;
+			}
+		}
+			
+	}
+	return retValue;
+};
+
+nsGrid.__checkForAdditionalColumns = function()
+{
+	if(this.__enableGrouping)
+	{
+		var colArrow = {};
+		colArrow.headerText = "";
+		colArrow.dataField = this.__fieldColNameArrow;
+		colArrow.width = "50px";
+		colArrow.sortable = false;
+		colArrow.sortDescending = true;
+		colArrow.draggable = false;
+		colArrow.resizable = false;
+		
+		this.__columns.splice(0, 0, colArrow);
+	}
+};
+
+nsGrid.__getColumnObject = function(index)
+{
+	index = parseInt(index);
+	if(this.__columns && index > -1 && index < this.__columns.length)
+	{
+		var item = null;
+		for(var count = 0;count < this.__columns.length;count++)
+		{
+			item = this.__columns[count];
+			if(item[this.__fieldColIndex] === index)
+			{
+				return item;
+			}
+		}
+	}
+	return null;
+};
+
+nsGrid.__getColumnIndexByObject = function(objColumn)
+{
+	if(this.__columns && objColumn)
+	{
+		for(var count = 0;count < this.__columns.length;count++)
+		{
+			if(this.__columns[count][this.__fieldColIndex] === objColumn[this.__fieldColIndex])
+			{
+				return count;
+			}
+		}
+	}
+	return -1;
+};
+
+
+nsGrid.__getColumnIndexForSwapOrRemove = function(column)
+{
+	var index = -1;
+	//checking below like this because column = 0 then column will return false;
+	if(!this.util.isUndefined(column) && column != null)
+	{
+		if(this.util.isNumber(column) && this.__columns && column < this.__columns.length)
+		{
+			index = column;
+		}
+		else if(this.util.isString(column))
+		{
+			for(var count = 0;count < this.__columns.length;count++)
+			{
+				var item = this.__columns[count];
+				if(item["dataField"] === column)
+				{
+					index = count;
+					break;
+				}
+			}
+		}
+	}
+	else
+	{
+		this.util.warning("NSGrid","Please pass valid column information.");
+	}
+	return index;
+};
+
+nsGrid.__isColumnValidForSwapOrRemove = function(columnIndex,operation)
+{
+	if(this.__isColumnIndexValid(columnIndex))
+	{
+		if((this.__enableHierarchical && columnIndex === 0) || (this.__enableGrouping && (columnIndex === 0 || this.__columns[columnIndex]["dataField"] === this.__groupByField)))
+		{
+			if(operation)
+			{
+				this.util.warning("NSGrid","This column cannot be " + operation + ".");
+			}
+			return false;
+		}
+		return true;
+	}
+	return false;
+	
+};
+
+nsGrid.__swapCell = function(sourceCell,destinationCell)
+{
+	if(sourceCell && destinationCell)
+	{
+		var cellSource = this.util.copyElement(sourceCell);
+		this.util.copyElement(destinationCell,sourceCell);
+		this.util.copyElement(cellSource,destinationCell);
+		return true;
 	}
 	return false;
 };
 
-NSMenu.prototype.__placeTip = function(event)
+nsGrid.__addRowsforPagination = function(startCount,pageSize)
 {
-	var position = this.POS_BOTTOMRIGHT;
-	/*
-	var offset = this.__getOffset(position);
-	var newPosition = this.__getSuggestedPosition(position, offset);
-	if (newPosition && newPosition !== position) 
+	//if(sourceCell && destinationCell)
+	//{
+		//console.log(this.__dataSource.slice(startCount,startCount + pageSize));
+		var arrArray = this.__dataSource.slice(startCount,startCount + pageSize); 
+		this.addRows(arrArray);
+		//this.__arrWrapper = this.__arrWrapper.concat(arrArray);
+		//this.__createBodyBody(this.__arrWrapper,0,0,false,startCount,this.__arrWrapper.length);
+	//}
+};
+
+nsGrid.__isColumnIndexValid = function(columnIndex)
+{
+	if(columnIndex > -1 && columnIndex < this.__columns.length)
 	{
-		position = newPosition;
-		offset = this.__getOffset(position);
+		return true;
 	}
-	this.__currentPosition = position;*/
-	position = this.__getSuggestedPosition(event,position);
-	var offset = this.__getOffset(position);
-	this.__menu.style.top = offset.top + "px";
-	this.__menu.style.left = offset.left + "px";
+	return false;
+	
 };
 
-NSMenu.prototype.__getOffset = function(position)
+nsGrid.__isMouseOnElement = function(element, currentX, currentY)
 {
-	  var pad = 15;
-	  var rectTip = this.__menu.getBoundingClientRect();
-	  var rectComponent = this.__config.parent.getBoundingClientRect();
-	  var item = {top: 0,left:0};
-	  if(rectTip && rectComponent)
-	  {
-		  var tipWidth = rectTip.width;
-		  var tipHeight = rectTip.height;
-		  var offset = this.util.getEventPosition(event);
-		  switch(position) 
-		  {
-			case this.POS_TOP:
-				item.top = offset.top - tipHeight;
-				item.left = offset.left - tipWidth / 2;
-				break;
-			case this.POS_BOTTOM:
-				item.top = offset.top;
-				item.left = offset.left - tipWidth / 2;
-				break;
-			case this.POS_LEFT:
-				item.top =  offset.top - tipHeight / 2;
-				item.left = offset.left - tipWidth;
-				break;
-			case this.POS_RIGHT:
-				item.top =  offset.top - tipHeight / 2,
-				item.left = offset.left;
-				break;
-			case this.POS_TOPLEFT:
-				item.top = offset.top - tipHeight;
-				item.left = offset.left - tipWidth;
-				break;
-			case this.POS_TOPRIGHT:
-				item.top =  offset.top - tipHeight;
-				item.left = offset.left;
-				break;
-			case this.POS_BOTTOMLEFT:
-				item.top =  offset.top;
-				item.left = offset.left - tipWidth;
-				break;
-			case this.POS_BOTTOMRIGHT:
-				item.top =  offset.top;
-				item.left = offset.left;
-				break;
-		  }
-	  }
-	  return item;
+	var offset = this.util.getCumulativeOffset(element);
+	return (currentY >= offset.y &&
+			currentY <  offset.y + element.offsetHeight &&
+            currentX >= offset.x + element.offsetWidth - 5 &&
+            currentX <  offset.x + element.offsetWidth);
 };
 
-NSMenu.prototype.__getSuggestedPosition = function(event,position)
+nsGrid.__setGridType = function()
 {
-	  var tipWidth = this.__menu.clientWidth;
-	  var tipHeight = this.__menu.clientHeight;
-	  var offset = this.util.getEventPosition(event);
-		//this.__menu.style.left = position.left + "px";
-		//this.__menu.style.top = position.top + "px";
-	  var top = window.scrollY;
-	  var left = window.scrollX;
-	  var totalWidth = window.innerWidth;
-	  var totalHeight = window.innerHeight;
-	
-	  var objPosition = {};
-	  objPosition[this.POS_TOP] = true;
-	  objPosition[this.POS_BOTTOM] = true;
-	  objPosition[this.POS_LEFT] = true;
-	  objPosition[this.POS_RIGHT] = true;
-	  if (offset.top < top) 
-	  {
-		  objPosition[this.POS_TOP] = false;
-	  }
-	  if (offset.top + tipHeight > top + totalHeight) 
-	  {
-		  objPosition[this.POS_BOTTOM] = false;
-	  }
-	  if (offset.left < left)
-	  {
-		  objPosition[this.POS_LEFT] = false;
-	  }
-	  if (offset.left + tipWidth > left + totalWidth) 
-	  {
-		  objPosition[this.POS_RIGHT] = false;
-	  }
-	
-	  var positions = position.split("-");
-	  //below loop tries to give favourable position like bottom-right so if position has bottom and right both true it returns that position
-	  for (var count = 0; count < positions.length; count++) 
-	  {
-		if (!objPosition[positions[count]]) 
-		{
-			break;
-		}
-		if (count === positions.length - 1) 
-		{
-		  return position;
-		}
-	  }
-	  //below loop tries to give one favourable position like in bottom-right if bottom is true or right is true it gets returned
-	  for (var count = 0; count < positions.length; count++) 
-	  {
-		if (objPosition[positions[count]]) 
-		{
-			return positions[count];
-		}
-	  }
-	  if (objPosition[position]) 
-	  {
-		  return position;
-	  }
-	  for(var tmpPosition in objPosition)
-	  {
-		  if (objPosition[tmpPosition]) 
-		  {
-			  return tmpPosition;
-		  }
-	  }
+	if(this.__type === this.GRID_TYPE_HIERARCHICAL)
+	{
+		this.__enableHierarchical = true;
+	}
+	else if(this.__type === this.GRID_TYPE_GROUP)
+	{
+		this.__enableGrouping = true;
+	}
 };
+
+nsGrid.__setPaginationType = function()
+{
+	if(!this.__paginationType || this.__paginationType === this.PAGINATION_TYPE_SCROLL)
+	{
+		this.__isPaginationTypeScroll = true;
+	}
+	else
+	{
+		this.__isPaginationTypeScroll = false;
+	}
+};
+
+nsGrid.__setPaginationMode = function()
+{
+	if(!this.__paginationMode || this.__paginationMode === this.PAGINATION_MODE_AUTO)
+	{
+		this.__isPaginationModeAuto = true;
+	}
+	else
+	{
+		this.__isPaginationModeAuto = false;
+	}
+};
+
+
+/******************************End of Custom Function *************************************/
+/******************************Loader Related Function *************************************/
+
+nsGrid.showLoader = function()
+{
+	if(!this.__loader)
+	{
+		var divOuterContainer = this.getElement(this.getID() + this.__OUTER_CONTAINER_ID);
+		this.__loader = new this.util.loader(divOuterContainer);
+	}
+	this.__loader.show();
+};
+
+nsGrid.hideLoader = function()
+{
+	if(this.__loader)
+	{
+		this.__loader.hide();
+	}
+};
+
+
+document.registerElement("ns-grid", {prototype: nsGrid});
