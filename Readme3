@@ -1,1 +1,774 @@
-var htmlText = '<html  xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>{worksheet}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->' + '<style>.xl67{mso-style-parent:style0;color:white;font-size:10.0pt;font-weight:700;font-family:Tahoma, sans-serif;mso-font-charset:0;text-align:center;background:gray;mso-pattern:black none;}</style>'+'<style>'+'<!--table'+'	{mso-displayed-decimal-separator:"\.";'+'	mso-displayed-thousand-separator:"\,";}'+'@page'+'	{margin:.75in .7in .75in .7in;'+'	mso-header-margin:.3in;'+'	mso-footer-margin:.3in;}'+'-->'+'</style>'+'</head>'+''+'<body link="blue" vlink="purple">'+''+'<table border="0" cellpadding="0" cellspacing="0" width="1576" style="border-collapse:'+' collapse;table-layout:fixed;width:1184pt">'+'<tbody><tr class="xl68" height="20" style="height:15.0pt">'+'  <td height="20" class="xl67" width="64" style="height:15.0pt;width:48pt">GroupID</td>'+'  <td class="xl67" width="107" style="width:80pt">Supervisor</td>'+'  <td class="xl67" width="111" style="width:83pt">assgnStartDate</td>'+'  <td class="xl67" width="100" style="width:75pt">assgnEndDate</td>'+'  <td class="xl67" width="50" style="width:38pt">TaskID</td>'+'  <td class="xl67" width="569" style="width:427pt">TaskName</td>'+'  <td class="xl67" width="101" style="width:76pt">taskStartDate</td>'+'  <td class="xl67" width="89" style="width:67pt">taskEndDate</td>'+'  <td class="xl67" width="89" style="width:67pt">TaskType</td>'+'  <td class="xl67" width="106" style="width:80pt">PermDelegate</td>'+'  <td class="xl67" width="101" style="width:76pt">DelgStartDate</td>'+'  <td class="xl67" width="89" style="width:67pt">DelgEndDate</td>'+' </tr>'+' <tr height="20" style="height:15.0pt">'+'  <td height="20" class="xl65" align="right" style="height:15.0pt">1,090</td>'+'  <td class="xl66">Slepokura,Brett</td>'+'  <td class="xl66">2015-09-01</td>'+'  <td class="xl66">2015-10-27</td>'+'  <td class="xl65" align="right">418</td>'+'  <td class="xl66">Account Documentation Review - Monthly</td>'+'  <td class="xl66">2015-08-07</td>'+'  <td class="xl66">[NULL]</td>'+'  <td class="xl66">Monthly</td>'+'  <td class="xl66">Reyes,Elaine</td>'+'  <td class="xl66">2015-09-01</td>'+'  <td class="xl66">2015-10-27</td>'+' </tr>'+' '+' <!--[endif]-->'+'</tbody></table>' + '</body></html>';
+"use strict"; 
+function NSExport(grid,fileName,ignoreColumn) 
+{
+	this.__grid = grid;
+	this.__fileName = fileName;
+	this.__ignoreColumn = ignoreColumn;
+	this.util = new NSUtil();
+	this.__defaultDelimiter = ",";
+	this.__defaultNewLine = "\r\n";
+	this.__externalScriptLoad = {
+			jspdf:false
+	};
+}
+
+NSExport.prototype.word = function(event) 
+{ 
+	this.__exportOfficeTypes("doc","doc",event);
+};
+
+NSExport.prototype.powerpoint = function(event) 
+{ 
+	this.__exportOfficeTypes("powerpoint","ppt",event);
+};
+
+NSExport.prototype.excel = function(event) 
+{ 
+	this.__exportOfficeTypes("excel","xls",event);
+};
+
+NSExport.prototype.csv = function(event) 
+{ 
+	var csvText = this.__getTableAsString(this.__defaultDelimiter,this.__defaultNewLine);
+	if(csvText)
+	{
+		var uri = "application/csv";
+		this.__downloadFile(csvText,uri,"csv",event);
+	}
+};
+
+NSExport.prototype.xml = function(event) 
+{ 
+	var xmlText = this.__getTableAsXML();
+	if(xmlText)
+	{
+		var uri = "application/xml";
+		this.__downloadFile(xmlText,uri,"xml",event);
+	}
+};
+
+NSExport.prototype.text = function(event) 
+{ 
+	var csvText = this.__getTableAsString(this.__defaultDelimiter,this.__defaultNewLine,"-");
+	if(csvText)
+	{
+		var uri = "application/txt";
+		this.__downloadFile(csvText,uri,"txt",event);
+	}
+};
+
+NSExport.prototype.pdf = function(event,setting) 
+{ 
+	this.__processPDF = function()
+	{
+		this.__externalScriptLoad.jspdf = true;
+		if(!setting)
+		{
+			setting = {};
+		}
+		var config = {
+				fontSize: setting["fontSize"] || 14,
+				width: setting["width"] || 1200,
+				topMargin: setting["topMargin"] || 30,
+				bottomMargin: setting["bottomMargin"] || 60,
+				leftMargin: setting["leftMargin"] || 60,
+				maxWidth: setting["maxWidth"] || 550
+		};
+		var divSource = this.__getStructureForPDF(config.width,config.fontSize);
+		document.body.appendChild(divSource);
+		var pdf = new jsPDF("p", "pt", "ledger");
+		// we support special element handlers. Register them with jQuery-style 
+	    // ID selector for either ID or node name. ("#iAmID", "div", "span" etc.)
+	    // There is no support for any other type of selectors 
+	    // (class, of compound) at this time.
+		specialElementHandlers = 
+		{
+	        // element with id of "bypass" - jQuery style selector
+	        '#bypassme' : function(element, renderer) {
+	            // true = "handled elsewhere, bypass text extraction"
+	            return true;
+	        }
+	    };
+	    margins = {
+	        top : config.topMargin,
+	        bottom : config.bottomMargin,
+	        left : config.leftMargin,
+	        width : config.maxWidth
+	    };
+	    var self =  this;
+	    // all coords and widths are in jsPDF instance's declared units
+	    // 'inches' in this case
+	    pdf.fromHTML(divSource, // HTML string or DOM elem ref.
+	    margins.left, // x coord
+	    margins.top, { // y coord
+	        'width' : margins.width, // max width of content on PDF
+	        'elementHandlers' : specialElementHandlers
+	    },
+
+	    function(dispose) {
+	        // dispose: object with X, Y of the last line add to the PDF 
+	        //          this allow the insertion of new lines after html
+	        pdf.save(self.__getFileName("pdf"));
+			document.body.removeChild(divSource);
+	    }, margins);
+	};
+	if(!this.__externalScriptLoad.jspdf)
+	{
+		this.__includeJavaScriptFile("/JSLib/lib/com/ext/jspdf/jspdf.min.js",this.__processPDF.bind(this));
+	}
+	else
+	{
+		this.__processPDF.bind(this)();
+	}
+};
+
+NSExport.prototype.__downloadFile = function(text,uri,fileType,event) 
+{
+	if(text && fileType)
+	{
+		if ("Blob" in window) 
+		{
+			var fileName = this.__getFileName(fileType);
+			if ("msSaveOrOpenBlob" in navigator) 
+			{
+				var blobObject = new Blob([text], { type: uri });
+				navigator.msSaveOrOpenBlob(blobObject,fileName);
+			}
+			else
+			{
+				uri = "data:" + uri + ";base64,";
+				var base64String = window.btoa(window.unescape(encodeURIComponent(text)));
+				var hrefvalue = uri + base64String;
+			    var anchor = document.createElement("a");
+			    if ("webkitURL" in window) 
+			    {
+			          // Chrome allows the link to be clicked without actually adding it to the DOM.
+			    	//hrefvalue = window.webkitURL.createObjectURL([hrefvalue]);
+			    }
+			    else
+			    {
+			    	//hrefvalue = window.URL.createObjectURL([hrefvalue]);
+			    	anchor.style.display = 'none';
+			        document.body.appendChild(anchor);
+			        this.util.addEvent(anchor,"click",function(event){
+			    		document.body.removeChild(event.target);
+			    	});
+			    }
+			    anchor.setAttribute("href",hrefvalue);
+			    anchor.setAttribute("download",this.__getFileName(fileType));
+			    anchor.setAttribute("target","_blank");
+			    anchor.innerHTML = "Download File";
+			    anchor.click();
+			    if(event)
+			    {
+			    	this.util.preventDefault(event);
+			    }
+			}
+		}
+	}
+};
+
+NSExport.prototype.__exportOfficeTypes = function(appType,extension,event) 
+{ 
+	var table = this.__getTable();
+	if(table)
+	{
+		var uri = "application/vnd.ms-" + appType;
+		if(appType === "word")
+		{
+			uri = "application/msword";
+		}
+		var htmlText = '<html  xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:' + appType +'" xmlns="http://www.w3.org/TR/REC-html40">';
+		htmlText += '<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><!--[if gte mso 9]><xml>';
+		htmlText += '<x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>';
+		htmlText += (this.__fileName? this.__fileName : "Sheet 1");
+		htmlText += '</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->';
+		htmlText += '<style>.header{mso-style-parent:style0;color:white;font-size:10.0pt;font-weight:700;font-family:Tahoma, sans-serif;mso-font-charset:0;text-align:center;background:gray;mso-pattern:black none;}</style>';
+		htmlText += '</head>';
+		htmlText += '<body link="blue" vlink="purple">';
+		htmlText += table.outerHTML;
+		htmlText += '</body></html>';
+		this.__downloadFile(htmlText,uri,extension,event);
+	}
+};
+
+NSExport.prototype.__getTable = function() 
+{ 
+	var tblResult = null;
+	if(this.__grid)
+	{
+		if(this.__grid.nodeName === "NS-GRID")
+		{
+			var tblHeader = this.__grid.__tblHeader;
+	    	var tblBody = this.__grid.__tblBody;
+	    	tblResult = document.createElement("TABLE");
+	    	tblResult.style.width = tblHeader.style.width;
+	    	if(tblHeader.tBodies && tblHeader.tBodies.length > 0 && tblHeader.tBodies[0].rows && tblHeader.tBodies[0].rows.length > 0)
+			{
+	    		var headerCells = tblHeader.tBodies[0].rows[0].cells;
+	    		var header = tblResult.createTHead();
+	    		var headerRow = header.insertRow(-1);
+	    		var rowIndex = 0;
+	    		var colIndex = 0;
+	    		var cell = null;
+	    		var arrCollItem = [];
+		        for(colIndex = 0; colIndex < headerCells.length; colIndex++)
+		        {
+		        	cell = headerCells[colIndex];
+		        	var colItem = this.__grid.__getColumnObject(cell.getAttribute("currentColumnIndex"));
+		        	arrCollItem.push(colItem);
+		        	if(!colItem.hasOwnProperty("isExportable") || Boolean.parse(colItem["isExportable"]))
+		        	{
+		        		var headerCell = headerRow.insertCell(-1);
+		        		this.util.addStyleClass(headerCell,"header");
+			    		headerCell.style.width = colItem["width"]; 
+			    		var headerText = colItem["headerText"];
+			    		headerCell.appendChild(document.createTextNode(headerText));
+		        	}
+		        }
+		        if(tblBody.tBodies && tblBody.tBodies.length > 0 && tblBody.tBodies[0].rows && tblBody.tBodies[0].rows.length > 0)
+				{
+		        	var arrItems = this.__grid.__getAllItems();
+		        	var body = document.createElement("tbody");
+		        	tblResult.appendChild(body);
+		        	for(rowIndex = 0;rowIndex < arrItems.length;rowIndex++)
+		 	        {
+		        		var item = arrItems[rowIndex];
+		        		if(item[this.__grid.__fieldRowVisible])
+		        		{
+		        			var row = item[this.__grid.__fieldRow];
+			        		var cells = row.cells;
+			        		var bodyRow = body.insertRow(-1);
+			        		for(colIndex = 0;colIndex < cells.length;colIndex++)
+			    	        {
+			        			var cell = cells[colIndex];
+			        			var colItem = arrCollItem[colIndex];
+			        			if(!colItem.hasOwnProperty("isExportable") || Boolean.parse(colItem["isExportable"]))
+			    	        	{
+			        				var bodyCell = bodyRow.insertCell(-1);
+				        			bodyCell.style.width = colItem["width"]; 
+				    	    		bodyCell.innerHTML = cell.innerHTML;
+			    	        	}
+			    	        }
+		        		}
+		 	        }
+				}
+			}
+		}
+		else
+		{
+			tblResult = this.__grid.cloneNode(true);
+			if(tblResult.tHead && tblResult.tHead.rows && tblResult.tHead.rows.length > 0)
+			{
+				var headerRow = tblResult.tHead.rows[0];
+				if(headerRow)
+				{
+					var arrCells = [];
+					var arrTempCells = [];
+					if(headerRow.getElementsByTagName("th").length > 0)
+					{
+						arrTempCells = headerRow.getElementsByTagName("th");
+					}
+					else if(headerRow.getElementsByTagName("td").length > 0)
+					{
+						arrTempCells = headerRow.getElementsByTagName("td");
+					}
+					arrCells = Array.prototype.slice.call(arrTempCells).slice(0)
+		    		var colIndex = 0;
+		    		var cell = null;
+		    		for(colIndex = arrCells.length - 1; colIndex >= 0; colIndex--)
+			        {
+		    			headerRow.deleteCell(colIndex);
+			        }
+			        for(colIndex = 0; colIndex < arrCells.length; colIndex++)
+			        {
+			        	cell = arrCells[colIndex];
+			        	var headerCell = headerRow.insertCell(-1);
+			        	headerCell.style.width = cell.offsetWidth + "px";
+			        	headerCell.appendChild(document.createTextNode(cell.textContent.trim()));
+			        	this.util.addStyleClass(headerCell,"header");
+			        }
+				}
+			}
+		}
+		if(tblResult)
+		{
+			tblResult.setAttribute("border",0);
+	    	tblResult.setAttribute("cellpadding",0);
+	    	tblResult.setAttribute("cellspacing",0);
+	    	tblResult.setAttribute("style","border-collapse:collapse;table-layout:fixed;");
+		}
+	}
+	return tblResult;
+};
+
+NSExport.prototype.__getTableAsString = function(delimiter,newLine,headerSeparator) 
+{ 
+	var strResult = "";
+	if(this.__grid)
+	{
+		if(this.__grid.nodeName === "NS-GRID")
+		{
+			var tblHeader = this.__grid.__tblHeader;
+	    	var tblBody = this.__grid.__tblBody;
+	    	if(tblHeader.tBodies && tblHeader.tBodies.length > 0 && tblHeader.tBodies[0].rows && tblHeader.tBodies[0].rows.length > 0)
+			{
+	    		var headerCells = tblHeader.tBodies[0].rows[0].cells;
+	    		var rowIndex = 0;
+	    		var colIndex = 0;
+	    		var cell = null;
+	    		var arrCollItem = [];
+		        for(colIndex = 0; colIndex < headerCells.length; colIndex++)
+		        {
+		        	cell = headerCells[colIndex];
+		        	var colItem = this.__grid.__getColumnObject(cell.getAttribute("currentColumnIndex"));
+		        	arrCollItem.push(colItem);
+		        	if(!colItem.hasOwnProperty("isExportable") || Boolean.parse(colItem["isExportable"]))
+		        	{
+			    		var headerText = colItem["headerText"];
+			    		if(colIndex > 0)
+			    		{
+			    			strResult += delimiter;
+			    		}
+			    		strResult += this.__getFieldValue(headerText,delimiter);
+		        	}
+		        }
+		        strResult += newLine;
+		        if(headerSeparator)
+		        {
+		        	var separatorLength = strResult.length + 20;
+		        	for(var count = 0;count < separatorLength;count++)
+		 	        {
+		        		strResult += headerSeparator;
+		 	        }
+		        	strResult += newLine;
+		        }
+		        if(tblBody.tBodies && tblBody.tBodies.length > 0 && tblBody.tBodies[0].rows && tblBody.tBodies[0].rows.length > 0)
+				{
+		        	var arrItems = this.__grid.__getAllItems();
+		        	for(rowIndex = 0;rowIndex < arrItems.length;rowIndex++)
+		 	        {
+		        		var item = arrItems[rowIndex];
+		        		if(item[this.__grid.__fieldRowVisible])
+		        		{
+			        		var row = item[this.__grid.__fieldRow];
+			        		var cells = row.cells;
+			        		for(colIndex = 0;colIndex < cells.length;colIndex++)
+			    	        {
+			        			var cell = cells[colIndex];
+			        			var colItem = arrCollItem[colIndex];
+			        			if(!colItem.hasOwnProperty("isExportable") || Boolean.parse(colItem["isExportable"]))
+			    	        	{
+			        				if(colIndex > 0)
+						    		{
+						    			strResult += delimiter;
+						    		}
+			        				strResult += this.__getFieldValue(cell.textContent.trim(),delimiter);
+			    	        	}
+			    	        }
+			        		strResult += newLine;
+		        		}
+		 	        }
+				}
+			}
+		}
+		else
+		{
+			if(this.__grid.tHead && this.__grid.tHead.rows && this.__grid.tHead.rows.length > 0)
+			{
+				var headerRow = this.__grid.tHead.rows[0];
+				if(headerRow)
+				{
+					var arrCells = [];
+					if(headerRow.getElementsByTagName("th").length > 0)
+					{
+						arrCells = headerRow.getElementsByTagName("th");
+					}
+					else if(headerRow.getElementsByTagName("td").length > 0)
+					{
+						arrCells = headerRow.getElementsByTagName("td");
+					}
+		    		var colIndex = 0;
+		    		var cell = null;
+			        for(colIndex = 0; colIndex < arrCells.length; colIndex++)
+			        {
+			        	cell = arrCells[colIndex];
+			    		var headerText = cell.textContent.trim();
+			    		if(colIndex > 0)
+			    		{
+			    			strResult += delimiter;
+			    		}
+			    		strResult += this.__getFieldValue(headerText,delimiter);
+			        }
+			        strResult += newLine;
+			        if(headerSeparator)
+			        {
+			        	var separatorLength = strResult.length + 20;
+			        	for(var count = 0;count < separatorLength;count++)
+			 	        {
+			        		strResult += headerSeparator;
+			 	        }
+			        	strResult += newLine;
+			        }
+				}
+			}
+			if(this.__grid.tBodies && this.__grid.tBodies.length > 0 && this.__grid.tBodies[0].rows && this.__grid.tBodies[0].rows.length > 0)
+			{
+				var arrRows = this.__grid.tBodies[0].rows;
+	    		var rowIndex = 0;
+	    		var colIndex = 0;
+	    		var cell = null;
+	    		for(rowIndex = 0;rowIndex < arrRows.length;rowIndex++)
+	 	        {
+	        		var row = arrRows[rowIndex];
+	        		var cells = row.cells;
+	        		for(colIndex = 0;colIndex < cells.length;colIndex++)
+	    	        {
+	        			var cell = cells[colIndex];
+	        			if(colIndex > 0)
+			    		{
+			    			strResult += delimiter;
+			    		}
+	        			strResult += this.__getFieldValue(cell.textContent.trim());
+	    	        }
+	        		strResult += newLine;
+	 	        }
+			}
+		}
+	}
+	return strResult;
+};
+
+NSExport.prototype.__getTableAsXML = function() 
+{ 
+	var strXML = "";
+	if(this.__grid)
+	{
+		strXML = '<?xml version="1.0" encoding="utf-8"?>';
+		strXML += '<root>';
+		if(this.__grid.nodeName === "NS-GRID")
+		{
+			var tblHeader = this.__grid.__tblHeader;
+	    	var tblBody = this.__grid.__tblBody;
+	    	if(tblHeader.tBodies && tblHeader.tBodies.length > 0 && tblHeader.tBodies[0].rows && tblHeader.tBodies[0].rows.length > 0)
+			{
+	    		strXML += '<columns>';
+	    		var headerCells = tblHeader.tBodies[0].rows[0].cells;
+	    		var rowIndex = 0;
+	    		var colIndex = 0;
+	    		var cell = null;
+	    		var arrCollItem = [];
+		        for(colIndex = 0; colIndex < headerCells.length; colIndex++)
+		        {
+		        	cell = headerCells[colIndex];
+		        	var colItem = this.__grid.__getColumnObject(cell.getAttribute("currentColumnIndex"));
+		        	arrCollItem.push(colItem);
+		        	if(!colItem.hasOwnProperty("isExportable") || Boolean.parse(colItem["isExportable"]))
+		        	{
+			    		var headerText = colItem["headerText"];
+			    		strXML += "<column>" + headerText + "</column>";
+		        	}
+		        }
+		        strXML += '</columns>';
+		        if(tblBody.tBodies && tblBody.tBodies.length > 0 && tblBody.tBodies[0].rows && tblBody.tBodies[0].rows.length > 0)
+				{
+		        	strXML += '<rows>';
+		        	var arrItems = this.__grid.__getAllItems();
+		        	var rowCounter = 1;
+		        	for(rowIndex = 0;rowIndex < arrItems.length;rowIndex++)
+		 	        {
+		        		var item = arrItems[rowIndex];
+		        		if(item[this.__grid.__fieldRowVisible])
+		        		{
+		        			strXML += '<row id="row-'+ rowCounter++ +'">';
+							var colCounter = 1;
+			        		var row = item[this.__grid.__fieldRow];
+			        		var cells = row.cells;
+			        		for(colIndex = 0;colIndex < cells.length;colIndex++)
+			    	        {
+			        			var cell = cells[colIndex];
+			        			var colItem = arrCollItem[colIndex];
+			        			if(!colItem.hasOwnProperty("isExportable") || Boolean.parse(colItem["isExportable"]))
+			    	        	{
+			        				strXML += '<column id="column-'+ colCounter++ +'">';
+			        				strXML += cell.textContent.trim();
+			        				strXML += '</column>';
+			    	        	}
+			    	        }
+			        		strXML += '</row>';
+		        		}
+		 	        }
+		        	strXML += '</rows>';
+				}
+			}
+		}
+		else
+		{
+			if(this.__grid.tHead && this.__grid.tHead.rows && this.__grid.tHead.rows.length > 0)
+			{
+				var headerRow = this.__grid.tHead.rows[0];
+				if(headerRow)
+				{
+					var arrCells = [];
+					if(headerRow.getElementsByTagName("th").length > 0)
+					{
+						arrCells = headerRow.getElementsByTagName("th");
+					}
+					else if(headerRow.getElementsByTagName("td").length > 0)
+					{
+						arrCells = headerRow.getElementsByTagName("td");
+					}
+					strXML += '<columns>';
+		    		var colIndex = 0;
+		    		var cell = null;
+			        for(colIndex = 0; colIndex < arrCells.length; colIndex++)
+			        {
+			        	cell = arrCells[colIndex];
+			        	strXML += "<column>" + cell.textContent.trim() + "</column>";
+			        }
+			        strXML += '</columns>';
+				}
+			}
+			if(this.__grid.tBodies && this.__grid.tBodies.length > 0 && this.__grid.tBodies[0].rows && this.__grid.tBodies[0].rows.length > 0)
+			{
+				var arrRows = this.__grid.tBodies[0].rows;
+				strXML += '<rows>';
+	        	var rowCounter = 1;
+	    		var rowIndex = 0;
+	    		var colIndex = 0;
+	    		var cell = null;
+	    		for(rowIndex = 0;rowIndex < arrRows.length;rowIndex++)
+	 	        {
+	    			strXML += '<row id="row-'+ rowCounter++ +'">';
+	    			var colCounter = 1;
+	        		var row = arrRows[rowIndex];
+	        		var cells = row.cells;
+	        		for(colIndex = 0;colIndex < cells.length;colIndex++)
+	    	        {
+	        			var cell = cells[colIndex];
+	        			strXML += '<column id="column-'+ colCounter++ +'">';
+        				strXML += cell.textContent.trim();
+        				strXML += '</column>';
+	    	        }
+	        		strXML += '</row>';
+	 	        }
+	    		strXML += '</rows>';
+			}
+		}
+		strXML += '</root>';
+	}
+	return strXML;
+};
+
+NSExport.prototype.__getStructureForPDF = function(width,fontSize) 
+{ 
+	if(this.__grid)
+	{
+		var tblResult = this.__getTable();
+		tblResult.style.width = width + "px";
+		tblResult.style.fontSize = fontSize + "px";
+		var divParent = this.util.createDiv("div" + this.util.getUniqueId());
+		divParent.appendChild(tblResult);
+		return divParent;
+		
+		/*var doc = new jsPDF('p','pt', 'a4', true);
+		doc.setFontSize(fontSize);
+		var startColumnPosition = leftMargin;*/
+		/*if(this.__grid.nodeName === "NS-GRID")
+		{
+			var tblHeader = this.__grid.__tblHeader;
+	    	var tblBody = this.__grid.__tblBody;
+	    	if(tblHeader.tBodies && tblHeader.tBodies.length > 0 && tblHeader.tBodies[0].rows && tblHeader.tBodies[0].rows.length > 0)
+			{
+	    		strXML += '<columns>';
+	    		var headerCells = tblHeader.tBodies[0].rows[0].cells;
+	    		var rowIndex = 0;
+	    		var colIndex = 0;
+	    		var cell = null;
+	    		var arrCollItem = [];
+		        for(colIndex = 0; colIndex < headerCells.length; colIndex++)
+		        {
+		        	cell = headerCells[colIndex];
+		        	var colItem = this.__grid.__getColumnObject(cell.getAttribute("currentColumnIndex"));
+		        	arrCollItem.push(colItem);
+		        	if(!colItem.hasOwnProperty("isExportable") || Boolean.parse(colItem["isExportable"]))
+		        	{
+			    		var headerText = colItem["headerText"];
+			    		strXML += "<column>" + headerText + "</column>";
+		        	}
+		        }
+		        strXML += '</columns>';
+		        if(tblBody.tBodies && tblBody.tBodies.length > 0 && tblBody.tBodies[0].rows && tblBody.tBodies[0].rows.length > 0)
+				{
+		        	strXML += '<rows>';
+		        	var arrItems = this.__grid.__getAllItems();
+		        	var rowCounter = 1;
+		        	for(rowIndex = 0;rowIndex < arrItems.length;rowIndex++)
+		 	        {
+		        		var item = arrItems[rowIndex];
+		        		if(item[this.__grid.__fieldRowVisible])
+		        		{
+		        			strXML += '<row id="row-'+ rowCounter++ +'">';
+							var colCounter = 1;
+			        		var row = item[this.__grid.__fieldRow];
+			        		var cells = row.cells;
+			        		for(colIndex = 0;colIndex < cells.length;colIndex++)
+			    	        {
+			        			var cell = cells[colIndex];
+			        			var colItem = arrCollItem[colIndex];
+			        			if(!colItem.hasOwnProperty("isExportable") || Boolean.parse(colItem["isExportable"]))
+			    	        	{
+			        				strXML += '<column id="column-'+ colCounter++ +'">';
+			        				strXML += cell.textContent.trim();
+			        				strXML += '</column>';
+			    	        	}
+			    	        }
+			        		strXML += '</row>';
+		        		}
+		 	        }
+		        	strXML += '</rows>';
+				}
+			}
+		}
+		else
+		{*/
+			/*if(this.__grid.tHead && this.__grid.tHead.rows && this.__grid.tHead.rows.length > 0)
+			{
+				var headerRow = this.__grid.tHead.rows[0];
+				if(headerRow)
+				{
+					var arrCells = [];
+					if(headerRow.getElementsByTagName("th").length > 0)
+					{
+						arrCells = headerRow.getElementsByTagName("th");
+					}
+					else if(headerRow.getElementsByTagName("td").length > 0)
+					{
+						arrCells = headerRow.getElementsByTagName("td");
+					}
+		    		var colIndex = 0;
+		    		var cell = null;
+			        for(colIndex = 0; colIndex < arrCells.length; colIndex++)
+			        {
+			        	if(!this.__isColumnIgnored(colIndex))
+			        	{
+			        		cell = arrCells[colIndex];
+				        	var position = startColumnPosition + (colIndex * 50);									
+							doc.text(position,20,cell.textContent.trim());
+			        	}
+			        }
+				}
+			}
+			if(this.__grid.tBodies && this.__grid.tBodies.length > 0 && this.__grid.tBodies[0].rows && this.__grid.tBodies[0].rows.length > 0)
+			{
+				var arrRows = this.__grid.tBodies[0].rows;
+	    		var rowIndex = 0;
+	    		var colIndex = 0;
+	    		var cell = null;
+	    		var startRowPosition = 20; 
+	    		var page = 1;
+	    		var rowPosition = 0;
+	    		var totalRowLength = 0;
+	    		for(rowIndex = 0;rowIndex < arrRows.length;rowIndex++)
+	 	        {
+	    			totalRowLength = rowIndex + 1;
+	    			if (totalRowLength % 26 == 0)
+	    			{
+						doc.addPage();
+						page++;
+						startRowPosition = startRowPosition + 10;
+					}
+	    			rowPosition=(startRowPosition + (totalRowLength * 10)) - ((page - 1) * 280);
+	        		var row = arrRows[rowIndex];
+	        		var cells = row.cells;
+	        		for(colIndex = 0;colIndex < cells.length;colIndex++)
+	    	        {
+	        			if(!this.__isColumnIgnored(colIndex))
+			        	{
+	        				var cell = cells[colIndex];
+	        				var columnPosition = startColumnPosition + (colIndex * 50);									
+							doc.text(columnPosition,rowPosition,cell.textContent.trim());
+			        	}
+	    	        }
+	 	        }
+			}
+		//}
+		doc.output('datauri');*/
+	}
+};
+
+NSExport.prototype.__isColumnIgnored = function(colIndex) 
+{
+    if(this.__ignoreColumn && this.__ignoreColumn.length > 0)
+    {
+    	for(var count = 0;count < this.__ignoreColumn.length;count++)
+    	{
+    		if(this.__ignoreColumn[count] === colIndex)
+    		{
+    			return true;
+    		}
+    	}
+    }
+    return false;
+};
+
+NSExport.prototype.__getFieldValue = function(value,delimiter) 
+{
+    var addQuotes = (value.indexOf(delimiter) !== -1) || (value.indexOf('\r') !== -1) || (value.indexOf('\n') !== -1);
+    var replaceDoubleQuotes = (value.indexOf('"') !== -1);
+    if (replaceDoubleQuotes) 
+    {
+    	value = fixedValue.replace(/"/g, '""');
+    }
+    if (addQuotes || replaceDoubleQuotes) 
+    {
+    	value = '"' + value + '"';
+    }
+    return value;
+};
+
+NSExport.prototype.__getFileName = function(format) 
+{
+	var date = new Date();
+    var day = date.getDate();
+    var month = date.getMonth() + 1;
+    var year = date.getFullYear();
+    var hour = date.getHours();
+    var mins = date.getMinutes();
+    var timePart = day + "." + month + "." + year + "_" + hour + "." + mins;
+    var fileName = (this.__fileName? this.__fileName : "download");
+    fileName = fileName + "(" + timePart + ")" + "." + format;
+    
+    return fileName;
+};
+
+NSExport.prototype.__includeJavaScriptFile = function (filePath,callback,position)
+{
+    if(filePath)
+    {
+        if(!position)
+        {
+            position = "body";
+        }
+        var domPosition = document.getElementsByTagName(position)[0];
+        var script = document.createElement("script");
+        script.setAttribute("id", filePath);
+        script.setAttribute("type","text/javascript");
+        script.setAttribute("src",filePath);
+        if(callback)
+        {
+            /*script.onreadystatechange= function ()
+            {
+                if (this.readyState == "complete")
+                {
+                    callback();
+                }
+            };*/
+            script.onload = function()
+            {
+            	callback(filePath);
+            }; 
+        }
+        domPosition.appendChild(script);
+    }
+};
