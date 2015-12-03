@@ -1,49 +1,17 @@
-NSExport.prototype.image = function(event,type) 
+NSExport.prototype.excel = function(type,sheetName,event) 
 { 
-	this.__processImage = function()
+	if(type === "xls")
 	{
-		this.__externalScriptLoad.html2canvas = true;
-		if(!type || (type !== "png" && type !== "jpeg"))
-		{
-			this.util.warning("NSExport","Image type value was either not valid or not in the correct format.Hence defaulting to png");
-			type = "png";
-		}
-		var imageType = "image/" + type; 
-		var divParent = this.__getStructureForImage();
-		if(divParent)
-		{
-			var nsExport = this;
-			html2canvas(divParent,{
-				onrendered: function(canvas) {		
-					//document.body.appendChild(canvas);
-					var data = canvas.toDataURL(imageType);
-					console.log(data);
-					if(!data || data === "data:,")
-					{
-						nsExport.util.throwNSError("NSExport","Please give table some width and height");
-					}
-					else
-					{
-						nsExport.__downloadFile(data,imageType,type);
-					}
-				}
-			});	
-		}
-		else
-		{
-			this.util.throwNSError("NSExport","Please add the table inside a parent Element");
-		}
-	};
-	if(!this.__externalScriptLoad.html2canvas)
-	{
-		this.__includeJavaScriptFile("/JSLib/lib/com/ext/html2canvas/html2canvas.min.js",this.__processImage.bind(this));
+		this.__exportOfficeTypes("excel","xls",event,sheetName);
 	}
 	else
 	{
-		this.__processImage.bind(this)();
+		var objXslxExport = new this.xslxExport(this,sheetName,event);
+		objXslxExport.exportToxlsx();
 	}
 };
 
+		htmlText += (sheetName ? sheetName: ((this.__fileName ? this.__fileName : "Sheet 1")));
 NSExport.prototype.__downloadFile = function(text,uri,fileType,event) 
 {
 	if(text && fileType)
@@ -54,7 +22,7 @@ NSExport.prototype.__downloadFile = function(text,uri,fileType,event)
 			if ("msSaveOrOpenBlob" in navigator) 
 			{
 				var blobObject = null;
-				if(text.indexOf("base64") > -1)
+				if(!(text instanceof ArrayBuffer) && text.indexOf("base64") > -1)
 				{
 					blobObject = this.__dataURItoBlob(text);
 				}
@@ -67,19 +35,29 @@ NSExport.prototype.__downloadFile = function(text,uri,fileType,event)
 			else
 			{
 				var hrefvalue = null;
-				if(text.indexOf("data:") === -1)
+				if(text instanceof ArrayBuffer)
 				{
-					uri = "data:" + uri;
-				}
-				if(text.indexOf(";base64,") === -1)
-				{
-					var base64String = ";base64," + window.btoa(window.unescape(encodeURIComponent(text)));
-					hrefvalue = uri + base64String;
+					var blobObject = new Blob([text], {type: uri});
+					hrefvalue = URL.createObjectURL(blobObject);
 				}
 				else
 				{
-					hrefvalue = text;
+					if(text.indexOf("data:") === -1)
+					{
+						uri = "data:" + uri;
+					}
+					if(text.indexOf(";base64,") === -1)
+					{
+						var base64String = ";base64," + window.btoa(window.unescape(encodeURIComponent(text)));
+						console.log(base64String);
+						hrefvalue = uri + base64String;
+					}
+					else
+					{
+						hrefvalue = text;
+					}
 				}
+				
 			    var anchor = document.createElement("a");
 			    if ("webkitURL" in window) 
 			    {
@@ -109,52 +87,215 @@ NSExport.prototype.__downloadFile = function(text,uri,fileType,event)
 	}
 };
 
-NSExport.prototype.__getStructureForImage = function() 
+NSExport.prototype.__getTableAsArray = function() 
 { 
-	var divReturn = null;
+	var retValue = [];
 	if(this.__grid)
 	{
 		if(this.__grid.nodeName === "NS-GRID")
 		{
-			divReturn = this.__grid.getElement(this.__grid.getID() + this.__grid.__OUTER_CONTAINER_ID);
+			var tblHeader = this.__grid.__tblHeader;
+	    	var tblBody = this.__grid.__tblBody;
+	    	if(tblHeader.tBodies && tblHeader.tBodies.length > 0 && tblHeader.tBodies[0].rows && tblHeader.tBodies[0].rows.length > 0)
+			{
+	    		var headerCells = tblHeader.tBodies[0].rows[0].cells;
+	    		var rowIndex = 0;
+	    		var colIndex = 0;
+	    		var cell = null;
+	    		var arrCollItem = [];
+	    		var arrHeader = [];
+		        for(colIndex = 0; colIndex < headerCells.length; colIndex++)
+		        {
+		        	cell = headerCells[colIndex];
+		        	var colItem = this.__grid.__getColumnObject(cell.getAttribute("currentColumnIndex"));
+		        	arrCollItem.push(colItem);
+		        	if(!colItem.hasOwnProperty("isExportable") || Boolean.parse(colItem["isExportable"]))
+		        	{
+			    		var headerText = colItem["headerText"];
+			    		arrHeader.push(headerText !== "" ? headerText : null);
+		        	}
+		        }
+		        if(arrHeader && arrHeader.length > 0)
+		        {
+		        	retValue.push(arrHeader);
+		        }
+		        if(tblBody.tBodies && tblBody.tBodies.length > 0 && tblBody.tBodies[0].rows && tblBody.tBodies[0].rows.length > 0)
+				{
+		        	var arrItems = this.__grid.__getAllItems();
+		        	for(rowIndex = 0;rowIndex < arrItems.length;rowIndex++)
+		 	        {
+		        		var item = arrItems[rowIndex];
+		        		if(item[this.__grid.__fieldRowVisible])
+		        		{
+			        		var row = item[this.__grid.__fieldRow];
+			        		var cells = row.cells;
+			        		var arrRow = [];
+			        		for(colIndex = 0;colIndex < cells.length;colIndex++)
+			    	        {
+			        			var cell = cells[colIndex];
+			        			var colItem = arrCollItem[colIndex];
+			        			if(!colItem.hasOwnProperty("isExportable") || Boolean.parse(colItem["isExportable"]))
+			    	        	{
+			        				arrRow.push(typeof cell !== "undefined" ? (cell.textContent.trim() !== "" ? cell.textContent.trim() : null) : null);
+			    	        	}
+			    	        }
+			        		if(arrRow && arrRow.length > 0)
+					        {
+					        	retValue.push(arrRow);
+					        }
+		        		}
+		 	        }
+				}
+			}
 		}
 		else
 		{
-			divReturn = this.__grid.parentElement;
-			if(divReturn && divReturn.nodeName === "BODY")
+			if(this.__grid.tHead && this.__grid.tHead.rows && this.__grid.tHead.rows.length > 0)
 			{
-				divReturn = null;
+				var headerRow = this.__grid.tHead.rows[0];
+				if(headerRow)
+				{
+					var arrCells = [];
+					if(headerRow.getElementsByTagName("th").length > 0)
+					{
+						arrCells = headerRow.getElementsByTagName("th");
+					}
+					else if(headerRow.getElementsByTagName("td").length > 0)
+					{
+						arrCells = headerRow.getElementsByTagName("td");
+					}
+		    		var colIndex = 0;
+		    		var cell = null;
+		    		var arrHeader = [];
+			        for(colIndex = 0; colIndex < arrCells.length; colIndex++)
+			        {
+			        	if(!this.__isColumnIgnored(colIndex))
+			        	{
+				        	cell = arrCells[colIndex];
+				        	arrHeader.push(typeof cell !== "undefined" ? (cell.textContent.trim() !== "" ? cell.textContent.trim() : null) : null);
+			        	}
+			        }
+			        if(arrHeader && arrHeader.length > 0)
+			        {
+			        	retValue.push(arrHeader);
+			        }
+				}
+			}
+			if(this.__grid.tBodies && this.__grid.tBodies.length > 0 && this.__grid.tBodies[0].rows && this.__grid.tBodies[0].rows.length > 0)
+			{
+				var arrRows = this.__grid.tBodies[0].rows;
+	    		var rowIndex = 0;
+	    		var colIndex = 0;
+	    		for(rowIndex = 0;rowIndex < arrRows.length;rowIndex++)
+	 	        {
+	        		var row = arrRows[rowIndex];
+	        		var style = window.getComputedStyle(row);
+	        		if (style.display !== "none") 
+	        		{
+	        			var arrRow = [];
+		        		var cells = row.cells;
+		        		for(colIndex = 0;colIndex < cells.length;colIndex++)
+		    	        {
+		        			if(!this.__isColumnIgnored(colIndex))
+				        	{
+			        			var cell = cells[colIndex];
+			        			arrRow.push(typeof cell !== "undefined" ? (cell.textContent.trim() !== "" ? cell.textContent.trim() : null) : null);
+				        	}
+		    	        }
+		        		if(arrRow && arrRow.length > 0)
+				        {
+				        	retValue.push(arrRow);
+				        }
+	        		}
+	 	        }
 			}
 		}
 	}
-	return divReturn;
+	return retValue;
 };
 
-//taken from http://stackoverflow.com/questions/4998908/convert-data-uri-to-file-then-append-to-formdata
-NSExport.prototype.__dataURItoBlob = function(dataURI) 
+NSExport.prototype.xslxExport = function(objNSExport,worksheetName,event)
 {
-    // convert base64/URLEncoded data component to raw binary data held in a string
-    var byteString = null;
-    var uintArray = null;
-    var mimeString = null;
-    if (dataURI.split(',')[0].indexOf('base64') >= 0)
-    {
-    	 byteString = window.atob(dataURI.split(',')[1]);
-    }
-    else
-    {
-    	 byteString = decodeURIComponent(dataURI.split(',')[1]);
-    }
-    // separate out the mime component
-    mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
-    // write the bytes of the string to a typed array
-    uintArray = new Uint8Array(byteString.length);
-    for (var count = 0; count < byteString.length; count++) 
-    {
-    	uintArray[count] = byteString.charCodeAt(count);
-    }
+	this.util = new NSUtil();
+	this.__objNSExport = objNSExport;
+	this.__worksheetName = worksheetName;
+	this.__event = event;
+	
+	this.Workbook = function () 
+	{
+		/*if (!(this instanceof this.Workbook)) 
+		{
+			 return new Workbook();
+		}*/
+		this.SheetNames = [];
+		this.Sheets = {};
+	};
+	
+	this.__datenum = function(v, date1904) 
+	{
+		if(date1904) 
+		{
+			v +=1462;
+		}
+		var epoch = Date.parse(v);
+		return (epoch - new Date(Date.UTC(1899, 11, 30))) / (24 * 60 * 60 * 1000);
+	};
+	
+	this.__convertStringToArrayBuffer = function(objString)
+	{
+		 var arrBuffer = new ArrayBuffer(objString.length);
+		 var view = new Uint8Array(arrBuffer);
+		 for (var i = 0; i != objString.length; ++i)
+		 {
+			 view[i] = objString.charCodeAt(i) & 0xFF;
+		 }
+		 return arrBuffer;
+	};
+	
+	this.__createWorkSheet = function(data) 
+	{
+		var ws = {};
+	    var range = {s: {c: 10000000, r: 10000000}, e: {c: 0, r: 0}};
+	    for (var R = 0; R != data.length; ++R) {
+	        for (var C = 0; C != data[R].length; ++C) {
+	            if (range.s.r > R) range.s.r = R;
+	            if (range.s.c > C) range.s.c = C;
+	            if (range.e.r < R) range.e.r = R;
+	            if (range.e.c < C) range.e.c = C;
+	            var cell = {v: data[R][C]};
+	            if (cell.v == null) continue;
+	            var cell_ref = XLSX.utils.encode_cell({c: C, r: R});
 
-    return new Blob([uintArray], {type:mimeString});
+	            if (typeof cell.v === 'number') cell.t = 'n';
+	            else if (typeof cell.v === 'boolean') cell.t = 'b';
+	            else if (cell.v instanceof Date) {
+	                cell.t = 'n';
+	                cell.z = XLSX.SSF._table[14];
+	                cell.v = this.__datenum(cell.v);
+	            }
+	            else cell.t = 's';
+
+	            ws[cell_ref] = cell;
+	        }
+	    }
+	    if (range.s.c < 10000000)
+	    {
+	    	ws['!ref'] = XLSX.utils.encode_range(range);
+	    }
+	    return ws;
+	};
+	
+	this.exportToxlsx = function() 
+	{
+		var data = this.__objNSExport.__getTableAsArray();
+		var workBook = new this.Workbook();
+		var workSheet = this.__createWorkSheet(data);
+		workBook.SheetNames.push(this.__worksheetName);
+		workBook.Sheets[this.__worksheetName] = workSheet;
+		var workBookOut = XLSX.write(workBook, {bookType:"xlsx", bookSST:false, type: "binary"});
+		this.__objNSExport.__downloadFile(this.__convertStringToArrayBuffer(workBookOut),"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","xlsx",this.__event);
+	};
+	
 };
 
 
