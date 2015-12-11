@@ -1,7 +1,116 @@
- <script type="text/javascript" src="http://oss.sheetjs.com/js-xlsx/xlsx.core.min.js"></script>
- nsExport.excel("xls","Demo Sheet",event);
- function exportInXSLX(event)
+nsGrid.removeComponent = function()
+{
+	if(this.__scroller)
 	{
-		var nsExport = new NSExport(table,"Demo");
-		nsExport.excel("xlsx","Demo Sheet",event);
+		this.__scroller.__destroyElements();
+		this.__scroller = null;
 	}
+	if(this.__contextMenu)
+	{
+		this.__contextMenu.remove();
+		this.__contextMenu = null;
+	}
+	if(this.__bodyScrollRef)
+	{
+		var divBodyContainer = this.getElement(this.getID() + this.__TABLE_BODY_CONTAINER_ID);
+		this.util.removeEvent(divBodyContainer,"scroll",this.__bodyScrollRef);
+		this.__bodyScrollRef = null;
+	}
+	if(this.__synchronizeTablesRef)
+	{
+		var divBody = this.getElement(this.getID() + this.__TABLE_BODY_CONTAINER_ID);
+		this.util.removeEvent(divBody,"scroll",this.__synchronizeTablesRef);
+		this.__synchronizeTablesRef = null;
+	}
+	this.base.removeComponent();
+};
+divOuterContainer = null;
+this.__showHideAllRow(item[this.__fieldIndex],null,isCollapse);
+
+//written a separate method for performance issues if the Hierarchy levels increases
+nsGrid.__showHideAllRow = function(rowIndex,compArrow,isCollapse)
+{
+	if(rowIndex > -1)
+	{
+		var item = this.__getItemByIndex(rowIndex);
+		if(!compArrow)
+		{
+			compArrow = this.__getArrow(item[this.__fieldIndex]);
+		}
+		var arrChildItems = [];
+		if(item && item[this.__fieldHasChild])
+		{
+			arrChildItems = this.__getAllChildItems(arrChildItems,item);
+			if(arrChildItems && arrChildItems.length > 0)
+			{
+				for(var count = 0;count < arrChildItems.length;count++)
+				{
+					var rowItem = arrChildItems[count];
+					var row = rowItem[this.__fieldRow];
+					if(isCollapse)
+					{
+						row.style.display = "none";
+						rowItem[this.__fieldRowVisible] = false;
+						//setting __fieldIsCollapsed here assuming that __showHideAllArrows() will be called after this function
+						rowItem[this.__fieldIsCollapsed] = true;
+					}
+					else
+					{
+						row.style.display = "";
+						rowItem[this.__fieldRowVisible] = true;
+						rowItem[this.__fieldIsCollapsed] = false;
+					}
+				}
+				
+			}
+			this.__setArrowDirection(compArrow,isCollapse);
+			item[this.__fieldIsCollapsed] = isCollapse;
+		}
+	}
+};
+
+nsGrid.__showHideAllArrows = function(isCollapse)
+{
+	var arrDivs = this.__getAllArrows();
+	if(arrDivs && arrDivs.length > 0)
+	{
+		for(var count = 0;count < arrDivs.length;count++)
+		{
+			var div = arrDivs[count];
+			if(div && div.hasAttribute("parent-row-count"))
+			{
+				this.__setArrowDirection(div,isCollapse);
+			}
+		}
+	}
+};
+
+
+nsGrid.__getArrow = function(rowCount)
+{
+	var arrDivs = this.__getAllArrows();
+	if(arrDivs && arrDivs.length > 0)
+	{
+		for(var count = 0;count < arrDivs.length;count++)
+		{
+			var div = arrDivs[count];
+			if(div && div.hasAttribute("parent-row-count"))
+			{
+				var rowParentCount = div.getAttribute("parent-row-count");
+				if(rowParentCount && rowParentCount == rowCount)
+				{
+					return div;
+				}
+			}
+		}
+	}
+};
+
+nsGrid.__getAllArrows = function(divParent)
+{
+	if(!divParent)
+	{
+		divParent = this.__tblBody;
+	}
+	return divParent.querySelectorAll(".nsArrow");
+};
