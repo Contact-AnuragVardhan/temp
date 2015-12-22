@@ -1,43 +1,179 @@
-Line 77: this.__contextMenuSetting = null;
-Line 288: nsGrid.setContextMenuSetting = function(contextMenuSetting)
-{
-	this.__contextMenuSetting = contextMenuSetting;
-};
-Line 784: 		var divHeaderContainer = this.getElement(this.getID() + this.__TABLE_HEADER_CONTAINER_ID);
-		if(divHeaderContainer)
-		{
-			divHeaderContainer.parentNode.removeChild(divHeaderContainer);
-		}
-980: nsGrid.prototype.__removeHeader = function()
-{
-	if(this.__tblHeader && this.__tblHeader.tHead)
-	{
-		this.__tblHeader.deleteTHead();
+(function(){
+
+	var defaultOptions = {
+		"nextText" : "Next",
+		"prevText" : "Previous",
+		"firstText" : "Home",
+		"lastText" : "last page",
+		"maxSize" : true,
+		"currentPage" : 1,
+		"pageSize" : 0,
+		"prefix" : "pagination",
+		"goto" : false,
+		"callback" : function(){ return this; }
 	}
-	if(this.__tblHeader.tBodies && this.__tblHeader.tBodies.length > 0)
-    {
-    	this.__tblHeader.removeChild(this.__tblHeader.tBodies[0]);
-    }
-};
 
-1754: remove nsGrid.__lastYPosition = 0;
+	function Pagination( el, options ){
+		this.elem = el;
 
-Line 2470: if(this.__contextMenuSetting)
-		{
-			for(var key in this.__contextMenuSetting)
-			{
-				//grid setting should not be overriden by the users
-				if(!contextMenuSetting[key])
-				{
-					contextMenuSetting[key] = this.__contextMenuSetting[key];
-				}
-			}
+		// opstions
+		this.setOptions( null, true );
+
+		if( options ){
+			this.setOptions( options );
+			this.render();
 		}
+		return this;
+	}
+
+	Pagination.prototype.render = function( options ){
+		this.update( options );
+		this.bindEvent();
+		return this;
+	}
+
+	Pagination.prototype.update = function( options ){
+		var page = createElement( "div", this.options.prefix ),
+			scope,
+			compContainer,
+			compHome,
+			compLast,
+			compPrev,
+			compNext,
+			domPageNode;
+
+		this.setOptions( options );
+
+		options = this.options;
+		scope = calScope( options.currentPage,options.maxSize, options.pageSize);
+		compContainer = createElement( "div", this.usePrefix( "pages" ) );
+
 		
 
-nsmenu:
-125: width: parseInt(this.__setting["width"]) || -1
-152: if(this.__config.width > -1)
-	{
-		parentNode.style.width = this.__config.width + "px";
+		// make first pageObj
+		//if( !options.simple ){
+			compHome = createElement( "a", this.usePrefix( "first" ), options.firstText );
+			if( options.currentPage === 1 ){
+				compHome.className += " " + this.usePrefix( "disabled" );
+			}else{
+				compHome.setAttribute( this.usePrefix("rel"),  1 );
+			};
+			compContainer.appendChild( compHome );
+		//}
+
+		// make prev pageObj
+		compPrev = createElement( "a", this.usePrefix( "prev" ), options.prevText );
+		if( options.currentPage === 1 ){
+			compPrev.className += " " + this.usePrefix( "disabled" );
+		}else{
+			compPrev.setAttribute( this.usePrefix("rel"),  options.currentPage - 1 );
+		};
+		compContainer.appendChild( compPrev );
+
+		// make pageList
+		console.log("rendering ::" + scope[0] + " to " + scope[1]);
+		for( var i = scope[0]; i <= scope[1]; i++ ){
+			domPageNode = createElement( "a", options.currentPage === i ? this.usePrefix( "current" ) : null, i );
+			if( options.currentPage !== i ){
+				domPageNode.setAttribute( this.usePrefix("rel"), i )
+			}
+			compContainer.appendChild( domPageNode );
+		}
+		// make next pageObj
+		compNext = createElement( "a", this.usePrefix( "next" ), this.options.nextText );
+		if( options.currentPage >= options.pageSize ){
+			compNext.className += " " + this.usePrefix( "disabled" );
+		}else{
+			compNext.setAttribute( this.usePrefix("rel"),  options.currentPage + 1 );
+		};
+		compContainer.appendChild( compNext );
+
+		// make last pageObj
+		//if( !options.simple ){
+			compLast = createElement( "a", this.usePrefix( "last" ), options.lastText );
+			if( options.currentPage >= options.pageSize ){
+				compLast.className += " " + this.usePrefix( "disabled" );
+			}else{
+				compLast.setAttribute( this.usePrefix("rel"),  options.pageSize );
+			};
+			compContainer.appendChild( compLast );
+		//}
+
+		page.appendChild( compContainer );
+		this.elem.innerHTML = "";
+		this.elem.appendChild( page );
+		return this;
 	}
+
+	Pagination.prototype.setOptions = function( options, force ){
+		if( !this.options ){
+			this.options = {};
+		};
+		if( !!force ){
+			options = defaultOptions;
+		};
+		if( typeof options === "object" ){
+			for( var i in options ){
+				this.options[i] = options[i];
+			}
+		}
+		return this;
+	}
+
+	Pagination.prototype.usePrefix = function( text ){
+		return this.options.prefix + "-" + text;
+	}
+
+	Pagination.prototype.bindEvent = function(){
+		var that = this,
+			rel,
+			fn;
+		fn = function( e ){
+			var target = e.srcElement || e.target,
+				pageNum;
+			if( rel = target.getAttribute( that.usePrefix("rel") ) ){
+				that.options.callback.call( that, +rel );
+			}
+			// goto
+			/*if( target.tagName.toLowerCase() === "button" ){
+				pageNum = ~~that.elem.getElementsByTagName( "input" )[0].value;
+				pageNum > 0 && pageNum <= that.options.pageSize && that.options.callback.call( that, pageNum );
+			}*/
+		}
+		if( this.elem.attachEvent){
+			this.elem.attachEvent( "onclick", fn);
+		}else{
+			this.elem.addEventListener("click",fn,false)
+		}
+	}
+
+	// utils
+	function createElement( name, className, text ){
+		var dom = document.createElement( name );
+		if( !!className ){
+			dom.className = className;
+		}
+		if( !!text ){
+			name === "input" ?  ( dom.value = text ) : ( dom.innerHTML = text );
+		}
+		if( name === "a" ){
+			dom.href = "javascript:void(0)";
+		}
+		return dom;
+	}
+	// calculate the scope of page list
+	function calScope( currentPage, maxSize, pageSize ){
+	console.log("pageSize:" + pageSize + ",maxSize:" + maxSize + ",currentPage:" + currentPage);
+		var scope = [1,pageSize],
+			limit = Math.floor( maxSize/2 );
+		if( !!maxSize ){
+			scope[0] = Math.max( currentPage - limit, 1);
+			scope[1] = Math.min( currentPage + limit, pageSize);
+		}
+		return scope;
+	}
+
+	// exports
+	this.Pagination = Pagination;
+
+})(this);
