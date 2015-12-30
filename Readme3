@@ -1,235 +1,197 @@
-this.addSVG = function(parent,id,className,width,height,fromX,fromY,toX,toY,disableEvents) 
-	{
-		var svg = this.createSVG(id,className,width,height,fromX,fromY,toX,toY,disableEvents);
-		if(parent)
-		{
-			parent.appendChild(svg);
-		}
-		return svg;
-	};
+"use strict"; 
+function NMPanel(setting) 
+{
+	this.__DEFAULT_ANIMATION_STEPS = 10;
+	this.__DEFAULT_ANIMATION_DELAY = 20; /*ms*/
 	
-	this.symbolExists = function(id)
-	{
-		var svg = this.getMainSVG();
-		var retValue = (svg.getElementById(id)) ? true : false;
-		return retValue;
-	};
+	this.__OUTER_CONTAINER_ID = "panelContainer";
+	this.__TITLE_CONTAINER_ID = "divTitleBar";
+	this.__BODY_CONTAINER_ID = "divBody";
 	
-	this.addSymbol = function(id,viewBox,preserveAspectRatio)
-	{
-		var svg = this.getMainSVG();
-		var symbol = this.createSymbol(id,viewBox,preserveAspectRatio);
-		svg.appendChild(symbol);
-		return symbol;
-	};
+	this.__CLASS_OUTER_CONTAINER = "nmPanel";
+	this.__CLASS_TITLEBAR = "nmPanelTitleBar";
+	this.__CLASS_BODY_CONTAINER = "nmPanelBody";
+	this.__CLASS_BODY_CONTAINER_TOGGLED = "nmPanelBodyToggled";
 	
-	this.addUse = function(parent,id,className,href,width,height,x,y,transform)
-	{
-		var use = this.createUse(id,className,href,width,height,x,y,transform);
-		if(parent)
-		{
-			parent.appendChild(use);
-			//parent.innerHTML = use.outerHTML;
-		}
-		return use;
-	};
+	this.util = new NMUtil();
 	
-	this.addPath = function(id,pathString,viewPort) 
-	{
-		var path = this.createPath(id + "path",pathString,null);
-		this.addElementInSymbol(id,viewPort,path);
-	};
+	this.__setting = setting;
+	this.__config = null;
+	this.__header = null;
+	this.__body = null;
 	
-	this.addCircle = function(id,centerX,centerY,radius,className,viewPort) 
+	this.__id = null;
+	this.__orignalBodyHeight = -1;
+
+	this.__initialize();
+}
+
+NMPanel.prototype.__initialize = function() 
+{
+	if(this.__setting)
 	{
-		var circle = this.createCircle(id,centerX,centerY,radius,className);
-		this.addElementInSymbol(id,viewPort,circle);
-	};
-	
-	this.addPolygon = function(id,points,className,viewPort) 
+		//eventHandler:extra eventHandler which developer wants to execute on the event i.e. click,customEvent etc
+		this.__config = {
+				parent: this.__setting["parent"] || null,
+				title: this.__setting["title"] || null,
+				template: this.__setting["template"] || null,
+				maxWidth: this.__setting["maxWidth"] || -1,
+				maxHeight: this.__setting["maxHeight"] || -1
+		};
+		if(this.__config.parent)
+		{
+			this.__createStructure();
+		}
+	}
+};
+
+NMPanel.prototype.__createStructure = function()
+{
+	var divOuterContainer = this.__createOuterContainer();
+	this.__header = this.__createTitleBar(divOuterContainer);
+	this.__body = this.__createBody(divOuterContainer);
+};
+
+NMPanel.prototype.__createOuterContainer = function()
+{
+	var divOuterContainer = this.util.getElement(this.getID() + this.__OUTER_CONTAINER_ID,this.__CLASS_OUTER_CONTAINER);
+	if(divOuterContainer)
 	{
-		 var polygon = this.createPolygon(id,points,className);
-		 this.addElementInSymbol(id,viewPort,polygon);
-	};
-	
-	this.addLine = function(parent,id,xFrom,yFrom,xTo,yTo,className,viewPort) 
+		divOuterContainer.parentNode.removeChild(divOuterContainer);
+		divOuterContainer = null;
+	}
+	divOuterContainer = this.util.createDiv(this.getID() + this.__OUTER_CONTAINER_ID);
+	if(this.__config.parent.style.width != "")
 	{
-		 var line = this.createLine(id,xFrom,yFrom,xTo,yTo,className);
-		 this.addElementInSymbol(id,viewPort,line);
-	};
-	
-	this.createSVG = function(id,className,width,height,fromX,fromY,toX,toY,disableEvents)
+		divOuterContainer.style.width = this.__config.parent.style.width;
+	}
+	else if(this.offsetWidth > 0)
 	{
-		var svg = document.createElementNS(this.namespace, "svg");
-		svg.setAttribute("xmlns", this.namespace);
-		svg.setAttributeNS(this.xmlns, "xmlns:xlink", this.xlink);
-		svg.setAttribute("version", this.version);
-		if(id)
-		{
-			svg.setAttribute("id",id);
-		}
-		if(className)
-		{
-			 this.util.addStyleClass(svg,className);
-		}
-		if(this.util.isNumber(width))
-		{
-			svg.setAttribute("width", width);
-		}
-		if(this.util.isNumber(height))
-		{
-			svg.setAttribute("height", height);
-		}
-		if(this.util.isNumber(fromX) && this.util.isNumber(fromY) && this.util.isNumber(toX) && this.util.isNumber(toY) && toX > 0 && toY > 0)
-		{
-			var viewBox = fromX + " " + fromY + " " + toX + " " + toY;
-			svg.setAttribute("viewBox", viewBox);
-		}
-		if(disableEvents)
-		{
-			svg.style.pointerEvents = "none";
-		}
-		return svg;
-	};
-	
-	this.createSymbol = function(id,viewBox,preserveAspectRatio) 
+		divOuterContainer.style.width = this.__config.parent.offsetWidth + "px";
+	}
+	else
 	{
-		 var symbol = document.createElementNS(this.namespace,"symbol");
-		 if(id)
-		 {
-			 symbol.setAttributeNS(null,"id",id);
-		 }
-		 if(viewBox)
-		 {
-			 symbol.setAttribute("viewBox", viewBox);
-		 }
-		 if(preserveAspectRatio)
-		 {
-			 symbol.setAttribute("preserveAspectRatio", preserveAspectRatio);
-		 }
-		 return symbol;
-	};
-	
-	this.createUse = function(id,className,href,width,height,x,y,transform)
+		divOuterContainer.style.width = "100%";
+	}
+	if(this.__config.parent.style.height != "")
 	{
-		var use = document.createElementNS(this.namespace, "use");
-		if(id)
-		{
-			use.setAttributeNS(null,"id",id);
-		}
-		if(className)
-		{
-			 this.util.addStyleClass(use,className);
-		}
-		if(href)
-		{
-			use.setAttributeNS(this.xlink,"href",href);
-		}
-		if(this.util.isNumber(width))
-		{
-			use.setAttribute("width", width);
-		}
-		if(this.util.isNumber(height))
-		{
-			use.setAttribute("height", height);
-		}
-		if(this.util.isNumber(x))
-		{
-			use.setAttribute("x", x);
-		}
-		if(this.util.isNumber(y))
-		{
-			use.setAttribute("y", y);
-		}
-		if(transform)
-		{
-			use.setAttribute("transform",transform);
-		}
-		return use;
-	};
-	
-	this.createLine = function(id,xFrom,yFrom,xTo,yTo,className) 
+		divOuterContainer.style.height = this.__config.parent.style.height;
+	}
+	else if(this.__config.parent.offsetHeight > 0)
 	{
-		 var line = document.createElementNS(this.namespace,"line");
-		 if(id)
-		 {
-			 line.setAttributeNS(null,"id",id);
-		 }
-		 line.setAttributeNS(null,"x1",xFrom);
-		 line.setAttributeNS(null,"y1",yFrom);
-		 line.setAttributeNS(null,"x2",xTo);
-		 line.setAttributeNS(null,"y2",yTo);
-		 if(className)
-		 {
-			 this.util.addStyleClass(line,className);
-		 }
-		 return line;
-	};
-	
-	this.createCircle = function(id,centerX,centerY,radius,className) 
+		divOuterContainer.style.height = this.__config.parent.offsetHeight + "px";
+	}
+	else
 	{
-		 var circle = document.createElementNS(this.namespace,"circle");
-		 if(id)
-		 {
-			 circle.setAttributeNS(null,"id",id);
-		 }
-		 circle.setAttributeNS(null,"cx",centerX);
-		 circle.setAttributeNS(null,"cy",centerY);
-		 circle.setAttributeNS(null,"r",radius);
-		 if(className)
-		 {
-			 this.util.addStyleClass(circle,className);
-		 }
-		 return circle;
-	};
-	
-	this.createPolygon = function(id,points,className) 
+		divOuterContainer.style.height = "100%";
+	}
+	this.__config.parent.appendChild(divOuterContainer);
+	return divOuterContainer;
+};
+
+NMPanel.prototype.__createTitleBar = function(parentElement)
+{
+	if(parentElement)
 	{
-		 var polygon = document.createElementNS(this.namespace,"polygon");
-		 if(id)
-		 {
-			 polygon.setAttributeNS(null,"id",id);
-		 }
-		 polygon.setAttribute("points",points);
-		 if(className)
-		 {
-			 this.util.addStyleClass(polygon,className);
-		 }
-		 return polygon;
-	};
-	
-	this.createPath = function(id,pathString,className) 
+		var divTitleBar = this.util.createDiv(this.getID() + this.__TITLE_CONTAINER_ID,this.__CLASS_TITLEBAR);
+		if(this.__config.title && this.__config.title.length > 0)
+		{
+			var titleText = document.createTextNode(this.__config.title);
+			divTitleBar.appendChild(titleText);
+		}
+		this.util.addEvent(divTitleBar,"dblclick",this.__headerDoubleClickHandler.bind(this));
+		parentElement.appendChild(divTitleBar);
+		
+		return divTitleBar;
+	}
+	return null;
+};
+
+NMPanel.prototype.__createBody = function(parentElement)
+{	
+	if(parentElement)
 	{
-		 var path = document.createElementNS (this.namespace, "path");
-		 if(id)
-		 {
-			 path.setAttribute("id", id);
-		 }
-		 path.setAttribute("d", pathString);
-		 if(className)
-		 {
-			 this.util.addStyleClass(path,className);
-		 }
-		 return path;
-	};
-	
-	this.createGroup = function(id) 
+		var divBody = this.util.createDiv(this.getID() + this.__BODY_CONTAINER_ID,this.__CLASS_BODY_CONTAINER);
+		if(this.__config.template)
+		{
+			divBody.appendChild(this.util.getTemplate(this.__config.template));
+		}
+		parentElement.appendChild(divBody);
+		if(this.__config.maxWidth > -1 && this.__config.maxWidth < divBody.offsetWidth)
+		{
+			divBody.style.maxWidth = this.__config.maxWidth + "px";
+		}
+		if(this.__config.maxHeight > -1 && this.__config.maxHeight < divBody.offsetHeight)
+		{
+			divBody.style.maxHeight = this.__config.maxHeight + "px";
+		}
+		this.__orignalBodyHeight = divBody.offsetHeight;
+		/*var transitionStyle = "height .3s linear, padding-top .3s linear,padding-bottom .3s linear, border-width .3s linear";
+		var transitionProperty = this.util.getSupportedCSSPropertyName(["transition","OTransition","msTransition","MozTransition","WebkitTransition"]);
+		if(transitionProperty)
+		{
+			divBody.style[transitionProperty] = transitionStyle;
+		}*/
+		return divBody;
+	}
+	return null;
+};
+
+NMPanel.prototype.__headerDoubleClickHandler = function(event)
+{
+	if(this.__body)
 	{
-		 var group = document.createElementNS (this.namespace, "g");
-		 if(id)
-		 {
-			 group.setAttribute("id", id);
-		 }
-		 return group;
-	};
-	
-	this.changeUseHref = function(use,href) 
+		//this.util.toggleStyleClass(this.__body,this.__CLASS_BODY_CONTAINER_TOGGLED);
+		var height = this.__body.offsetHeight;
+		if(this.__body.style.height != "")
+		{
+			height = this.util.getDimensionAsNumber(this.__body,this.__body.style.height);
+		}
+		var isExpand = (height === 0);
+		this.__animateToggle(isExpand);
+	}
+};
+
+NMPanel.prototype.__animateToggle = function(isExpand)
+{
+	var contentHeight = this.__body.offsetHeight;
+	if (isExpand)
 	{
-		 use = this.util.getElement(use);
-		 if(use)
-		 {
-			use.setAttributeNS(this.xlink,"href",href);
-			return true;
-		 }
-		 return false;
-	};
+		this.__body.style.height = "0px";
+	}
+	var stepHeight = this.__orignalBodyHeight / this.__DEFAULT_ANIMATION_STEPS;
+	var direction = (isExpand ? 1 : -1);
+	var self = this;
+	setTimeout(function(){self.__animateStep.bind(self)(1,stepHeight,direction)}, this.__DEFAULT_ANIMATION_DELAY);
+};
+
+NMPanel.prototype.__animateStep = function(iteration, stepHeight, direction)
+{
+	if (iteration < this.__DEFAULT_ANIMATION_STEPS)
+	{
+		this.__body.style.height = Math.round(((direction > 0) ? iteration : 10 - iteration) * stepHeight) +"px";
+		iteration++;
+		var self = this;
+		setTimeout(function(){self.__animateStep.bind(self)(iteration,stepHeight,direction)}, this.__DEFAULT_ANIMATION_DELAY);
+	}
+	else
+	{
+		this.__body.style.height = ((direction < 0) ? 0 : this.__orignalBodyHeight) + "px";
+	}
+};
+
+NMPanel.prototype.getID = function()
+{
+	if(!this.__id)
+	{
+		if(this.__config.parent.hasAttribute("id"))
+		{
+			this.__id = this.__config.parent.getAttribute("id");
+		}
+		else if(this.__config.parent.hasAttribute("name"))
+		{
+			this.__id = this.__config.parent.getAttribute("name");
+		}
+	}
+	return this.__id;
+};
