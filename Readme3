@@ -1,6 +1,12 @@
 "use strict"; 
-function NMPanel(setting) 
+var nsPanel = Object.create(nsContainerBase);
+//http://codepen.io/zz85/pen/gbOoVP
+//http://jsfiddle.net/3jMQD/
+//https://github.com/zz85/sparks.js
+nsPanel.initializeComponent = function() 
 {
+	this.base.initializeComponent();
+	
 	this.__DEFAULT_ANIMATION_STEPS = 10;
 	this.__DEFAULT_ANIMATION_DELAY = 20; /*ms*/
 	
@@ -8,123 +14,136 @@ function NMPanel(setting)
 	this.__TITLE_CONTAINER_ID = "divTitleBar";
 	this.__BODY_CONTAINER_ID = "divBody";
 	
-	this.__CLASS_OUTER_CONTAINER = "nmPanel";
-	this.__CLASS_TITLEBAR = "nmPanelTitleBar";
-	this.__CLASS_BODY_CONTAINER = "nmPanelBody";
-	this.__CLASS_BODY_CONTAINER_TOGGLED = "nmPanelBodyToggled";
+	this.__CLASS_OUTER_CONTAINER = "nsPanelContainer";
+	this.__CLASS_TITLEBAR = "nsPanelTitleBar";
+	this.__CLASS_BODY_CONTAINER = "nsPanelBody";
+	this.__CLASS_BODY_CONTAINER_TOGGLED = "nsPanelBodyToggled";
 	
-	this.util = new NMUtil();
-	
-	this.__setting = setting;
-	this.__config = null;
+	this.__container = null;
 	this.__header = null;
 	this.__body = null;
 	
-	this.__id = null;
+	this.__title = null;
+	this.__templateID = null;
+	this.__minWidth = null;
+	this.__minHeight = null;
+	this.__enableCollapse = false;
+	this.__enableDrag = false;
+	this.__enableResize = false;
+	
 	this.__orignalBodyHeight = -1;
+	this.__nsDragResizeElements = null;
+};
 
-	this.__initialize();
-}
-
-NMPanel.prototype.__initialize = function() 
+nsPanel.setComponentProperties = function() 
 {
-	if(this.__setting)
+	if(this.hasAttribute("nsTitle"))
 	{
-		//eventHandler:extra eventHandler which developer wants to execute on the event i.e. click,customEvent etc
-		this.__config = {
-				parent: this.__setting["parent"] || null,
-				title: this.__setting["title"] || null,
-				template: this.__setting["template"] || null,
-				maxWidth: this.__setting["maxWidth"] || -1,
-				maxHeight: this.__setting["maxHeight"] || -1
-		};
-		if(this.__config.parent)
-		{
-			this.__createStructure();
-		}
+		this.__title = this.getAttribute("nsTitle");
 	}
+	if(this.hasAttribute("template"))
+	{
+		this.__templateID = this.getAttribute("template");
+	}
+	if(this.hasAttribute("minWidth"))
+	{
+		this.__minWidth = this.util.getNumber(this.getAttribute("minWidth"));
+	}
+	if(this.hasAttribute("minHeight"))
+	{
+		this.__minHeight = this.getAttribute("minHeight");
+	}
+	if(this.hasAttribute("enableCollapse"))
+	{
+		this.__enableCollapse = Boolean.parse(this.getAttribute("enableCollapse"));
+	}
+	if(this.hasAttribute("enableDrag"))
+	{
+		this.__enableDrag = Boolean.parse(this.getAttribute("enableDrag"));
+	}
+	if(this.hasAttribute("enableResize"))
+	{
+		this.__enableResize = Boolean.parse(this.getAttribute("enableResize"));
+	}
+	
+	this.base.setComponentProperties();
+	this.__createStructure();
 };
 
-NMPanel.prototype.__createStructure = function()
+nsPanel.propertyChange = function(attrName, oldVal, newVal, setProperty)
 {
-	var divOuterContainer = this.__createOuterContainer();
-	this.__header = this.__createTitleBar(divOuterContainer);
-	this.__body = this.__createBody(divOuterContainer);
+	var attributeName = attrName.toLowerCase();
+	this.base.propertyChange(attrName, oldVal, newVal, setProperty);
 };
 
-NMPanel.prototype.__createOuterContainer = function()
+nsPanel.removeComponent = function() 
 {
-	var divOuterContainer = this.util.getElement(this.getID() + this.__OUTER_CONTAINER_ID,this.__CLASS_OUTER_CONTAINER);
+	this.__stopDrag();
+	if(this.__nsDragResizeElements)
+	{
+		this.__nsDragResizeElements.__destroyElements();
+	}
+	this.base.removeComponent();
+};
+
+nsPanel.componentResized = function(event) 
+{
+	this.base.componentResized(event);
+};
+
+nsPanel.__createStructure = function()
+{
+	this.util.addStyleClass(this,"nsPanel");
+	this.__container = this.__createOuterContainer();
+	this.__header = this.__createTitleBar(this.__container);
+	this.__body = this.__createBody(this.__container);
+	var dragResizeSetting = {element:this,dragEnabled:this.__enableDrag,resizeEnabled:this.__enableResize,minWidth:this.__minWidth,minHeight:this.__minHeight};
+	this.__nsDragResizeElements = new this.util.nsDragResizeElements(dragResizeSetting);
+};
+
+nsPanel.__createOuterContainer = function()
+{
+	var divOuterContainer = this.getElement(this.getID() + this.__OUTER_CONTAINER_ID);
 	if(divOuterContainer)
 	{
 		divOuterContainer.parentNode.removeChild(divOuterContainer);
 		divOuterContainer = null;
 	}
-	divOuterContainer = this.util.createDiv(this.getID() + this.__OUTER_CONTAINER_ID);
-	if(this.__config.parent.style.width != "")
-	{
-		divOuterContainer.style.width = this.__config.parent.style.width;
-	}
-	else if(this.offsetWidth > 0)
-	{
-		divOuterContainer.style.width = this.__config.parent.offsetWidth + "px";
-	}
-	else
-	{
-		divOuterContainer.style.width = "100%";
-	}
-	if(this.__config.parent.style.height != "")
-	{
-		divOuterContainer.style.height = this.__config.parent.style.height;
-	}
-	else if(this.__config.parent.offsetHeight > 0)
-	{
-		divOuterContainer.style.height = this.__config.parent.offsetHeight + "px";
-	}
-	else
-	{
-		divOuterContainer.style.height = "100%";
-	}
-	this.__config.parent.appendChild(divOuterContainer);
+	divOuterContainer = this.util.createDiv(this.getID() + this.__OUTER_CONTAINER_ID,this.__CLASS_OUTER_CONTAINER);
+	this.appendChild(divOuterContainer);
 	return divOuterContainer;
 };
 
-NMPanel.prototype.__createTitleBar = function(parentElement)
+nsPanel.__createTitleBar = function(parentElement)
 {
 	if(parentElement)
 	{
 		var divTitleBar = this.util.createDiv(this.getID() + this.__TITLE_CONTAINER_ID,this.__CLASS_TITLEBAR);
-		if(this.__config.title && this.__config.title.length > 0)
+		if(this.__title && this.__title.length > 0)
 		{
-			var titleText = document.createTextNode(this.__config.title);
+			var titleText = document.createTextNode(this.__title);
 			divTitleBar.appendChild(titleText);
 		}
-		this.util.addEvent(divTitleBar,"dblclick",this.__headerDoubleClickHandler.bind(this));
+		if(this.__enableCollapse)
+		{
+			this.util.addEvent(divTitleBar,"dblclick",this.__headerDoubleClickHandler.bind(this));
+		}
 		parentElement.appendChild(divTitleBar);
-		
 		return divTitleBar;
 	}
 	return null;
 };
 
-NMPanel.prototype.__createBody = function(parentElement)
+nsPanel.__createBody = function(parentElement)
 {	
 	if(parentElement)
 	{
 		var divBody = this.util.createDiv(this.getID() + this.__BODY_CONTAINER_ID,this.__CLASS_BODY_CONTAINER);
-		if(this.__config.template)
+		if(this.__templateID && this.__templateID.length > 0)
 		{
-			divBody.appendChild(this.util.getTemplate(this.__config.template));
+			divBody.appendChild(this.util.getTemplate(this.__templateID));
 		}
 		parentElement.appendChild(divBody);
-		if(this.__config.maxWidth > -1 && this.__config.maxWidth < divBody.offsetWidth)
-		{
-			divBody.style.maxWidth = this.__config.maxWidth + "px";
-		}
-		if(this.__config.maxHeight > -1 && this.__config.maxHeight < divBody.offsetHeight)
-		{
-			divBody.style.maxHeight = this.__config.maxHeight + "px";
-		}
 		this.__orignalBodyHeight = divBody.offsetHeight;
 		/*var transitionStyle = "height .3s linear, padding-top .3s linear,padding-bottom .3s linear, border-width .3s linear";
 		var transitionProperty = this.util.getSupportedCSSPropertyName(["transition","OTransition","msTransition","MozTransition","WebkitTransition"]);
@@ -137,61 +156,65 @@ NMPanel.prototype.__createBody = function(parentElement)
 	return null;
 };
 
-NMPanel.prototype.__headerDoubleClickHandler = function(event)
+nsPanel.__headerDoubleClickHandler = function(event)
+{
+	this.__initializeMinMax();
+};
+/******************************Start of Minimize Maximize Function *************************************/
+nsPanel.__initializeMinMax = function()
 {
 	if(this.__body)
 	{
-		//this.util.toggleStyleClass(this.__body,this.__CLASS_BODY_CONTAINER_TOGGLED);
-		var height = this.__body.offsetHeight;
-		if(this.__body.style.height != "")
-		{
-			height = this.util.getDimensionAsNumber(this.__body,this.__body.style.height);
-		}
-		var isExpand = (height === 0);
-		this.__animateToggle(isExpand);
+		var isCollapsed = this.util.hasStyleClass(this,"nsPanelCollapsed");
+		this.__animateMinMax(isCollapsed);
 	}
 };
 
-NMPanel.prototype.__animateToggle = function(isExpand)
+nsPanel.__animateMinMax = function(isExpanding)
 {
+	this.__body.style.display = "block";
 	var contentHeight = this.__body.offsetHeight;
-	if (isExpand)
+	if (isExpanding)
 	{
 		this.__body.style.height = "0px";
+		contentHeight = this.__orignalBodyHeight;
 	}
-	var stepHeight = this.__orignalBodyHeight / this.__DEFAULT_ANIMATION_STEPS;
-	var direction = (isExpand ? 1 : -1);
+	else
+	{
+		this.__orignalBodyHeight = this.__body.offsetHeight;
+	}
+	var stepHeight = contentHeight / this.__DEFAULT_ANIMATION_STEPS;
+	var direction = (isExpanding ? 1 : -1);
 	var self = this;
-	setTimeout(function(){self.__animateStep.bind(self)(1,stepHeight,direction)}, this.__DEFAULT_ANIMATION_DELAY);
+	setTimeout(function(){self.__animateMinMaxStep.bind(self)(1,stepHeight,direction)}, this.__DEFAULT_ANIMATION_DELAY);
 };
 
-NMPanel.prototype.__animateStep = function(iteration, stepHeight, direction)
+nsPanel.__animateMinMaxStep = function(iteration, stepHeight, direction)
 {
 	if (iteration < this.__DEFAULT_ANIMATION_STEPS)
 	{
 		this.__body.style.height = Math.round(((direction > 0) ? iteration : 10 - iteration) * stepHeight) +"px";
 		iteration++;
 		var self = this;
-		setTimeout(function(){self.__animateStep.bind(self)(iteration,stepHeight,direction)}, this.__DEFAULT_ANIMATION_DELAY);
+		setTimeout(function(){self.__animateMinMaxStep.bind(self)(iteration,stepHeight,direction)}, this.__DEFAULT_ANIMATION_DELAY);
 	}
 	else
 	{
-		this.__body.style.height = ((direction < 0) ? 0 : this.__orignalBodyHeight) + "px";
+		if(direction < 0)
+		{
+			this.util.changeStyleClass(this,"nsPanel","nsPanelCollapsed");
+			this.__body.style.display = "none";
+			this.style.height = this.__header.offsetHeight + "px";
+		}
+		else
+		{
+			this.util.changeStyleClass(this,"nsPanelCollapsed","nsPanel");
+			this.__body.style.display = "";
+			this.style.height = this.__orignalBodyHeight + this.__header.offsetHeight + "px";
+			this.__orignalBodyHeight = 0;
+		}
+		this.__body.style.height = "";
 	}
 };
-
-NMPanel.prototype.getID = function()
-{
-	if(!this.__id)
-	{
-		if(this.__config.parent.hasAttribute("id"))
-		{
-			this.__id = this.__config.parent.getAttribute("id");
-		}
-		else if(this.__config.parent.hasAttribute("name"))
-		{
-			this.__id = this.__config.parent.getAttribute("name");
-		}
-	}
-	return this.__id;
-};
+/******************************End of Minimize Maximize Function *************************************/
+document.registerElement('ns-panel', {prototype: nsPanel});
