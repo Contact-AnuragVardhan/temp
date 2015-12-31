@@ -1,391 +1,264 @@
-NSUtil.prototype.nsDragResizeElements = function(setting)
+"use strict"; 
+var nsPanel = Object.create(nsContainerBase);
+//http://codepen.io/zz85/pen/gbOoVP
+//http://jsfiddle.net/3jMQD/
+//https://github.com/zz85/sparks.js
+nsPanel.initializeComponent = function() 
 {
-	this.__SCREEN_OFFSET = -10;
-	this.__ELEMENT_OFFSET = 4;
+	this.base.initializeComponent();
 	
-	this.__setting = setting;
+	this.__DEFAULT_ANIMATION_STEPS = 10;
+	this.__DEFAULT_ANIMATION_DELAY = 20; /*ms*/
 	
-	//Drag Variables
-	this.__dragResizeSetting = null;
+	this.__OUTER_CONTAINER_ID = "panelContainer";
+	this.__TITLE_CONTAINER_ID = "divTitleBar";
+	this.__BODY_CONTAINER_ID = "divBody";
 	
-	//Resize Variables
-	this.__resizeDirection = {top:false,right:false,bottom:false,left:false};
-	this.__dragEdge = {right:null,bottm:null};
-	this.__elementRect = null;
-	this.__lastElementDimension = null;
-
-	//Common Variables
-	this.__divHidden = null;
-	this.__posX = null;
-	this.__posY = null;
-	this.__tempEvent = null;
-	this.__rePaint = false;
+	this.__CLASS_OUTER_CONTAINER = "nsPanelContainer";
+	this.__CLASS_TITLEBAR = "nsPanelTitleBar";
+	this.__CLASS_BODY_CONTAINER = "nsPanelBody";
 	
-	this.util = new NSUtil();
+	this.__container = null;
+	this.__header = null;
+	this.__body = null;
 	
-	this.__documentMouseMoveRef = null;
-	this.__documentMouseUpRef = null;
-	this.__documentTouchMoveRef = null;
-	this.__documentTouchEndRef = null;
+	this.__title = null;
+	this.__templateID = null;
+	this.__minWidth = null;
+	this.__minHeight = null;
+	this.__enableCollapse = false;
+	this.__enableDrag = false;
+	this.__enableResize = false;
+	this.__enableTitleDblClick = false;
 	
-	this.__initialize = function() 
-	{
-		this.__config = {
-				element: this.__setting["element"] || null,
-				dragEnabled: Boolean.parse(this.__setting["dragEnabled"]),
-				resizeEnabled: Boolean.parse(this.__setting["resizeEnabled"]),
-				minWidth: this.util.getDimensionAsNumber(this.__setting["element"],this.__setting["minWidth"]),
-				minHeight: this.util.getDimensionAsNumber(this.__setting["element"],this.__setting["minHeight"])
-		};
-		if(this.__config.element)
-		{
-			this.__divHidden = this.util.createDiv(this.__config.element.id + "Hidden", "nsHiddenDiv");
-			this.__divHidden.style.width = this.util.getStyleValue(this.__config.element,"width");
-			this.__divHidden.style.height = this.util.getStyleValue(this.__config.element,"height");
-			this.__config.element.parentNode.appendChild(this.__divHidden);
-			
-			this.util.addEvent(this.__config.element,"mousedown",this.__elementMouseDownHandler.bind(this));
-			this.util.addEvent(this.__config.element,"touchstart",this.__elementTouchStartHandler.bind(this));
-			if(!this.__documentMouseMoveRef)
-			{
-				this.__documentMouseMoveRef = this.__documentMouseMoveHandler.bind(this);
-				this.util.addEvent(document,"mousemove",this.__documentMouseMoveRef);
-			}
-			if(!this.__documentMouseUpRef)
-			{
-				this.__documentMouseUpRef = this.__documentMouseUpHandler.bind(this);
-				this.util.addEvent(document,"mouseup",this.__documentMouseUpRef);
-			}
-			if(!this.__documentTouchMoveRef)
-			{
-				this.__documentTouchMoveRef = this.__documentTouchMoveHandler.bind(this);
-				this.util.addEvent(document,"touchmove",this.__documentTouchMoveRef);
-			}
-			if(!this.__documentTouchEndRef)
-			{
-				this.__documentTouchEndRef = this.__documentTouchEndHandler.bind(this);
-				this.util.addEvent(document,"touchend",this.__documentTouchEndRef);
-			}
-			this.__animateAction();
-		}
-	};
-	
-	this.__elementMouseDownHandler = function(event)
-	{
-		event = this.util.getEvent(event);
-		this.__downActionHandler(event);
-		this.util.preventDefault(event); 
-	};
-	
-	this.__elementTouchStartHandler = function(event)
-	{
-		 event = this.util.getEvent(event);
-		 this.__downActionHandler(event.touches[0]);
-		 this.util.preventDefault(event);
-	};
-	
-	this.__documentMouseMoveHandler = function(event)
-	{
-		event = this.util.getEvent(event);
-		this.__moveActionHandler(event);
-	};
-	
-	this.__documentMouseUpHandler = function(event)
-	{
-		event = this.util.getEvent(event);
-		this.__upActionHandler(event);
-	};
-	
-	this.__documentTouchMoveHandler = function(event)
-	{
-		event = this.util.getEvent(event);
-		this.__moveActionHandler(event.touches[0]);
-	};
-	
-	this.__documentTouchEndHandler = function(event)
-	{
-		event = this.util.getEvent(event);
-		if (event.touches.length === 0) 
-		{
-			this.__upActionHandler(event.changedTouches[0]);
-		}
-	};
-	
-	this.__downActionHandler = function(event)
-	{
-		this.__calculatePosition(event);
-		var isResizing = this.__isResizeValid();
-		this.__dragResizeSetting = {
-			    posX: this.__posX,
-			    posY: this.__posY,
-			    clientX: event.clientX,
-			    clientY: event.clientY,
-			    elementWidth: this.__elementRect.width,
-			    elementHeight: this.__elementRect.height,
-			    isResizing: this.__config.resizeEnabled && isResizing,
-			    isMoving: !isResizing && this.__isMoveValid(),
-			    isResizeTop: this.__resizeDirection.top,
-			    isResizeLeft: this.__resizeDirection.left,
-			    isResizeRight: this.__resizeDirection.right,
-			    isResizeBottom: this.__resizeDirection.bottom
-		 };
-		
-	};
-	
-	this.__moveActionHandler = function(event)
-	{
-		this.__calculatePosition(event);
-		this.__tempEvent = event;
-		this.__rePaint = true;
-	};
-	
-	this.__upActionHandler = function(event)
-	{ 
-		this.__calculatePosition(event);
-		if (this.__dragResizeSetting && this.__dragResizeSetting.isMoving) 
-		{
-			this.__endDrag();
-		}
-		this.__dragResizeSetting = null;
-	};
-	
-	/*********************************Resize Methods Starts*********************************/
-	this.__resizeElement = function()
-	{
-		if(this.__dragResizeSetting.isResizeRight) 
-	    {
-	    	this.__config.element.style.width = Math.max(this.__posX, this.__config.minWidth) + "px";
-	    }
-	    if(this.__dragResizeSetting.isResizeBottom) 
-	    {
-	    	this.__config.element.style.height = Math.max(this.__posY, this.__config.minHeight) + "px";
-	    }
-	    if(this.__dragResizeSetting.isResizeLeft) 
-	    {
-		     var currentWidth = Math.max(this.__dragResizeSetting.clientX - this.__tempEvent.clientX  + this.__dragResizeSetting.elementWidth, this.__config.minWidth);
-		     if (currentWidth > this.__config.minWidth) 
-		     {
-		    	 this.__config.element.style.width = currentWidth + "px";
-		    	 this.__config.element.style.left = this.__tempEvent.clientX + "px";	
-		     }
-	    }
-	    if (this.__dragResizeSetting.isResizeTop) 
-	    {
-	    	var currentHeight = Math.max(this.__dragResizeSetting.clientY - this.__tempEvent.clientY  + this.__dragResizeSetting.elementHeight, this.__config.minHeight);
-		    if(currentHeight > this.__config.minHeight) 
-		    {
-		    	this.__config.element.style.height = currentHeight + "px";
-		    	this.__config.element.style.top = this.__tempEvent.clientY + "px";	
-		    }
-	    }
-	    this.__hideHiddenDiv();
-	};
-	
-	this.__isResizeValid = function()
-	{
-		if(this.__config.resizeEnabled)
-		{
-			var retValue =  this.__resizeDirection.right || this.__resizeDirection.bottom || this.__resizeDirection.top || this.__resizeDirection.left;
-			return retValue;
-		}
-		return false;
-	};
-		
-	/*********************************Resize Methods Ends*********************************/
-		
-	/*********************************Drag Methods Starts*********************************/
-	this.__dragElement = function()
-	{
-		  if (this.__elementRect.top < this.__SCREEN_OFFSET || this.__elementRect.left < this.__SCREEN_OFFSET || this.__elementRect.right > window.innerWidth - this.__SCREEN_OFFSET || this.__elementRect.bottom > window.innerHeight - this.__SCREEN_OFFSET) 
-		  {
-			  this.__updateElementDimension(this.__divHidden, 0, 0, window.innerWidth, window.innerHeight);
-			  this.__divHidden.style.opacity = 0.2;
-		  } 
-		  else if (this.__elementRect.top < this.__ELEMENT_OFFSET) 
-		  {
-			  this.__updateElementDimension(this.__divHidden, 0, 0, window.innerWidth, window.innerHeight / 2);
-		      this.__divHidden.style.opacity = 0.2;
-		  } 
-		  else if (this.__elementRect.left < this.__ELEMENT_OFFSET) 
-		  {
-			  this.__updateElementDimension(this.__divHidden, 0, 0, window.innerWidth / 2, window.innerHeight);
-		      this.__divHidden.style.opacity = 0.2;
-		  } 
-		  else if (this.__elementRect.right > this.__dragEdge.right) 
-		  {
-			  this.__updateElementDimension(this.__divHidden, window.innerWidth / 2, 0, window.innerWidth / 2, window.innerHeight);
-		      this.__divHidden.style.opacity = 0.2;
-		  } 
-		  else if (this.__elementRect.bottom > this.__dragEdge.bottom) 
-		  {
-			  this.__updateElementDimension(this.__divHidden, 0, window.innerHeight / 2, window.innerWidth, window.innerWidth / 2);
-		      this.__divHidden.style.opacity = 0.2;
-		  } 
-		  else 
-		  {
-			  this.__hideHiddenDiv();
-		  }
-		  if (this.__lastElementDimension) 
-		  {
-			  var posX = this.__tempEvent.clientX - this.__lastElementDimension.width / 2;
-			  var posY = this.__tempEvent.clientY - Math.min(this.__dragResizeSetting.posY, this.__lastElementDimension.height);
-			  this.__updateElementDimension(this.__config.element,posX,posY,this.__lastElementDimension.width,this.__lastElementDimension.height);
-			  return;
-		  }
-		  this.__config.element.style.top = (this.__tempEvent.clientY - this.__dragResizeSetting.posY) + "px";
-		  this.__config.element.style.left = (this.__tempEvent.clientX - this.__dragResizeSetting.posX) + "px";
-	};
-	
-	this.__endDrag = function()
-	{
-		var elementDimension = {width: this.__elementRect.width,height: this.__elementRect.height};
-	    if (this.__elementRect.top < this.__SCREEN_OFFSET || this.__elementRect.left < this.__SCREEN_OFFSET || this.__elementRect.right > window.innerWidth - this.__SCREEN_OFFSET || this.__elementRect.bottom > window.innerHeight - this.__SCREEN_OFFSET) 
-	    {
-	    	this.__updateElementDimension(this.__config.element, 0, 0, window.innerWidth, window.innerHeight);
-	    	this.__lastElementDimension = elementDimension;
-	    }
-	    else if (this.__elementRect.top < this.__ELEMENT_OFFSET) 
-	    {
-	    	this.__updateElementDimension(__dragableElement, 0, 0, window.innerWidth, window.innerHeight / 2);
-	    	this.__lastElementDimension = elementDimension;
-	    } 
-	    else if (this.__elementRect.left < this.__ELEMENT_OFFSET) 
-	    {
-	    	this.__updateElementDimension(__dragableElement, 0, 0, window.innerWidth / 2, window.innerHeight);
-	    	this.__lastElementDimension = elementDimension;
-	    } 
-	    else if (this.__elementRect.right > this.__dragEdge.right) 
-	    {
-	    	this.__updateElementDimension(__dragableElement, window.innerWidth / 2, 0, window.innerWidth / 2, window.innerHeight);
-	    	this.__lastElementDimension = elementDimension;
-	    } 
-	    else if (this.__elementRect.bottom > this.__dragEdge.bottom) 
-	    {
-	    	this.__updateElementDimension(__dragableElement, 0, window.innerHeight / 2, window.innerWidth, window.innerWidth / 2);
-	    	this.__lastElementDimension = elementDimension;
-	    } 
-	    else 
-	    {
-	    	this.__lastElementDimension = null;
-	    }
-	    this.__hideHiddenDiv();
-	};
-	
-	this.__isMoveValid = function()
-	{
-		if(this.__config.dragEnabled)
-		{
-			var retValue = this.__posX > 0 && this.__posX < this.__elementRect.width && this.__posY > 0 && this.__posY < this.__elementRect.height && this.__posY < 30;
-			return retValue;
-		}
-		return false;
-	};
-	/*********************************Drag Methods Ends*********************************/
-	/*********************************Common Methods Starts*********************************/
-	this.__animateAction = function()
-	{
-		requestAnimationFrame(this.__animateAction.bind(this));
-		if(this.__rePaint)
-		{
-			this.__rePaint = false;
-			if(this.__dragResizeSetting && this.__dragResizeSetting.isResizing) 
-			{
-				this.__resizeElement();
-				return;
-			}
-			if(this.__dragResizeSetting && this.__dragResizeSetting.isMoving) 
-			{
-				this.__dragElement();
-				return;
-			}
-			this.__setElementCursor();
-		}
-	};
-	
-	this.__calculatePosition = function(event)
-	{
-		  this.__elementRect = this.__config.element.getBoundingClientRect();
-		  this.__posX = event.clientX - this.__elementRect.left;
-		  this.__posY = event.clientY - this.__elementRect.top;
-
-		  this.__resizeDirection.top = this.__posY < this.__ELEMENT_OFFSET;
-		  this.__resizeDirection.left = this.__posX < this.__ELEMENT_OFFSET;
-		  this.__resizeDirection.right = this.__posX >= this.__elementRect.width - this.__ELEMENT_OFFSET;
-		  this.__resizeDirection.bottom = this.__posY >= this.__elementRect.height - this.__ELEMENT_OFFSET;
-		  
-		  this.__dragEdge.right = window.innerWidth - this.__ELEMENT_OFFSET;
-		  this.__dragEdge.bottom = window.innerHeight - this.__ELEMENT_OFFSET;
-	};
-	
-	this.__setElementCursor = function() 
-	{
-		if(this.__config.resizeEnabled)
-		{
-			if (this.__resizeDirection.right && this.__resizeDirection.bottom || this.__resizeDirection.left && this.__resizeDirection.top) 
-			{
-				 this.__config.element.style.cursor = "nwse-resize";
-			} 
-			else if (this.__resizeDirection.right && this.__resizeDirection.top || this.__resizeDirection.bottom && this.__resizeDirection.left) 
-			{
-				 this.__config.element.style.cursor = "nesw-resize";
-			} 
-			else if (this.__resizeDirection.right || this.__resizeDirection.left) 
-			{
-				 this.__config.element.style.cursor = "ew-resize";
-			} 
-			else if (this.__resizeDirection.bottom || this.__resizeDirection.top) 
-			{
-				 this.__config.element.style.cursor = "ns-resize";
-			} 
-		}
-		else if (this.__isMoveValid()) 
-		{
-			 this.__config.element.style.cursor = "move";
-		} 
-		else 
-		{
-			 this.__config.element.style.cursor = "default";
-		}
-	};
-	
-	this.__hideHiddenDiv = function() 
-	{
-		this.__updateElementDimension(this.__divHidden, this.__elementRect.left,this.__elementRect.top, this.__elementRect.width, this.__elementRect.height);
-		this.__divHidden.style.opacity = 0;
-	};
-	
-	this.__updateElementDimension = function(element,posX,posY,width,height) 
-	{
-		element.style.left = posX + "px";
-		element.style.top = posY + "px";
-		element.style.width = width + "px";
-		element.style.height = height + "px";
-	};
-	
-	this.__destroyElements = function()
-	{
-		if(this.__documentMouseMoveRef)
-		{
-			this.util.removeEvent(document,"mousemove",this.__documentMouseMoveRef);
-			this.__documentMouseMoveRef = null;
-		}
-		if(this.__documentMouseUpRef)
-		{
-			this.util.removeEvent(document,"mouseup",this.__documentMouseUpRef);
-			this.__documentMouseUpRef = null;
-		}
-		if(this.__documentTouchMoveRef)
-		{
-			this.util.removeEvent(document,"touchmove",this.__documentTouchMoveRef);
-			this.__documentTouchMoveRef = null;
-		}
-		if(this.__documentTouchEndRef)
-		{
-			this.util.removeEvent(document,"touchend",this.__documentTouchEndRef);
-			this.__documentTouchEndRef = null;
-		}
-	};
-	/*********************************Common Methods Ends*********************************/
-	this.__initialize();
+	this.__lastHeight = null;
+	this.__lastBodyHeight = -1;
+	this.__nsDragResizeElements = null;
 };
 
+nsPanel.setComponentProperties = function() 
+{
+	if(this.hasAttribute("nsTitle"))
+	{
+		this.__title = this.getAttribute("nsTitle");
+	}
+	if(this.hasAttribute("template"))
+	{
+		this.__templateID = this.getAttribute("template");
+	}
+	if(this.hasAttribute("minWidth"))
+	{
+		this.__minWidth = this.util.getNumber(this.getAttribute("minWidth"));
+	}
+	if(this.hasAttribute("minHeight"))
+	{
+		this.__minHeight = this.getAttribute("minHeight");
+	}
+	if(this.hasAttribute("enableCollapse"))
+	{
+		this.__enableCollapse = Boolean.parse(this.getAttribute("enableCollapse"));
+	}
+	if(this.hasAttribute("enableDrag"))
+	{
+		this.__enableDrag = Boolean.parse(this.getAttribute("enableDrag"));
+	}
+	if(this.hasAttribute("enableResize"))
+	{
+		this.__enableResize = Boolean.parse(this.getAttribute("enableResize"));
+	}
+	if(this.hasAttribute("enableTitleDblClick"))
+	{
+		this.__enableTitleDblClick = Boolean.parse(this.getAttribute("enableTitleDblClick"));
+	}
+	
+	this.base.setComponentProperties();
+	this.__createStructure();
+};
+
+nsPanel.propertyChange = function(attrName, oldVal, newVal, setProperty)
+{
+	var attributeName = attrName.toLowerCase();
+	this.base.propertyChange(attrName, oldVal, newVal, setProperty);
+};
+
+nsPanel.removeComponent = function() 
+{
+	this.__stopDrag();
+	if(this.__nsDragResizeElements)
+	{
+		this.__nsDragResizeElements.__destroyElements();
+	}
+	this.base.removeComponent();
+};
+
+nsPanel.componentResized = function(event) 
+{
+	this.base.componentResized(event);
+};
+
+nsPanel.__createStructure = function()
+{
+	this.util.addStyleClass(this,"nsPanel");
+	this.__container = this.__createOuterContainer();
+	this.__header = this.__createTitleBar(this.__container);
+	this.__body = this.__createBody(this.__container);
+	this.__lastHeight = this.util.getStyleValue(this,"height");
+	var dragResizeSetting = {element:this,
+			dragEnabled:this.__enableDrag,
+			resizeEnabled:this.__enableResize,
+			minWidth:this.__minWidth,
+			minHeight:this.__minHeight,
+			resizeEndCallback:this.__resizeEndHandler.bind(this)};
+	this.__nsDragResizeElements = new this.util.nsDragResizeElements(dragResizeSetting);
+};
+
+nsPanel.__createOuterContainer = function()
+{
+	var divOuterContainer = this.getElement(this.getID() + this.__OUTER_CONTAINER_ID);
+	if(divOuterContainer)
+	{
+		divOuterContainer.parentNode.removeChild(divOuterContainer);
+		divOuterContainer = null;
+	}
+	divOuterContainer = this.util.createDiv(this.getID() + this.__OUTER_CONTAINER_ID,this.__CLASS_OUTER_CONTAINER);
+	this.appendChild(divOuterContainer);
+	return divOuterContainer;
+};
+
+nsPanel.__createTitleBar = function(parentElement)
+{
+	if(parentElement)
+	{
+		var divTitleBar = this.util.createDiv(this.getID() + this.__TITLE_CONTAINER_ID,this.__CLASS_TITLEBAR);
+		if(this.__title && this.__title.length > 0)
+		{
+			var titleText = document.createTextNode(this.__title);
+			divTitleBar.appendChild(titleText);
+		}
+		if(this.__enableCollapse)
+		{
+			var spanMinMax = document.createElement("span");
+			spanMinMax.style.cursor = "pointer";
+			spanMinMax.style.float = "right";
+			var objSVG = new this.util.nsSVG();
+			var minMaxID = this.getID() + "MinMax";
+			var svg = objSVG.addSVG(spanMinMax,minMaxID,"nsPanelMinMax",null,null,null,null,null,null,true);
+			objSVG.addUse(svg,minMaxID + "use","nsPanelMinMaxUse","#" + "symbolMinimize");
+			divTitleBar.appendChild(spanMinMax);
+			var headerDoubleClickRef = this.__headerDoubleClickHandler.bind(this);
+			this.util.addEvent(spanMinMax,"click",headerDoubleClickRef);
+			if(this.__enableTitleDblClick)
+			{
+				this.util.addEvent(divTitleBar,"dblclick",headerDoubleClickRef);
+			}
+		}
+		parentElement.appendChild(divTitleBar);
+		return divTitleBar;
+	}
+	return null;
+};
+
+nsPanel.__createBody = function(parentElement)
+{	
+	if(parentElement)
+	{
+		var divBody = this.util.createDiv(this.getID() + this.__BODY_CONTAINER_ID,this.__CLASS_BODY_CONTAINER);
+		if(this.__templateID && this.__templateID.length > 0)
+		{
+			divBody.appendChild(this.util.getTemplate(this.__templateID));
+		}
+		parentElement.appendChild(divBody);
+		/*var transitionStyle = "height .3s linear, padding-top .3s linear,padding-bottom .3s linear, border-width .3s linear";
+		var transitionProperty = this.util.getSupportedCSSPropertyName(["transition","OTransition","msTransition","MozTransition","WebkitTransition"]);
+		if(transitionProperty)
+		{
+			divBody.style[transitionProperty] = transitionStyle;
+		}*/
+		return divBody;
+	}
+	return null;
+};
+
+nsPanel.__headerDoubleClickHandler = function(event)
+{
+	this.__initializeMinMax();
+};
+
+nsPanel.__resizeEndHandler = function()
+{
+	this.__lastHeight = this.util.getStyleValue(this,"height");
+};
+/******************************Start of Minimize Maximize Function *************************************/
+nsPanel.__initializeMinMax = function()
+{
+	if(this.__body)
+	{
+		var isCollapsed = this.util.hasStyleClass(this,"nsPanelCollapsed");
+		this.__animateMinMax(isCollapsed);
+	}
+};
+
+nsPanel.__animateMinMax = function(isExpanding)
+{
+	this.__body.style.display = "block";
+	var contentHeight = this.__body.offsetHeight;
+	if (isExpanding)
+	{
+		this.__body.style.height = "0px";
+		//console.log("height::" + this.__lastBodyHeight + ",headerHeight::" + this.__header.offsetHeight + ",styleHeight::" + this.util.getStyleValue(this,"height"));
+		contentHeight = this.__lastBodyHeight;
+	}
+	else
+	{
+		this.__lastBodyHeight = this.__body.offsetHeight;
+	}
+	var stepHeight = contentHeight / this.__DEFAULT_ANIMATION_STEPS;
+	var direction = (isExpanding ? 1 : -1);
+	var self = this;
+	setTimeout(function(){self.__animateMinMaxStep.bind(self)(1,stepHeight,direction)}, this.__DEFAULT_ANIMATION_DELAY);
+};
+
+nsPanel.__animateMinMaxStep = function(iteration, stepHeight, direction)
+{
+	if (iteration < this.__DEFAULT_ANIMATION_STEPS)
+	{
+		this.__body.style.height = Math.round(((direction > 0) ? iteration : 10 - iteration) * stepHeight) +"px";
+		iteration++;
+		var self = this;
+		setTimeout(function(){self.__animateMinMaxStep.bind(self)(iteration,stepHeight,direction)}, this.__DEFAULT_ANIMATION_DELAY);
+	}
+	else
+	{
+		if(direction < 0)
+		{
+			this.util.changeStyleClass(this,"nsPanel","nsPanelCollapsed");
+			this.__body.style.display = "none";
+			this.style.height = this.__header.offsetHeight + "px";
+		}
+		else
+		{
+			this.util.changeStyleClass(this,"nsPanelCollapsed","nsPanel");
+			this.__body.style.display = "";
+			this.style.height = (this.__lastHeight) ? this.__lastHeight : (this.__lastBodyHeight + this.__header.offsetHeight + "px");
+			this.__lastBodyHeight = 0;
+		}
+		this.__body.style.height = "";
+		this.__handleMinMaxIcon(direction < 0);
+	}
+};
+
+nsPanel.__handleMinMaxIcon = function(isMinimized)
+{
+	var objSVG = new this.util.nsSVG();
+	var useID = this.getID() + "MinMax" + "use";
+	if(isMinimized)
+	{
+		objSVG.changeUseHref(useID,"#symbolMaximize");
+	}
+	else
+	{
+		objSVG.changeUseHref(useID,"#symbolMinimize");
+	}
+};
+/******************************End of Minimize Maximize Function *************************************/
+document.registerElement('ns-panel', {prototype: nsPanel});
