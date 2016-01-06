@@ -1,471 +1,182 @@
-NSUtil.prototype.getStyleValue = function(element,styleProperty)
+"use strict"; 
+function NSFilter(data,filter,setting,recordLimit) 
 {
-	var propertyValue = null;
-	if(element && styleProperty)
+	this.EXACT = "exact";
+	this.STARTS_WITH = "exact";
+	this.ENDS_WITH = "exact";
+	this.CONTAINS = "contains";
+	this.__data = data;
+	this.__filter = filter;
+	this.__setting = setting;
+	this.__recordLimit = (parseInt(recordLimit) > 0) ? recordLimit : -1;
+	
+	this.util = new NSUtil();
+}
+
+NSFilter.prototype.execute = function(data,filter,setting,recordLimit) 
+{ 
+	data = data ? data : this.__data;
+	filter = filter ? filter : this.__filter;
+	setting = setting ? setting : this.__setting;
+	recordLimit = (parseInt(recordLimit) > 0) ? recordLimit : this.__recordLimit;
+	if(data && filter)
 	{
-		var element = this.getElement(element);
-		var getValue = function(styleProp)
+		var arrFilter = [];
+		for (var count = 0; count < data.length; count++) 
 		{
-			var retValue = null;
-			if(element.currentStyle)
-		    {
-				retValue = element.currentStyle[styleProp];
-		    }
-			else if(window.getComputedStyle)
+			var item = data[count];
+			if (this.__filterItem(item,filter,setting))
 			{
-				retValue = window.getComputedStyle(element, null).getPropertyValue(styleProp);
+				arrFilter.push(item);
+				if(recordLimit > 0 && arrFilter.length >= recordLimit)
+				{
+					break;
+				}
 			}
-			return retValue;
-		};
-		if(styleProperty === "display")
+		}
+		return arrFilter;
+	}
+	return data;
+};
+
+NSFilter.prototype.__filterItem = function(item,filter,setting) 
+{
+    if(filter instanceof Function) 
+    {
+        return filter(item);
+    }
+    else if(filter instanceof Array) 
+    {
+        for (var count = 0; count < filter.length; ++count) 
+        {
+            if (this.__filterItem(item,filter[count],setting))
+            {
+            	return true;
+            }
+        }
+        return false;
+    }
+    else if(typeof(item) === "string" && filter)
+    {
+        return this.__filterString(item,filter,setting);
+    }
+    else if (item === item + 0 && filter)
+    {
+        return this.__filterNumeric(item,filter);
+    }
+    else if(typeof (filter) === "object") 
+    {
+    	var count = 0;
+        for(var key in filter) 
+        {
+        	var tempSetting = {};
+        	if(setting && setting[key])
+        	{
+        		tempSetting = setting[key];
+        	}
+            if(!this.__filterItem(item[key],filter[key],tempSetting))
+            {
+            	return false;
+            }
+            count++;
+        }
+        return true;
+    }
+    return (filter == item);
+};
+
+NSFilter.prototype.__filterNumeric= function(value,searchParam)
+{
+	var retValue = false;
+	value = parseFloat(value);
+	if(!isNaN(value))
+	{
+		if(/<=/.test(searchParam)) // first checks if there is an operator (<,>,<=,>=)
 		{
-			propertyValue = getValue(styleProperty);
+			retValue = (value <= parseFloat(searchParam.replace(/<=/,"")));
+		}
+		else if(/>=/.test(searchParam))
+		{
+			retValue = (value >= parseFloat(searchParam.replace(/>=/,"")));
+		}
+		else if(/</.test(searchParam))
+		{
+			retValue = (value < parseFloat(searchParam.replace(/</,"")));
+		}
+		else if(/>/.test(searchParam))
+		{
+			retValue = (value > parseFloat(searchParam.replace(/>/,"")));
 		}
 		else
 		{
-			var displayValue = getValue("display");
-			element.style.display = "none";
-			propertyValue = getValue(styleProperty);
-			element.style.display = displayValue ? displayValue: "";
+			retValue = (value === parseFloat(searchParam));
 		}
-	 }
-	 return propertyValue;
+	}
+	return retValue;
 };
 
-
-NSUtil.prototype.nsDragResizeElements = function(setting)
+NSFilter.prototype.__filterDate= function(value,searchParam)
 {
-	this.__SCREEN_OFFSET = -10;
-	this.__ELEMENT_OFFSET = 4;
-	
-	this.__setting = setting;
-	
-	//Drag Variables
-	this.__dragResizeSetting = null;
-	
-	//Resize Variables
-	this.__resizeDirection = {top:false,right:false,bottom:false,left:false};
-	this.__dragEdge = {right:null,bottm:null};
-	this.__elementRect = null;
-	this.__lastElementDimension = null;
+	var retValue = false;
+	return retValue;
+};
 
-	//Common Variables
-	this.__divHidden = null;
-	this.__posX = null;
-	this.__posY = null;
-	this.__tempEvent = null;
-	this.__rePaint = false;
-	
-	this.util = new NSUtil();
-	
-	this.__documentMouseMoveRef = null;
-	this.__documentMouseUpRef = null;
-	this.__documentTouchMoveRef = null;
-	this.__documentTouchEndRef = null;
-	
-	this.__initialize = function() 
+NSFilter.prototype.__filterString= function(value,searchParam,setting)
+{
+	var regExp = null;
+	var regExpModifier = "g";
+	var startWithChar = "(^)";
+	var endsWithChar = "($)";
+	var searchString = "";
+	var isCaseSensitive = false;
+	var isMultiline = false;
+	var matchType = this.CONTAINS;
+	if(setting)
 	{
-		this.__config = {
-				element: this.__setting["element"] || null,
-				dragEnabled: Boolean.parse(this.__setting["dragEnabled"]),
-				resizeEnabled: Boolean.parse(this.__setting["resizeEnabled"]),
-				minWidth: this.util.getDimensionAsNumber(this.__setting["element"],this.__setting["minWidth"]),
-				minHeight: this.util.getDimensionAsNumber(this.__setting["element"],this.__setting["minHeight"]),
-				dragStartCallback: this.__setting["dragStartCallback"] || null,
-				dragEndCallback: this.__setting["dragEndCallback"] || null,
-				resizeStartCallback: this.__setting["resizeStartCallback"] || null,
-				resizeEndCallback: this.__setting["resizeEndCallback"] || null
-		};
-		if(this.__config.element)
-		{
-			this.__divHidden = this.util.createDiv(this.__config.element.id + "Hidden", "nsHiddenDiv");
-			this.__divHidden.style.width = this.util.getStyleValue(this.__config.element,"width");
-			this.__divHidden.style.height = this.util.getStyleValue(this.__config.element,"height");
-			this.__config.element.parentNode.appendChild(this.__divHidden);
-			
-			this.util.addEvent(this.__config.element,"mousedown",this.__elementMouseDownHandler.bind(this));
-			this.util.addEvent(this.__config.element,"touchstart",this.__elementTouchStartHandler.bind(this));
-			if(!this.__documentMouseMoveRef)
-			{
-				this.__documentMouseMoveRef = this.__documentMouseMoveHandler.bind(this);
-				this.util.addEvent(document,"mousemove",this.__documentMouseMoveRef);
-			}
-			if(!this.__documentMouseUpRef)
-			{
-				this.__documentMouseUpRef = this.__documentMouseUpHandler.bind(this);
-				this.util.addEvent(document,"mouseup",this.__documentMouseUpRef);
-			}
-			if(!this.__documentTouchMoveRef)
-			{
-				this.__documentTouchMoveRef = this.__documentTouchMoveHandler.bind(this);
-				this.util.addEvent(document,"touchmove",this.__documentTouchMoveRef);
-			}
-			if(!this.__documentTouchEndRef)
-			{
-				this.__documentTouchEndRef = this.__documentTouchEndHandler.bind(this);
-				this.util.addEvent(document,"touchend",this.__documentTouchEndRef);
-			}
-			this.__animateAction();
-		}
-	};
-	
-	this.__elementMouseDownHandler = function(event)
+		isCaseSensitive = Boolean.parse(setting["caseSensitive"]);
+		isMultiline = Boolean.parse(setting["multiline"]);
+		matchType = setting["matchType"] ? setting["matchType"] : matchType;
+	}
+	if(!isCaseSensitive)
 	{
-		event = this.util.getEvent(event);
-		this.__downActionHandler(event);
-		this.util.preventDefault(event); 
-	};
-	
-	this.__elementTouchStartHandler = function(event)
+		regExpModifier += "i";
+	}
+	if(isMultiline)
 	{
-		 event = this.util.getEvent(event);
-		 this.__downActionHandler(event.touches[0]);
-		 this.util.preventDefault(event);
-	};
-	
-	this.__documentMouseMoveHandler = function(event)
+		regExpModifier += "m";
+	}
+	searchParam = this.__removeSpecialCharacter(searchParam);
+	if(matchType === this.EXACT)
 	{
-		event = this.util.getEvent(event);
-		this.__moveActionHandler(event);
-	};
-	
-	this.__documentMouseUpHandler = function(event)
+		searchString = startWithChar + searchParam + endsWithChar;
+	}
+	else if(matchType === this.STARTS_WITH)
 	{
-		event = this.util.getEvent(event);
-		this.__upActionHandler(event);
-	};
-	
-	this.__documentTouchMoveHandler = function(event)
+		searchString = startWithChar + searchParam;
+	}
+	else if(matchType === this.ENDS_WITH)
 	{
-		event = this.util.getEvent(event);
-		this.__moveActionHandler(event.touches[0]);
-	};
-	
-	this.__documentTouchEndHandler = function(event)
+		searchString = searchParam + endsWithChar;
+	}
+	else 
 	{
-		event = this.util.getEvent(event);
-		if (event.touches.length === 0) 
-		{
-			this.__upActionHandler(event.changedTouches[0]);
-		}
-	};
-	
-	this.__downActionHandler = function(event)
-	{
-		this.__calculatePosition(event);
-		var isResizing = this.__isResizeValid();
-		var isDragging = !isResizing && this.__isDragValid();
-		if(isResizing)
-		{
-			this.__startResize();
-		}
-		else if(isDragging)
-		{
-			this.__startDrag();
-		}
-		this.__dragResizeSetting = {
-			    posX: this.__posX,
-			    posY: this.__posY,
-			    clientX: event.clientX,
-			    clientY: event.clientY,
-			    elementWidth: this.__elementRect.width,
-			    elementHeight: this.__elementRect.height,
-			    isResizing: this.__config.resizeEnabled && isResizing,
-			    isDragging: isDragging,
-			    isResizeTop: this.__resizeDirection.top,
-			    isResizeLeft: this.__resizeDirection.left,
-			    isResizeRight: this.__resizeDirection.right,
-			    isResizeBottom: this.__resizeDirection.bottom
-		 };
-		
-	};
-	
-	this.__moveActionHandler = function(event)
-	{
-		this.__calculatePosition(event);
-		this.__tempEvent = event;
-		this.__rePaint = true;
-	};
-	
-	this.__upActionHandler = function(event)
-	{ 
-		this.__calculatePosition(event);
-		if (this.__dragResizeSetting) 
-		{
-			if(this.__dragResizeSetting.isResizing)
-			{
-				this.__endResize();
-			}
-			else if(this.__dragResizeSetting.isDragging)
-			{
-				this.__endDrag();
-			}
-		}
-		this.__dragResizeSetting = null;
-	};
-	
-	/*********************************Resize Methods Starts*********************************/
-	
-	this.__startResize = function()
-	{
-		if(this.__config.resizeStartCallback)
-		{
-			this.__config.resizeStartCallback();
-		}
-	};
-	
-	this.__endResize = function()
-	{
-		if(this.__config.resizeEndCallback)
-		{
-			this.__config.resizeEndCallback();
-		}
-	};
-	
-	this.__resizeElement = function()
-	{
-		if(this.__dragResizeSetting.isResizeRight) 
-	    {
-	    	this.__config.element.style.width = Math.max(this.__posX, this.__config.minWidth) + "px";
-	    }
-	    if(this.__dragResizeSetting.isResizeBottom) 
-	    {
-	    	this.__config.element.style.height = Math.max(this.__posY, this.__config.minHeight) + "px";
-	    }
-	    if(this.__dragResizeSetting.isResizeLeft) 
-	    {
-		     var currentWidth = Math.max(this.__dragResizeSetting.clientX - this.__tempEvent.clientX  + this.__dragResizeSetting.elementWidth, this.__config.minWidth);
-		     if (currentWidth > this.__config.minWidth) 
-		     {
-		    	 this.__config.element.style.width = currentWidth + "px";
-		    	 this.__config.element.style.left = this.__tempEvent.clientX + "px";	
-		     }
-	    }
-	    if (this.__dragResizeSetting.isResizeTop) 
-	    {
-	    	var currentHeight = Math.max(this.__dragResizeSetting.clientY - this.__tempEvent.clientY  + this.__dragResizeSetting.elementHeight, this.__config.minHeight);
-		    if(currentHeight > this.__config.minHeight) 
-		    {
-		    	this.__config.element.style.height = currentHeight + "px";
-		    	this.__config.element.style.top = this.__tempEvent.clientY + "px";	
-		    }
-	    }
-	    this.__hideHiddenDiv();
-	};
-	
-	this.__isResizeValid = function()
-	{
-		if(this.__config.resizeEnabled)
-		{
-			var retValue =  this.__resizeDirection.right || this.__resizeDirection.bottom || this.__resizeDirection.top || this.__resizeDirection.left;
-			return retValue;
-		}
-		return false;
-	};
-		
-	/*********************************Resize Methods Ends*********************************/
-		
-	/*********************************Drag Methods Starts*********************************/
-	this.__dragElement = function()
-	{
-		  if (this.__elementRect.top < this.__SCREEN_OFFSET || this.__elementRect.left < this.__SCREEN_OFFSET || this.__elementRect.right > window.innerWidth - this.__SCREEN_OFFSET || this.__elementRect.bottom > window.innerHeight - this.__SCREEN_OFFSET) 
-		  {
-			  this.__updateElementDimension(this.__divHidden, 0, 0, window.innerWidth, window.innerHeight);
-			  this.__divHidden.style.opacity = 0.2;
-		  } 
-		  else if (this.__elementRect.top < this.__ELEMENT_OFFSET) 
-		  {
-			  this.__updateElementDimension(this.__divHidden, 0, 0, window.innerWidth, window.innerHeight / 2);
-		      this.__divHidden.style.opacity = 0.2;
-		  } 
-		  else if (this.__elementRect.left < this.__ELEMENT_OFFSET) 
-		  {
-			  this.__updateElementDimension(this.__divHidden, 0, 0, window.innerWidth / 2, window.innerHeight);
-		      this.__divHidden.style.opacity = 0.2;
-		  } 
-		  else if (this.__elementRect.right > this.__dragEdge.right) 
-		  {
-			  this.__updateElementDimension(this.__divHidden, window.innerWidth / 2, 0, window.innerWidth / 2, window.innerHeight);
-		      this.__divHidden.style.opacity = 0.2;
-		  } 
-		  else if (this.__elementRect.bottom > this.__dragEdge.bottom) 
-		  {
-			  this.__updateElementDimension(this.__divHidden, 0, window.innerHeight / 2, window.innerWidth, window.innerWidth / 2);
-		      this.__divHidden.style.opacity = 0.2;
-		  } 
-		  else 
-		  {
-			  this.__hideHiddenDiv();
-		  }
-		  if (this.__lastElementDimension) 
-		  {
-			  var posX = this.__tempEvent.clientX - this.__lastElementDimension.width / 2;
-			  var posY = this.__tempEvent.clientY - Math.min(this.__dragResizeSetting.posY, this.__lastElementDimension.height);
-			  this.__updateElementDimension(this.__config.element,posX,posY,this.__lastElementDimension.width,this.__lastElementDimension.height);
-			  return;
-		  }
-		  this.__config.element.style.top = (this.__tempEvent.clientY - this.__dragResizeSetting.posY) + "px";
-		  this.__config.element.style.left = (this.__tempEvent.clientX - this.__dragResizeSetting.posX) + "px";
-	};
+		searchString = searchParam;
+	}
+	regExp = new RegExp(searchString,regExpModifier);
+	return regExp.test(value);
+};
 
-	this.__startDrag = function()
+NSFilter.prototype.__removeSpecialCharacter = function(text)
+{
+	function replaceEscape(char)
 	{
-		if(this.__config.dragStartCallback)
-		{
-			this.__config.dragStartCallback();
-		}
-	};
-	
-	this.__endDrag = function()
+		var exp = new RegExp("\\" + char,"g");
+		text = text.replace(exp,"\\" + char);
+	}
+	var specialChar = ['\\','[','^','$','.','|','?','*','+','(',')'];
+	for(var count in specialChar) 
 	{
-		var elementDimension = {width: this.__elementRect.width,height: this.__elementRect.height};
-	    if (this.__elementRect.top < this.__SCREEN_OFFSET || this.__elementRect.left < this.__SCREEN_OFFSET || this.__elementRect.right > window.innerWidth - this.__SCREEN_OFFSET || this.__elementRect.bottom > window.innerHeight - this.__SCREEN_OFFSET) 
-	    {
-	    	this.__updateElementDimension(this.__config.element, 0, 0, window.innerWidth, window.innerHeight);
-	    	this.__lastElementDimension = elementDimension;
-	    }
-	    else if (this.__elementRect.top < this.__ELEMENT_OFFSET) 
-	    {
-	    	this.__updateElementDimension(__dragableElement, 0, 0, window.innerWidth, window.innerHeight / 2);
-	    	this.__lastElementDimension = elementDimension;
-	    } 
-	    else if (this.__elementRect.left < this.__ELEMENT_OFFSET) 
-	    {
-	    	this.__updateElementDimension(__dragableElement, 0, 0, window.innerWidth / 2, window.innerHeight);
-	    	this.__lastElementDimension = elementDimension;
-	    } 
-	    else if (this.__elementRect.right > this.__dragEdge.right) 
-	    {
-	    	this.__updateElementDimension(__dragableElement, window.innerWidth / 2, 0, window.innerWidth / 2, window.innerHeight);
-	    	this.__lastElementDimension = elementDimension;
-	    } 
-	    else if (this.__elementRect.bottom > this.__dragEdge.bottom) 
-	    {
-	    	this.__updateElementDimension(__dragableElement, 0, window.innerHeight / 2, window.innerWidth, window.innerWidth / 2);
-	    	this.__lastElementDimension = elementDimension;
-	    } 
-	    else 
-	    {
-	    	this.__lastElementDimension = null;
-	    }
-	    this.__hideHiddenDiv();
-	    if(this.__config.dragEndCallback)
-		{
-			this.__config.dragEndCallback();
-		}
-	};
-	
-	this.__isDragValid = function()
-	{
-		if(this.__config.dragEnabled)
-		{
-			var retValue = this.__posX > 0 && this.__posX < this.__elementRect.width && this.__posY > 0 && this.__posY < this.__elementRect.height && this.__posY < 30;
-			return retValue;
-		}
-		return false;
-	};
-	/*********************************Drag Methods Ends*********************************/
-	/*********************************Common Methods Starts*********************************/
-	this.__animateAction = function()
-	{
-		requestAnimationFrame(this.__animateAction.bind(this));
-		if(this.__rePaint)
-		{
-			this.__rePaint = false;
-			if(this.__dragResizeSetting && this.__dragResizeSetting.isResizing) 
-			{
-				this.__resizeElement();
-				return;
-			}
-			if(this.__dragResizeSetting && this.__dragResizeSetting.isDragging) 
-			{
-				this.__dragElement();
-				return;
-			}
-			this.__setElementCursor();
-		}
-	};
-	
-	this.__calculatePosition = function(event)
-	{
-		  this.__elementRect = this.__config.element.getBoundingClientRect();
-		  this.__posX = event.clientX - this.__elementRect.left;
-		  this.__posY = event.clientY - this.__elementRect.top;
-
-		  this.__resizeDirection.top = this.__posY < this.__ELEMENT_OFFSET;
-		  this.__resizeDirection.left = this.__posX < this.__ELEMENT_OFFSET;
-		  this.__resizeDirection.right = this.__posX >= this.__elementRect.width - this.__ELEMENT_OFFSET;
-		  this.__resizeDirection.bottom = this.__posY >= this.__elementRect.height - this.__ELEMENT_OFFSET;
-		  
-		  this.__dragEdge.right = window.innerWidth - this.__ELEMENT_OFFSET;
-		  this.__dragEdge.bottom = window.innerHeight - this.__ELEMENT_OFFSET;
-	};
-	
-	this.__setElementCursor = function() 
-	{
-			if(this.__config.resizeEnabled && this.__resizeDirection.right && this.__resizeDirection.bottom || this.__resizeDirection.left && this.__resizeDirection.top) 
-			{
-				 this.__config.element.style.cursor = "nwse-resize";
-			} 
-			else if(this.__config.resizeEnabled && this.__resizeDirection.right && this.__resizeDirection.top || this.__resizeDirection.bottom && this.__resizeDirection.left) 
-			{
-				 this.__config.element.style.cursor = "nesw-resize";
-			} 
-			else if(this.__config.resizeEnabled && (this.__resizeDirection.right || this.__resizeDirection.left)) 
-			{
-				 this.__config.element.style.cursor = "ew-resize";
-			} 
-			else if(this.__config.resizeEnabled && (this.__resizeDirection.bottom || this.__resizeDirection.top)) 
-			{
-				 this.__config.element.style.cursor = "ns-resize";
-			} 
-			else if(this.__isDragValid()) 
-			{
-				 this.__config.element.style.cursor = "move";
-			} 
-			else 
-			{
-				 this.__config.element.style.cursor = "default";
-			}
-	};
-	
-	this.__hideHiddenDiv = function() 
-	{
-		this.__updateElementDimension(this.__divHidden, this.__elementRect.left,this.__elementRect.top, this.__elementRect.width, this.__elementRect.height);
-		this.__divHidden.style.opacity = 0;
-	};
-	
-	this.__updateElementDimension = function(element,posX,posY,width,height) 
-	{
-		element.style.left = posX + "px";
-		element.style.top = posY + "px";
-		element.style.width = width + "px";
-		element.style.height = height + "px";
-	};
-	
-	this.__destroyElements = function()
-	{
-		if(this.__documentMouseMoveRef)
-		{
-			this.util.removeEvent(document,"mousemove",this.__documentMouseMoveRef);
-			this.__documentMouseMoveRef = null;
-		}
-		if(this.__documentMouseUpRef)
-		{
-			this.util.removeEvent(document,"mouseup",this.__documentMouseUpRef);
-			this.__documentMouseUpRef = null;
-		}
-		if(this.__documentTouchMoveRef)
-		{
-			this.util.removeEvent(document,"touchmove",this.__documentTouchMoveRef);
-			this.__documentTouchMoveRef = null;
-		}
-		if(this.__documentTouchEndRef)
-		{
-			this.util.removeEvent(document,"touchend",this.__documentTouchEndRef);
-			this.__documentTouchEndRef = null;
-		}
-	};
-	/*********************************Common Methods Ends*********************************/
-	this.__initialize();
+		replaceEscape(specialChar[count]);
+	}
+	return text;
 };
