@@ -1,182 +1,50 @@
-"use strict"; 
-function NSFilter(data,filter,setting,recordLimit) 
-{
-	this.EXACT = "exact";
-	this.STARTS_WITH = "exact";
-	this.ENDS_WITH = "exact";
-	this.CONTAINS = "contains";
-	this.__data = data;
-	this.__filter = filter;
-	this.__setting = setting;
-	this.__recordLimit = (parseInt(recordLimit) > 0) ? recordLimit : -1;
-	
-	this.util = new NSUtil();
-}
-
-NSFilter.prototype.execute = function(data,filter,setting,recordLimit) 
-{ 
-	data = data ? data : this.__data;
-	filter = filter ? filter : this.__filter;
-	setting = setting ? setting : this.__setting;
-	recordLimit = (parseInt(recordLimit) > 0) ? recordLimit : this.__recordLimit;
-	if(data && filter)
-	{
-		var arrFilter = [];
-		for (var count = 0; count < data.length; count++) 
+function keyDownHandler(event)
 		{
-			var item = data[count];
-			if (this.__filterItem(item,filter,setting))
-			{
-				arrFilter.push(item);
-				if(recordLimit > 0 && arrFilter.length >= recordLimit)
-				{
-					break;
-				}
-			}
+			 if(event.keyCode === 13) 
+			 {
+				 var arrID = ["txtID","txtHierarchy"];
+				 var dgDemo = document.getElementById("dgDemo");
+				 var filter = {};
+				 var setting = {};
+				 for(var count = 0;count < arrID.length ;count++)
+				 {
+					 var control = document.getElementById(arrID[count]);
+					 if(control && control.value)
+					 {
+						 var key = control.getAttribute("field");
+						 filter[key] = control.value;
+						 setting[key] = {caseSensitive:true,multiline:false,matchType:new NSFilter().STARTS_WITH};
+					 }
+				 }
+				 if(filter && Object.keys(filter).length > 0)
+				 {
+					 dgDemo.filter(filter,setting);
+				 }
+				 else
+				 {
+					 dgDemo.resetFilter();
+				 }
+				 /*var filter = [];
+				 var setting = {};
+				 for(var count = 0;count < arrID.length ;count++)
+				 {
+					 var control = document.getElementById(arrID[count]);
+					 if(control && control.value)
+					 {
+						 var item = {};
+						 var key = control.getAttribute("field");
+						 item[key] = control.value;
+						 filter.push(item);
+						 setting[key] = {caseSensitive:true,multiline:false,matchType:new NSFilter().STARTS_WITH};
+					 }
+				 }
+				 if(filter && filter.length > 0)
+				 {
+					 dgDemo.filter(filter,setting);
+				 }
+				 else
+				 {
+					 dgDemo.resetFilter();
+				 }*/
+			 }
 		}
-		return arrFilter;
-	}
-	return data;
-};
-
-NSFilter.prototype.__filterItem = function(item,filter,setting) 
-{
-    if(filter instanceof Function) 
-    {
-        return filter(item);
-    }
-    else if(filter instanceof Array) 
-    {
-        for (var count = 0; count < filter.length; ++count) 
-        {
-            if (this.__filterItem(item,filter[count],setting))
-            {
-            	return true;
-            }
-        }
-        return false;
-    }
-    else if(typeof(item) === "string" && filter)
-    {
-        return this.__filterString(item,filter,setting);
-    }
-    else if (item === item + 0 && filter)
-    {
-        return this.__filterNumeric(item,filter);
-    }
-    else if(typeof (filter) === "object") 
-    {
-    	var count = 0;
-        for(var key in filter) 
-        {
-        	var tempSetting = {};
-        	if(setting && setting[key])
-        	{
-        		tempSetting = setting[key];
-        	}
-            if(!this.__filterItem(item[key],filter[key],tempSetting))
-            {
-            	return false;
-            }
-            count++;
-        }
-        return true;
-    }
-    return (filter == item);
-};
-
-NSFilter.prototype.__filterNumeric= function(value,searchParam)
-{
-	var retValue = false;
-	value = parseFloat(value);
-	if(!isNaN(value))
-	{
-		if(/<=/.test(searchParam)) // first checks if there is an operator (<,>,<=,>=)
-		{
-			retValue = (value <= parseFloat(searchParam.replace(/<=/,"")));
-		}
-		else if(/>=/.test(searchParam))
-		{
-			retValue = (value >= parseFloat(searchParam.replace(/>=/,"")));
-		}
-		else if(/</.test(searchParam))
-		{
-			retValue = (value < parseFloat(searchParam.replace(/</,"")));
-		}
-		else if(/>/.test(searchParam))
-		{
-			retValue = (value > parseFloat(searchParam.replace(/>/,"")));
-		}
-		else
-		{
-			retValue = (value === parseFloat(searchParam));
-		}
-	}
-	return retValue;
-};
-
-NSFilter.prototype.__filterDate= function(value,searchParam)
-{
-	var retValue = false;
-	return retValue;
-};
-
-NSFilter.prototype.__filterString= function(value,searchParam,setting)
-{
-	var regExp = null;
-	var regExpModifier = "g";
-	var startWithChar = "(^)";
-	var endsWithChar = "($)";
-	var searchString = "";
-	var isCaseSensitive = false;
-	var isMultiline = false;
-	var matchType = this.CONTAINS;
-	if(setting)
-	{
-		isCaseSensitive = Boolean.parse(setting["caseSensitive"]);
-		isMultiline = Boolean.parse(setting["multiline"]);
-		matchType = setting["matchType"] ? setting["matchType"] : matchType;
-	}
-	if(!isCaseSensitive)
-	{
-		regExpModifier += "i";
-	}
-	if(isMultiline)
-	{
-		regExpModifier += "m";
-	}
-	searchParam = this.__removeSpecialCharacter(searchParam);
-	if(matchType === this.EXACT)
-	{
-		searchString = startWithChar + searchParam + endsWithChar;
-	}
-	else if(matchType === this.STARTS_WITH)
-	{
-		searchString = startWithChar + searchParam;
-	}
-	else if(matchType === this.ENDS_WITH)
-	{
-		searchString = searchParam + endsWithChar;
-	}
-	else 
-	{
-		searchString = searchParam;
-	}
-	regExp = new RegExp(searchString,regExpModifier);
-	return regExp.test(value);
-};
-
-NSFilter.prototype.__removeSpecialCharacter = function(text)
-{
-	function replaceEscape(char)
-	{
-		var exp = new RegExp("\\" + char,"g");
-		text = text.replace(exp,"\\" + char);
-	}
-	var specialChar = ['\\','[','^','$','.','|','?','*','+','(',')'];
-	for(var count in specialChar) 
-	{
-		replaceEscape(specialChar[count]);
-	}
-	return text;
-};
