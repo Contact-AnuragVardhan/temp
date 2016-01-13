@@ -1,9 +1,1 @@
-
-var pageIndex = parseInt(event.newIndex);
-	var fromRecord =  (pageIndex * this.__pageSize);
-	var toRecord = fromRecord +  this.__pageSize;
-	if(toRecord > )
-	if(this.__fetchRecordCallBack && this.__totalRecords > this.__arrWrapper.length)
-	{
-		this.__fetchRecordCallBack(this.__arrWrapper.length,this.__pageSize);
-	}
+http://www.monitis.com/blog/2011/05/15/30-tips-to-improve-javascript-performance/
