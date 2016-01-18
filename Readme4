@@ -1,21 +1,15 @@
-nsGrid.__flattenHierarchicalSource = function(source,arrReturn)
-{
-	if(!arrReturn)
-	{
-		arrReturn = [];
-	}
-	if(source)
-	{
-		var length = source.length;
-		for (var count = 0;count < length;count++)
-		{
-			var item = source[count];
-			arrReturn.push(item);
-			if(item[this.__childField] && item[this.__childField].length > 0)
-			{
-				this.__flattenHierarchicalSource(item[this.__childField],arrReturn);
-			}
-		}
-	}
-	return arrReturn;
-};
+/*var item = dataSet[rowIndex];
+    		var row = this.__createBodyRow(this.__tblBodyBody);
+    		var totalRowCount = this.__getTotalRows() - 1;
+    		this.__setBodyRowProperty(row,item,parentIndex,level,totalRowCount,isReset);
+    	    this.__createBodyRowChild(row,item,totalRowCount,level,isReset);*/
+    		var bodyRow = this.__tblBodyBody.insertRow(-1);
+     		var item = dataSet[rowIndex];
+     		for (var colIndex = 0; colIndex < this.__columns.length; colIndex++)
+ 		    {
+ 		        var colItem = this.__columns[colIndex];
+ 		        var bodyCell = bodyRow.insertCell(-1);
+ 		        bodyCell.style.width = (colItem["width"]);
+ 	    		var textNode = document.createTextNode(item[colItem["dataField"]]);
+ 	    		bodyCell.appendChild(textNode);
+ 		    }
