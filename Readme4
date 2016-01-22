@@ -1,49 +1,72 @@
-$scope.filterRenderer = function(colItem,colIndex)
+349: ;
+680:
+nsGrid.highlightText = function(dataField,text)
+{
+	var colItem = this.__getColumnObjectByDataField(dataField);
+	if(colItem)
 	{
-		var htmlText = "";
-		if(colItem)
+		var index = colItem[this.__fieldColIndex];
+		var arrRows = this.__tblBodyBody.rows;
+		var length = arrRows.length;
+		for(var rowIndex = 0; rowIndex < length; rowIndex++)
+	    {
+			var cell = arrRows[rowIndex].cells[index];
+			this.util.highlightText(cell,text,"nsTextHighlight");
+	    }
+	}
+};
+
+nsGrid.__handleFiltering = function(filter,setting,recordLimit)
+{ 
+	if(filter)
+    {
+		 var isHierarchical = false;
+		 var source = this.__dataSource;
+		 if(this.__enableHierarchical)
+		 {
+			 isHierarchical = true;
+		 }
+		 else if(this.__enableGrouping)
+		 {
+			 isHierarchical = true;
+			 source = this.__groupSource;
+		 }
+	   	 var nsFilter = new NSFilter(source,filter,setting,recordLimit,isHierarchical,this.__childField);
+	   	 this.__arrWrapper = nsFilter.execute();
+	   	 this.__updateTotalRecords();
+	   	 this.__renderBody(false);
+   		 if(filter instanceof Array) 
+   	     {
+	   		 for (var count = 0; count < filter.length; count++) 
+	         {
+	 	   		var item = filter[count];
+	 	   		var key = Object.keys(item)[0];
+	 	   		this.highlightText(key,item[key]);
+	         }
+   	     }
+   		 else if(typeof(filter) === "object") 
+   	     {
+   	        for(var key in filter) 
+   	        {
+   	        	this.highlightText(key,filter[key]);
+   	        }
+   	     }
+    }
+};
+
+
+nsGrid.__getColumnObjectByDataField = function(dataField)
+{
+	if(this.__columns && dataField)
+	{
+		for(var count = 0;count < this.__columns.length;count++)
 		{
-			var field = colItem["dataField"];
-			htmlText = "<div class='filterContainer'><input id='txt" + field + "' type='text' field='" + field + "' class='filter' " +
-					   " onchange='angular.element(this).scope().changeHandler(this)'/></div>";
+			var item = this.__columns[count];
+			if(item["dataField"] === dataField)
+			{
+				return item;
+			}
 		}
-		return htmlText;
-	};
-	
-	$scope.changeHandler = function(element)
-	{
-		$scope.filterGrid();
-	};
-	
-	$scope.filterGrid = function()
-	{
-		var arrID = ["#txthierarchy","#txtsupervisor","#txtemployee"];
-		 //var filter = [];
-		 var filter = {};
-		 var setting = {};
-		 for(var count = 0;count < arrID.length ;count++)
-		 {
-			 var control = document.querySelector(arrID[count]);
-			 if(control && control.value)
-			 {
-				 //var item = {};
-				 var key = control.getAttribute("field");
-				 filter[key] = control.value;
-				 //item[key] = control.value;
-				 setting[key] = {caseSensitive:false,multiline:false,matchType:new NMFilter().CONTAINS};
-				 //filter.push(item);
-			 }
-		 }
-		 //if(filter && filter.length > 0)
-		 if(filter && Object.keys(filter).length > 0)
-		 {
-			 var data = {};
-			 data.filter = filter; 
-			 data.setting = setting; 
-			 sharedService.broadCast("filter",data);
-		 }
-		 else
-		 {
-			 sharedService.broadCast("resetFilter");
-		 }
-	};
+	}
+	return null;
+};
