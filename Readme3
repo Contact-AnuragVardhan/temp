@@ -1,1 +1,19 @@
+1319:
+NSUtil.prototype.highlightText = function(container,searchText,styleClass) 
+{
+	if(container)
+	{
+		 var content = container.innerHTML;
+	     var pattern = new RegExp('(>[^<.]*)(' + searchText + ')([^<.]*)','g');
+	     var replaceWith = '$1<span ' + ( styleClass ? 'class="' + styleClass + '"' : '' ) + '">$2</span>$3';
+	     var highlighted = content.replace(pattern,replaceWith);
+	    return (container.innerHTML = highlighted) !== content;
+	}
+};
 
+/************For Text Highlight ***********/
+.nsTextHighlight{
+    color:#CA2420;
+    font-weight:bold;
+    font-size:105%;
+}
