@@ -1,125 +1,118 @@
-"use strict"; 
-function NSFlatGrid(nsGrid,nsUtil) 
+NSUtil.prototype.loader = function(parentContainer,isOverlayRequired)
 {
-	this.__nsGrid = nsGrid;
-	this.util = nsUtil;
-}
-/********************************Common Functions for Grid ****************************************/
-NSFlatGrid.prototype.__initialize = function ()
-{
+	this.parentContainer = parentContainer;
+	this.isOverlayRequired = isOverlayRequired;
+	this.util = new NSUtil();
+	this.divOverlay = null;
+	this.divLoaderContainerParent = null;
+	this.canvasLoader = null;
+	this.loaderContext= null;
+	this.idPrefix = null;
+	this.loaderLines = 16;
+	this.canvasWidth = 100;
+	this.canvasHeight = 100;
+	this.animationStart = null;
+	this.orignalParentPosition = null;
 	
-};
-
-NSFlatGrid.prototype.propertyChange = function(attrName, oldVal, newVal, setProperty) 
-{
-	var attributeName = attrName.toLowerCase();
-	if(attributeName === "pageSize" && parseInt(this.__nsGrid.getAttribute("pageSize")) > 0)
+	this.createComponents = function()
 	{
-		this.__nsGrid.__pageSize = parseInt(this.__nsGrid.getAttribute("pageSize"));
-		this.__nsGrid.dataSource(this.__nsGrid.__dataSource);
-	}
-};
-
-NSFlatGrid.prototype.dataSource = function(source)
-{
-	this.__nsGrid.__arrWrapper = this.__nsGrid.__dataSource.slice(0);
-	this.__setWrapperSource(this.__nsGrid.__arrWrapper,0);
-	if(this.__nsGrid.__enablePagination && this.__nsGrid.__isPaginationModeAuto)
-	{
-		this.__nsGrid.__updateTotalRecords(this.__nsGrid.__arrWrapper.length);
-		if(this.__nsGrid.__isPaginationTypeScroll)
+		this.idPrefix = this.parentContainer.id ? this.parentContainer.id : this.util.getUniqueId();
+		if(this.util.isUndefined(this.isOverlayRequired))
 		{
-			this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrWrapper.slice(0,this.__nsGrid.__INFINITE_SCROLL_INITIAL_LOAD);
-			this.__nsGrid.__fetchRecordCallBack = this.__addRowsforScrollPagination.bind(this);
+			this.isOverlayRequired = true;
 		}
-		else 
+		if(this.isOverlayRequired)
 		{
-			this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrWrapper.slice(0,this.__nsGrid.__pageSize);
-			this.__nsGrid.__createPaginationControl(this.__nsGrid.__divOuterContainer);
-			this.__nsGrid.__fetchRecordCallBack = this.__addRowsforPagePagination.bind(this);
+			this.orignalParentPosition = this.parentContainer.style.position;
+			this.parentContainer.style.position = "relative";
+			this.divOverlay = this.util.createDiv("divOverlay","nsLoaderOverlay");
+			this.divOverlay.style.height = this.parentContainer.offsetHeight + "px";
+			this.divOverlay.style.width = this.parentContainer.offsetWidth + "px";
+			this.parentContainer.appendChild(this.divOverlay);
 		}
-	}
-	else
-	{
-		this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrWrapper.slice(0);
-		this.__nsGrid.__updateTotalRecords();
-	}
-};
-
-NSFlatGrid.prototype.__createBody = function()
-{
-};
-
-NSFlatGrid.prototype.__createBodyBody= function(dataSet,startIndex,endIndex)
-{
-    if(dataSet && dataSet.length > 0)
-    {
-    	 for (var rowIndex = startIndex; rowIndex < endIndex; rowIndex++)
-	     {
-    		var item = dataSet[rowIndex];
-    		var row = item[this.__nsGrid.__fieldRowHtml];
-    		this.__nsGrid.__tblBodyBody.appendChild(row);
-	     }
-    }
-};
-
-NSFlatGrid.prototype.__checkForAdditionalColumns = function()
-{
-};
-
-NSFlatGrid.prototype.__addSVGInPage = function(objSVG)
-{
-};
-
-NSFlatGrid.prototype.__setMeasurement = function()
-{
+		this.divLoaderContainerParent = this.util.createDiv(this.idPrefix + "divLoaderContainerParent","nsLoaderContainerParent"); 
+		this.parentContainer.appendChild(this.divLoaderContainerParent);
+		var divLoaderContainer = this.util.createDiv(this.idPrefix + "divLoaderContainer","nsLoaderContainer"); 
+		this.divLoaderContainerParent.appendChild(divLoaderContainer);
+		this.canvasLoader = document.createElement("canvas");
+		this.canvasLoader.id = this.idPrefix + "canvas";
+		this.canvasLoader.width = this.canvasWidth;
+		this.canvasLoader.height = this.canvasHeight;
+		this.canvasLoader.style.background = "#FFFFFF";
+		this.canvasLoader.style.position = "absolute";
+		divLoaderContainer.appendChild(this.canvasLoader);
+		this.loaderContext= this.canvasLoader.getContext("2d");
+		
+		var divLoadingLabel = this.util.createDiv(this.idPrefix + "divLoadingLabel","nsLoaderText"); 
+		divLoadingLabel.appendChild(document.createTextNode("Loading"));
+		divLoaderContainer.appendChild(divLoadingLabel);
+		
+		this.centerElement(this.divLoaderContainerParent);
+		var canvasLeft = (((divLoaderContainer.offsetWidth - this.canvasWidth) / 2) - 5);
+		var canvasTop = Math.max((((divLoaderContainer.offsetHeight - this.canvasHeight) / 2)),0);
+		this.canvasLoader.style.left = canvasLeft + "px";
+		this.canvasLoader.style.top = canvasTop + "px";
+		this.centerElement(divLoadingLabel);
+		divLoadingLabel.style.top = (canvasTop + this.canvasHeight) + "px";
+		this.animationStart = new Date();
+		window.setInterval(this.draw.bind(this), 1000 / 30);
+	};
 	
-};
-
-NSFlatGrid.prototype.__setWrapperSource = function(source,offset)
-{
-	if(source)
+	this.centerElement = function(component)
 	{
-		if(!offset)
+		if(component)
 		{
-			offset = 0;
+			var parent = component.parentNode;
+			component.style.left = ((parent.offsetWidth - component.offsetWidth) / 2) + "px";
+			component.style.top = ((parent.offsetHeight - component.offsetHeight) / 2) + "px";
 		}
-		var length = source.length;
-		for (var count = 0; count < length; count++) 
+	};
+	
+	this.draw = function() 
+	{
+	    var rotation = parseInt(((new Date() - this.animationStart) / 1000) * this.loaderLines) / this.loaderLines;
+	    this.loaderContext.save();
+	    this.loaderContext.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+	    this.loaderContext.translate(this.canvasWidth / 2, this.canvasHeight / 2);
+	    this.loaderContext.rotate(Math.PI * 2 * rotation);
+	    for (var count = 0; count < this.loaderLines; count++) {
+	 
+	    	this.loaderContext.beginPath();
+	    	this.loaderContext.rotate(Math.PI * 2 / this.loaderLines);
+	    	this.loaderContext.moveTo(this.canvasWidth / 10, 0);
+	    	this.loaderContext.lineTo(this.canvasWidth / 4, 0);
+	    	this.loaderContext.lineWidth = this.canvasWidth / 30;
+	    	this.loaderContext.strokeStyle = "rgba(0,0,0," + count / this.loaderLines + ")";
+	    	this.loaderContext.stroke();
+	    }
+	    this.loaderContext.restore();
+	};
+	
+	this.show = function()
+	{
+		if(!this.divLoaderContainerParent)
 		{
-			var item = source[count];
-			var row = document.createElement("TR");
-			var index = count + offset;
-			row.setAttribute("index",index);
-			item[this.__nsGrid.__fieldIndex] = index;
-			item[this.__nsGrid.__fieldRowHtml] = row;
-			this.__nsGrid.__setBodyRowProperty(row,item,index);
-			var colLength = this.__nsGrid.__columns.length;
-			for (var colIndex = 0; colIndex < colLength; colIndex++)
-	        {
-	        	var colItem = this.__nsGrid.__columns[colIndex];
-	        	var cell =  row.insertCell(-1);
-	        	this.util.addStyleClass(cell , "nsDataGridCell");
-	            var cellDiv = this.util.createDiv(null);
-	            this.util.addStyleClass(cellDiv,this.__nsGrid.__CLASS_CELL_CHILD);
-	            this.__nsGrid.__addCellText(row,item,cellDiv,colItem,colIndex);
-	            cell.appendChild(cellDiv);
-	        }
+			this.createComponents();
 		}
-	}
-};
-/********************************Common Functions for Grid ****************************************/
-NSFlatGrid.prototype.__addRowsforScrollPagination = function(fromRecord,toRecord,pageSize)
-{
-	console.log("In __addRowsforScrollPagination " + fromRecord + "," + toRecord + "," + pageSize);
-	var arrArray = this.__nsGrid.__arrWrapper.slice(fromRecord,toRecord + 1); 
-	this.__nsGrid.__addRemoveRowCallInternal = true;
-	this.__nsGrid.addRows(arrArray);
-};
-
-NSFlatGrid.prototype.__addRowsforPagePagination = function(fromRecord,toRecord,pageSize)
-{
-	//slice returns index range from fromRecord to toRecord - 1 hence adding 1 
-	this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrWrapper.slice(fromRecord,toRecord + 1);
-	this.__nsGrid.__resetDataInBody(fromRecord,toRecord,true);
+		this.divLoaderContainerParent.style.display = "inline-block";
+		if(this.isOverlayRequired)
+		{
+			this.divOverlay.style.display = "inline-block";
+			this.parentContainer.style.position = "relative";
+		}
+	};
+	
+	this.hide = function()
+	{
+		if(this.divLoaderContainerParent)
+		{
+			this.divLoaderContainerParent.style.display = "none";
+		}
+		if(this.divOverlay)
+		{
+			this.divOverlay.style.display = "none";
+			this.parentContainer.style.position = this.orignalParentPosition;
+		}
+	};
+	
 };
