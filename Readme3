@@ -1,36 +1,79 @@
-.nsLoaderOverlay {
-  position: absolute;
-  z-index: 999;
-  top: 0px;
-  bottom: 0px;
-  left: 0px;
-  right: 0px;
-  background:#FFFFFF;
-  opacity: .8;
-}
+nsGrid.__createBodyBody= function(dataSet,startIndex,endIndex,callAsync)
+{
+	this.__stopScroll = true;
+    if(dataSet && dataSet.length > 0)
+    {
+    	this.__objGrid.__createBodyBody(dataSet,startIndex,endIndex);
+    }
+    else
+    {
+    	this.__createNoDataRow();
+    }
+    this.__stopScroll = false;
+    if(callAsync && this.__processArrayAsync)
+    {
+    	//this.__processArrayAsync.start(this.__getTotalRows());
+    }
+};
 
-.nsLoaderContainerParent {
-	position:absolute;
-	z-index: 1000;
-	display: inline-block;
-	background-color:#fff;
-	width:300px;
-	height:140px;
-	border:1px solid black;
-	-webkit-box-shadow: rgba(50, 50, 50, 0.74902) 0px 10px 5px 0px; 
-	box-shadow: rgba(50, 50, 50, 0.74902) 0px 10px 5px 0px;
-}
-			
-.nsLoaderContainer {
-	vertical-align:center;
-	position:relative;
-	text-align:center;
-}
+nsGrid.__bodyScrollHandler = function(event)
+{
+	console.log(this.__stopScroll);
+	if(this.__stopScroll)
+	{
+		return;
+	}
+	var target = this.util.getTarget(event);
+	var scrollPos = target.scrollTop;
+	var scrollValue = (target.scrollHeight * 95) /100;
+	if((target.scrollHeight - scrollPos) < scrollValue)
+    {
+		console.log("In Here");
+		//this.__processArrayAsync.stop();
+		var totalRows = this.__getTotalRows();
+		this.__createBodyBody(this.__arrInternalSource,totalRows,totalRows + 20,true);
+    }
 
-.nsLoaderText {
-	padding-top:10px;
-	position:absolute;
-	top:0px;
-	left:0px;
-	font-weight: bold;
-}
+
+	
+	/*if(this.__lastScrollPosition !== scrollPos)
+	{
+		var itemToBegin = 0;
+    	var itemToLimit = 0;
+    	var tableTop = 0; 
+    	//console.log(this.__rowCount + "," + scrollPos + "," +  this.__scrollOffsetPosition);
+        if(scrollPos > this.__scrollOffsetPosition)
+        {
+        	tableTop = scrollPos - this.__scrollOffsetPosition;
+        	//console.log("In Scroll::" + tableTop);
+        	itemToBegin = Math.ceil(tableTop/this.__virtualRowHeight);
+        }
+        else
+        {
+        	tableTop = 0;
+        	//console.log("In Not Scroll::" + scrollPos + "," + this.__scrollOffsetPosition);
+        	itemToBegin = 0;
+        }
+        if(this.__isPaginationModeAuto || this.__rowsRendered)
+        {
+        	if(itemToBegin >= this.__getTotalRows())
+            {
+            	this.__nsScrollEnableDisable.disable();
+            	//return;
+            }
+        }
+        else
+        {
+        	itemToLimit = itemToBegin + this.__pageSize - 1;
+            itemToLimit = (itemToLimit < this.__totalRecords) ? itemToLimit : ((itemToLimit === this.__totalRecords) ? this.__totalRecords - 1 : this.__totalRecords);
+            if(itemToLimit >= this.__getTotalRows())
+            {
+            	itemToBegin = this.__getTotalRows();
+                //console.log(itemToBegin + "," + itemToLimit);
+            	this.__nsScrollEnableDisable.disable();
+            	this.__fetchRecordCallBack(itemToBegin,itemToLimit,this.__pageSize);
+            }
+        }
+	}*/
+	this.__lastScrollPosition = scrollPos;
+};
