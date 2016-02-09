@@ -1,118 +1,303 @@
-NSUtil.prototype.loader = function(parentContainer,isOverlayRequired)
+ "use strict"; 
+function NSHierarchicalGrid(nsGrid,nsUtil) 
 {
-	this.parentContainer = parentContainer;
-	this.isOverlayRequired = isOverlayRequired;
-	this.util = new NSUtil();
-	this.divOverlay = null;
-	this.divLoaderContainerParent = null;
-	this.canvasLoader = null;
-	this.loaderContext= null;
-	this.idPrefix = null;
-	this.loaderLines = 16;
-	this.canvasWidth = 100;
-	this.canvasHeight = 100;
-	this.animationStart = null;
-	this.orignalParentPosition = null;
+	this.__nsGrid = nsGrid;
+	this.util = nsUtil;
 	
-	this.createComponents = function()
-	{
-		this.idPrefix = this.parentContainer.id ? this.parentContainer.id : this.util.getUniqueId();
-		if(this.util.isUndefined(this.isOverlayRequired))
-		{
-			this.isOverlayRequired = true;
-		}
-		if(this.isOverlayRequired)
-		{
-			this.orignalParentPosition = this.parentContainer.style.position;
-			this.parentContainer.style.position = "relative";
-			this.divOverlay = this.util.createDiv("divOverlay","nsLoaderOverlay");
-			this.divOverlay.style.height = this.parentContainer.offsetHeight + "px";
-			this.divOverlay.style.width = this.parentContainer.offsetWidth + "px";
-			this.parentContainer.appendChild(this.divOverlay);
-		}
-		this.divLoaderContainerParent = this.util.createDiv(this.idPrefix + "divLoaderContainerParent","nsLoaderContainerParent"); 
-		this.parentContainer.appendChild(this.divLoaderContainerParent);
-		var divLoaderContainer = this.util.createDiv(this.idPrefix + "divLoaderContainer","nsLoaderContainer"); 
-		this.divLoaderContainerParent.appendChild(divLoaderContainer);
-		this.canvasLoader = document.createElement("canvas");
-		this.canvasLoader.id = this.idPrefix + "canvas";
-		this.canvasLoader.width = this.canvasWidth;
-		this.canvasLoader.height = this.canvasHeight;
-		this.canvasLoader.style.background = "#FFFFFF";
-		this.canvasLoader.style.position = "absolute";
-		divLoaderContainer.appendChild(this.canvasLoader);
-		this.loaderContext= this.canvasLoader.getContext("2d");
-		
-		var divLoadingLabel = this.util.createDiv(this.idPrefix + "divLoadingLabel","nsLoaderText"); 
-		divLoadingLabel.appendChild(document.createTextNode("Loading"));
-		divLoaderContainer.appendChild(divLoadingLabel);
-		
-		this.centerElement(this.divLoaderContainerParent);
-		var canvasLeft = (((divLoaderContainer.offsetWidth - this.canvasWidth) / 2) - 5);
-		var canvasTop = Math.max((((divLoaderContainer.offsetHeight - this.canvasHeight) / 2)),0);
-		this.canvasLoader.style.left = canvasLeft + "px";
-		this.canvasLoader.style.top = canvasTop + "px";
-		this.centerElement(divLoadingLabel);
-		divLoadingLabel.style.top = (canvasTop + this.canvasHeight) + "px";
-		this.animationStart = new Date();
-		window.setInterval(this.draw.bind(this), 1000 / 30);
-	};
+	this.__ARROW_COLLAPSE_PATH = "M 0 0 L 0 10 L 10 5 Z";
+	this.__ARROW_EXPANDED_PATH = "M 0 0 L 10 0 L 5 10 Z";
+	this.__CLASS_ARROW = "nsGridArrowFill";
 	
-	this.centerElement = function(component)
+	this.__rowCounter = -1;
+}
+/********************************Common Functions for Grid ****************************************/
+NSHierarchicalGrid.prototype.__initialize = function ()
+{
+};
+
+NSHierarchicalGrid.prototype.propertyChange = function(attrName, oldVal, newVal, setProperty) 
+{
+	var attributeName = attrName.toLowerCase();
+};
+
+NSHierarchicalGrid.prototype.dataSource = function(source)
+{
+	this.__nsGrid.__arrWrapper = this.__nsGrid.__dataSource.slice(0);
+	this.__setWrapperSource(this.__nsGrid.__arrWrapper,0,-1,0);
+	this.__nsGrid.__updateTotalRecords(this.__rowCounter);
+	if(this.__nsGrid.__enablePagination && this.__nsGrid.__isPaginationModeAuto)
 	{
-		if(component)
+		if(this.__nsGrid.__isPaginationTypeScroll)
 		{
-			var parent = component.parentNode;
-			component.style.left = ((parent.offsetWidth - component.offsetWidth) / 2) + "px";
-			component.style.top = ((parent.offsetHeight - component.offsetHeight) / 2) + "px";
+			this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrFlatHierarchicalSource.slice(0,this.__nsGrid.__INFINITE_SCROLL_INITIAL_LOAD);
+			this.__nsGrid.__fetchRecordCallBack = this.__addRowsforScrollPagination.bind(this);
 		}
-	};
-	
-	this.draw = function() 
+		else 
+		{
+			this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrFlatHierarchicalSource.slice(0,this.__nsGrid.__pageSize);
+			this.__nsGrid.__createPaginationControl(this.__nsGrid.__divOuterContainer);
+			this.__nsGrid.__fetchRecordCallBack = this.__addRowsforPagePagination.bind(this);
+		}
+	}
+	else
 	{
-	    var rotation = parseInt(((new Date() - this.animationStart) / 1000) * this.loaderLines) / this.loaderLines;
-	    this.loaderContext.save();
-	    this.loaderContext.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
-	    this.loaderContext.translate(this.canvasWidth / 2, this.canvasHeight / 2);
-	    this.loaderContext.rotate(Math.PI * 2 * rotation);
-	    for (var count = 0; count < this.loaderLines; count++) {
-	 
-	    	this.loaderContext.beginPath();
-	    	this.loaderContext.rotate(Math.PI * 2 / this.loaderLines);
-	    	this.loaderContext.moveTo(this.canvasWidth / 10, 0);
-	    	this.loaderContext.lineTo(this.canvasWidth / 4, 0);
-	    	this.loaderContext.lineWidth = this.canvasWidth / 30;
-	    	this.loaderContext.strokeStyle = "rgba(0,0,0," + count / this.loaderLines + ")";
-	    	this.loaderContext.stroke();
+		this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrFlatHierarchicalSource.slice(0);//this.__nsGrid.__arrWrapper.slice(0);
+	}
+};
+
+NSHierarchicalGrid.prototype.__createBodyBody= function(dataSet,startIndex,endIndex)
+{
+    if(dataSet && dataSet.length > 0)
+    {
+    	for (var rowIndex = startIndex; rowIndex < endIndex; rowIndex++)
+	    {
+    		var item = dataSet[rowIndex];
+    		this.__createRow(item);
 	    }
-	    this.loaderContext.restore();
-	};
-	
-	this.show = function()
+    }
+};
+
+NSHierarchicalGrid.prototype.__setSourceForAsync= function()
+{
+	this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrFlatHierarchicalSource.slice(0);
+};
+
+NSHierarchicalGrid.prototype.__createRowAsync= function(item,index,array)
+{
+	this.__createRow(item);
+};
+
+NSHierarchicalGrid.prototype.__createBodyBodyVirtual= function(dataSet,totalRows,level)
+{
+	if(dataSet && dataSet.length > 0)
+    {
+    	if(totalRows > dataSet.length)
+    	{
+    		totalRows = dataSet.length;
+    	}
+    	this.__createBodyBody(dataSet,0,totalRows);
+    }
+};
+
+NSHierarchicalGrid.prototype.__createBody = function()
+{
+};
+
+NSHierarchicalGrid.prototype.__checkForAdditionalColumns = function()
+{
+};
+
+NSHierarchicalGrid.prototype.__setMeasurement = function()
+{
+};
+
+NSHierarchicalGrid.prototype.__addSVGInPage = function(objSVG)
+{
+	objSVG.addPath("svgArrowDown",this.__ARROW_EXPANDED_PATH,"0 0 16 16");
+	objSVG.addPath("svgArrowRight",this.__ARROW_COLLAPSE_PATH,"0 0 16 16");
+};
+
+NSHierarchicalGrid.prototype.__setWrapperSource = function(source,offset,parentIndex,level)
+{
+	if(source)
 	{
-		if(!this.divLoaderContainerParent)
+		if(!offset)
 		{
-			this.createComponents();
+			offset = 0;
 		}
-		this.divLoaderContainerParent.style.display = "inline-block";
-		if(this.isOverlayRequired)
+		if(level === 0)
 		{
-			this.divOverlay.style.display = "inline-block";
-			this.parentContainer.style.position = "relative";
+			this.__nsGrid.__arrFlatHierarchicalSource = [];
+			this.__rowCounter = 0;
 		}
-	};
-	
-	this.hide = function()
+		var length = source.length;
+		for (var count = 0; count < length; count++) 
+		{
+			var item = source[count];
+			var index = ++this.__rowCounter + offset;
+			this.__nsGrid.__arrFlatHierarchicalSource.push(item);
+			this.__setRowItemProperty(item,parentIndex,level);
+		}
+	}
+};
+
+NSHierarchicalGrid.prototype.__resetDataInBody= function(fromIndex,toIndex)
+{
+	var arrSource = this.__nsGrid.__arrFlatHierarchicalSource.slice(fromIndex,toIndex + 1);
+	var indexCount = fromIndex;
+	var totalRecords = this.__nsGrid.__totalRecords;
+	var arrRows = this.__nsGrid.__tblBodyBody.rows;
+	for(var rowIndex = 0; rowIndex < arrRows.length; rowIndex++,indexCount++)
+    {
+		var row = arrRows[rowIndex];
+		if(indexCount < totalRecords)
+		{
+			row.style.display = "";
+			var item = arrSource[rowIndex];
+			if(item && item[this.__nsGrid.__fieldRowVisible])
+			{
+				row.setAttribute("index",indexCount);
+				item[this.__nsGrid.__fieldIndex] = indexCount;
+				item[this.__nsGrid.__fieldRow] = row;
+				this.__updateRow(row,item);
+			}
+			else
+			{
+				row.style.display = "none";
+			}
+		}
+		else
+		{
+			row.style.display = "none";
+		}
+    }
+};
+
+NSHierarchicalGrid.prototype.__getFlatSource= function()
+{
+	return this.__nsGrid.__arrFlatHierarchicalSource;
+};
+/********************************End of Common Functions for Grid ****************************************/
+NSHierarchicalGrid.prototype.__setRowItemProperty = function(item,parentIndex,level)
+{
+	if(item)
 	{
-		if(this.divLoaderContainerParent)
+		var totalRowCount = this.__rowCounter;
+		item[this.__nsGrid.__fieldIndex] = totalRowCount;
+		item[this.__nsGrid.__fieldRowLevel] = level;
+		var hasChild = false;
+		if(item.hasOwnProperty(this.__nsGrid.__childField) && item[this.__nsGrid.__childField] && item[this.__nsGrid.__childField].length > 0)
+	    {
+	    	hasChild = true;
+	    	this.__setWrapperSource(item[this.__nsGrid.__childField],0,totalRowCount,level + 1);
+	    }
+		item[this.__nsGrid.__fieldParentIndex] = parentIndex;
+		if(parentIndex > -1)
+	    {
+			item[this.__nsGrid.__fieldHasParent] = true;
+	    }
+		else
 		{
-			this.divLoaderContainerParent.style.display = "none";
+			item[this.__nsGrid.__fieldHasParent] = false;
 		}
-		if(this.divOverlay)
-		{
-			this.divOverlay.style.display = "none";
-			this.parentContainer.style.position = this.orignalParentPosition;
-		}
-	};
-	
+		item[this.__nsGrid.__fieldHasChild] = hasChild;
+		item[this.__nsGrid.__fieldRowVisible] = true;
+		item[this.__nsGrid.__fieldIsCollapsed] = false;
+	}
+};
+
+NSHierarchicalGrid.prototype.__createRow = function(item)
+{
+	if(item && item[this.__nsGrid.__fieldRowVisible])
+	{
+		var row = document.createElement("TR");
+		item[this.__nsGrid.__fieldRow] = row;
+		var index = item[this.__nsGrid.__fieldIndex];
+		var level = item[this.__nsGrid.__fieldRowLevel];
+		var parentIndex = item[this.__nsGrid.__fieldParentIndex];
+		row.setAttribute("index",index);
+		row.setAttribute("level",level);
+		if(item[this.__nsGrid.__fieldHasParent])
+	    {
+			row.setAttribute("parent-index",parentIndex);
+	    }
+		var colLength = this.__nsGrid.__columns.length;
+		for (var colIndex = 0; colIndex < colLength; colIndex++)
+	    {
+			var colItem = this.__nsGrid.__columns[colIndex];
+        	var cell =  row.insertCell(-1);
+        	this.util.addStyleClass(cell , "nsDataGridCell");
+            var cellDiv = this.util.createDiv(null);
+            this.__setBodyCellProperty(row,cell,cellDiv,item,index,colItem,colIndex,parentIndex,level);
+            this.__nsGrid.__highlightDiv(cellDiv,colIndex);
+            cell.appendChild(cellDiv);
+	    }
+		this.__nsGrid.__tblBodyBody.appendChild(row);
+	}
+};
+
+NSHierarchicalGrid.prototype.__updateRow = function(row,item)
+{
+	if(row && item)
+	{
+		var index = item[this.__nsGrid.__fieldIndex];
+		var cells = row.cells;
+		for (var colIndex = 0; colIndex < this.__nsGrid.__columns.length; colIndex++)
+        {
+			var cell = cells[colIndex];
+			var cellDiv = cell.firstChild;
+        	var colItem = this.__nsGrid.__columns[colIndex];
+        	this.__nsGrid.__setBodyCellProperty(row,cell,cellDiv,item,colItem,index,colIndex);
+        }
+	}
+};
+
+NSHierarchicalGrid.prototype.__setBodyCellProperty = function(row,cell,cellDiv,item,currentIndex,colItem,colIndex,parentIndex,level)
+{
+	var hierarchicalPadding = 0;
+	if(colItem && colItem.hasOwnProperty("dataField") && colItem["dataField"])
+	{
+        if(colIndex == 0 && item[this.__nsGrid.__childField]  && item[this.__nsGrid.__childField].length > 0)
+        {
+        	this.util.addStyleClass(cellDiv,this.__nsGrid.__CLASS_GROUP_CELL);
+        	this.__nsGrid.__createArrow(item,currentIndex,cellDiv,false);
+        	var cellText = this.util.createDiv(null,this.__nsGrid.__CLASS_CELL_CHILD);
+        	cellText.style.verticalAlign = "top";
+        	this.__nsGrid.__addCellText(row,item,cellText,colItem,colIndex);
+        	cellDiv.appendChild(cellText);
+        }
+        else
+        {
+        	this.util.addStyleClass(cellDiv,this.__nsGrid.__CLASS_CELL_CHILD);
+        	this.__nsGrid.__addCellText(row,item,cellDiv,colItem,colIndex);
+        	//24 = 16(Arrow Width) + 6(Arrow Parent Padding) + 2(cellDiv horizontalGap between elements shown in debugger)
+        	hierarchicalPadding = 24;
+        }
+        if(colIndex == 0)
+        {
+        	if(level === 0)
+        	{
+        		cell.style.paddingLeft = "1px";
+        	}
+        	else
+        	{
+        		var paddingLeft = (10 * level) + hierarchicalPadding;
+        		cell.style.paddingLeft = paddingLeft + "px";
+        	}
+        }
+	}
+	this.__nsGrid.__addPriorityClassInCell(cell,colItem);
+};
+
+NSHierarchicalGrid.prototype.__createArrow = function(compArrow,objSVG,arrowID)
+{
+	 var svg = objSVG.addSVG(compArrow,arrowID + "svg",this.__CLASS_ARROW,null,null,null,null,null,null,true);
+	 objSVG.addUse(svg,arrowID + "use",null,"#svgArrowDown");
+};
+
+NSHierarchicalGrid.prototype.__setArrowDirection = function(objSVG,useID,isCollapsed)
+{
+	if(isCollapsed)
+	{
+		objSVG.changeUseHref(useID,"#svgArrowRight");
+	}
+	else
+	{
+		objSVG.changeUseHref(useID,"#svgArrowDown");
+	}
+};
+
+NSHierarchicalGrid.prototype.__addRowsforScrollPagination = function(fromRecord,toRecord,pageSize)
+{
+	console.log("In __addRowsforScrollPagination " + fromRecord + "," + toRecord + "," + pageSize);
+	var arrArray = this.__nsGrid.__arrFlatHierarchicalSource.slice(fromRecord,toRecord + 1); 
+	this.__nsGrid.__addRemoveRowCallInternal = true;
+	this.__nsGrid.addRows(arrArray);
+};
+
+NSHierarchicalGrid.prototype.__addRowsforPagePagination = function(fromRecord,toRecord,pageSize)
+{
+	//slice returns index range from fromRecord to toRecord - 1 hence adding 1 
+	//this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrWrapper.slice(fromRecord,toRecord + 1);
+	this.__nsGrid.__resetDataInBody(fromRecord,toRecord,true);
 };
