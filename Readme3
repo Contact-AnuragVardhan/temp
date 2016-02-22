@@ -12,3 +12,28 @@
 .nsDraggableCloneRow > table, th, td {
 	border: 1px solid black;
 }
+
+NSUtil.prototype.findParent = function (element,parentTag)
+{
+    if(element && parentTag)
+    {
+        while (element && element.tagName && element.tagName.toLowerCase()!=parentTag.toLowerCase())
+        {
+            element = element.parentNode;
+        }
+    }
+    if(element && element.tagName.toLowerCase() === parentTag.toLowerCase())
+    {
+    	return element;
+    }
+    return null;
+};
+
+NSUtil.prototype.findChild = function (element,childTag)
+{
+    if(element && childTag && element.getElementsByTagName(childTag).length > 0)
+    {
+        return element.getElementsByTagName(childTag)[0];
+    }  
+    return null;
+};
