@@ -1,16 +1,1306 @@
-nsGrid.__rowDropEndHandler = function(currentRow,targetTable,targetRow)
+/******************************************************End of Selection Functions*************************************************************/
+/******************************************************Start of Sorting Logic*************************************************************/
+
+nsGrid.__handleSorting= function(header,columnDetail,customIsAscending)
 {
-	console.log(currentRow + "," + targetTable + "," + targetRow);
-	if(currentRow && targetTable && targetTable.tBodies && targetTable.tBodies.length > 0)
+	if(header && columnDetail && columnDetail.sortable)
+    {
+		  var isCustomSort = !this.util.isUndefined(customIsAscending);
+	   	  var sortAscending = false;
+	   	  if (this.util.hasStyleClass(header,this.__CLASS_SORTING_ASC) || this.util.hasStyleClass(header,this.__CLASS_SORTING_DESC))
+		  {
+	          if(this.util.hasStyleClass(header,this.__CLASS_SORTING_ASC))
+	          {
+	               this.__removeAscendingIndicator(header);
+	               sortAscending = false;
+	          }
+	          else if(this.util.hasStyleClass(header,this.__CLASS_SORTING_DESC))
+	          {
+		       	   this.__removeDescendingIndicators(header);
+		       	   sortAscending = true;
+	          }
+		  }
+	   	  else
+	   	  {
+	   		  this.__resetColumnHeaders();
+	   		  sortAscending = !columnDetail.sortDescending;
+	   	  }
+	   	  //customIsAscending is passed it overrides the setting in columnDetail
+	   	  if(isCustomSort)
+	   	  {
+	   		  sortAscending = customIsAscending;
+	   	  }
+	   	  if(sortAscending)
+	      {
+	   		  this.__addAscendingIndicator(header);
+	      }
+	   	  else
+	   	  {
+	   		  this.__addDescendingIndicator(header);
+	   	  }
+	   	  if(this.__enableHierarchical || this.__enableGrouping)
+	   	  {
+	   		  this.__sortHierarchicalStructure(this.__arrWrapper,columnDetail,sortAscending); 
+	   		  this.__objGrid.__setWrapperSource(this.__arrWrapper,0,-1,0);
+	   		  this.__arrInternalSource = this.__arrFlatHierarchicalSource.slice(0);
+	   	  }
+	   	  else
+	   	  {
+	   		  this.__sortArrOfObjectsByParam(this.__arrWrapper,columnDetail.sortFunction,columnDetail.dataField,sortAscending);
+	   		  this.__arrInternalSource = this.__arrWrapper.slice(0);
+	   	  }
+	      this.__renderBody(true);
+    }
+	else
 	{
-		targetTable.tBodies[0].appendChild(currentRow.cloneNode(true));
+		  this.util.warning("nsGrid","This column is not sortable.");
 	}
 };
 
-	var setting = {table:this.__tblCenterBody,isSameTableMove:true,dropEndHandler:this.__rowDropEndHandler.bind(this)};
-	var rowMover = new NSTableRowMover(setting);
- this.util.makeBodyUnselectable();
-  if(element && element.tagName && element.tagName.toLowerCase() === parentTag.toLowerCase())
+nsGrid.__sortHierarchicalStructure= function(dataSource,columnDetail,sortAscending)
+{
+	if(dataSource && dataSource.length > 0)
+	{
+		for(var count = 0;count < dataSource.length;count++)
+		{
+			var item = dataSource[count];
+			if(this.__isNodeLastParent(item))
+			{
+				this.__sortArrOfObjectsByParam(item[this.__childField],columnDetail.sortFunction,columnDetail.dataField,sortAscending);
+			}
+			else if(item[this.__fieldHasChild])
+			{
+				this.__sortHierarchicalStructure(item[this.__childField],columnDetail,sortAscending);
+			}
+		}
+	}
+};
+
+//This method is based on Stuart Langridge's "sorttable" code
+nsGrid.__determineSortFunction= function(item)
+{ 
+      var sortFunction = "__sortCaseInsensitive";
+      if (item.match(/^\d\d[\/-]\d\d[\/-]\d\d\d\dgetElement/))
+      {
+          sortFunction = "__sortDate";
+      }
+      if (item.match(/^\d\d[\/-]\d\d[\/-]\d\dgetElement/))
+      {
+          sortFunction = "__sortDate";
+      }
+      if (item.match(/^[ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£$]/))
+      {
+          sortFunction = "__sortCurrency";
+      }
+      if (item.match(/^\d?\.?\d+getElement/))
+      {
+          sortFunction = "__sortNumeric";
+      }
+      if (item.match(/^[+-]?\d*\.?\d+([eE]-?\d+)?getElement/))
+      {
+          sortFunction = "__sortNumeric";
+      }
+      if(!isNaN(item))
+      {
+    	  sortFunction = "__sortNumeric";
+      }
+     
+      return sortFunction;
+};
+
+nsGrid.__sortArrOfObjectsByParam= function(arrToSort,sortFunctionName,dataField,sortAscending)
+{
+     if(sortAscending == null || sortAscending == undefined)
+     {
+         sortAscending = true;  // default to true
+     }
+     arrToSort.sort(function (item1, item2)
+     {
+         var retValue = 0;
+         if (typeof this[sortFunctionName] === "function")
+         {
+             retValue = this[sortFunctionName](item1, item2 , dataField, sortAscending);
+         }
+         return retValue;
+     }.bind(this));
+};
+ 
+nsGrid.__sortCaseInsensitive= function(item1, item2 , dataField, sortAscending)
+{
+	if(!item1[dataField] && !item2[dataField])
+	{
+		return 0;
+	}
+	var retValue = -1;
+	if(!item1[dataField])
+	{
+		retValue = -1;
+	}
+	else if(!item2[dataField])
+	{
+		retValue = 1;
+	}
+	else
+	{
+		var firstString = item1[dataField].toLowerCase();
+	    var secondString = item2[dataField].toLowerCase();
+	      
+	    if(firstString == secondString)
+	    {
+	    	return 0;
+	    }
+	    if (firstString < secondString)
+	    {
+	        retValue = -1;
+	    }
+	    else
+	    {
+	        retValue = 1;
+	    }
+	}
+	
+    if(sortAscending)
+    {
+        return retValue; 
+    }
+    return (retValue * -1);
+};
+ 
+nsGrid.__sortDate= function(item1, item2 , dataField, sortAscending)
+{
+      // y2k notes: two digit years less than 50 are treated as 20XX, greater than 50 are treated as 19XX
+      var firstDateString = item1[dataField];
+      var secondDateString = item2[dataField];
+      var firstDate, secondDate, year = -1;
+     
+      if (firstDateString.length == 10)
+      {
+           firstDate = firstDateString.substr(6,4) + firstDateString.substr(3,2) + firstDateString.substr(0,2);
+      }
+      else
+      {
+           year = firstDateString.substr(6,2);
+           if (parseInt(year) < 50)
+           {
+                year = "20" + year;
+           }
+           else
+           {
+                year = "19" + year;
+           }
+           firstDate = year + firstDateString.substr(3,2) + firstDateString.substr(0,2);
+      }
+     
+      if (secondDateString.length == 10)
+      {
+           secondDate = secondDateString.substr(6,4)+secondDateString.substr(3,2)+secondDateString.substr(0,2);
+      }
+      else
+      {
+           year = secondDateString.substr(6,2);
+           if (parseInt(year) < 50)
+           {
+                year = "20" + year;
+           }
+           else
+           {
+                year = "19" + year;
+           }
+           secondDate = year + secondDateString.substr(3,2) + secondDateString.substr(0,2);
+      }
+     
+      if (firstDate == secondDate)
+      {
+          return 0;
+      }
+      var retValue = -1;
+      if (firstDate < secondDate)
+      {
+          retValue = -1;
+      }
+      else
+      {
+          retValue = 1;
+      }
+      if(sortAscending)
+      {
+          return retValue; 
+      }
+      return (retValue * -1);
+};
+
+nsGrid.__sortCurrency= function(item1, item2 , dataField, sortAscending)
+{
+      var firstCurrency = item1[dataField].replace(/[^0-9.]/g,"");
+      var secondCurrency = item2[dataField].replace(/[^0-9.]/g,"");
+      if(sortAscending)
+      {
+          return parseFloat(firstCurrency) - parseFloat(secondCurrency); 
+      }
+      return parseFloat(secondCurrency) - parseFloat(firstCurrency);
+};
+
+nsGrid.__sortNumeric= function(item1, item2 , dataField, sortAscending)
+{
+      var firstNumber = parseFloat(item1[dataField]);
+      if (isNaN(firstNumber))
+      {
+          firstNumber = 0;
+      }
+      var secondNumber = parseFloat(item2[dataField]);
+      if (isNaN(secondNumber))
+      {
+          secondNumber = 0;
+      }
+      if(sortAscending)
+      {
+          return (firstNumber - secondNumber);
+      }
+      return (secondNumber - firstNumber);
+};
+/******************************************************End of Sorting Logic*************************************************************/
+/******************************************************Start of Filter Logic*************************************************************/
+nsGrid.__handleFiltering = function(filter,setting,recordLimit)
+{ 
+	this.__filteredColumn = [];
+	if(filter)
+    {
+		 var isHierarchical = false;
+		 var source = this.__arrWrapper;
+		 if(this.__enableHierarchical || this.__enableGrouping)
+		 {
+			 isHierarchical = true;
+		 }
+	   	 var nsFilter = new NSFilter(source,filter,setting,recordLimit,isHierarchical,this.__childField);
+	   	 this.__arrInternalSource = nsFilter.execute();
+	   	 if(filter instanceof Array) 
+  	     {
+	   		 for (var count = 0; count < filter.length; count++) 
+	         {
+	 	   		var item = filter[count];
+	 	   		var key = Object.keys(item)[0];
+	 	   		var colItem = this.__getColumnObjectByDataField(key);
+	 	   		this.__filteredColumn.push({field:key,text:item[key],item:colItem});
+	         }
+  	     }
+  		 else if(typeof(filter) === "object") 
+  	     {
+  	        for(var key in filter) 
+  	        {
+  	        	var colItem = this.__getColumnObjectByDataField(key);
+  	        	this.__filteredColumn.push({field:key,text:filter[key],item:colItem});
+  	        }
+  	     }
+	   	 if(isHierarchical)
+	   	 {
+	   		this.__objGrid.__setWrapperSource(this.__arrInternalSource,0,-1,0);
+	   		this.__arrInternalSource = this.__arrFlatHierarchicalSource.slice(0); 
+	   	 }
+	   	 this.__updateTotalRecords();
+	   	 this.__renderBody(false);
+    }
+};
+
+nsGrid.__resetFiltering = function()
+{ 
+	if(this.__dataSource)
+	{
+		this.__arrInternalSource = this.__arrWrapper.slice(0);
+		this.__filteredColumn = [];
+		if(this.__enableHierarchical || this.__enableGrouping)
+		{
+			this.__objGrid.__setWrapperSource(this.__arrInternalSource,0,-1,0);
+	   		this.__arrInternalSource = this.__arrFlatHierarchicalSource.slice(0); 
+		}
+		this.__updateTotalRecords();
+		this.__renderBody(false);
+		//this.unHighlightText();
+	}
+};
+
+nsGrid.__highlightDiv = function(divText,colIndex)
+{
+	var length = this.__filteredColumn.length;
+	for (var count = 0; count < length; count++) 
+    {
+		var item = this.__filteredColumn[count].item;
+		if(item[this.__fieldColIndex] === colIndex)
+		{
+			var text = this.__filteredColumn[count].text;
+			this.util.highlightText(divText,text,"nsTextHighlight");
+		}
+    }
+};
+/******************************************************End of Filter Logic*************************************************************/
+/******************************************************Start of Context Menu*************************************************************/
+
+nsGrid.__initializeContextMenu = function()
+{
+	//if(!this.__contextMenu)
+	//{
+		var contextMenuSetting = {parent:this.__tblCenterBody.tBodies[0],isContextMenu:true,createRunTime:true,sourceProvider:this.__getContextMenuDataProvider.bind(this),targetType:"TD"};
+		if(this.__contextMenuSetting)
+		{
+			for(var key in this.__contextMenuSetting)
+			{
+				//grid setting should not be overriden by the users
+				if(!contextMenuSetting[key])
+				{
+					contextMenuSetting[key] = this.__contextMenuSetting[key];
+				}
+			}
+		}
+		this.__contextMenu = new NSMenu(contextMenuSetting);
+	//}
+};
+
+nsGrid.__getContextMenuDataProvider = function(cell)
+{
+	if(cell)
+	{
+		cell = this.util.findParent(cell,"TD");
+		if(cell)
+		{
+			var row = this.util.findParent(cell,"TR");
+			if(row)
+			{
+				var index = parseInt(row.getAttribute("ns-index"));
+				var item = this.__getItemByIndex(index);
+				if(item && this.__contextMenuProvider) 
+				{
+					return this.__contextMenuProvider(item,cell.cellIndex,row.rowIndex);
+				}
+			}
+		}
+	}
+	return null;
+};
+
+/******************************************************End of Context Menu*************************************************************/
+/******************************Custom Function *************************************/
+
+nsGrid.__createTableAndParent = function(containerID,containerStyle,tableID)
+{
+	var divTableContainer = this.util.createDiv(containerID,containerStyle); 
+	var table = document.createElement("TABLE");
+	table.setAttribute("id",tableID);
+	this.util.addStyleClass(table , this.__CLASS_TABLE);
+	divTableContainer.appendChild(table);
+	return divTableContainer;
+};
+
+nsGrid.__setMeasurement = function()
+{
+	this.__bodyScrollPos = 0;
+};
+
+nsGrid.__setBodyMeasurement = function()
+{
+	var divTitleBar = this.getElement(this.getID() + this.__TITLE_CONTAINER_ID);
+	var divPagination = this.getElement(this.getID() + this.__PAGINATION_CONTROL_ID);
+	var topHeight = this.__divCenterTableHeaderContainer.offsetHeight;
+	if(divTitleBar)
+	{
+		topHeight += divTitleBar.offsetHeight;
+	}
+	if(divPagination)
+	{
+		topHeight += divPagination.offsetHeight;
+	}
+	var containerHeight = this.__divOuterContainer.offsetHeight;
+	var containerWidth = this.__divOuterContainer.offsetWidth;
+	this.__divCenterTableBodyContainer.style.height = (containerHeight - topHeight) + "px";
+	var scrollBarWidth = this.util.getScrollBarWidth(this.__divCenterTableBodyContainer);
+	this.__divCenterTableHeaderContainer.style.width = (this.__divCenterTableBodyContainer.offsetWidth - scrollBarWidth) + "px";
+	this.__initialTableWidth = containerWidth - scrollBarWidth;
+	if(!this.__synchronizeTablesRef)
+	{
+		this.__synchronizeTablesRef = this.__synchronizeTables.bind(this);
+		this.util.addEvent(this.__divCenterTableBodyContainer,"scroll",this.__synchronizeTablesRef);
+	}
+};
+
+nsGrid.__alignTables = function(fromSort)
+{
+	var getCells = function(tbl)
+	{
+		if(tbl && tbl.tHead && tbl.tHead.rows.length > 0)
+		{
+			return tbl.tHead.rows[0].cells;
+		}
+		return [];
+	};
+	var setCellWidth = function(arrCells,index,setWidth)
+	{
+		arrCells[index].style.width = setWidth + "px";
+	};
+	var headerCells = getCells(this.__tblCenterHeader);
+	var bodyCells = getCells(this.__tblCenterBody);
+	if(headerCells && headerCells.length > 0 && bodyCells && bodyCells.length > 0)
+	{
+		var totalWidth = 0;
+		var count = 0;
+		var widthToBeSet = 0;
+		var self = this;
+		var setWidths = function()
+		{
+			totalWidth += widthToBeSet;
+			setCellWidth(headerCells,count,widthToBeSet);
+			setCellWidth(bodyCells,count,widthToBeSet);
+		};
+		if(fromSort)
+		{
+			for(count = 0;count < headerCells.length;count++)
+			{
+				widthToBeSet = this.util.getDimensionAsNumber(headerCells[count],headerCells[count].style.width);
+				if(widthToBeSet === 0)
+				{
+					widthToBeSet = headerCells[count].getBoundingClientRect().width;//headerCells[count].offsetWidth;
+				}
+				setWidths();
+			}
+		}
+		else
+		{
+			for(count = 0;count < bodyCells.length;count++)
+			{
+				widthToBeSet = this.util.getDimensionAsNumber(bodyCells[count],bodyCells[count].style.width);
+				if(widthToBeSet === 0)
+				{
+					widthToBeSet = bodyCells[count].getBoundingClientRect().width;//bodyCells[count].offsetWidth;
+				}
+				setWidths();
+			}
+		}
+		if(this.__initialTableWidth > totalWidth)
+		{
+			totalWidth = this.__initialTableWidth;
+		}
+		this.__tblCenterHeader.style.width = totalWidth + "px";
+		this.__tblCenterBody.style.width = totalWidth + "px";
+	}
+};
+
+nsGrid.__synchronizeTables = function(event) 
+{
+	var target = this.util.getTarget(event);
+	if(this.__scroller)
+	{
+		this.__divCenterTableHeaderContainer.scrollLeft = event.scrollLeft;
+	}
+	else
+	{
+		
+		this.__divCenterTableHeaderContainer.scrollLeft = target.scrollLeft;
+		console.log(target.id + "," + target.scrollLeft + "," + this.__divCenterTableHeaderContainer.scrollLeft);
+		//console.log(target.scrollLeft + "," + );
+	}
+	this.__setFixedHeaderCellsPosition();
+	this.__setFixedBodyCellsPosition();
+};
+
+nsGrid.__handleColumnResize = function(event)
+{
+	this.__alignTables(false);
+	if(this.__enableVirtualScroll)
+	{
+		this.__setVirtualVariables(false);
+	}
+	this.__setFixedHeaderCellsPosition();
+	this.__setFixedBodyCellsPosition();
+};
+
+nsGrid.__expandCollapseAll = function(isCollapse)
+{
+	if(!this.__enableVirtualScroll && this.__getTotalRows() < this.__totalRecords)
+	{
+		this.util.warning("nsGrid","Please let all the rows to render.");
+		return;
+	}
+	var dataSource = this.__arrInternalSource;
+	if(dataSource && dataSource.length > 0)
+	{
+		for(var count = 0;count < dataSource.length;count++)
+		{
+			var item = dataSource[count];
+			//setting __fieldIsCollapsed here assuming that __showHideAllArrows() will be called after this function
+			item[this.__fieldIsCollapsed] = isCollapse;
+			if(parseInt(item[this.__fieldRowLevel]) > 0)
+			{
+				var row = item[this.__fieldRow];
+				if(isCollapse)
+				{
+					row.style.display = "none";
+					item[this.__fieldRowVisible] = false;
+				}
+				else
+				{
+					row.style.display = "";
+					item[this.__fieldRowVisible] = true;
+				}
+			}
+		}
+		this.__showHideAllArrows(isCollapse);
+	}
+};
+
+nsGrid.__showHideRow = function(rowIndex,compArrow,isCollapse)
+{
+	if(rowIndex > -1)
+	{
+		var item = this.__getItemByIndex(rowIndex);
+		if(!compArrow)
+		{
+			compArrow = this.__getArrow(item[this.__fieldIndex]);
+		}
+		var rowLevel = parseInt(item[this.__fieldRowLevel]);
+		var arrChildItems = [];
+		if(item && item[this.__fieldHasChild])
+		{
+			var startIndex = 0;
+			if(isCollapse)
+			{
+				arrChildItems = this.__arrInternalSource;
+				startIndex = rowIndex;
+			}
+			else
+			{
+				arrChildItems = this.__getImmediateChildItems(arrChildItems, item);
+			}
+			if(arrChildItems && arrChildItems.length > 0)
+			{
+				for(var count = startIndex;count < arrChildItems.length;count++)
+				{
+					var rowItem = arrChildItems[count];
+					var row = rowItem[this.__fieldRow];
+					if(isCollapse)
+					{
+						if(rowLevel >= parseInt(rowItem[this.__fieldRowLevel]))
+						{
+							break;
+						}
+						row.style.display = "none";
+						rowItem[this.__fieldRowVisible] = false;
+						if(rowItem[this.__fieldRowArrow])
+						{
+							var divArrow = rowItem[this.__fieldRowArrow];
+							if(divArrow)
+							{
+								this.__setArrowDirection(divArrow,true);
+								rowItem[this.__fieldIsCollapsed] = true;
+							}
+						}
+					}
+					else
+					{
+						row.style.display = "";
+						rowItem[this.__fieldRowVisible] = true;
+					}
+				}
+			}
+			this.__setArrowDirection(compArrow,isCollapse);
+			item[this.__fieldIsCollapsed] = isCollapse;
+		}
+	}
+};
+
+nsGrid.__showHideAllArrows = function(isCollapse)
+{
+	var arrDivs = this.__getAllArrows();
+	if(arrDivs && arrDivs.length > 0)
+	{
+		for(var count = 0;count < arrDivs.length;count++)
+		{
+			var div = arrDivs[count];
+			if(div && div.hasAttribute("ns-parent-row-count"))
+			{
+				this.__setArrowDirection(div,isCollapse);
+			}
+		}
+	}
+};
+
+nsGrid.__isNodeLastParent = function(item)
+{
+	var retValue = false;
+	if(item && item[this.__fieldHasChild])
+	{
+		var arrChildItems = item[this.__childField];
+		if(arrChildItems && arrChildItems.length > 0)
+		{
+			var hasChild = false;
+			for(var count = 0;count < arrChildItems.length;count++)
+			{
+				var rowItem = arrChildItems[count];
+				if(rowItem && rowItem[this.__fieldHasChild])
+				{
+					hasChild = true;
+					break;
+				}
+			}
+			if(!hasChild)
+			{
+				retValue = true;
+			}
+		}
+	}
+	return retValue;
+};
+
+nsGrid.__addCellText = function(row,item,div,colItem,colIndex)
+{
+	if(item && div && colItem)
+	{
+		var dataField = colItem["dataField"];
+		var templateRenderer = colItem["templateRenderer"];
+		var setData = colItem["setData"];
+		var itemRenderer = colItem["itemRenderer"];
+		var labelFunction = colItem["labelFunction"];
+		if(itemRenderer)
+		{
+			var objRenderer = itemRenderer(item,dataField,this.__getTotalRows() - 1,colIndex,row);
+			if(objRenderer)
+			{
+				if(this.util.isString(objRenderer))
+				{
+					var compBodySpan = document.createElement("span");
+					compBodySpan.innerHTML = objRenderer;
+					div.appendChild(compBodySpan);
+				}
+				else
+				{
+					div.appendChild(objRenderer);
+				}
+				return ;
+			}
+		}
+		else if(templateRenderer)
+		{
+			div.appendChild(templateRenderer.cloneNode(true));
+			this.__setDataInTemplateRenderer(div,item,dataField,setData,colItem,row);
+		}
+		else if(labelFunction)
+		{
+			var text = labelFunction(item,dataField,colItem);
+			div.appendChild(document.createTextNode(text));
+		}
+		else if(item.hasOwnProperty(dataField) && !this.util.isUndefined(item[dataField]) && item[dataField] != null)
+	    {
+			
+			var text = item[dataField];
+			div.appendChild(document.createTextNode(text));
+	    }
+	}
+};
+
+nsGrid.__updateCellText = function(row,cell,item,colItem,rowIndex,colIndex)
+{
+	if(cell && item && colItem)
+	{
+		this.util.removeAllChildren(cell);
+		var divChild = this.util.createDiv(null);
+	    cell.appendChild(divChild);
+		this.__addCellText(row,item,divChild,colItem,colIndex);
+	}
+};
+
+nsGrid.__setDataInTemplateRenderer = function(cellItem,data,dataField,setData,colItem,row)
+{
+	if(cellItem && setData)
+	{
+		this.__setRendererProperties(cellItem);
+		this.__setRendererInData(cellItem,data,row);
+		//IE bug
+		cellItem.data = data;
+		if(this.util.isFunction(setData))
+	    {
+			var strParam = "(cellItem,data,dataField,colItem,row)"; 
+	    	if(this.util.isString(setData))
+	    	{
+	    		this.util.callFunctionFromString(setData + strParam,function(paramValue){
+					if(paramValue === "cellItem")
+					{
+						return cellItem;
+					}
+					if(paramValue === "data")
+					{
+						return data;
+					}
+					if(paramValue === "dataField")
+					{
+						return dataField;
+					}
+					if(paramValue === "colItem")
+					{
+						return colItem;
+					}
+					if(paramValue === "row")
+					{
+						return row;
+					}
+					return paramValue;
+				});
+	    	}
+	    	else
+	    	{
+	    		setData(cellItem,data,dataField,colItem,row);
+	    	}
+	    }
+	}
+};
+
+nsGrid.__setRendererInData = function(cellItem,data,row)
+{
+	if(cellItem)
+	{
+		var compChild = null;
+		for(var count = 0; count < cellItem.children.length; count++) 
+		{
+			compChild = cellItem.children[count];
+			if(compChild)
+			{
+				compChild.data = data;
+				compChild.row = row;
+			}
+			//IE 9 Bug,you got to assign it back
+			//listItem.children[count] = compChild;
+			this.__setRendererInData(compChild,data,row);
+		}
+	}
+};
+
+nsGrid.__setRendererProperties = function(cellItem)
+{
+	if(cellItem)
+	{
+		var compChild = null;
+		for(var count = 0; count < cellItem.children.length; count++) 
+		{
+			compChild = cellItem.children[count];
+			var grid = this;
+			Array.prototype.slice.call(compChild.attributes).forEach(function(attribute) 
+			{
+		        if(grid.util.isFunction(attribute.value))
+		        {
+		        	var newValue = attribute.value + "(this)";
+		        	compChild.removeAttribute(attribute.name);
+					compChild.setAttribute(attribute.name,newValue);
+		        }
+			});
+			if(compChild)
+			{
+				if(compChild.hasAttribute("accessor-name"))
+				{
+					cellItem[compChild.getAttribute("accessor-name")] = compChild;
+				}
+			}
+			this.__setRendererProperties(compChild);
+		}
+	}
+};
+
+nsGrid.__calculateCellExpectedHeight = function(templateRenderer)
+{
+	var retHeight =  -1;
+	if(templateRenderer)
+	{
+		var tempRenderer = templateRenderer.cloneNode(true);
+		tempRenderer.removeAttribute("id");
+		this.addChild(tempRenderer);
+		retHeight = tempRenderer.offsetHeight;
+		if(retHeight <= 0)
+		{
+			retHeight = this.util.getDimensionAsNumber(tempRenderer,tempRenderer.style.height);
+		}
+		this.deleteChild(tempRenderer);
+	}
+	return retHeight;
+};
+
+nsGrid.__getAllItems = function()
+{
+	return this.__objGrid.__getFlatSource();
+};
+
+nsGrid.__getImmediateChildItems = function(arrItems,item)
+{
+	if(!arrItems)
+	{
+		arrItems = [];
+	}
+	if(item && item[this.__fieldHasChild])
+	{
+		var arrChild = this.__arrInternalSource;
+		var rowLevel = parseInt(item[this.__fieldRowLevel]);
+		var startIndex = item[this.__fieldIndex];
+		var length = arrChild.length;
+		for(var count = startIndex;count < length;count++)
+		{
+			var itemChild = arrChild[count];
+			var childRowLevel = parseInt(itemChild[this.__fieldRowLevel]);
+			if(rowLevel >= childRowLevel)
+			{
+				break;
+			}
+			if((rowLevel + 1) === childRowLevel)
+			{
+				arrItems.push(itemChild);
+			}
+		}
+	}
+	return arrItems;
+};
+
+nsGrid.__getAllChildItems = function(arrItems,item)
+{
+	if(!arrItems)
+	{
+		arrItems = [];
+	}
+	if(item && item[this.__fieldHasChild])
+	{
+		var arrChild = this.__arrInternalSource;
+		var rowLevel = parseInt(item[this.__fieldRowLevel]);
+		var startIndex = item[this.__fieldIndex];
+		var length = arrChild.length;
+		for(var count = startIndex;count < length;count++)
+		{
+			var itemChild = arrChild[count];
+			if(rowLevel >= parseInt(itemChild[this.__fieldRowLevel]))
+			{
+				break;
+			}
+			arrItems.push(itemChild);
+		}
+	}
+	return arrItems;
+};
+
+nsGrid.__getArrow = function(rowCount)
+{
+	var arrDivs = this.__getAllArrows();
+	if(arrDivs && arrDivs.length > 0)
+	{
+		for(var count = 0;count < arrDivs.length;count++)
+		{
+			var div = arrDivs[count];
+			if(div && div.hasAttribute("ns-parent-row-count"))
+			{
+				var rowParentCount = div.getAttribute("ns-parent-row-count");
+				if(rowParentCount && rowParentCount == rowCount)
+				{
+					return div;
+				}
+			}
+		}
+	}
+};
+
+nsGrid.__getAllArrows = function(divParent)
+{
+	if(!divParent)
+	{
+		divParent = this.__tblCenterBody;
+	}
+	return divParent.querySelectorAll(".nsArrow");
+};
+
+nsGrid.__getTotalRows = function()
+{
+	if(this.__tblCenterBodyBody && this.__tblCenterBodyBody.rows)
+	{
+		return this.__tblCenterBodyBody.rows.length;
+	}
+	return 0;
+};
+
+/*nsGrid.__getItemByIndex = function(indexToFind,source)
+{
+	if(!source)
+	{
+		source = this.__arrWrapper;
+	}
+	indexToFind = parseInt(indexToFind);
+	if(source && source.length > 0)
+	{
+		for(var count = 0;count < source.length;count++)
+		{
+			var item = source[count];
+			if(item && item[this.__fieldIndex] === indexToFind)
+			{
+				return item;
+			}
+		}
+			
+	}
+	return null;
+};*/
+
+nsGrid.__getItemByIndex = function(indexToFind,source)
+{
+	if(!source)
+	{
+		source = this.__objGrid.__getFlatSource();
+	}
+	if(source && source.length > 0)
+	{
+		for(var count = 0;count < source.length;count++)
+		{
+			var item = source[count];
+			if(item && item[this.__fieldIndex] === indexToFind)
+			{
+				return item;
+			}
+		}
+	}
+	return null;
+};
+
+nsGrid.__getColumnObject = function(index)
+{
+	index = parseInt(index);
+	if(this.__columns && index > -1 && index < this.__columns.length)
+	{
+		var item = null;
+		for(var count = 0;count < this.__columns.length;count++)
+		{
+			item = this.__columns[count];
+			if(item[this.__fieldColIndex] === index)
+			{
+				return item;
+			}
+		}
+	}
+	return null;
+};
+
+nsGrid.__getColumnIndexByObject = function(objColumn)
+{
+	if(this.__columns && objColumn)
+	{
+		for(var count = 0;count < this.__columns.length;count++)
+		{
+			if(this.__columns[count][this.__fieldColIndex] === objColumn[this.__fieldColIndex])
+			{
+				return count;
+			}
+		}
+	}
+	return -1;
+};
+
+nsGrid.__getColumnObjectByDataField = function(dataField)
+{
+	if(this.__columns && dataField)
+	{
+		for(var count = 0;count < this.__columns.length;count++)
+		{
+			var item = this.__columns[count];
+			if(item["dataField"] === dataField)
+			{
+				return item;
+			}
+		}
+	}
+	return null;
+};
+
+nsGrid.__getColumnIndexForSwapOrRemove = function(column)
+{
+	var index = -1;
+	//checking below like this because column = 0 then column will return false;
+	if(!this.util.isUndefined(column) && column != null)
+	{
+		if(this.util.isNumber(column) && this.__columns && column < this.__columns.length)
+		{
+			index = column;
+		}
+		else if(this.util.isString(column))
+		{
+			for(var count = 0;count < this.__columns.length;count++)
+			{
+				var item = this.__columns[count];
+				if(item["dataField"] === column)
+				{
+					index = count;
+					break;
+				}
+			}
+		}
+	}
+	else
+	{
+		this.util.warning("nsGrid","Please pass valid column information.");
+	}
+	return index;
+};
+
+nsGrid.__isColumnValidForSwapOrRemove = function(columnIndex,operation)
+{
+	if(this.__isColumnIndexValid(columnIndex))
+	{
+		if((this.__enableHierarchical && columnIndex === 0) || (this.__enableGrouping && (columnIndex === 0 || this.__columns[columnIndex]["dataField"] === this.__groupByField)))
+		{
+			if(operation)
+			{
+				this.util.warning("nsGrid","This column cannot be " + operation + ".");
+			}
+			return false;
+		}
+		return true;
+	}
+	return false;
+	
+};
+
+nsGrid.__swapCell = function(sourceCell,destinationCell)
+{
+	if(sourceCell && destinationCell)
+	{
+		var cellSource = this.util.copyElement(sourceCell);
+		this.util.copyElement(destinationCell,sourceCell);
+		this.util.copyElement(cellSource,destinationCell);
+		return true;
+	}
+	return false;
+};
+
+nsGrid.__isColumnIndexValid = function(columnIndex)
+{
+	if(columnIndex > -1 && columnIndex < this.__columns.length)
+	{
+		return true;
+	}
+	return false;
+	
+};
+
+nsGrid.__isMouseOnElement = function(element, currentX, currentY)
+{
+	var offset = this.util.getCumulativeOffset(element);
+	return (currentY >= offset.y &&
+			currentY <  offset.y + element.offsetHeight &&
+            currentX >= offset.x + element.offsetWidth - 5 &&
+            currentX <  offset.x + element.offsetWidth);
+};
+
+nsGrid.__updateTotalRecords = function(totalCount)
+{
+	if(!totalCount)
+	{
+		totalCount = this.__arrInternalSource.length; 
+	}
+	//update total Rows if no server side call and pagination mode is manual
+	if(!(this.__enableServerCall || (this.__enablePagination && !this.__isPaginationModeAuto)) || this.__rowsRendered)
+	{
+		this.__totalRecords = totalCount;
+	}
+};
+
+nsGrid.__addPriorityClassInCell = function(cell,colItem)
+{
+	if(this.__isResponsiveModeColumnToggle && cell && colItem)
+	{
+		this.util.addStyleClass(cell,"column-priority-" + colItem["priority"]);
+	}
+};
+
+nsGrid.__setGridType = function()
+{
+	if(this.__type === this.GRID_TYPE_HIERARCHICAL)
+	{
+		this.__enableHierarchical = true;
+		this.__objGrid = new NSHierarchicalGrid(this,this.util);
+	}
+	else if(this.__type === this.GRID_TYPE_GROUP)
+	{
+		this.__enableGrouping = true;
+		this.__objGrid = new NSGroupingGrid(this,this.util);
+	}
+	else
+	{
+		this.__objGrid = new NSFlatGrid(this,this.util);
+	}
+};
+
+nsGrid.__setPaginationType = function()
+{
+	if(!this.__paginationType || this.__paginationType === this.PAGINATION_TYPE_SCROLL)
+	{
+		this.__isPaginationTypeScroll = true;
+	}
+	else
+	{
+		this.__isPaginationTypeScroll = false;
+	}
+};
+
+nsGrid.__setPaginationMode = function()
+{
+	if(!this.__paginationMode || this.__paginationMode === this.PAGINATION_MODE_AUTO)
+	{
+		this.__isPaginationModeAuto = true;
+	}
+	else
+	{
+		this.__isPaginationModeAuto = false;
+	}
+};
+
+nsGrid.__setResponsiveMode = function()
+{
+	if(this.__enableResponsive)
+	{
+		if(!this.__responsiveMode || this.__responsiveMode === this.RESPONSIVE_MODE_STACK)
+		{
+			this.__isResponsiveModeStack = true;
+			this.__isResponsiveModeColumnToggle = false;
+			this.__arrQueries = ["only screen and (max-width: 760px),(min-device-width: 768px) and (max-device-width: 1024px)"];
+		}
+		else
+		{
+			this.__arrQueries = ["only screen and (min-width: 960px)",
+			                     "only screen and (max-width: 960px) and (min-width: 800px)",
+			                     "only screen and (max-width: 800px) and (min-width: 640px)",
+			                     "only screen and (max-width: 640px) and (min-width: 480px)",
+			                     "only screen and (max-width: 480px) and (min-width: 320px)",
+			                     "only screen and (max-width: 320px)"];
+			this.__isResponsiveModeColumnToggle = true;
+			this.__isResponsiveModeStack = false;
+		}
+	}
+	else
+	{
+		this.__isResponsiveModeColumnToggle = false;
+		this.__isResponsiveModeStack = false;
+	}
+	
+};
+
+nsGrid.__checkForVirtualMode = function()
+{
+	if(this.__enableVirtualScroll)
+	{
+		/*if(this.__enableHierarchical || this.__enableGrouping)
+		{
+			this.__enableVirtualScroll = false;
+		}*/
+		if(this.__enablePagination)
+		{
+			this.__enableVirtualScroll = false;
+		}
+	}
+};
+
+nsGrid.__addSVGInPage = function()
+{
+	var objSVG = new NSSvg();
+	//for header Menu
+	var circleDownArrowID = "svgCircleDownArrow";
+	var groupDown = objSVG.createGroup(circleDownArrowID + "group");
+	var circle = objSVG.createCircle(circleDownArrowID + "circle",8,8,8,null);
+	groupDown.appendChild(circle);
+	var polygon = objSVG.createPolygon(circleDownArrowID + "polygon","2,5.5 14,5.5 8,11.5","nsMenuArrow");
+	groupDown.appendChild(polygon);
+	objSVG.addElementInSymbol(circleDownArrowID,"0 0 16 16",groupDown);
+	if(this.__enableExport)
+	{
+		var svgShapes = new NSSvgShapes();
+		svgShapes.addExportInPage();
+	}
+	this.__objGrid.__addSVGInPage(objSVG);
+};
+
+nsGrid.__addStyleInDOM = function()
+{
+	if(this.__enableMouseHover)
+    {
+		this.util.addCSSClassInDOM([".nsGridRow:hover > td"],["background-color: #CCCCCC!important;"]);
+    }
+};
+
+nsGrid.__addColumnPseudoStyle = function()
+{
+	var arrClass = [];
+	var arrCSSText = [];
+	if(this.__tblCenterHeader.tBodies && this.__tblCenterHeader.tBodies.length > 0 && this.__tblCenterHeader.tBodies[0].rows && this.__tblCenterHeader.tBodies[0].rows.length > 0)
+	{
+		var headerCells = this.__tblCenterHeader.tBodies[0].rows[0].cells;
+		var colIndex = 0;
+		var cell = null;
+        for(colIndex = 0; colIndex < headerCells.length; colIndex++)
         {
-        	return element;
+        	cell = headerCells[colIndex];
+        	arrClass.push(".nsMobileStackGrid td:nth-of-type(" + (colIndex + 1) + "):before");
+        	arrCSSText.push("content: '" + cell.textContent.trim() + "';");
         }
+	}
+	this.util.addCSSClassInDOM(arrClass,arrCSSText,false);
+};
+/******************************End of Custom Function *************************************/
+/******************************Loader Related Function *************************************/
+nsGrid.showLoader = function()
+{
+	if(!this.__loader)
+	{
+		this.__loader = new this.util.loader(this.__divOuterContainer);
+	}
+	this.__loader.show();
+};
+
+nsGrid.hideLoader = function()
+{
+	if(this.__loader)
+	{
+		this.__loader.hide();
+	}
+};
+/******************************End of Loader Related Function *************************************/
+/******************************Start of Export Related Function *************************************/
+nsGrid.__exportHandler = function(target,item)
+{
+	if(item)
+	{
+		if(!this.__exportFileName || this.__exportFileName === "")
+		{
+			this.__exportFileName = "Download";
+		}
+		var nsExport = new NSExport(this,this.__exportFileName);
+		switch (item.id) 
+		{
+		    case 0:
+		    	nsExport.excel("xls",this.__exportFileName);
+		        break;
+		    case 1:
+		    	nsExport.csv();
+		        break;
+		    case 2:
+		    	nsExport.word("doc");
+		        break;
+		    case 3:
+		    	nsExport.text();
+		        break;
+		    case 4:
+		    	nsExport.xml();
+		        break;
+		    case 5:
+		    	nsExport.json();
+		        break;
+		    case 6:
+		    	nsExport.pdf();
+		        break;
+		    case 7:
+		    	nsExport.image();
+		        break;
+		    case 8:
+		    	nsExport.excel("xlsx",this.__exportFileName);
+		        break;
+		    case 9:
+		    	nsExport.word("docx");
+		        break;
+		}
+	}
+};
+/******************************End of Export Related Function *************************************/
+
+document.registerElement("ns-grid", {prototype: nsGrid});
