@@ -1,39 +1,16 @@
-function generateDestinationTable()
-		{
-			var util = new NSUtil();
-			var divTable = document.getElementById("divTableDestination");
-			var destTable = document.createElement("table");
-			destTable.setAttribute("id","tblDestData");
-			util.addStyleClass(destTable,"nsExportDemo");
-		    var header = destTable.createTHead();
-			var headerRow = header.insertRow(-1);
-			for (var colIndex = 0; colIndex < arrColumn.length; colIndex++)
-		    {
-		        var colItem = arrColumn[colIndex];
-		        var headerCell = headerRow.insertCell(-1);
-				headerCell.style.width = (colItem["width"]);
-				var headerTextNode = document.createTextNode(colItem["header"]);
-				headerCell.appendChild(headerTextNode);
-		    }
-			body = document.createElement("tbody");
-			destTable.appendChild(body);
-			divTable.appendChild(destTable);
-		}
-		function initialize()
-		{
-			generateTable();
-			generateDestinationTable();
-			var setting = {table:table,isSameTableMove:false,dropEndHandler:dropEndHandler};
-			var rowMover = new NSTableRowMover(setting);
-			/*var tableDnD = new TableDnD();
-		    tableDnD.init(table);*/
-		}
-		
-		function dropEndHandler(currentRow,targetTable,targetRow)
-		{
-			console.log(currentRow + "," + targetTable + "," + targetRow);
-			if(currentRow && targetTable && targetTable.tBodies && targetTable.tBodies.length > 0)
-			{
-				targetTable.tBodies[0].appendChild(currentRow.cloneNode(true));
-			}
-		}
+nsGrid.__rowDropEndHandler = function(currentRow,targetTable,targetRow)
+{
+	console.log(currentRow + "," + targetTable + "," + targetRow);
+	if(currentRow && targetTable && targetTable.tBodies && targetTable.tBodies.length > 0)
+	{
+		targetTable.tBodies[0].appendChild(currentRow.cloneNode(true));
+	}
+};
+
+	var setting = {table:this.__tblCenterBody,isSameTableMove:true,dropEndHandler:this.__rowDropEndHandler.bind(this)};
+	var rowMover = new NSTableRowMover(setting);
+ this.util.makeBodyUnselectable();
+  if(element && element.tagName && element.tagName.toLowerCase() === parentTag.toLowerCase())
+        {
+        	return element;
+        }
