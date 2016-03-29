@@ -1,249 +1,328 @@
-/******************************************************Start of Column Move logic ********************************************************/
-
-nsGrid.__dragDirection = function(event) 
+var NSGridColumnMove = function(nsGrid)
 {
-    var direction = null;
-    if (this.__lastDragEvent.clientX > event.clientX) 
-    {
-        direction = "left";
-    }
-    else if (this.__lastDragEvent.clientX < event.clientX) 
-    {
-        direction = "right";
-    }
-    return direction;
-};
-
-nsGrid.__createDropTargetEvent = function(event,direction) 
-{
-    // localise x and y to the target component
-    var rect = this.__divCenterTableHeaderContainer.getBoundingClientRect();
-    var x = event.clientX - rect.left;
-    var y = event.clientY - rect.top;
-    var dropTargetEvent = {
-        event: event,
-        x: x,
-        y: y,
-        direction: direction
-    };
-    return dropTargetEvent;
-};
-
-nsGrid.__onDragging = function(draggingEvent) 
-{
-	this.lastDraggingEvent = draggingEvent;
-    // if moving up or down (ie not left or right) then do nothing
-    if (!draggingEvent || !draggingEvent.direction) 
-    {
-        return;
-    }
-    var xAdjustedForScroll = this.adjustXForScroll(draggingEvent);
-    this.checkCenterForScrolling(xAdjustedForScroll);
-    // find out what the correct position is for this column
-    //this.checkColIndexAndMove(draggingEvent, xAdjustedForScroll);
-};
-
-nsGrid.adjustXForScroll = function (draggingEvent) {
-    if(this.__divCenterTableBodyContainer) 
-    {
-        return draggingEvent.x + this.__divCenterTableBodyContainer.scrollLeft;
-    }
-    else 
-    {
-        return draggingEvent.x;
-    }
-};
-
-nsGrid.checkCenterForScrolling = function (xAdjustedForScroll) 
-{
-    if (this.__divCenterTableBodyContainer) 
-    {
-    	console.log("In checkCenterForScrolling");
-        // scroll if the mouse has gone outside the grid (or just outside the scrollable part if pinning)
-        // putting in 50 buffer, so even if user gets to edge of grid, a scroll will happen
-        var firstVisiblePixel = this.__divCenterTableBodyContainer.scrollLeft;
-        var lastVisiblePixel = firstVisiblePixel + this.__divCenterTableBodyContainer.clientWidth;
-        this.needToMoveLeft = xAdjustedForScroll < (firstVisiblePixel + 50);
-        this.needToMoveRight = xAdjustedForScroll > (lastVisiblePixel - 100);
-        console.log(xAdjustedForScroll + "," + firstVisiblePixel + "," + this.needToMoveRight);
-        if (this.needToMoveLeft || this.needToMoveRight) {
-            this.ensureIntervalStarted();
-        }
-        else {
-            this.ensureIntervalCleared();
-        }
-    }
-};
-
-nsGrid.ensureIntervalStarted = function () {
-    if (!this.movingIntervalId) {
-        this.intervalCount = 0;
-        this.failedMoveAttempts = 0;
-        this.movingIntervalId = setInterval(this.moveInterval.bind(this), 100);
-        if (this.needToMoveLeft) {
-            //this.dragAndDropService.setGhostIcon(dragAndDropService_1.DragAndDropService.ICON_LEFT, true);
-        }
-        else {
-            //this.dragAndDropService.setGhostIcon(dragAndDropService_1.DragAndDropService.ICON_RIGHT, true);
-        }
-    }
-};
-nsGrid.ensureIntervalCleared = function () {
-    if (this.moveInterval) {
-        clearInterval(this.movingIntervalId);
-        this.movingIntervalId = null;
-        //this.dragAndDropService.setGhostIcon(dragAndDropService_1.DragAndDropService.ICON_MOVE);
-    }
-};
-
-nsGrid.moveInterval = function () {
-    var pixelsToMove;
-    this.intervalCount++;
-    pixelsToMove = 10 + (this.intervalCount * 5);
-    if (pixelsToMove > 100) {
-        pixelsToMove = 100;
-    }
-    var pixelsMoved;
-    if (this.needToMoveLeft) {
-        pixelsMoved = this.scrollHorizontally(-pixelsToMove);
-    }
-    else if (this.needToMoveRight) {
-        pixelsMoved = this.scrollHorizontally(pixelsToMove);
-    }
-    if (pixelsMoved !== 0) {
-        this.__onDragging(this.lastDraggingEvent);
-        this.failedMoveAttempts = 0;
-    }
-    else {
-        this.failedMoveAttempts++;
-        if (this.failedMoveAttempts > 7) {
-            if (this.needToMoveLeft) {
-                //this.columnController.setColumnPinned(this.lastDraggingEvent.dragItem, column_1.Column.PINNED_LEFT);
-            }
-            else {
-                //this.columnController.setColumnPinned(this.lastDraggingEvent.dragItem, column_1.Column.PINNED_RIGHT);
-            }
-            this.nudge();
-        }
-    }
-};
-
-nsGrid.scrollHorizontally = function (pixels) {
-    var oldScrollPosition = this.__divCenterTableBodyContainer.scrollLeft;
-    this.__divCenterTableBodyContainer.scrollLeft = oldScrollPosition + pixels;
-    var newScrollPosition = this.__divCenterTableBodyContainer.scrollLeft;
-    return newScrollPosition - oldScrollPosition;
-};
-
-nsGrid.nudge = function () {
-    if (this.dragging) {
-        this.__onDragging(this.__lastDragEvent);
-    }
-};
-
-nsGrid.__startColumnMove = function(event,target)
-{
-	if(this.__onGridLine)
-	{
-		return;
-	}
-	var objColumn = this.__getColumnObject(target.getAttribute("currentColumnIndex"));
-	var columnIndex = this.__getColumnIndexByObject(objColumn);
-	if(columnIndex > -1)
-	{
-		this.__lastDragEvent = event;
-		this.dragging = true;
-		this.__objColumnDrag = {};
-		this.__objColumnDrag.source = target;
-		this.__objColumnDrag.objColumn = objColumn;
-		this.__objColumnDrag.columnIndex = columnIndex;
-		var position = this.util.getEventPosition(event);
-		this.__objColumnDrag.dragElement = this.__createCopyItem(target,position);
-		this.__objColumnDrag.dragElementAdded = false;
-		this.__objColumnDrag.position = position;
-		this.__dragColumnMoveRef = this.__dragColumnMoveHandler.bind(this);
-		this.__dragColumnEndRef = this.__dragColumnEndHandler.bind(this);
-		this.util.addEvent(document,"mousemove",this.__dragColumnMoveRef);
-		this.util.addEvent(document,"mouseup",this.__dragColumnEndRef);
-	}
-};
-
-nsGrid.__dragColumnMoveHandler = function(event)
-{
-	event = this.util.getEvent(event);
-	var direction = this.__dragDirection(event);
-	this.__lastDragEvent = event;
+	this.__MIN_DRAG_OFFSET = 100;
 	
-	var position = this.util.getEventPosition(event);
-	var leftOffset = this.__objColumnDrag.position.left - position.left;
-    var topOffset = this.__objColumnDrag.position.top - position.top;
-    var dragRadius = (leftOffset * leftOffset) + (topOffset * topOffset);
-    if(!this.__objColumnDrag.dragElementAdded && dragRadius > this.__MIN_DRAG_OFFSET)
-    {
-    	document.body.appendChild(this.__objColumnDrag.dragElement);
-    	this.__objColumnDrag.dragElementAdded = true;
-    }
-    var posEvent = this.util.getEventPosition(event);
-    this.__objColumnDrag.dragElement.style.left = posEvent.left + "px"; //position.left + "px";
-    this.__objColumnDrag.dragElement.style.top = posEvent.top + "px";
-    if(this.__objColumnDrag.lastDropTarget)
-    {
-    	this.util.removeStyleClass(this.__objColumnDrag.lastDropTarget,"nsDottedCell"); 
-    	this.__objColumnDrag.lastDropTarget = null;
-    }
-    var target = this.util.getTarget(event);
-    var element = this.util.findParentBySelector(target,"." + this.__CLASS_TABLE_HEADER_DROPPABLE_CELL);
-    if(element != this.__objColumnDrag.source)
-    {
-    	this.util.addStyleClass(element,"nsDottedCell");   
-    	this.__objColumnDrag.lastDropTarget = element;
-    }
-    var draggingEvent = this.__createDropTargetEvent(event,direction);
-    this.__onDragging(draggingEvent);
-    event.preventDefault();
-};
-
-nsGrid.__dragColumnEndHandler = function(event)
-{
+	this.__nsGrid = nsGrid;
+	this.util = nsGrid.util;
+	
+	this.__objColumnDrag = null;
 	this.__lastDragEvent = null;
-	this.dragging = false;
-	this.ensureIntervalCleared();
-	if(this.__objColumnDrag.lastDropTarget)
-    {
-    	this.util.removeStyleClass(this.__objColumnDrag.lastDropTarget,"nsDottedCell"); 
-    	this.__objColumnDrag.lastDropTarget = null;
-    }
-	this.util.removeEvent(document,"mousemove",this.__dragColumnMoveRef);
+	this.__lastDragInfo = null;
+	this.__isColumnDragged = false;
+	this.__scrollLeft = false;
+    this.__scrollRight = false;
 	this.__dragColumnMoveRef = null;
-	this.util.removeEvent(document,"mouseup",this.__dragColumnEndRef);
 	this.__dragColumnEndRef = null;
-	if(this.__objColumnDrag.dragElementAdded)
+	this.__scrollInterval = null;
+	this.__animationSteps = null;
+	this.__moveAttempts = 0;
+	
+	this.handle = function(event,target)
 	{
-		var position = this.util.getEventPosition(event);
-		position.top = position.top + this.__divCenterTableHeaderContainer.scrollTop;
-		position.left = position.left + this.__divCenterTableHeaderContainer.scrollLeft;
-		var tablePosition = this.util.getOffSet(this.__tblCenterHeader);
-		if (position.top < tablePosition.top || position.top > (tablePosition.top + this.__tblCenterHeader.offsetHeight)) 
+		this.__startColumnMove(event,target);
+	};
+	
+	this.__startColumnMove = function(event,target)
+	{
+		if(this.__nsGrid.__onGridLine)
 		{
-			this.util.addStyleClass(this.__objColumnDrag.dragElement,"nsGhostHeader");
-			var transitionEndCallback = function()
-			{
-				if(this.__objColumnDrag.dragElement)
-				{
-					document.body.removeChild(this.__objColumnDrag.dragElement);
-					this.__objColumnDrag.dragElement = null;
-				}
-			};
-			var transition = new this.util.transition(this.__objColumnDrag.dragElement,transitionEndCallback.bind(this));
-			this.__objColumnDrag.dragElement.style.left = this.__objColumnDrag.position.left + "px"; //position.left + "px";
-			this.__objColumnDrag.dragElement.style.top = this.__objColumnDrag.position.top + "px";
-		    return;
+			return;
 		}
-		var targetIndex = this.__getHeaderColumnByPosition(position);
-	    if (targetIndex > -1 && targetIndex != this.__objColumnDrag.columnIndex) 
+		var objColumn = this.__nsGrid.__getColumnObject(target.getAttribute("currentColumnIndex"));
+		var columnIndex = this.__nsGrid.__getColumnIndexByObject(objColumn);
+		if(columnIndex > -1)
+		{
+			this.__lastDragEvent = event;
+			this.__isColumnDragged = true;
+			this.__objColumnDrag = {};
+			this.__objColumnDrag.source = target;
+			this.__objColumnDrag.objColumn = objColumn;
+			this.__objColumnDrag.columnIndex = columnIndex;
+			var position = this.util.getEventPosition(event);
+			this.__objColumnDrag.dragElement = this.__createCopyItem(target,position);
+			this.__objColumnDrag.dragElementAdded = false;
+			this.__objColumnDrag.position = position;
+			this.__dragColumnMoveRef = this.__dragColumnMoveHandler.bind(this);
+			this.__dragColumnEndRef = this.__dragColumnEndHandler.bind(this);
+			this.util.addEvent(document,"mousemove",this.__dragColumnMoveRef);
+			this.util.addEvent(document,"mouseup",this.__dragColumnEndRef);
+		}
+	};
+
+	this.__dragColumnMoveHandler = function(event)
+	{
+		event = this.util.getEvent(event);
+		var direction = this.__getDragDirection(event);
+		this.__lastDragEvent = event;
+		
+		var position = this.util.getEventPosition(event);
+		var leftOffset = this.__objColumnDrag.position.left - position.left;
+	    var topOffset = this.__objColumnDrag.position.top - position.top;
+	    var dragRadius = (leftOffset * leftOffset) + (topOffset * topOffset);
+	    if(!this.__objColumnDrag.dragElementAdded && dragRadius > this.__MIN_DRAG_OFFSET)
 	    {
-	    	this.swapColumns(this.__objColumnDrag.columnIndex,targetIndex);
+	    	document.body.appendChild(this.__objColumnDrag.dragElement);
+	    	this.__objColumnDrag.dragElementAdded = true;
 	    }
-	    document.body.removeChild(this.__objColumnDrag.dragElement);
-	}
+	    var posEvent = this.util.getEventPosition(event);
+	    this.__objColumnDrag.dragElement.style.left = posEvent.left + "px"; //position.left + "px";
+	    this.__objColumnDrag.dragElement.style.top = posEvent.top + "px";
+	    if(this.__objColumnDrag.lastDropTarget)
+	    {
+	    	this.util.removeStyleClass(this.__objColumnDrag.lastDropTarget,"nsDottedCell"); 
+	    	this.__objColumnDrag.lastDropTarget = null;
+	    }
+	    var target = this.util.getTarget(event);
+	    var element = this.util.findParentBySelector(target,"." + this.__nsGrid.__CLASS_TABLE_HEADER_DROPPABLE_CELL);
+	    if(element != this.__objColumnDrag.source)
+	    {
+	    	this.util.addStyleClass(element,"nsDottedCell");   
+	    	this.__objColumnDrag.lastDropTarget = element;
+	    }
+	    var objDrag = this.__getDragInfoObject(event,direction);
+	    this.__handleScrollMovement(objDrag);
+	    event.preventDefault();
+	};
+
+	this.__dragColumnEndHandler = function(event)
+	{
+		this.__lastDragEvent = null;
+		this.__isColumnDragged = false;
+		this.__stopScrollAnimation();
+		if(this.__objColumnDrag.lastDropTarget)
+	    {
+	    	this.util.removeStyleClass(this.__objColumnDrag.lastDropTarget,"nsDottedCell"); 
+	    	this.__objColumnDrag.lastDropTarget = null;
+	    }
+		this.util.removeEvent(document,"mousemove",this.__dragColumnMoveRef);
+		this.__dragColumnMoveRef = null;
+		this.util.removeEvent(document,"mouseup",this.__dragColumnEndRef);
+		this.__dragColumnEndRef = null;
+		if(this.__objColumnDrag.dragElementAdded)
+		{
+			var position = this.util.getEventPosition(event);
+			position.top = position.top + this.__nsGrid.__divCenterTableHeaderContainer.scrollTop;
+			position.left = position.left + this.__nsGrid.__divCenterTableHeaderContainer.scrollLeft;
+			var tablePosition = this.util.getOffSet(this.__nsGrid.__tblCenterHeader);
+			if (position.top < tablePosition.top || position.top > (tablePosition.top + this.__nsGrid.__tblCenterHeader.offsetHeight)) 
+			{
+				this.util.addStyleClass(this.__objColumnDrag.dragElement,"nsGhostHeader");
+				var transitionEndCallback = function()
+				{
+					this.__removeDragElement();
+				};
+				var transition = new this.util.transition(this.__objColumnDrag.dragElement,transitionEndCallback.bind(this));
+				this.__objColumnDrag.dragElement.style.left = this.__objColumnDrag.position.left + "px"; //position.left + "px";
+				this.__objColumnDrag.dragElement.style.top = this.__objColumnDrag.position.top + "px";
+			    return;
+			}
+			var targetIndex = this.__getHeaderColumnByPosition(position);
+		    if (targetIndex > -1 && targetIndex != this.__objColumnDrag.columnIndex) 
+		    {
+		    	this.__nsGrid.swapColumns(this.__objColumnDrag.columnIndex,targetIndex);
+		    }
+		    this.__removeDragElement();
+		}
+	};
+	
+	this.__createCopyItem = function(target,position)
+	{
+		var divDrag = null;
+		if(target && position)
+		{
+			divDrag = this.util.createDiv(this.__nsGrid.getID() + "Drag",this.__nsGrid.__CLASS_TABLE_HEADER_CELL);
+			divDrag.innerHTML = target.innerHTML;
+			//divDrag.style.backgroundColor = "red";
+			divDrag.style.position = "absolute";
+			divDrag.style.left = (position.left) + "px";
+			divDrag.style.top = (position.top) + "px";
+			divDrag.style.width = target.offsetWidth + "px";
+			divDrag.style.height = target.offsetHeight + "px";
+			//divDrag.style.opacity = 0.7;
+		}
+		return divDrag;
+	};
+	
+	this.__removeDragElement = function()
+	{
+		if(this.__objColumnDrag && this.__objColumnDrag.dragElement)
+		{
+			document.body.removeChild(this.__objColumnDrag.dragElement);
+			this.__objColumnDrag.dragElement = null;
+		}
+	};
+
+	this.__getHeaderColumnByPosition = function(position) 
+	{
+		if(this.__nsGrid.__tblCenterHeader.tBodies && this.__nsGrid.__tblCenterHeader.tBodies.length > 0 && this.__nsGrid.__tblCenterHeader.tBodies[0].rows && this.__nsGrid.__tblCenterHeader.tBodies[0].rows.length > 0)
+		{
+			var headerBodyRowCells = this.__nsGrid.__tblCenterHeader.tBodies[0].rows[0].cells;
+		    for (var count = 0; count < headerBodyRowCells.length; count++) 
+		    {
+		    	var cell = headerBodyRowCells[count];
+		    	if(this.util.hasStyleClass(cell,this.__nsGrid.__CLASS_TABLE_HEADER_DROPPABLE_CELL))
+		    	{
+		    		var rowPosition = this.util.getOffSet(cell);
+			    	if (rowPosition.left <= position.left && position.left <= rowPosition.left + headerBodyRowCells[count].offsetWidth) 
+			    	{
+			    		return count;
+			    	}
+		    	}
+		    }
+		    return -1;
+		}
+	};
+	
+	/*Horizontal Scroll Logic for Edge cases */
+	this.__getDragDirection = function(event) 
+	{
+	    var direction = null;
+	    if (this.__lastDragEvent.clientX > event.clientX) 
+	    {
+	        direction = "left";
+	    }
+	    else if (this.__lastDragEvent.clientX < event.clientX) 
+	    {
+	        direction = "right";
+	    }
+	    return direction;
+	};
+
+	this.__getDragInfoObject = function(event,direction) 
+	{
+	    // localise x and y to the target component
+	    var rect = this.__nsGrid.__divCenterTableHeaderContainer.getBoundingClientRect();
+	    var x = event.clientX - rect.left;
+	    var y = event.clientY - rect.top;
+	    var objDragInfo = 
+	    {
+	        event: event,
+	        x: x,
+	        y: y,
+	        direction: direction
+	    };
+	    return objDragInfo;
+	};
+
+	this.__handleScrollMovement = function(objDragInfo) 
+	{
+		this.__lastDragInfo = objDragInfo;
+	    if (!objDragInfo || !objDragInfo.direction) 
+	    {
+	        return;
+	    }
+	    var adjustedScrollPos = this.__getAdjustedScrollPosition(objDragInfo);
+	    this.__setScrollVariables(adjustedScrollPos);
+	};
+
+	this.__getAdjustedScrollPosition = function(objDragInfo) 
+	{
+		return objDragInfo.x + this.__nsGrid.__divCenterTableBodyContainer.scrollLeft;
+	};
+
+	this.__setScrollVariables = function (adjustedScrollPos) 
+	{
+	    if (this.__nsGrid.__divCenterTableBodyContainer) 
+	    {
+	        //below logic checks if the scroll should move right or left
+	        var xPosLeft = this.__nsGrid.__divCenterTableBodyContainer.scrollLeft;
+	        var xPosRight = xPosLeft + this.__nsGrid.__divCenterTableBodyContainer.clientWidth;
+	        this.__scrollLeft = adjustedScrollPos < (xPosLeft + 50);
+	        this.__scrollRight = adjustedScrollPos > (xPosRight - 100);
+	        if(this.__scrollLeft || this.__scrollRight) 
+	        {
+	            this.__startScrollAnimation();
+	        }
+	        else 
+	        {
+	            this.__stopScrollAnimation();
+	        }
+	    }
+	};
+
+	this.__startScrollAnimation = function () 
+	{
+	    if (!this.__scrollInterval) 
+	    {
+	        this.__animationSteps = 0;
+	        this.__moveAttempts = 0;
+	        this.__scrollInterval = setInterval(this.__scrollBody.bind(this), 100);
+	        if (this.__scrollLeft) 
+	        {
+	            //this.dragAndDropService.setGhostIcon(dragAndDropService_1.DragAndDropService.ICON_LEFT, true);
+	        }
+	        else 
+	        {
+	            //this.dragAndDropService.setGhostIcon(dragAndDropService_1.DragAndDropService.ICON_RIGHT, true);
+	        }
+	    }
+	};
+	
+	this.__stopScrollAnimation = function () 
+	{
+	    if (this.__scrollInterval) 
+	    {
+	        clearInterval(this.__scrollInterval);
+	        this.__scrollInterval = null;
+	        //this.dragAndDropService.setGhostIcon(dragAndDropService_1.DragAndDropService.ICON_MOVE);
+	    }
+	};
+
+	this.__scrollBody = function () 
+	{
+	    var pixelsToMove;
+	    this.__animationSteps++;
+	    pixelsToMove = 10 + (this.__animationSteps * 5);
+	    if (pixelsToMove > 100) 
+	    {
+	        pixelsToMove = 100;
+	    }
+	    var pixelsMoved = 0;
+	    if (this.__scrollLeft) 
+	    {
+	        pixelsMoved = this.__scrollBodyHorizontally(-pixelsToMove);
+	    }
+	    else if (this.__scrollRight) 
+	    {
+	        pixelsMoved = this.__scrollBodyHorizontally(pixelsToMove);
+	    }
+	    if (pixelsMoved !== 0) 
+	    {
+	        this.__handleScrollMovement(this.__lastDragInfo);
+	        this.__moveAttempts = 0;
+	    }
+	    else 
+	    {
+	        this.__moveAttempts++;
+	        if (this.__moveAttempts > 7) 
+	        {
+	            if (this.__scrollLeft) 
+	            {
+	                //this.columnController.setColumnPinned(this.__lastDragInfo.dragItem, column_1.Column.PINNED_LEFT);
+	            }
+	            else 
+	            {
+	                //this.columnController.setColumnPinned(this.__lastDragInfo.dragItem, column_1.Column.PINNED_RIGHT);
+	            }
+	            this.__pushScroll();
+	        }
+	    }
+	};
+
+	this.__scrollBodyHorizontally = function (pixels) 
+	{
+	    var oldScrollPosition = this.__nsGrid.__divCenterTableBodyContainer.scrollLeft;
+	    this.__nsGrid.__divCenterTableBodyContainer.scrollLeft = oldScrollPosition + pixels;
+	    var newScrollPosition = this.__nsGrid.__divCenterTableBodyContainer.scrollLeft;
+	    return newScrollPosition - oldScrollPosition;
+	};
+
+	this.__pushScroll = function () 
+	{
+	    if (this.__isColumnDragged) 
+	    {
+	        this.__handleScrollMovement(this.__lastDragEvent);
+	    }
+	};
+	/*End of Horizontal Scroll Logic for Edge cases */
 };
