@@ -1,49 +1,148 @@
-Line 552: objInfo.item = this.__getItemByIndex(objInfo.rowIndex);
-Line 575: nsGrid.getItemInfo = function(objItem)
+.nsAnimateLeftToRight 
 {
-	var objReturn = null;
-	if(objItem)
+	  -webkit-animation-name: nsAnimateLeftToRight;
+	  -moz-animation-name: nsAnimateLeftToRight;
+	  -o-animation-name: nsAnimateLeftToRight;
+	  -ms-animation-name: nsAnimateLeftToRight;
+	  animation-name: nsAnimateLeftToRight;
+	  -webkit-animation-duration: 0.2s;
+	  -moz-animation-duration: 0.2s;
+	  -o-animation-duration: 0.2s;
+	  -ms-animation-duration: 0.2s;
+	  animation-duration: 0.2s;
+	  -webkit-animation-iteration-count: infinite;
+	  -moz-animation-iteration-count: infinite;
+	  -o-animation-iteration-count: infinite;
+	  -ms-animation-iteration-count: infinite;
+	  animation-iteration-count: infinite;
+	  -webkit-animation-direction: alternate;
+	  -moz-animation-direction: alternate;
+	  -o-animation-direction: alternate;
+	  -ms-animation-direction: alternate;
+	  animation-direction: alternate;
+ }
+ 
+@-moz-keyframes nsAnimateLeftToRight 
+{
+	from 
 	{
-		var target = null;
-		if(objItem instanceof Event || (objItem.hasOwnProperty("originalEvent") && objItem["originalEvent"] instanceof Event))
-		{
-			target = this.util.getTarget(objItem["originalEvent"]);
-		}
-		else
-		{
-			target = objItem;
-		}
-		if(target && this.util.isElement(target))
-		{
-			if(this.util.isElementOfType(target,"TR"))
-			{
-				objReturn = this.getRowInfo(target);
-			}
-			else if(this.util.isElementOfType("TD"))
-			{
-				objReturn = this.getCellInfo(target);
-			}
-			else
-			{
-				target = this.util.findParent(target,"TD");
-				objReturn = this.getCellInfo(target);
-			}
-				
-		}
+		padding-left: 6px;    
+		padding-right: 2px;  
+	}  
+	to 
+	{    
+		padding-left: 2px;    
+		padding-right: 6px;  
 	}
-	return objReturn;
-};
-Line 913: 		objColumn["truncateToFit"] = Boolean.parse(objColumn["truncateToFit"]);
-		objColumn["headerTruncateToFit"] = Boolean.parse(objColumn["headerTruncateToFit"]);
-Line 1259: var imgMove = this.__imgUtil.getMoveIcon("This column can be repositioned");
-Line 1344: if(colItem["headerTruncateToFit"])
-			{
-				this.util.addStyleClass(div,"nsTruncateToFit");
-				div.setAttribute("title",div.textContent);
-			}
-Line 3499: var truncateToFit = colItem["truncateToFit"];
-Line 3550: if(truncateToFit)
-		{
-			this.util.addStyleClass(div,"nsTruncateToFit");
-			div.setAttribute("title",div.textContent);
-		}
+}
+
+@-webkit-keyframes nsAnimateLeftToRight 
+{
+	from 
+	{
+		padding-left: 6px;
+		padding-right: 2px;  
+	}  
+	to 
+	{    
+		padding-left: 2px;    
+		padding-right: 6px;  
+	}
+}
+
+@-o-keyframes nsAnimateLeftToRight 
+{
+	from 
+	{
+		padding-left: 6px;
+		padding-right: 2px;  
+	}  
+	to 
+	{    
+		padding-left: 2px;    
+		padding-right: 6px;  
+	}
+}
+
+@keyframes nsAnimateLeftToRight 
+{
+	from 
+	{
+		padding-left: 6px;
+		padding-right: 2px;  
+	}  
+	to 
+	{    
+		padding-left: 2px;    
+		padding-right: 6px;  
+	}
+}
+1113
+//gives dimension for the visible part i.e. body or viewport
+ NSUtil.prototype.getBodyDimension = function() 
+ {
+	 var objReturn = {};
+	 objReturn.width = window.innerWidth || document.documentElement.clientWidth || document.body.offsetWidth;
+	 objReturn.height = window.innerHeight || document.documentElement.clientHeight || document.body.offsetHeight;
+	 return objReturn;
+ };
+ 
+//gives dimension for the whole document i.e. with scroll bars
+ NSUtil.prototype.getDocumentDimension = function() 
+ {
+	 var objReturn = {};
+	 var doc = document;
+	 objReturn.width = Math.max(
+			 	doc.body.scrollWidth, doc.documentElement.scrollWidth,
+			 	doc.body.offsetWidth, doc.documentElement.offsetWidth,
+			 	doc.body.clientWidth, doc.documentElement.clientWidth
+		    );
+	 objReturn.height = Math.max(
+			 	doc.body.scrollHeight, doc.documentElement.scrollHeight,
+			 	doc.body.offsetHeight, doc.documentElement.offsetHeight,
+			 	doc.body.clientHeight, doc.documentElement.clientHeight
+		    );
+	 return objReturn;
+ };
+ 
+ //concept from https://tylercipriani.com/2014/07/12/crossbrowser-javascript-scrollbar-detection.html
+ NSUtil.prototype.hasScrollbar = function(element,axis)
+ {
+	 if(!element)
+	 {
+		 element = document.documentElement || document.body;
+	 }
+     var overflowStyle = null;
+     var overflowYStyle = null;
+ 
+	 if (typeof element.currentStyle !== 'undefined') 
+	 {
+	     overflowStyle = element.currentStyle.overflow;
+	     overflowYStyle = element.currentStyle.overflowY;
+	 }
+	 overflowStyle = overflowStyle || window.getComputedStyle(element, "").overflow;
+	 overflowYStyle = overflowYStyle || window.getComputedStyle(element, "").overflowY;
+	
+	 if (axis === 'x') 
+	 {
+	     var contentOverflows = element.scrollWidth > element.clientWidth,
+	         overflowShown = /^(visible|auto)$/.test(overflowStyle), 
+	         alwaysShowScroll = overflowStyle === 'scroll';
+	     return (contentOverflows && overflowShown) || (alwaysShowScroll);
+	 }
+	 else if (axis === 'y') 
+	 {
+	     var contentOverflows = element.scrollHeight > element.clientHeight,
+	         overflowShown = /^(visible|auto)$/.test(overflowYStyle), 
+	         alwaysShowScroll = overflowYStyle === 'scroll';
+	     return (contentOverflows && overflowShown) || (alwaysShowScroll);
+	 }
+	 else 
+	 {
+	     var contentOverflows = element.scrollWidth > element.clientWidth || element.scrollHeight > element.clientHeight,
+	         overflowShown    = /^(visible|auto)$/.test(overflowStyle) || /^(visible|auto)$/.test(overflowYStyle),
+	         alwaysShowScroll = overflowStyle === 'scroll' || overflowYStyle === 'scroll';
+	     
+	     return (contentOverflows && overflowShown) || (alwaysShowScroll);
+	 }
+ };
