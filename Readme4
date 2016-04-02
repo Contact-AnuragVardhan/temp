@@ -1,148 +1,140 @@
-.nsAnimateLeftToRight 
+NSUtil.prototype.groupCollection = function(dataSource,childField,parentLevelIndicatorField,isSingleLevel)
 {
-	  -webkit-animation-name: nsAnimateLeftToRight;
-	  -moz-animation-name: nsAnimateLeftToRight;
-	  -o-animation-name: nsAnimateLeftToRight;
-	  -ms-animation-name: nsAnimateLeftToRight;
-	  animation-name: nsAnimateLeftToRight;
-	  -webkit-animation-duration: 0.2s;
-	  -moz-animation-duration: 0.2s;
-	  -o-animation-duration: 0.2s;
-	  -ms-animation-duration: 0.2s;
-	  animation-duration: 0.2s;
-	  -webkit-animation-iteration-count: infinite;
-	  -moz-animation-iteration-count: infinite;
-	  -o-animation-iteration-count: infinite;
-	  -ms-animation-iteration-count: infinite;
-	  animation-iteration-count: infinite;
-	  -webkit-animation-direction: alternate;
-	  -moz-animation-direction: alternate;
-	  -o-animation-direction: alternate;
-	  -ms-animation-direction: alternate;
-	  animation-direction: alternate;
- }
- 
-@-moz-keyframes nsAnimateLeftToRight 
-{
-	from 
+	this.__dataSource = dataSource;
+	this.__childField = childField;
+	this.__parentLevelIndicatorField = parentLevelIndicatorField;
+	this.__isSingleLevel = isSingleLevel;
+	this.__util = new NSUtil();
+	if(!this.__childField)
 	{
-		padding-left: 6px;    
-		padding-right: 2px;  
-	}  
-	to 
-	{    
-		padding-left: 2px;    
-		padding-right: 6px;  
+		this.__childField = "children";
 	}
-}
-
-@-webkit-keyframes nsAnimateLeftToRight 
-{
-	from 
+	if(!this.__parentLevelIndicatorField)
 	{
-		padding-left: 6px;
-		padding-right: 2px;  
-	}  
-	to 
-	{    
-		padding-left: 2px;    
-		padding-right: 6px;  
+		this.__parentLevelIndicatorField = "ns-IsParent";
 	}
-}
-
-@-o-keyframes nsAnimateLeftToRight 
-{
-	from 
+	if(this.__util.isUndefined(this.__isSingleLevel))
 	{
-		padding-left: 6px;
-		padding-right: 2px;  
-	}  
-	to 
-	{    
-		padding-left: 2px;    
-		padding-right: 6px;  
+		this.__isSingleLevel = true;
 	}
-}
-
-@keyframes nsAnimateLeftToRight 
-{
-	from 
-	{
-		padding-left: 6px;
-		padding-right: 2px;  
-	}  
-	to 
-	{    
-		padding-left: 2px;    
-		padding-right: 6px;  
-	}
-}
-1113
-//gives dimension for the visible part i.e. body or viewport
- NSUtil.prototype.getBodyDimension = function() 
- {
-	 var objReturn = {};
-	 objReturn.width = window.innerWidth || document.documentElement.clientWidth || document.body.offsetWidth;
-	 objReturn.height = window.innerHeight || document.documentElement.clientHeight || document.body.offsetHeight;
-	 return objReturn;
- };
- 
-//gives dimension for the whole document i.e. with scroll bars
- NSUtil.prototype.getDocumentDimension = function() 
- {
-	 var objReturn = {};
-	 var doc = document;
-	 objReturn.width = Math.max(
-			 	doc.body.scrollWidth, doc.documentElement.scrollWidth,
-			 	doc.body.offsetWidth, doc.documentElement.offsetWidth,
-			 	doc.body.clientWidth, doc.documentElement.clientWidth
-		    );
-	 objReturn.height = Math.max(
-			 	doc.body.scrollHeight, doc.documentElement.scrollHeight,
-			 	doc.body.offsetHeight, doc.documentElement.offsetHeight,
-			 	doc.body.clientHeight, doc.documentElement.clientHeight
-		    );
-	 return objReturn;
- };
- 
- //concept from https://tylercipriani.com/2014/07/12/crossbrowser-javascript-scrollbar-detection.html
- NSUtil.prototype.hasScrollbar = function(element,axis)
- {
-	 if(!element)
-	 {
-		 element = document.documentElement || document.body;
-	 }
-     var overflowStyle = null;
-     var overflowYStyle = null;
- 
-	 if (typeof element.currentStyle !== 'undefined') 
-	 {
-	     overflowStyle = element.currentStyle.overflow;
-	     overflowYStyle = element.currentStyle.overflowY;
-	 }
-	 overflowStyle = overflowStyle || window.getComputedStyle(element, "").overflow;
-	 overflowYStyle = overflowYStyle || window.getComputedStyle(element, "").overflowY;
 	
-	 if (axis === 'x') 
-	 {
-	     var contentOverflows = element.scrollWidth > element.clientWidth,
-	         overflowShown = /^(visible|auto)$/.test(overflowStyle), 
-	         alwaysShowScroll = overflowStyle === 'scroll';
-	     return (contentOverflows && overflowShown) || (alwaysShowScroll);
-	 }
-	 else if (axis === 'y') 
-	 {
-	     var contentOverflows = element.scrollHeight > element.clientHeight,
-	         overflowShown = /^(visible|auto)$/.test(overflowYStyle), 
-	         alwaysShowScroll = overflowYStyle === 'scroll';
-	     return (contentOverflows && overflowShown) || (alwaysShowScroll);
-	 }
-	 else 
-	 {
-	     var contentOverflows = element.scrollWidth > element.clientWidth || element.scrollHeight > element.clientHeight,
-	         overflowShown    = /^(visible|auto)$/.test(overflowStyle) || /^(visible|auto)$/.test(overflowYStyle),
-	         alwaysShowScroll = overflowStyle === 'scroll' || overflowYStyle === 'scroll';
-	     
-	     return (contentOverflows && overflowShown) || (alwaysShowScroll);
-	 }
- };
+	this.groupBy = function(arrGroupField)
+	{
+		var arrResult = this.__dataSource;
+  	    if(arrGroupField && arrGroupField.length > 0)
+  	    {
+  	    	if(this.__isSingleLevel)
+  	    	{
+  	    		arrResult = this.__groupByFieldOnSingleLevel(this.__dataSource,arrGroupField);
+  	    	}
+  	    	else
+  	    	{
+  	    		arrResult = this.__groupByFieldOnMultiLevel(this.__dataSource,arrGroupField);
+  	    	}
+  	    	
+  	    }
+  	    return arrResult;
+	};
+	
+	this.__groupByFieldOnSingleLevel = function(list,arrGroupField)
+	{
+		var groups = {};
+		if(list)
+		{
+			for (var count = 0; count < list.length; count++) 
+	  	    {
+	  	    	var item = list[count];
+	  	    	var arrItems = this.__getGroupItemValues(item,arrGroupField);
+	  	        var group = JSON.stringify(arrItems);
+	  	        if (group in groups) 
+	  	        {
+	  	            groups[group][this.__childField].push(item); 
+	  	        } 
+	  	        else 
+	  	        {
+	  	        	var objEmpty = this.__createEmptyItem(list[count]);
+	  	        	objEmpty[this.__parentLevelIndicatorField] = true;
+	  	        	for(var fieldCount = 0;fieldCount < arrGroupField.length;fieldCount++)
+	  	    		{
+	  	        		var fieldName = arrGroupField[fieldCount];
+	  	        		objEmpty[fieldName] = item[fieldName];
+	  	    		}
+	  	        	objEmpty[this.__childField] = [];
+	  	        	objEmpty[this.__childField].push(item); 
+	  	            groups[group] = objEmpty;
+	  	        }
+	  	    }
+		}
+  	    return this.__arrayFromObject(groups);
+	};
+	
+	this.__getGroupItemValues = function(item,arrGroupField)
+	{
+		var arrResult = [];
+		if(item && arrGroupField && arrGroupField.length > 0)
+    	{
+    		for(var count = 0;count < arrGroupField.length;count++)
+    		{
+    			var fieldValue = item[arrGroupField[count]];
+    			if(!this.__util.isUndefined(fieldValue) && fieldValue != null)
+    			{
+    				arrResult.push(fieldValue);
+    			}
+    		}
+    	}
+		return arrResult;
+	};
+	
+	this.__groupByFieldOnMultiLevel = function(list,arrGroupField)
+	{
+		
+	};
+	
+	this.__groupByField = function(source,field)
+	{
+		if(source && field)
+		{
+			for (var count = 0; count < source.length; count++) 
+	  	    {
+				var item = list[count];
+				if(item.hasOwnProperty(this.__childField) && item[this.__childField].length > 0)
+				{
+					this.__groupByField(item[this.__childField],field);
+				}
+				else
+				{
+					
+				}
+	  	    }
+		}
+	};
+	
+	this.__arrayFromObject = function(objArr)
+	{
+		var arr = [];
+		if(objArr)
+		{
+			for (var count in objArr) 
+	  	    {
+	  	        arr.push(objArr[count]);
+	  	    }
+		}
+  	    return arr;
+	};
+	
+	this.__createEmptyItem = function(objSource)
+  	{
+  		var objCopy = {};
+  		if (objSource instanceof Object) 
+  		{
+  	        for (var attr in objSource) 
+  	        {
+  	            if (objSource.hasOwnProperty(attr))
+  	            {
+  	            	objCopy[attr] = null;
+  	            }
+  	        }
+  	    }
+  		return objCopy;
+  	};
+};
