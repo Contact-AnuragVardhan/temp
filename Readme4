@@ -1,228 +1,514 @@
-var scrollPrototype = {
-    aConts  : [],
-    mouseY : 0,
-    N  : 0,
-    parent : 0, /*active scrollbar element*/
-    sc : 0,
-    sp : 0,
-    to : 0,
-	move :0,
+"use strict";
 
-    // constructor
-    scrollbar : function (cont_id) {
-        var parent = document.getElementById(cont_id);
+function NSScroller(setting)
+{	
+	this.__setting = setting;
+	
+	this.util = new NSUtil();	
+	
+	this.__config = null;
+    this.__id = null;
+    
+    this.__divParentContainer = null;
+    this.__divContentContainer = null;
+    
+    this.__divHorizontalScrollContainer = null;
+    this.__divHorizontalLeftArrow = null;
+    this.__divHorizontalScrollPane = null;
+    this.__divHorizontalScrollBar = null;
+    this.__divHorizontalRightArrow = null;
+    
+    this.__divVerticalScrollContainer = null;
+    this.__divVerticalUpArrow = null;
+    this.__divVerticalScrollPane = null;
+    this.__divVerticalScrollBar = null;
+    this.__divVerticalDownArrow = null;
+    
+    this.__divScrollBarCorner = null;
+    
+    this.__scrollBarWidth = 0;
+    this.__componentDimension = {outerWidth:0,outerHeight:0};
+    this.__orignalContentScroll = {scrollLeft:0,scrollTop:0};
+    this.__objHorizontalScroll = {};
+    this.__objVerticalScroll = {};
+    this.__draggedScrollBar = null;
+    this.__isHorizontal = false;
+    this.__isScrolling = false;
+    this.__animationInterval = null;
+	this.__scrollTriggerInterval = null;
+    
+    this.__documentMouseUpRef = null;
+    this.__windowResizeRef = null;
+    this.__documentMouseMoveRef = null;
+    
+    
+    this.__initialize();
+};
 
-        // perform initialization
-        if (! scrollPrototype.init()) return false;
-
-        var parentClone = parent.cloneNode(false);
-		parentClone.id=parentClone.id + "1";
-        parentClone.style.overflow = "hidden";
-        parent.parentNode.appendChild(parentClone);
-        parentClone.appendChild(parent);
-        parent.style.position = 'absolute';
-        parent.style.left = parent.style.top = '0px';
-        parent.style.width = parent.style.height = '100%';
-
-        // adding new container into array
-        scrollPrototype.aConts[scrollPrototype.N++] = parent;
-
-        parent.isMouseDown = false;
-
-        //creating scrollbar child elements
-        parent.divScrollPane = this.create_div('ssb_st', parent, parentClone,"divScrollPane");
-        parent.divScrollBar = this.create_div('ssb_sb', parent, parentClone,"divScroller");
-        parent.divScrollUpArrow = this.create_div('ssb_up', parent, parentClone,"divScrollUpArrow");
-        parent.divScrollDownArrow = this.create_div('ssb_down', parent, parentClone,"divScrollDownArrow");
-
-        // on mouse down processing
-        parent.divScrollBar.onmousedown = function (e) {
-            if (! this.parent.isMouseDown) {
-                if (! e) e = window.event;
-
-                scrollPrototype.parent = this.parent;
-                this.parent.eventScreenY = e.screenY;
-                this.parent.eventScrollTop = parent.scrollTop;
-                this.parent.isMouseDown = true;
-
-                // new class name
-                this.className = 'ssb_sb ssb_sb_down';
-            }
-            return false;
-        }
-        // on mouse down on free track area - move our scroll element too
-        parent.divScrollPane.onmousedown = function (e) {
-            if (! e) e = window.event;
-            scrollPrototype.parent = this.parent;
-
-            scrollPrototype.mouseY = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
-            for (var o = this.parent, y = 0; o != null; o = o.offsetParent) y += o.offsetTop;
-            this.parent.scrollTop = (scrollPrototype.mouseY - y - (this.parent.ratio * this.parent.offsetHeight / 2) - this.parent.sw) / this.parent.ratio;
-            this.parent.divScrollBar.onmousedown(e);
-        }
-
-        // onmousedown events
-        parent.divScrollUpArrow.onmousedown = parent.divScrollUpArrow.ondblclick = function (e) { scrollPrototype.mousedown(this, -1); return false; }
-        parent.divScrollDownArrow.onmousedown = parent.divScrollDownArrow.ondblclick = function (e) { scrollPrototype.mousedown(this,  1); return false; }
-
-        //onmouseout events
-        parent.divScrollUpArrow.onmouseout = parent.divScrollUpArrow.onmouseup = scrollPrototype.clear;
-        parent.divScrollDownArrow.onmouseout = parent.divScrollDownArrow.onmouseup = scrollPrototype.clear;
-
-        // on mouse over - apply custom class name: ssb_sb_over
-        parent.divScrollBar.onmouseover = function (e) {
-            if (! this.parent.isMouseDown) this.className = 'ssb_sb ssb_sb_over';
-            return false;
-        }
-
-        // on mouse out - revert back our usual class name 'ssb_sb'
-        parent.divScrollBar.onmouseout  = function (e) {
-            if (! this.parent.isMouseDown) this.className = 'ssb_sb';
-            return false;
-        }
-
-        // onscroll - change positions of scroll element
-        parent.ssb_onscroll = function (event) {
-            this.ratio = (this.offsetHeight - 2 * this.sw) / this.scrollHeight;
-			//if(!event)
-			//{
-			console.log("ssb_onscroll before::" + scrollPrototype.top);
-			//this.scrollTop
-				this.divScrollBar.style.top = Math.floor(this.sw + scrollPrototype.top  * this.ratio) + 'px';
-			//}
-            
-			console.log("ssb_onscroll::" + this.divScrollBar.id + "=" + this.divScrollBar.style.top);
-        }
-
-        // scrollbar width
-        parent.sw = 20;
-
-        // start scrolling
-        parent.ssb_onscroll();
-        scrollPrototype.refresh();
-        
-        // binding own onscroll event
-        //parent.onscroll = parent.ssb_onscroll;
-        return parent;
-    },
-
-    // initialization
-    init : function () {
-        if (window.oper || (! window.addEventListener && ! window.attachEvent)) { return false; }
-
-        // temp inner function for event registration
-        function addEvent (o, e, f) {
-            if (window.addEventListener) { o.addEventListener(e, f, false); scrollPrototype.w3c = true; return true; }
-            if (window.attachEvent) return o.attachEvent('on' + e, f);
-            return false;
-        }
-
-        // binding events
-        addEvent(window.document, 'mousemove', scrollPrototype.onmousemove);
-        addEvent(window.document, 'mouseup', scrollPrototype.onmouseup);
-        addEvent(window, 'resize', scrollPrototype.refresh);
-        return true;
-    },
-
-    // create and append div finc
-    create_div : function(c, parent, parentClone,id) {
-        var o = document.createElement('div');
-		if(id)
+NSScroller.prototype.__initialize = function()
+{
+	if(this.__setting)
+	{
+		this.__config = 
 		{
-			o.id = id;
-		}
-        o.parent = parent;
-        o.className = c;
-        parentClone.appendChild(o);
-        return o;
-    },
-    // do clear of controls
-    clear : function () {
-        clearTimeout(scrollPrototype.to);
-        scrollPrototype.sc = 0;
-        return false;
-    },
-    // refresh scrollbar
-    refresh : function () {
-        for (var i = 0, N = scrollPrototype.N; i < N; i++) {
-            var o = scrollPrototype.aConts[i];
-            o.ssb_onscroll();
-            o.divScrollBar.style.width = o.divScrollPane.style.width = o.divScrollUpArrow.style.width = o.divScrollUpArrow.style.height = o.divScrollDownArrow.style.width = o.divScrollDownArrow.style.height = o.sw + 'px';
-            o.divScrollBar.style.height = Math.ceil(Math.max(o.sw * .5, o.ratio * o.offsetHeight) + 1) + 'px';
-        }
-    },
-    // arrow scrolling
-    arrow_scroll : function () {
-        if (scrollPrototype.sc != 0) {
-            scrollPrototype.parent.scrollTop += 6 * scrollPrototype.sc / scrollPrototype.parent.ratio;
-            scrollPrototype.to = setTimeout(scrollPrototype.arrow_scroll, scrollPrototype.sp);
-            scrollPrototype.sp = 32;
-        }
-    },
-
-    /* event binded functions : */
-    // scroll on mouse down
-    mousedown : function (o, s) {
-        if (scrollPrototype.sc == 0) {
-            // new class name
-            o.parent.divScrollBar.className = 'ssb_sb ssb_sb_down';
-            scrollPrototype.parent = o.parent;
-            scrollPrototype.sc = s;
-            scrollPrototype.sp = 400;
-            scrollPrototype.arrow_scroll();
-        }
-    },
-    // on mouseMove binded event
-    onmousemove : function(e) {
-        if (! e) e = window.event;
-        // get vertical mouse position
-        scrollPrototype.mouseY = e.screenY;
-        if (scrollPrototype.parent.isMouseDown)
+			component: this.__setting["component"] || null
+		};
+		if(this.__config.component)
 		{
-			scrollPrototype.top = scrollPrototype.parent.eventScrollTop + (scrollPrototype.mouseY - scrollPrototype.parent.eventScreenY) / scrollPrototype.parent.ratio;
-			var maxValue = scrollPrototype.parent.scrollHeight - ((3 * scrollPrototype.parent.divScrollBar.offsetHeight) + (2 * scrollPrototype.parent.divScrollDownArrow.offsetHeight));
-			if(scrollPrototype.top >=0 && scrollPrototype.top <= maxValue)
-			{
-				//scrollPrototype.parent.scrollTop = scrollPrototype.top;
-				scrollPrototype.parent.ratio = (scrollPrototype.parent.offsetHeight - 2 * scrollPrototype.parent.sw) / scrollPrototype.parent.scrollHeight;
-				scrollPrototype.parent.divScrollBar.style.top = Math.floor(scrollPrototype.parent.sw + scrollPrototype.top  * scrollPrototype.parent.ratio) + 'px';
-			}
-			
-			
+			this.__scrollBarWidth = this.util.getScrollBarWidth();
+			this.__createElements(); 
+			this.__addEvents();
+			this.__scroll(true);
+			this.__scroll(false);
+			/*this.__scrollHandler();
+		    this.__refresh();*/
+		}
+	}
+};
 
-			console.log("onmousemove::" + maxValue + "=" + scrollPrototype.top);
-		}
-    },
-    // on mouseUp binded event
-    onmouseup : function (e) {
-        if (! e) e = window.event;
-        var tg = (e.target) ? e.target : e.srcElement;
-        if (scrollPrototype.parent && document.releaseCapture) 
-		{
-			scrollPrototype.parent.releaseCapture();
-		}
+NSScroller.prototype.__createElements = function()
+{
+	this.__createParents();
+	this.__componentDimension = {outerWidth:this.util.getOuterWidth(this.__config.component),outerHeight:this.util.getOuterHeight(this.__config.component)};
+	this.__orignalContentScroll = {scrollLeft:this.__divContentContainer.scrollLeft,scrollTop:this.__divContentContainer.scrollTop};
+	var isHorizontalScrollBarNeeded = this.__isHorizontalScrollBarNeeded();
+	var isVerticalScrollBarNeeded = this.__isVerticalScrollBarNeeded();
+	if(isHorizontalScrollBarNeeded)
+	{
+		this.__createHorizontalScrollBar();
+	}
+	if(isVerticalScrollBarNeeded)
+	{
+		this.__createVerticalScrollBar();
+	}
+	if(isHorizontalScrollBarNeeded && isVerticalScrollBarNeeded)
+	{
+		this.__createCornerElement();
+	}
+	if(isHorizontalScrollBarNeeded)
+	{
+		this.__calculateHorizontalDimension();
+	}
+	if(isVerticalScrollBarNeeded)
+	{
+		this.__calculateVerticalDimension();
+	}
+};
 
-        // new class name
-        if (scrollPrototype.parent)
-		{
-			var className = "";
-			if(tg.className.indexOf('scrollbar') > 0)
-			{
-				className = 'ssb_sb ssb_sb_over';
-			}
-			else
-			{
-				className = 'ssb_sb';
-				scrollPrototype.parent.scrollTop = scrollPrototype.top;
-			}
-			scrollPrototype.parent.divScrollBar.className = className;
-		}
-        document.onselectstart = '';
-        scrollPrototype.clear();
-        scrollPrototype.parent.isMouseDown = false;
+NSScroller.prototype.__createParents = function()
+{
+	var id = this.__getID();
+	this.__divParentContainer = this.util.createDiv(id + "ScrollParentContainer","nsScrollParentContainer");
+	this.__divContentContainer = this.util.createDiv(id + "ScrollContentContainer","nsScrollContentContainer");;
+	var component = this.__config.component;
+	component.parentNode.appendChild(this.__divParentContainer);
+	this.__divParentContainer.appendChild(this.__divContentContainer);
+	this.__divContentContainer.appendChild(component);
+};
+
+NSScroller.prototype.__createHorizontalScrollBar = function()
+{
+	var id = this.__getID();
+	this.__divHorizontalScrollContainer = this.util.createDiv(id + "HorizontalScrollContainer","nsScrollHorizontalScrollContainer");
+	this.__divHorizontalLeftArrow = this.util.createDiv(id + "HorizontalLeftArrow","nsScrollHorizontalLeftArrow");
+	this.__divHorizontalScrollPane = this.util.createDiv(id + "HorizontalScrollPane","nsScrollHorizontalScrollPane");
+	this.__divHorizontalScrollBar = this.util.createDiv(id + "HorizontalScrollBar","nsScrollHorizontalScrollBar");
+	this.__divHorizontalRightArrow = this.util.createDiv(id + "HorizontalRightArrow","nsScrollHorizontalRightArrow");
+	
+	this.__divParentContainer.appendChild(this.__divHorizontalScrollContainer);
+	this.__divHorizontalScrollContainer.appendChild(this.__divHorizontalLeftArrow);
+	this.__divHorizontalScrollContainer.appendChild(this.__divHorizontalScrollPane);
+	this.__divHorizontalScrollPane.appendChild(this.__divHorizontalScrollBar);
+	this.__divHorizontalScrollContainer.appendChild(this.__divHorizontalRightArrow);
+	
+	this.__divContentContainer.style.paddingBottom = this.__scrollBarWidth + "px";
+};
+
+NSScroller.prototype.__createVerticalScrollBar = function()
+{
+	var id = this.__getID();
+	
+	this.__divVerticalScrollContainer = this.util.createDiv(id + "VerticalScrollContainer","nsScrollVerticalScrollContainer");
+	this.__divVerticalUpArrow = this.util.createDiv(id + "VerticalLeftArrow","nsScrollVerticalUpArrow");
+	this.__divVerticalScrollPane = this.util.createDiv(id + "VerticalScrollPane","nsScrollVerticalScrollPane");
+	this.__divVerticalScrollBar = this.util.createDiv(id + "VerticalScrollBar","nsScrollVerticalScrollBar");
+	this.__divVerticalDownArrow = this.util.createDiv(id + "VerticalRightArrow","nsScrollVerticalDownArrow");
+	
+	this.__divParentContainer.appendChild(this.__divVerticalScrollContainer);
+	this.__divVerticalScrollContainer.appendChild(this.__divVerticalUpArrow);
+	this.__divVerticalScrollContainer.appendChild(this.__divVerticalScrollPane);
+	this.__divVerticalScrollPane.appendChild(this.__divVerticalScrollBar);
+	this.__divVerticalScrollContainer.appendChild(this.__divVerticalDownArrow);
+	
+	this.__divContentContainer.style.paddingRight = this.__scrollBarWidth + "px";
+};
+
+NSScroller.prototype.__createCornerElement = function()
+{
+	var id = this.__getID();
+	this.__divScrollBarCorner = this.util.createDiv(id + "ScrollBarCorner","nsScrollBarCorner");
+	this.__divParentContainer.appendChild(this.__divScrollBarCorner);
+};
+
+
+NSScroller.prototype.__isHorizontalScrollBarNeeded = function()
+{
+	var parentContainerWidth = this.__divParentContainer.getBoundingClientRect().width;
+	if(this.__componentDimension.outerWidth > parentContainerWidth) 
+	{
+       return true;
     }
+	return false;
+};
+
+NSScroller.prototype.__isVerticalScrollBarNeeded = function()
+{
+	var parentContainerHeight = this.__divParentContainer.getBoundingClientRect().height;
+	if(this.__componentDimension.outerHeight > parentContainerHeight) 
+	{
+       return true;
+    }
+	return false;
+};
+
+NSScroller.prototype.__calculateHorizontalDimension = function()
+{
+	var parentContainerWidth = this.__divParentContainer.getBoundingClientRect().width;
+	//TODO: Rename trackSize to paneSize
+	this.__objHorizontalScroll.trackSize = this.util.getOuterWidth(this.__divHorizontalScrollPane);
+	this.__objHorizontalScroll.scaleFactor = this.util.round(this.__componentDimension.outerWidth / parentContainerWidth,1);
+	this.__objHorizontalScroll.scrollThumbSize = (this.__objHorizontalScroll.trackSize / this.__objHorizontalScroll.scaleFactor) - 32;
+	console.log(this.__objHorizontalScroll.trackSize + "/" + this.__objHorizontalScroll.scaleFactor + "=" + this.__objHorizontalScroll.scrollThumbSize);
+	this.__objHorizontalScroll.scrollFactor = parentContainerWidth / this.__objHorizontalScroll.scrollThumbSize;
+	this.__objHorizontalScroll.scrollThumbSize = (this.__objHorizontalScroll.scrollThumbSize < 30 ? 30 : this.__objHorizontalScroll.scrollThumbSize);
+	this.__objHorizontalScroll.clickPosition = 0;
+	this.__objHorizontalScroll.delta = 0;
+    
+	this.__divHorizontalScrollPane.style.height = 16 + "px";
+    this.__divHorizontalScrollBar.style.width = this.__objHorizontalScroll.scrollThumbSize + "px";
+    this.__divHorizontalScrollBar.style.height = 11 + "px";
+};
+
+NSScroller.prototype.__calculateVerticalDimension = function()
+{
+	var parentContainerHeight = this.__divParentContainer.getBoundingClientRect().height;
+	//TODO: Rename trackSize to paneSize
+	this.__objVerticalScroll.trackSize = this.util.getOuterHeight(this.__divVerticalScrollPane);
+	this.__objVerticalScroll.scaleFactor = this.__componentDimension.outerHeight / parentContainerHeight;
+	this.__objVerticalScroll.scrollThumbSize = (this.__objVerticalScroll.trackSize / this.__objVerticalScroll.scaleFactor) - 16;
+	this.__objVerticalScroll.scrollFactor = parentContainerHeight / this.__objVerticalScroll.scrollThumbSize;
+	this.__objVerticalScroll.scrollThumbSize = (this.__objVerticalScroll.scrollThumbSize < 30 ? 30 : this.__objVerticalScroll.scrollThumbSize);
+	this.__objVerticalScroll.clickPosition = 0;
+	this.__objVerticalScroll.delta = 0;
+    
+    this.__divVerticalScrollBar.style.height = this.__objVerticalScroll.scrollThumbSize + "px";
+    this.__divVerticalScrollBar.style.width = 11 + "px";
+};
+
+NSScroller.prototype.__addEvents = function() 
+{
+	this.__documentMouseUpRef = this.__documentMouseUpHandler.bind(this);
+    this.__documentMouseMoveRef = this.__documentMouseMoveHandler.bind(this);
+    this.__windowResizeRef = this.__windowResizeHandler.bind(this);
+    
+    this.util.addEvent(document.body,"mouseup",this.__documentMouseUpRef);
+    this.util.addEvent(document.body,"mousemove", this.__documentMouseMoveRef);
+    this.util.addEvent(document.body,"mouseleave", this.__documentMouseUpRef);
+    this.util.addEvent(document.body,"blur", this.__documentMouseUpRef);
+	/*this.util.addEvent(window,"resize",this.__windowResizeRef);*/
+	
+	this.util.addEvent(this.__divContentContainer,"scroll",this.__contentScrollHandler.bind(this));
+	this.util.addEvent(this.__divHorizontalScrollBar,"mousedown",this.__horizontalScrollBarMouseDownHandler.bind(this));
+	this.util.addEvent(this.__divVerticalScrollBar,"mousedown",this.__verticalScrollBarMouseDownHandler.bind(this));
+	this.util.addEvent(this.__divHorizontalLeftArrow,"mousedown",this.__leftArrowMouseDownHandler.bind(this));
+	this.util.addEvent(this.__divHorizontalRightArrow,"mousedown",this.__rightArrowMouseDownHandler.bind(this));
+	this.util.addEvent(this.__divVerticalUpArrow,"mousedown",this.__upArrowMouseDownHandler.bind(this));
+	this.util.addEvent(this.__divVerticalDownArrow,"mousedown",this.__downArrowMouseDownHandler.bind(this));
+	
+	/*this.util.addEvent(this.__divScrollBar,"mouseover",this.__scrollBarMouseOverHandler.bind(this));
+	this.util.addEvent(this.__divScrollBar,"mouseout",this.__scrollBarMouseOutHandler.bind(this));
+	this.util.addEvent(this.__divScrollPane,"mousedown",this.__scrollPaneMouseDownHandler.bind(this));
+	this.util.addEvent(this.__divScrollUpArrow,"mousedown",this.__scrollUpArrowMouseDownHandler.bind(this));
+	this.util.addEvent(this.__divScrollUpArrow,"dblclick",this.__scrollUpArrowMouseDownHandler.bind(this));
+	this.util.addEvent(this.__divScrollDownArrow,"mousedown",this.__scrollDownArrowMouseDownHandler.bind(this));
+	this.util.addEvent(this.__divScrollDownArrow,"dblclick",this.__scrollDownArrowMouseDownHandler.bind(this));*/
+	
+};
+
+NSScroller.prototype.__contentScrollHandler = function(event)
+{
+	this.__currentContentScroll = {scrollLeft:this.__divContentContainer.scrollLeft,scrollTop:this.__divContentContainer.scrollTop};
+	if(this.__currentContentScroll.scrollTop !== this.__orignalContentScroll.scrollTop) 
+	{
+        this.__scroll(false);
+    }
+    if(this.__currentContentScroll.scrollLeft !== this.__orignalContentScroll.scrollLeft) 
+    {
+    	this.__scroll(true);
+    }
+	if(!this.__isScrolling)
+	{
+		//can fire an event
+	}
+	this.__isScrolling = true;
+	var self = this;
+	clearTimeout(this.__animationInterval);
+	this.__animationInterval = setTimeout(function() 
+	{
+		self.__reset.bind(self)();
+    }, 200);
+};
+
+NSScroller.prototype.__horizontalScrollBarMouseDownHandler = function(event) 
+{
+	this.__scrollBarMouseDownHandler(event,this.__divHorizontalScrollBar,true);
+};
+
+NSScroller.prototype.__verticalScrollBarMouseDownHandler = function(event) 
+{
+	this.__scrollBarMouseDownHandler(event,this.__divVerticalScrollBar,false);
+};
+
+NSScroller.prototype.__scrollBarMouseDownHandler = function(event,scrollBar,isHorizontal) 
+{
+	event = this.util.getEvent(event);
+	var objScroll = this.__getScrollObject(isHorizontal);
+	var offset = scrollBar.offsetTop;
+	var pos = event.pageY;
+	if(isHorizontal)
+	{
+		offset = scrollBar.offsetLeft;
+		pos = event.pageX;
+	}
+	objScroll.clickPosition = pos - offset;
+	this.__draggedScrollBar = scrollBar;
+	this.__isHorizontal = isHorizontal;
+	this.util.preventDefault(event);
+};
+
+NSScroller.prototype.__leftArrowMouseDownHandler = function(event) 
+{
+	this.__initiateScroll(true,false);
+};
+
+NSScroller.prototype.__rightArrowMouseDownHandler = function(event) 
+{
+	this.__initiateScroll(true,true);
+};
+
+NSScroller.prototype.__upArrowMouseDownHandler = function(event) 
+{
+	this.__initiateScroll(false,false);
+};
+
+NSScroller.prototype.__downArrowMouseDownHandler = function(event) 
+{
+	this.__initiateScroll(false,true);
+};
+
+NSScroller.prototype.__documentMouseUpHandler = function(event) 
+{
+	this.__draggedScrollBar = null;
+	clearInterval(this.__scrollTriggerInterval);
+};
+
+NSScroller.prototype.__documentMouseMoveHandler = function(event) 
+{
+	event = this.util.getEvent(event);
+	if(this.__draggedScrollBar)
+	{
+		var objScroll = this.__getScrollObject(this.__isHorizontal);
+		if(this.__isHorizontal)
+		{
+			objScroll.delta = event.pageX - objScroll.clickPosition;
+			this.__divContentContainer.scrollLeft = objScroll.delta * objScroll.scrollFactor;
+			console.log(this.__divContentContainer.scrollLeft);
+		}
+		else 
+		{
+			objScroll.delta = event.pageY - objScroll.clickPosition;
+			this.__divContentContainer.scrollTop = objScroll.delta * objScroll.scrollFactor;
+		}
+	}
+};
+
+NSScroller.prototype.__initiateScroll = function(isHorizontal,isIncrease)
+{
+	var objScroll = this.__getScrollObject(isHorizontal);
+	var interval = (objScroll.scaleFactor >= 2 ? objScroll.scaleFactor / 2 : 1);
+	var propStyle  = "scrollTop";
+	if(isHorizontal)
+	{
+		propStyle = "scrollLeft";
+	}
+	var self = this;
+	this.__scrollTriggerInterval = setInterval(function() 
+	{
+		self.__continueScroll.bind(self)(objScroll,propStyle,isIncrease);
+    }, interval);
+};
+
+NSScroller.prototype.__continueScroll = function(objScroll,propStyle,isIncrease)
+{
+	if(isIncrease)
+	{
+		this.__divContentContainer[propStyle] += objScroll.scaleFactor;
+	}
+	else
+	{
+		this.__divContentContainer[propStyle] -= objScroll.scaleFactor;
+	}
+};
+
+NSScroller.prototype.__scroll = function(isHorizontal)
+{
+	var objScroll = this.__getScrollObject(this);
+	var scrollBar = this.__getScrollBar(isHorizontal);
+	var scrollPosition = 0;
+	var propStyle  = "";
+	if(isHorizontal)
+	{
+		scrollPosition =  this.__divContentContainer.scrollLeft;
+		propStyle = "left";
+	}
+	else
+	{
+		scrollPosition =  this.__divContentContainer.scrollTop;
+		propStyle = "top";
+	}
+	var newScrollPosition = scrollPosition / objScroll.scaleFactor;
+	scrollBar.style[propStyle] = newScrollPosition + "px";
+};
+
+NSScroller.prototype.__reset = function() 
+{
+	this.__isScrolling = false;
+};
+
+NSScroller.prototype.__getScrollObject = function(isHorizontal) 
+{
+	var objScroll = this.__objVerticalScroll;
+	if(isHorizontal)
+	{
+		objScroll = this.__objHorizontalScroll;
+	}
+	return objScroll;
+};
+
+NSScroller.prototype.__getScrollBar = function(isHorizontal) 
+{
+	var scrollBar = this.__divVerticalScrollBar;
+	if(isHorizontal)
+	{
+		scrollBar = this.__divHorizontalScrollBar;
+	}
+	return scrollBar;
+};
+
+
+NSScroller.prototype.__scrollBarMouseOverHandler = function(event) 
+{
+	if (!this.__lastPos.isMouseDown) 
+	{
+		this.util.addStyleClass(this.__divScrollBar,"ssb_sb_over");
+	}
+	this.util.preventDefault(event);
+};
+
+NSScroller.prototype.__scrollBarMouseOutHandler = function(event) 
+{
+	if (!this.__lastPos.isMouseDown) 
+	{
+		this.util.removeStyleClass(this.__divScrollBar,"ssb_sb_over");
+	}
+	this.util.preventDefault(event);
+};
+
+NSScroller.prototype.__scrollPaneMouseDownHandler = function(event) 
+{
+	event = this.util.getEvent(event);
+	this.__lastPos.mouseY = event.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+	var totalOffsetTop = 0;
+	var tempParent = this.__config.component;
+	while (tempParent)
+	{
+		totalOffsetTop += tempParent.offsetTop;
+		tempParent = tempParent.offsetParent;
+	}
+	this.__config.component.scrollTop = (this.__lastPos.mouseY - totalOffsetTop - (this.__lastPos.ratio * this.__config.component.offsetHeight / 2) - this.__scrollBarWidth) / this.__lastPos.ratio;
+    this.__scrollBarMouseDownHandler.bind(this)(event);
+};
+
+NSScroller.prototype.__scrollUpArrowMouseDownHandler = function(event) 
+{
+	this.__scrollOnMouseDown(this.__divScrollUpArrow,-1);
+	this.util.preventDefault(event);
+};
+
+NSScroller.prototype.__scrollDownArrowMouseDownHandler = function(event) 
+{
+	this.__scrollOnMouseDown(this.__divScrollDownArrow,1);
+	this.util.preventDefault(event);
+};
+
+
+
+NSScroller.prototype.__windowResizeHandler = function(event) 
+{
+	this.__updateElements.bind(this)();
+};
+
+NSScroller.prototype.__scrollOnMouseDown = function(target,scrollFactor) 
+{
+    if (this.__lastPos.scrollFactor == 0) 
+    {
+    	this.util.addStyleClass(this.__divScrollBar,"ssb_sb_over");
+    	this.__lastPos.scrollFactor = scrollFactor;
+    	this.__lastPos.scrollPosition = 400;
+        this.__arrowScrollHandler.bind(this)();
+    }
+};
+
+NSScroller.prototype.__arrowScrollHandler = function()
+{
+    if (this.__lastPos.scrollFactor!= 0) 
+    {
+    	this.__config.component.scrollTop += 6 * this.__lastPos.scrollFactor / this.__lastPos.ratio;
+    	this.__lastPos.to = setTimeout(this.__arrowScrollHandler.bind(this),this.__lastPos.scrollPosition);
+    	this.__lastPos.scrollPosition = 32;
+    }
+};
+
+
+
+
+
+NSScroller.prototype.__refresh = function () 
+{
+	this.__scrollHandler();
+	var component = this.__config.component;
+	this.__divScrollBar.style.width = this.__divScrollPane.style.width = this.__divScrollUpArrow.style.width = this.__divScrollUpArrow.style.height = this.__divScrollDownArrow.style.width = this.__divScrollDownArrow.style.height = this.__scrollBarWidth + "px";
+	this.__divScrollBar.style.height = Math.ceil(Math.max(this.__scrollBarWidth * .5, this.__lastPos.ratio * component.offsetHeight) + 1) + 'px';
 }
 
-window.onload = function() {
-    scrollPrototype.scrollbar('main_content'); // scrollbar initialization
-}
+/*********************************Start of Util Function*******************************/
+NSScroller.prototype.__getID = function()
+{
+	if(!this.__id)
+	{
+		if(this.__config.component.hasAttribute("id"))
+		{
+			this.__id = this.__config.component.getAttribute("id");
+		}
+		else if(this.__config.component.hasAttribute("name"))
+		{
+			this.__id = this.__config.component.getAttribute("name");
+		}
+		else
+		{
+			this.__id = "comp" + this.util.getUniqueId();
+		}
+	}
+	return this.__id;
+};
+/*********************************End of Util Function*******************************/
