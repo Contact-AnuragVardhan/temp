@@ -1,53 +1,46 @@
-function itemRenderer(data,dataField,rowIndex,columnIndex,row)
+var start = new Date().getTime();
+	if(!fromRowIndex)
+	{
+		fromRowIndex = 0;
+	}
+	var totalRecords = this.__nsGrid.__totalRecords;
+	var arrRows = this.__nsGrid.__tblCenterBodyBody.rows;
+	var rowLength = arrRows.length;
+	var length = this.__nsGrid.__arrFlatHierarchicalSource.length;
+	var indexCount = fromIndex;
+	var rowCount = fromRowIndex;
+	var arrData = this.__nsGrid.__arrFlatHierarchicalSource.slice(fromIndex,toIndex);
+	length = arrData.length;
+	indexCount = 0;
+	var end = new Date().getTime();
+	var time = end - start;
+	console.log('Execution time: ' + (time / 1000.0));
+	for(var count = fromIndex; count < length; count++)
+	{
+		var item = this.__nsGrid.__arrFlatHierarchicalSource[count];
+		if(item[this.__nsGrid.__fieldRowVisible])
 		{
-			/*var selected = data[dataField];
-			//row.update();
-			if(selected)
+			if(rowLength <= rowCount) 
 			{
-				return '<input type="checkbox" checked>';
+				break;
 			}
-			else
-			{
-				return '<input type="checkbox">';
-			}*/
-			if(data["checked"])
-			{
-				return "<a href=# class='purple' onclick='anchorClick(event," + rowIndex +"," + data["id"] +")'>" + returnAlphabets("a",rowIndex + 1) + "</a>";
-			}
-			else
-			{
-				return "<a href=# onclick='anchorClick(event," + rowIndex +"," + data["id"] +")'>" + returnAlphabets("a",rowIndex + 1) + "</a>";
-			}
-			/*if(data["checked"])
-			{
-				return "<a href=# class='purple' onclick='anchorClick(event," + rowIndex +"," + data["id"] +")'>" + "Visit W3Schools.com!" + "</a>";
-			}
-			else
-			{
-				return "<a href=# onclick='anchorClick(event," + rowIndex +"," + data["id"] +")'>" + "Visit W3Schools.com!" + "</a>";
-			}*/
-			
+			var row = arrRows[rowCount];
+			row.style.display = "";
+			item[this.__nsGrid.__fieldRow] = row;
+			this.__updateRow(row,item);
+			indexCount++;
+			rowCount++;
 		}
-		
-		function returnAlphabets(alphabet,count)
-		{
-			var retValue = "";
-			for(var innerCount= 1;innerCount < count;innerCount++)
-			{
-				retValue += alphabet;
-			}
-			return retValue;
-		}
-		
-		function anchorClick(event,rowIndex,keyValue)
-		{
-			//alert(rowIndex);
-			 var dgDemo = document.getElementById("dgDemo");
-			 var objItem = dgDemo.getItemInfo(event);
-			 objItem["item"]["checked"] = true;
-			 dgDemo.updateCellByIndex(rowIndex,"checked");
-			 //dgDemo.updateCellByKeyField(keyValue,"checked");
-			 //dgDemo.updateRowByKeyField(keyValue);
-			 console.log(objItem.rowIndex + "," + rowIndex);
-			 event.preventDefault();
-		}
+	}
+	end = new Date().getTime();
+	time = end - start;
+	console.log('Execution time1: ' + (time / 1000.0));
+	//for making remaining rows hide
+	for(var rowIndex = rowCount;rowIndex < rowLength;rowIndex++)
+	{
+		var row = arrRows[rowIndex];
+		row.style.display = "none";
+		row.setAttribute("ns-index",null);
+		row.setAttribute("ns-level",null);
+		row.setAttribute("ns-parent-index",null);
+	}
