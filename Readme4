@@ -1,79 +1,53 @@
-var viewPortHeight = this.__divCenterTableBodyContainer.clientHeight;
-		this.__divVirtualScrollParent.style.maxHeight = viewPortHeight + "px";
-		while(viewPortHeight > this.__tblCenterBody.offsetHeight)
+function itemRenderer(data,dataField,rowIndex,columnIndex,row)
 		{
-			var rowLength = this.__tblCenterBody.rows.length;
-			this.__createBodyBody(this.__arrInternalSource,rowLength - 1,rowLength);
-		}
-NSFlatGrid.prototype.__resetDataInBody= function(fromIndex,toIndex)
-{
-	var arrSource = this.__nsGrid.__arrWrapper.slice(fromIndex,toIndex + 1);
-	var indexCount = fromIndex;
-	var totalRecords = this.__nsGrid.__totalRecords;
-	var arrRows = this.__nsGrid.__tblCenterBodyBody.rows;
-	var rowLength = arrRows.length;
-	var rowCount = 0;
-	var lastIndex = fromIndex;
-	for(var rowIndex = 0; rowIndex < arrRows.length; rowIndex++,indexCount++)
-    {
-		if(rowLength <= rowCount) 
-		{
-			console.log(fromIndex + "," + toIndex + "," + rowLength + "," + rowCount);
-			break;
-		}
-		var row = arrRows[rowIndex];
-		/*if(indexCount < totalRecords)
-		{*/
-			row.style.display = "";
-			var item = arrSource[rowIndex];
-			
-			if(item)
+			/*var selected = data[dataField];
+			//row.update();
+			if(selected)
 			{
-				lastIndex = item[this.__nsGrid.__fieldIndex];
-				row.setAttribute("ns-index",lastIndex);
-				item[this.__nsGrid.__fieldRowHtml] = row;
-				this.__updateRow(row,item);
-				rowCount++;
+				return '<input type="checkbox" checked>';
 			}
-			/*else
+			else
 			{
-				row.style.display = "none";
+				return '<input type="checkbox">';
 			}*/
-		/*}
-		else
-		{
-			row.style.display = "none";
-		}*/
-    }
-	var viewPortHeight = this.__nsGrid.__divCenterTableBodyContainer.clientHeight;
-	lastIndex = lastIndex + 1;
-	for(var rowIndex = rowCount;rowIndex < rowLength;rowIndex++)
-	{
-		if(viewPortHeight > this.__nsGrid.__tblCenterBody.offsetHeight && lastIndex < (totalRecords - 1))
-		{
-			var item = this.__nsGrid.__arrInternalSource[lastIndex];
-			if(item)
+			if(data["checked"])
 			{
-				row.setAttribute("ns-index",lastIndex);
-				item[this.__nsGrid.__fieldRowHtml] = row;
-				this.__updateRow(row,item);
-				lastIndex++;
+				return "<a href=# class='purple' onclick='anchorClick(event," + rowIndex +"," + data["id"] +")'>" + returnAlphabets("a",rowIndex + 1) + "</a>";
 			}
-			//console.log("true for " + fromIndex + "," + toIndex);
-		}
-		else
-		{
-			var row = arrRows[rowIndex];
-			row.style.display = "none";
-			row.setAttribute("ns-index",null);
-			row.setAttribute("ns-level",null);
-			row.setAttribute("ns-parent-index",null);
+			else
+			{
+				return "<a href=# onclick='anchorClick(event," + rowIndex +"," + data["id"] +")'>" + returnAlphabets("a",rowIndex + 1) + "</a>";
+			}
+			/*if(data["checked"])
+			{
+				return "<a href=# class='purple' onclick='anchorClick(event," + rowIndex +"," + data["id"] +")'>" + "Visit W3Schools.com!" + "</a>";
+			}
+			else
+			{
+				return "<a href=# onclick='anchorClick(event," + rowIndex +"," + data["id"] +")'>" + "Visit W3Schools.com!" + "</a>";
+			}*/
+			
 		}
 		
-	}
-	while(viewPortHeight > this.__nsGrid.__tblCenterBody.offsetHeight && lastIndex < (totalRecords - 1))
-	{
-		this.__createBodyBody(this.__nsGrid.__arrInternalSource,lastIndex,lastIndex + 1);
-		lastIndex++;
-	}
-};
+		function returnAlphabets(alphabet,count)
+		{
+			var retValue = "";
+			for(var innerCount= 1;innerCount < count;innerCount++)
+			{
+				retValue += alphabet;
+			}
+			return retValue;
+		}
+		
+		function anchorClick(event,rowIndex,keyValue)
+		{
+			//alert(rowIndex);
+			 var dgDemo = document.getElementById("dgDemo");
+			 var objItem = dgDemo.getItemInfo(event);
+			 objItem["item"]["checked"] = true;
+			 dgDemo.updateCellByIndex(rowIndex,"checked");
+			 //dgDemo.updateCellByKeyField(keyValue,"checked");
+			 //dgDemo.updateRowByKeyField(keyValue);
+			 console.log(objItem.rowIndex + "," + rowIndex);
+			 event.preventDefault();
+		}
