@@ -1,46 +1,152 @@
-var start = new Date().getTime();
-	if(!fromRowIndex)
+enableVariableRowHeight (boolean) : if this flag is true then rows in the Grid will vary according to the height of the content.
+ *                                     if this Flag is false the row will take the height of rowHeight if defined else 
+ *                                     if virtual scroll is enabled then takes the calculated height of the row.  
+ 
+ 	this.__extraRowCountForVariableHeight = 20;
+ 	nsGrid.__setVirtualVariables = function(isReset,overrideDefault,isCollapse,isIndividualRowCollapse)
+{
+	var divScroll = this.__divVirtualScroller;
+	if(this.__arrInternalSource && this.__arrInternalSource.length > 0)
 	{
-		fromRowIndex = 0;
-	}
-	var totalRecords = this.__nsGrid.__totalRecords;
-	var arrRows = this.__nsGrid.__tblCenterBodyBody.rows;
-	var rowLength = arrRows.length;
-	var length = this.__nsGrid.__arrFlatHierarchicalSource.length;
-	var indexCount = fromIndex;
-	var rowCount = fromRowIndex;
-	var arrData = this.__nsGrid.__arrFlatHierarchicalSource.slice(fromIndex,toIndex);
-	length = arrData.length;
-	indexCount = 0;
-	var end = new Date().getTime();
-	var time = end - start;
-	console.log('Execution time: ' + (time / 1000.0));
-	for(var count = fromIndex; count < length; count++)
-	{
-		var item = this.__nsGrid.__arrFlatHierarchicalSource[count];
-		if(item[this.__nsGrid.__fieldRowVisible])
+		var totalRecords = 0;
+		var scrollHeight = 0;
+		var virtualRowHeight = 0;
+		if(isReset)
 		{
-			if(rowLength <= rowCount) 
+			var availableHeight = 0;//this.util.getStyleValue(this,"height",false);
+			if(this.hasAttribute("nsHeight"))
 			{
-				break;
+				availableHeight = this.util.getDimensionAsNumber(this,this.getAttribute("nsHeight"));
 			}
-			var row = arrRows[rowCount];
-			row.style.display = "";
-			item[this.__nsGrid.__fieldRow] = row;
-			this.__updateRow(row,item);
-			indexCount++;
-			rowCount++;
+			else if(this.style.height != "")
+			{
+				availableHeight  = this.util.getDimensionAsNumber(this,this.style.height);
+			}
+			else
+			{
+				availableHeight  = this.offsetHeight;
+			}
+			if(this.__rowHeight > 0)
+			{
+				this.__virtualRowHeight = this.__rowHeight;
+			}
+			else
+			{
+				this.__objGrid.__createBodyBody(this.__arrInternalSource,0,1);
+				var item = this.__arrInternalSource[0];
+				var row = item[this.__fieldRowHtml];
+			    this.__virtualRowHeight = row.offsetHeight;
+			    this.__tblCenterBodyBody.deleteRow(0);
+			}
+			//Start of workaround for IE issue of limitation of scrollTop Value
+			//In IE 11 it is 1533917px 
+			//Logic is that this.__divCenterTableBodyContainer.scrollHeight gives max scrollTop Value hence if scrollHeight exceeds this.__divCenterTableBodyContainer.scrollHeight then reset scrollHeight value to this.__divCenterTableBodyContainer.scrollHeight
+			//and recalculate rowHeight (this.__virtualRowHeight) value;
+			scrollHeight = (this.__totalRecords * this.__virtualRowHeight);
+			//divScroll.style.maxHeight = scrollHeight + "px";
+			divScroll.style.height = scrollHeight + "px";
+			//if Custom scroll is there then te recalculation is not required
+			if(this.__divVirtualScrollParent.scrollHeight < scrollHeight)
+			{
+				scrollHeight = this.__divVirtualScrollParent.scrollHeight;
+				this.__virtualRowHeight = scrollHeight/this.__totalRecords;
+			}
+			//end of workaround for IE issue of limitation of scrollTop Value
+			this.__rowCount = Math.round(availableHeight/this.__virtualRowHeight) * 2;
+			divScroll.style.height = scrollHeight + "px";
+			console.log(this.__rowCount);
+			this.__lastScrollPosition = 0;
+			totalRecords = this.__totalRecords;
+			virtualRowHeight = this.__virtualRowHeight;
 		}
+		else
+		{
+			var row = this.__tblCenterBody.tBodies[0].rows[0];
+			virtualRowHeight = this.__virtualRowHeight;
+			if(overrideDefault)
+			{
+				if(!this.__enableVariableRowHeight || (this.__enableVariableRowHeight && isCollapse && !isIndividualRowCollapse))
+				{
+					 virtualRowHeight = row.offsetHeight;
+				}
+			}
+			else
+			{
+				virtualRowHeight = row.offsetHeight;
+			}
+			totalRecords = this.__totalRecords;
+			if(this.__enableHierarchical || this.__enableGrouping)
+			{
+				totalRecords = this.__getAllVisibleItems();
+			}
+		}
+		scrollHeight = (totalRecords * virtualRowHeight);
+		this.__scrollOffsetPosition = virtualRowHeight;
+		//giving it a bit of padding if variableRowHeight is not true
+		//if variableRowHeight is true then we are already adding extra rows which will handle the padding
+		if(!this.__enableVariableRowHeight)
+		{
+			scrollHeight = scrollHeight + 50;
+		}
+		divScroll.style.maxHeight = scrollHeight + "px";
+		divScroll.style.height = scrollHeight + "px";
 	}
-	end = new Date().getTime();
-	time = end - start;
-	console.log('Execution time1: ' + (time / 1000.0));
-	//for making remaining rows hide
-	for(var rowIndex = rowCount;rowIndex < rowLength;rowIndex++)
+	else
 	{
-		var row = arrRows[rowIndex];
-		row.style.display = "none";
-		row.setAttribute("ns-index",null);
-		row.setAttribute("ns-level",null);
-		row.setAttribute("ns-parent-index",null);
+		this.__virtualRowHeight = 0;
+		this.__rowCount = 0;
+		this.__scrollOffsetPosition = 0;
+		this.__lastScrollPosition = 0;
+		divScroll.style.height = 0 + "px";
 	}
+};
+nsGrid.__bodyMousewheelVirtualHandler = function(event)
+{
+	event = this.util.getEvent(event);
+	this.util.preventDefault(event);
+	var target = this.__divVirtualScrollParent;
+	var delta = Math.max(-1, Math.min(1, (event.wheelDelta || -event.detail)));
+    var scrollHeight = 3 * parseInt(this.__virtualRowHeight);
+    var currentScrollPos = target.scrollTop;
+    var contentHeight = this.__divVirtualScroller.clientHeight;
+    //scroll-up
+    if(delta === 1)
+    {
+        if((currentScrollPos - scrollHeight) < 0)
+        {
+        	target.scrollTop = 0;
+        }
+        else
+        {
+        	target.scrollTop = currentScrollPos - scrollHeight;
+        }
+   }
+   else
+   {
+        if((currentScrollPos + scrollHeight) > contentHeight)
+        {
+        	target.scrollTop = contentHeight;
+        }
+        else
+        {
+        	target.scrollTop = currentScrollPos + scrollHeight;
+        }
+   }
+};
+nsGrid.__handleScrollEdgeScenarios = function()
+{
+	var target = this.__divVirtualScrollParent;
+	if(target.scrollHeight - target.scrollTop === target.clientHeight)
+	{
+		this.__divCenterTableBodyContainer.scrollTop = this.__divCenterTableBodyContainer.scrollHeight;
+	}
+	if(target.scrollTop === 0)
+	{
+		this.__divCenterTableBodyContainer.scrollTop = 0;
+	}
+};
+
+else if(this.__nsGrid.__enableVariableRowHeight)
+    	{
+    		totalRows = totalRows + this.__nsGrid.__extraRowCountForVariableHeight;
+    	}
