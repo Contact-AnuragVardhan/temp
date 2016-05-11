@@ -1,188 +1,28 @@
-divFilterIconContainer.setAttribute("field",dataField);
-this.util.addEvent(divFilterIconContainer,"click",this.__filterIconClickHandler.bind(this));
-this.__filterIconClickHandler = function(event)
+NMGrid.prototype.__isColumnExist = function(dataField)
+{
+	if(dataField && this.__columns && this.__columns.length > 0)
 	{
-		var target = this.util.getTarget(event);
-		var dataField = target.getAttribute("field");
-		if(!this.__divDetailFilterContainer)
+		for(var count = 0; count < this.__columns.length;count++)
 		{
-			this.__getNumberDetailFilter(dataField);
-		}
-		document.body.appendChild(this.__divDetailFilterContainer);
-		//this.util.hasStyleClass(this.__divDetailFilterContainer,"nsShowMenu")
-		this.__setVisibilityForDetailFilter(true);
-		
-	};
-
-this.__getNumberDetailFilter = function(dataField)
-	{
-		var arrOptions = [{id:1,label:"Equals"},
-		                  {id:2,label:"Less than"},
-		                  {id:3,label:"Greater than"}];
-		var colID =this.__getRendererID(dataField);
-		this.__divDetailFilterContainer = this.util.createDiv(colID + "detailFilterContainer","nsMenu");
-		var divSelect = this.util.createDiv(colID + "detailFilterSelectContainer");
-		var cmbFilter = this.util.createElement("select",colID + "detailFilterSelect");
-		var option = null;
-		var item = null;
-		for(var count = 0;count < arrOptions.length;count++)
-		{
-			item = arrOptions[count];
-			option = document.createElement("option");
-			option.setAttribute("text", item["label"]);
-			option.setAttribute("value", item["id"]);
-			cmbFilter.appendChild(option);
-		}
-		divSelect.appendChild(cmbFilter);
-		this.__divDetailFilterContainer.appendChild(divSelect);
-		var divTextInput = this.util.createDiv(colID + "detailFilterTextInputContainer");
-		var txtFilter = this.util.createElement("input",colID + "detailFilterTextInput");
-		txtFilter.setAttribute("placeholder", "Enter Value");
-		divTextInput.appendChild(txtFilter);
-		this.__divDetailFilterContainer.appendChild(divTextInput);
-		var divApplyButton = this.util.createDiv(colID + "detailFilterApplyButtonContainer");
-		var btnFilter = this.util.createElement("button",colID + "detailFilterApply");
-		btnFilter.innerHTML = "Apply";
-		divApplyButton.appendChild(btnFilter);
-		this.__divDetailFilterContainer.appendChild(divApplyButton);
-		
-	};
-	
-	this.__setVisibilityForDetailFilter = function(isVisble) 
-	{
-		if(this.__divDetailFilterContainer)
-		{
-			if(isVisble)
+			var objColumn = this.__columns[count];
+			if(objColumn["dataField"] == dataField)
 			{
-				this.util.addStyleClass(this.__divDetailFilterContainer,"nsShowMenu");
-				this.__placeMenu(event);
-			}
-			else
-			{
-				this.util.removeStyleClass(this.__divDetailFilterContainer,"nsShowMenu");
+				return true;
 			}
 		}
-	};
-	
-	this.__placeMenu = function(event)
-	{
-		var position = this.util.POS_BOTTOMLEFT;
-		position = this.__getSuggestedPosition(event,position);
-		var offset = this.__getOffset(event,position);
-		this.__divDetailFilterContainer.style.top = offset.top + "px";
-		this.__divDetailFilterContainer.style.left = offset.left + "px";
-	};
+	}
+	return false;
+};
 
-	this.__getOffset = function(event,position)
+NMGrid.prototype.addColumn = function(objColumn)
+{
+	if(objColumn)
 	{
-		  var rectMenu = this.__divDetailFilterContainer.getBoundingClientRect();
-		  var item = {top: 0,left:0};
-		  if(rectMenu)
-		  {
-			  var menuWidth = rectMenu.width;
-			  var menuHeight = rectMenu.height;
-			  var offset = this.util.getEventPosition(event);
-			  switch(position) 
-			  {
-				case this.util.POS_TOP:
-					item.top = offset.top - menuHeight;
-					item.left = offset.left - menuWidth / 2;
-					break;
-				case this.util.POS_BOTTOM:
-					item.top = offset.top;
-					item.left = offset.left - menuWidth / 2;
-					break;
-				case this.util.POS_LEFT:
-					item.top =  offset.top - menuHeight / 2;
-					item.left = offset.left - menuWidth;
-					break;
-				case this.util.POS_RIGHT:
-					item.top =  offset.top - menuHeight / 2,
-					item.left = offset.left;
-					break;
-				case this.util.POS_TOPLEFT:
-					item.top = offset.top - menuHeight;
-					item.left = offset.left - menuWidth;
-					break;
-				case this.util.POS_TOPRIGHT:
-					item.top =  offset.top - menuHeight;
-					item.left = offset.left;
-					break;
-				case this.util.POS_BOTTOMLEFT:
-					item.top =  offset.top;
-					item.left = offset.left - menuWidth;
-					break;
-				case this.util.POS_BOTTOMRIGHT:
-					item.top =  offset.top;
-					item.left = offset.left;
-					break;
-			  }
-		  }
-		  return item;
-	};
-
-	this.__getSuggestedPosition = function(event,position)
-	{
-		  var menuWidth = this.__divDetailFilterContainer.clientWidth;
-		  var menuHeight = this.__divDetailFilterContainer.clientHeight;
-		  var offset = this.util.getEventPosition(event);
-		  var top = window.scrollY;
-		  var left = window.scrollX;
-		  var totalWidth = window.innerWidth;
-		  var totalHeight = window.innerHeight;
-		
-		  var objPosition = {};
-		  objPosition[this.util.POS_TOP] = true;
-		  objPosition[this.util.POS_BOTTOM] = true;
-		  objPosition[this.util.POS_LEFT] = true;
-		  objPosition[this.util.POS_RIGHT] = true;
-		  if (offset.top < top) 
-		  {
-			  objPosition[this.util.POS_TOP] = false;
-		  }
-		  if (offset.top + menuHeight > top + totalHeight) 
-		  {
-			  objPosition[this.util.POS_BOTTOM] = false;
-		  }
-		  if (offset.left < left)
-		  {
-			  objPosition[this.util.POS_LEFT] = false;
-		  }
-		  if (offset.left + menuWidth > left + totalWidth) 
-		  {
-			  objPosition[this.util.POS_RIGHT] = false;
-		  }
-		
-		  var positions = position.split("-");
-		  //below loop tries to give favourable position like bottom-right so if position has bottom and right both true it returns that position
-		  for (var count = 0; count < positions.length; count++) 
-		  {
-			if (!objPosition[positions[count]]) 
-			{
-				break;
-			}   
-			if (count === positions.length - 1) 
-			{
-			  return position;
-			}
-		  }
-		  //below loop tries to give one favourable position like in bottom-right if bottom is true or right is true it gets returned
-		  for (var count = 0; count < positions.length; count++) 
-		  {
-			if (objPosition[positions[count]]) 
-			{
-				return positions[count];
-			}
-		  }
-		  if (objPosition[position]) 
-		  {
-			  return position;
-		  }
-		  for(var tmpPosition in objPosition)
-		  {
-			  if (objPosition[tmpPosition]) 
-			  {
-				  return tmpPosition;
-			  }
-		  }
-	};
+		this.__processColumnObject(objColumn,this.__columns.length);
+		if(!this.__isColumnExist(objColumn["dataField"]))
+		{
+		}
+		else
+		{
+			this.showColumn(objColumn["dataField"]);
+		}
