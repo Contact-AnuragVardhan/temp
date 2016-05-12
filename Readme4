@@ -1,28 +1,100 @@
-NMGrid.prototype.__isColumnExist = function(dataField)
+http://www.lets-develop.com/html5-html-css-css3-php-wordpress-jquery-javascript-photoshop-illustrator-flash-tutorial/css-css3-css-3-style-styling/style-tooltip-css-how-to-style-the-title-attribute-with-css/
+
+NSUtil.prototype.nsToolTipInElement = function()
 {
-	if(dataField && this.__columns && this.__columns.length > 0)
+	this.util = new NSUtil();
+	
+	this.addToolTip = function(element,toolTipHTML)
 	{
-		for(var count = 0; count < this.__columns.length;count++)
+		if(element && toolTipHTML && toolTipHTML.length > 0)
 		{
-			var objColumn = this.__columns[count];
-			if(objColumn["dataField"] == dataField)
-			{
-				return true;
-			}
+			var id = element.getAttribute("id");
+			this.util.addStyleClass(element,"nsElemenTooltip");
+			var container = this.util.createElement("span",id + "ElemenTooltipContainer", "nsElemenTooltipContainer");
+			var arrow = this.util.createElement("span",id + "ElemenTooltipArrow", "nsElemenTooltipTipArrow");
+			container.appendChild(arrow);
+			var content = this.util.createElement("span",id + "ElemenTooltipContent", "nsElemenTooltipContent");
+			content.innerHTML = toolTipHTML;
+			container.appendChild(content);
+			element.appendChild(container);
 		}
-	}
-	return false;
+	};
 };
 
-NMGrid.prototype.addColumn = function(objColumn)
-{
-	if(objColumn)
+/************For adding tooltip to an element ***********/
+.nsElemenTooltip > .nsElemenTooltipContainer{ 
+	width: 200px; 
+	padding: 10px 20px;
+	margin-top: 5px; 
+	margin-left: 1%; 
+	opacity: 0; 
+	visibility: hidden; 
+	z-index: 10; 
+	position: absolute; 
+	font-size: 12px; 
+	font-style: normal; 
+	-webkit-border-radius: 3px; 
+	-moz-border-radius: 3px; -o-border-radius: 3px; 
+	border-radius: 3px; -webkit-box-shadow: 2px 2px 2px #999; 
+	-moz-box-shadow: 2px 2px 2px #999; 
+	box-shadow: 2px 2px 2px #999; 
+	-webkit-transition-property: opacity, margin-top, visibility, margin-left; 
+	-webkit-transition-duration: 0.4s, 0.3s, 0.4s, 0.3s; 
+	-webkit-transition-timing-function: ease-in-out, ease-in-out, ease-in-out, ease-in-out; 
+	-moz-transition-property: opacity, margin-top, visibility, margin-left; 
+	-moz-transition-duration:0.4s, 0.3s, 0.4s, 0.3s; 
+	-moz-transition-timing-function: ease-in-out, ease-in-out, ease-in-out, ease-in-out; -o-transition-property:opacity, margin-top, visibility, margin-left; -o-transition-duration:0.4s, 0.3s, 0.4s, 0.3s; -o-transition-timing-function: ease-in-out, ease-in-out, ease-in-out, ease-in-out; 
+	transition-property:opacity, margin-top, visibility, margin-left; 
+	transition-duration:0.4s, 0.3s, 0.4s, 0.3s; 
+	transition-timing-function: ease-in-out, ease-in-out, ease-in-out, ease-in-out; 
+	color: #FFFFFF; 
+	background: #333333; 
+	background: -moz-linear-gradient(top, #333333 0%, #999999 100%); 
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#333333), color-stop(100%,#999999)); 
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#333333', endColorstr='#999999',GradientType=0 ); 
+	border: 1px solid #000000; 
+} 
+
+
+.nsElemenTooltip:hover > .nsElemenTooltipContainer
+{ 
+	opacity: 1; 
+	text-decoration:none; 
+	visibility: visible; 
+	overflow: visible; 
+	margin-top: 10px; 
+	display: inline; 
+	margin-left: 1%; 
+}
+
+.nsElemenTooltip .nsElemenTooltipContainer .nsElemenTooltipTipArrow{ 
+	width: 15px; 
+	height: 15px; 
+	margin-left: 20px; 
+	margin-top: -19px; 
+	display: block; 
+	position: absolute; 
+	-webkit-transform: rotate(-45deg); 
+	-moz-transform: rotate(-45deg); 
+	-o-transform: rotate(-45deg); 
+	transform: rotate(-45deg); 
+	-webkit-box-shadow: inset -1px 1px 0 #fff; 
+	-moz-box-shadow: inset 0 1px 0 #fff; -o-box-shadow: inset 0 1px 0 #fff; 
+	box-shadow: inset 0 1px 0 #fff;  
+	background: #333333; 
+	border-top: 1px solid #000000; 
+	border-right: 1px solid #000000; 
+}
+
+this.clearFilters = function() 
 	{
-		this.__processColumnObject(objColumn,this.__columns.length);
-		if(!this.__isColumnExist(objColumn["dataField"]))
-		{
-		}
-		else
-		{
-			this.showColumn(objColumn["dataField"]);
-		}
+		 for(var field in this.__objControl)
+		 {
+			 var control = this.__objControl[field];
+			 if(control && control.value)
+			 {
+				 control.value = "";
+			 }
+		 }
+	};
+		this.__nsToolTipInElement = null;
