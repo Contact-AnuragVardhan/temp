@@ -1,22 +1,80 @@
-Column Related Properties:
+NSUtil.prototype.nsToolTipInElement = function()
+{
+	this.util = new NSUtil();
 	
-	headerText :   Mandatory Field. Text for the header of this column.
-	dataField:  Mandatory Field. The name of the field or property in the data provider item associated with the column.
-	sortField: The name of the field or property in the data provider item on which column should be sorted.
-	width: The width of the column
-	sortable: A flag that indicates whether the user can click on the header of this column to sort the data provider.
-	resizable:  A flag that indicates whether the user is allowed to resize the width of the column.
-	draggable:  A flag that indicates whether the user is allowed to drag the column to a new position If true, the user can drag the the column headers to a new position
-	minWidth : The minimum width of the column.
-	sortDescending: Indicates whether the column sort is in ascending order, false, or descending order, true.
-	labelFunction :  A function that determines the text to display in this column.
-	itemRenderer:  A function for item renderer instances that display the data for each item in the column.
-	template: represents a template for rendering the cell.
-	setData: A function which gets called for setting the data in a cell when template is defined.
-	headerTemplate : represents a template for rendering the header.
-	filterRenderer: A function that returns HTML for  the filter on the column.
-	groupRenderer: A function that returns HTML for  the Group Renderer  on the column if grid is in Grouping Mode.
-	headerTruncateToFit: : If this property is true, and the header cell size is smaller than its text, the text of the header cell is truncated using a localizable string, such as "...".
-	truncateToFit: If this property is true, and the cell size is smaller than its text, the text of the cell is truncated using a localizable string, such as "...".
-	showMenu: If this property is true, this shows the column level Menu
-	priority: It sets the priority for the column to be visible if Grid’s  enableResponsive property is true and responsiveMode is “columnToggle”
+	this.addToolTip = function(element,toolTipHTMLOrig)
+	{
+		if(element && toolTipHTMLOrig && toolTipHTMLOrig.length > 0)
+		{
+			var toolTipHTML = toolTipHTMLOrig.slice(0);
+			var id = element.getAttribute("id");
+			this.util.addStyleClass(element,"nsElemenTooltip");
+			var container = this.util.createElement("span",id + "ElemenTooltipContainer", "nsElemenTooltipContainer");
+			var arrow = this.util.createElement("span",id + "ElemenTooltipArrow", "nsElemenTooltipTipArrow");
+			container.appendChild(arrow);
+			var content = this.util.createElement("span",id + "ElemenTooltipContent", "nsElemenTooltipContent");
+			content.appendChild(document.createTextNode(toolTipHTML));
+			container.appendChild(content);
+			element.appendChild(container);
+			this.util.addEvent(element,"mouseover",this.__mouseOverHandler.bind(this));
+			/*if(toolTipHTML.indexOf("Saksena") > -1)
+			{
+				console.log(toolTipHTML + "::" + content.innerHTML);
+			}*/
+			//var expectedWidth = this.util.getWidthOfText(toolTipHTML,"12px");
+			//container.style.marginLeft = (-1 * (expectedWidth / 2)) + "px";
+		}
+	};
+	
+	this.__mouseOverHandler = function(event)
+	{
+		var target = this.util.getTarget(event);
+		if(!this.util.hasStyleClass(target, "nsElemenTooltip"))
+		{
+			target = this.util.findParentBySelector(target,".nsElemenTooltip");
+		}
+		if(target)
+		{
+			var toolTip = target.querySelector(".nsElemenTooltipContainer");
+			//console.log(toolTip.innerHTML);
+			if(toolTip.innerHTML.indexOf("Saksena") > -1)
+			{
+				//console.log(toolTip.innerHTML);
+			}
+			var offset = this.util.getEventPosition(event);
+			toolTip.left = offset.left;
+			//toolTip.top = offset.left;
+		}
+		
+	};
+};
+
+NSUtil.prototype.getWidth = function(text)
+{
+	var element = document.createElement("span");
+	element.innerHTML = text;
+    //var e = element.cloneNode(true);
+	element.style.visibility = "hidden";
+    document.body.appendChild(element);
+    var height = element.offsetWidth + 0;
+    document.body.removeChild(element);
+    return height;
+};
+
+NSUtil.prototype.getWidthOfText = function(text,fontSize,fontName)
+{	
+	var canvas = document.createElement("canvas");
+	var context = canvas.getContext("2d");
+	var fontArgs = context.font.split(" ");
+	if(fontSize)
+	{
+		fontArgs[0] = fontSize;
+	}
+	if(fontName)
+	{
+		fontArgs[1] = fontName;
+	}
+	context.font = fontArgs[0] + " " + fontArgs[1];        
+	var width = context.measureText(text).width;
+	return width;
+};
