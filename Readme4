@@ -13,14 +13,10 @@ NSUtil.prototype.nsToolTipInElement = function()
 			var arrow = this.util.createElement("span",id + "ElemenTooltipArrow", "nsElemenTooltipTipArrow");
 			container.appendChild(arrow);
 			var content = this.util.createElement("span",id + "ElemenTooltipContent", "nsElemenTooltipContent");
-			content.appendChild(document.createTextNode(toolTipHTML));
+			content.innerHTML = toolTipHTML;
 			container.appendChild(content);
 			element.appendChild(container);
 			this.util.addEvent(element,"mouseover",this.__mouseOverHandler.bind(this));
-			/*if(toolTipHTML.indexOf("Saksena") > -1)
-			{
-				console.log(toolTipHTML + "::" + content.innerHTML);
-			}*/
 			//var expectedWidth = this.util.getWidthOfText(toolTipHTML,"12px");
 			//container.style.marginLeft = (-1 * (expectedWidth / 2)) + "px";
 		}
@@ -36,11 +32,6 @@ NSUtil.prototype.nsToolTipInElement = function()
 		if(target)
 		{
 			var toolTip = target.querySelector(".nsElemenTooltipContainer");
-			//console.log(toolTip.innerHTML);
-			if(toolTip.innerHTML.indexOf("Saksena") > -1)
-			{
-				//console.log(toolTip.innerHTML);
-			}
 			var offset = this.util.getEventPosition(event);
 			toolTip.left = offset.left;
 			//toolTip.top = offset.left;
