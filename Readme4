@@ -1,100 +1,22 @@
-http://www.lets-develop.com/html5-html-css-css3-php-wordpress-jquery-javascript-photoshop-illustrator-flash-tutorial/css-css3-css-3-style-styling/style-tooltip-css-how-to-style-the-title-attribute-with-css/
-
-NSUtil.prototype.nsToolTipInElement = function()
-{
-	this.util = new NSUtil();
+Column Related Properties:
 	
-	this.addToolTip = function(element,toolTipHTML)
-	{
-		if(element && toolTipHTML && toolTipHTML.length > 0)
-		{
-			var id = element.getAttribute("id");
-			this.util.addStyleClass(element,"nsElemenTooltip");
-			var container = this.util.createElement("span",id + "ElemenTooltipContainer", "nsElemenTooltipContainer");
-			var arrow = this.util.createElement("span",id + "ElemenTooltipArrow", "nsElemenTooltipTipArrow");
-			container.appendChild(arrow);
-			var content = this.util.createElement("span",id + "ElemenTooltipContent", "nsElemenTooltipContent");
-			content.innerHTML = toolTipHTML;
-			container.appendChild(content);
-			element.appendChild(container);
-		}
-	};
-};
-
-/************For adding tooltip to an element ***********/
-.nsElemenTooltip > .nsElemenTooltipContainer{ 
-	width: 200px; 
-	padding: 10px 20px;
-	margin-top: 5px; 
-	margin-left: 1%; 
-	opacity: 0; 
-	visibility: hidden; 
-	z-index: 10; 
-	position: absolute; 
-	font-size: 12px; 
-	font-style: normal; 
-	-webkit-border-radius: 3px; 
-	-moz-border-radius: 3px; -o-border-radius: 3px; 
-	border-radius: 3px; -webkit-box-shadow: 2px 2px 2px #999; 
-	-moz-box-shadow: 2px 2px 2px #999; 
-	box-shadow: 2px 2px 2px #999; 
-	-webkit-transition-property: opacity, margin-top, visibility, margin-left; 
-	-webkit-transition-duration: 0.4s, 0.3s, 0.4s, 0.3s; 
-	-webkit-transition-timing-function: ease-in-out, ease-in-out, ease-in-out, ease-in-out; 
-	-moz-transition-property: opacity, margin-top, visibility, margin-left; 
-	-moz-transition-duration:0.4s, 0.3s, 0.4s, 0.3s; 
-	-moz-transition-timing-function: ease-in-out, ease-in-out, ease-in-out, ease-in-out; -o-transition-property:opacity, margin-top, visibility, margin-left; -o-transition-duration:0.4s, 0.3s, 0.4s, 0.3s; -o-transition-timing-function: ease-in-out, ease-in-out, ease-in-out, ease-in-out; 
-	transition-property:opacity, margin-top, visibility, margin-left; 
-	transition-duration:0.4s, 0.3s, 0.4s, 0.3s; 
-	transition-timing-function: ease-in-out, ease-in-out, ease-in-out, ease-in-out; 
-	color: #FFFFFF; 
-	background: #333333; 
-	background: -moz-linear-gradient(top, #333333 0%, #999999 100%); 
-	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#333333), color-stop(100%,#999999)); 
-	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#333333', endColorstr='#999999',GradientType=0 ); 
-	border: 1px solid #000000; 
-} 
-
-
-.nsElemenTooltip:hover > .nsElemenTooltipContainer
-{ 
-	opacity: 1; 
-	text-decoration:none; 
-	visibility: visible; 
-	overflow: visible; 
-	margin-top: 10px; 
-	display: inline; 
-	margin-left: 1%; 
-}
-
-.nsElemenTooltip .nsElemenTooltipContainer .nsElemenTooltipTipArrow{ 
-	width: 15px; 
-	height: 15px; 
-	margin-left: 20px; 
-	margin-top: -19px; 
-	display: block; 
-	position: absolute; 
-	-webkit-transform: rotate(-45deg); 
-	-moz-transform: rotate(-45deg); 
-	-o-transform: rotate(-45deg); 
-	transform: rotate(-45deg); 
-	-webkit-box-shadow: inset -1px 1px 0 #fff; 
-	-moz-box-shadow: inset 0 1px 0 #fff; -o-box-shadow: inset 0 1px 0 #fff; 
-	box-shadow: inset 0 1px 0 #fff;  
-	background: #333333; 
-	border-top: 1px solid #000000; 
-	border-right: 1px solid #000000; 
-}
-
-this.clearFilters = function() 
-	{
-		 for(var field in this.__objControl)
-		 {
-			 var control = this.__objControl[field];
-			 if(control && control.value)
-			 {
-				 control.value = "";
-			 }
-		 }
-	};
-		this.__nsToolTipInElement = null;
+	headerText :   Mandatory Field. Text for the header of this column.
+	dataField:  Mandatory Field. The name of the field or property in the data provider item associated with the column.
+	sortField: The name of the field or property in the data provider item on which column should be sorted.
+	width: The width of the column
+	sortable: A flag that indicates whether the user can click on the header of this column to sort the data provider.
+	resizable:  A flag that indicates whether the user is allowed to resize the width of the column.
+	draggable:  A flag that indicates whether the user is allowed to drag the column to a new position If true, the user can drag the the column headers to a new position
+	minWidth : The minimum width of the column.
+	sortDescending: Indicates whether the column sort is in ascending order, false, or descending order, true.
+	labelFunction :  A function that determines the text to display in this column.
+	itemRenderer:  A function for item renderer instances that display the data for each item in the column.
+	template: represents a template for rendering the cell.
+	setData: A function which gets called for setting the data in a cell when template is defined.
+	headerTemplate : represents a template for rendering the header.
+	filterRenderer: A function that returns HTML for  the filter on the column.
+	groupRenderer: A function that returns HTML for  the Group Renderer  on the column if grid is in Grouping Mode.
+	headerTruncateToFit: : If this property is true, and the header cell size is smaller than its text, the text of the header cell is truncated using a localizable string, such as "...".
+	truncateToFit: If this property is true, and the cell size is smaller than its text, the text of the cell is truncated using a localizable string, such as "...".
+	showMenu: If this property is true, this shows the column level Menu
+	priority: It sets the priority for the column to be visible if Grid’s  enableResponsive property is true and responsiveMode is “columnToggle”
