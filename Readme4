@@ -1,6 +1,138 @@
-var item = this.__getItemByIndex(parseInt(selectedIndex));
-		if(item && item[this.__fieldItem])
+var NSListFilter = function(nsList)
+{
+	this.__nsList = nsList;
+	
+	this.util = nsList.util;
+	this.__filteredColumn = [];
+	this.__config = {};
+	
+	this.__initialize = function()
+	{
+		
+	};
+	
+	this.filter = function(strData,filterSetting,recordLimit)
+	{
+		if(!filterSetting)
 		{
-			this.__scrollTarget.scrollTop = (item[this.__fieldItem].offsetTop);;
+			filterSetting = {};
 		}
-		this.__divOuterContainer.style.overflowY="hidden";
+		var config = {
+				caseSensitive: Boolean.parse(filterSetting["caseSensitive"]) || true,
+				multiline: Boolean.parse(filterSetting["multiline"]) || true,
+				matchType: filterSetting["matchType"] || new NSFilter().CONTAINS
+		};
+		var filter = {};
+		var setting = {};
+		var field = this.__nsList.__labelField;
+		filter[field] = strData;
+		setting[field] = {caseSensitive:config["caseSensitive"],multiline:config["multiline"],matchType:config["matchType"]};
+		if(filter && Object.keys(filter).length > 0)
+		{
+			this.__handleFiltering(filter,setting,recordLimit);
+		}
+		else
+		{
+			this.__resetFiltering();
+		}
+	};
+	
+	this.reset = function()
+	{
+		this.__resetFiltering();
+	};
+	
+	this.__handleFiltering = function(filter,setting,recordLimit)
+	{
+		this.__filteredColumn = [];
+		if(filter)
+	    {
+			 var field = this.__nsList.__labelField;
+			 var source = this.__nsList.__arrWrapper;
+		   	 var nsFilter = new NSFilter(source,filter,setting,recordLimit,false,field);
+		   	 this.__nsList.__arrInternalSource = nsFilter.execute();
+  	         for(var key in filter) 
+  	         {
+  	        	this.__filteredColumn.push({field:key,text:filter[key]});
+  	         }
+		   	 this.__nsList.__updateTotalRecords();
+		   	 this.__nsList.__renderBody(false);
+	    }
+	};
+
+	this.__resetFiltering = function()
+	{
+		if(this.__nsList.__enableFilter)
+		{
+			if(this.__nsList.__dataSource)
+			{
+				this.__nsList.__arrInternalSource = this.__nsList.__arrWrapper.slice(0);
+				this.__filteredColumn = [];
+				if(this.__nsList.__enableHierarchical || this.__nsList.__enableGrouping)
+				{
+					this.__nsList.__objGrid.__setWrapperSource(this.__nsList.__arrInternalSource,0,-1,0);
+					this.__nsList.__arrInternalSource = this.__nsList.__arrFlatHierarchicalSource.slice(0); 
+				}
+				this.__nsList.__updateTotalRecords();
+				this.__nsList.__renderBody(false);
+				//this.unHighlightText();
+			}
+		}
+	};
+
+	this.__highlightDiv = function(divText)
+	{
+		var length = this.__filteredColumn.length;
+		for (var count = 0; count < length; count++) 
+	    {
+			var text = this.__filteredColumn[count].text;
+			this.util.highlightText(divText,text,"nsTextHighlight");
+	    }
+	};
+	
+	
+	
+	this.__initialize();
+};
+
+nsList.filter = function(strData,setting,recordLimit)
+{
+	this.__nsListFilter.filter(strData,setting,recordLimit);
+};
+
+nsList.resetFilter = function()
+{
+	this.__nsListFilter.reset();
+};
+
+nsList.__highlightDiv = function(divText)
+{
+	this.__nsListFilter.__highlightDiv(divText);
+};
+
+nsList.__initializePluggins = function()
+{
+	if(!this.__nsListFilter)
+	{
+		this.__nsListFilter = new NSListFilter(this);
+	}
+};
+
+<input id="txtcolcountryrenderer" class="nsFilter nsSearchInlineTextBox" type="text" field="country" placeholder="Search Country" 
+	 style="width: 279px;" onkeyup="filterKeyUpHandler(event);">
+	 
+	 function filterKeyUpHandler(event)
+				{
+					var lstDemo = document.getElementById("lstDemo"); 
+					var txtcolcountryrenderer = document.getElementById("txtcolcountryrenderer"); 
+					var text = txtcolcountryrenderer.value;
+					if(text === "")
+					{
+						lstDemo.resetFilter();
+					}
+					else
+					{
+						lstDemo.filter(text);
+					}
+				}
+				
