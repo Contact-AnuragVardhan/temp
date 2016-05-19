@@ -1,29 +1,7 @@
-NSFlatGrid.prototype.__resetDataInBody= function(fromIndex,toIndex)
-{
-	var row = null;
-	var item = null;
-	var arrRows = this.__nsGrid.__tblCenterBodyBody.rows;
-	var rowLength = arrRows.length;
-	var length = this.__nsGrid.__arrWrapper.length;
-	var rowCount = 0;
-	for(var count = fromIndex; count < length; count++)
-    {
-		if(rowLength <= rowCount) 
-		{
-			break;
-		}
-		row = arrRows[rowCount];
-		item = this.__nsGrid.__arrWrapper[count];
-		if(item)
-		{
-			this.__resetRow(row,item[this.__nsGrid.__fieldIndex],item);
-			rowCount++;
-		}
-    }
-	for(var rowIndex = rowCount;rowIndex < rowLength;rowIndex++)
+var maxZIndex = this.util.getMaxZIndex(this.__resizingHeader); 
+	if(maxZIndex > 0)
 	{
-		row = arrRows[rowIndex];
-		row.style.display = "none";
-		row.setAttribute("ns-index",null);
+		this.__resizeHandler.style.zIndex = maxZIndex;
 	}
-};
+	//giving 50px padding to the width if width is very less
+			divDrag.style.width = (target.offsetWidth + 50) + "px";
