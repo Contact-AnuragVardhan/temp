@@ -1,1 +1,16 @@
-
+this.__divGhost = null;
+nsPanel.__createGhostElement = function(element)
+{
+	this.__divGhost = element.cloneNode(true);
+	var divMinMaxContainer = this.__divGhost.querySelector(".nsPanelMinMaxContainer");
+	if(divMinMaxContainer)
+	{
+		divMinMaxContainer.parentNode.removeChild(divMinMaxContainer);
+	}
+	var divBody = this.__divGhost.querySelector(".nsPanelBody");
+	if(divBody)
+	{
+		divBody.innerHTML = "";
+	}
+	return this.__divGhost;
+};
