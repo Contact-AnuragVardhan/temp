@@ -1,3 +1,47 @@
-http://jsfiddle.net/g6m5t8co/1/
-http://codepen.io/rm89/pen/aNOmzQ
-https://www.kirupa.com/snippets/move_element_to_click_position.htm
+this.__isMinimizingMaximizing = false;
+this.util.addEvent(this,this.__nsDragResizeElements.DRAG_STARTING,this.__dragResizeEventHandler.bind(this));
+if(this.__titleClass)
+		{
+			this.util.addStyleClass(divTitleBar,this.__titleClass);
+		}
+		nsPanel.__headerDoubleClickHandler = function(event)
+{
+	event = this.util.getEvent(event);
+	this.__initializeMinMax();
+	event.stopPropagation();
+	event.stopImmediatePropagation();
+};
+nsPanel.__dragResizeEventHandler = function(event)
+{
+	if(event.eventName === this.DRAG_STARTING)
+	{
+		var target = event.detail;
+		if(target && (this.util.hasStyleClass(target,"nsPanelMinMaxContainer")))
+		{
+			this.util.preventDefault(event);
+			event.stopImmediatePropagation();
+		}
+	}
+	else if(event.eventName === this.RESIZE_END)
+	{
+		this.__lastHeight = this.util.getStyleValue(this,"height");
+	}
+};
+nsPanel.__initializeMinMax = function()
+{
+	if(this.__body && !this.__isMinimizingMaximizing)
+	{
+		this.__nsDragResizeElements.stopMoveOnClick();
+		this.__isMinimizingMaximizing = true;
+		var isCollapsed = this.util.hasStyleClass(this,"nsPanelCollapsed");
+		this.__animateMinMax(isCollapsed);
+	}
+};
+this.__isMinimizingMaximizing = false;
+
+.nsPanelTitleBar {
+    text-align: left;
+    font-weight: bold;
+    min-height: 20px;
+    max-height: 20px;
+}
