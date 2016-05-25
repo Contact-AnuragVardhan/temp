@@ -1,498 +1,61 @@
-NSUtil.prototype.nsDragResizeElements = function(setting)
-{
-	this.__SCREEN_OFFSET = -10;
-	this.__ELEMENT_OFFSET = 4;
-	
-	this.__setting = setting;
-	
-	//Drag Variables
-	this.__dragResizeSetting = null;
-	
-	//Resize Variables
-	this.__resizeDirection = {top:false,right:false,bottom:false,left:false};
-	this.__dragEdge = {right:null,bottm:null};
-	this.__elementRect = null;
-	this.__lastElementDimension = null;
-
-	//Common Variables
-	this.__divHidden = null;
-	this.__posX = null;
-	this.__posY = null;
-	this.__tempEvent = null;
-	this.__rePaint = false;
-	
-	this.util = new NSUtil();
-	
-	this.__documentMouseMoveRef = null;
-	this.__documentMouseUpRef = null;
-	this.__documentTouchMoveRef = null;
-	this.__documentTouchEndRef = null;
-	
-	this.__initialize = function() 
-	{
-		this.__config = {
-				element: this.__setting["element"] || null,
-				dragEnabled: Boolean.parse(this.__setting["dragEnabled"]),
-				resizeEnabled: Boolean.parse(this.__setting["resizeEnabled"]),
-				minWidth: this.util.getDimensionAsNumber(this.__setting["element"],this.__setting["minWidth"]),
-				minHeight: this.util.getDimensionAsNumber(this.__setting["element"],this.__setting["minHeight"]),
-				dragStartCallback: this.__setting["dragStartCallback"] || null,
-				dragEndCallback: this.__setting["dragEndCallback"] || null,
-				resizeStartCallback: this.__setting["resizeStartCallback"] || null,
-				resizeEndCallback: this.__setting["resizeEndCallback"] || null,
-				createGhostElementCallback: this.__setting["createGhostElementCallback"] || this.__createGhost.bind(this),
-				enableDragContainment:Boolean.parse(this.__setting["enableDragContainment"]),
-				container: this.__setting["container"] || document.documentElement
-		};
-		if(this.__config.element)
+var divGhostBody = this.__divGhost.querySelector(".nsPanelBody");
+		if(direction < 0)
 		{
-			this.__divHidden = this.__config.createGhostElementCallback(this.__config.element);
-			if(!this.__divHidden)
-			{
-				this.util.throwException(1002,"Dragging Util","Function should return Ghost Element");
-			}
-			this.__divHidden.setAttribute("id",this.__config.element.id + "Hidden");
-			this.__divHidden.style.width = this.util.getStyleValue(this.__config.element,"width");
-			this.__divHidden.style.height = this.util.getStyleValue(this.__config.element,"height");
-			this.__divHidden.style.pointerEvents = "none";
-			this.__setHiddenDivVisiblity(false);
-			this.__config.element.parentNode.appendChild(this.__divHidden);
+			this.util.changeStyleClass(this,"nsPanel","nsPanelCollapsed");
+			this.__body.style.display = "none";
+			this.style.height = this.__header.offsetHeight + "px";
 			
-			this.util.addEvent(this.__config.element,"mousedown",this.__elementMouseDownHandler.bind(this));
-			this.util.addEvent(this.__config.element,"touchstart",this.__elementTouchStartHandler.bind(this));
-			if(!this.__documentMouseMoveRef)
-			{
-				this.__documentMouseMoveRef = this.__documentMouseMoveHandler.bind(this);
-				this.util.addEvent(document,"mousemove",this.__documentMouseMoveRef);
-			}
-			if(!this.__documentMouseUpRef)
-			{
-				this.__documentMouseUpRef = this.__documentMouseUpHandler.bind(this);
-				this.util.addEvent(document,"mouseup",this.__documentMouseUpRef);
-			}
-			if(!this.__documentTouchMoveRef)
-			{
-				this.__documentTouchMoveRef = this.__documentTouchMoveHandler.bind(this);
-				this.util.addEvent(document,"touchmove",this.__documentTouchMoveRef);
-			}
-			if(!this.__documentTouchEndRef)
-			{
-				this.__documentTouchEndRef = this.__documentTouchEndHandler.bind(this);
-				this.util.addEvent(document,"touchend",this.__documentTouchEndRef);
-			}
-			if(this.__config.dragEnabled)
-			{
-				this.__initializeDrag();
-			}
-			if(this.__config.resizeEnabled)
-			{
-				this.__initializeResize();
-			}
-			this.__animateAction();
+			this.util.changeStyleClass(this.__divGhost,"nsPanel","nsPanelCollapsed");
 		}
-	};
-	
-	this.__elementMouseDownHandler = function(event)
-	{
-		event = this.util.getEvent(event);
-		this.__downActionHandler(event);
-		this.util.preventDefault(event); 
-	};
-	
-	this.__elementTouchStartHandler = function(event)
-	{
-		 event = this.util.getEvent(event);
-		 this.__downActionHandler(event.touches[0]);
-		 this.util.preventDefault(event);
-	};
-	
-	this.__documentMouseMoveHandler = function(event)
-	{
-		event = this.util.getEvent(event);
-		this.__moveActionHandler(event);
-	};
-	
-	this.__documentMouseUpHandler = function(event)
-	{
-		event = this.util.getEvent(event);
-		this.__upActionHandler(event);
-	};
-	
-	this.__documentTouchMoveHandler = function(event)
-	{
-		event = this.util.getEvent(event);
-		this.__moveActionHandler(event.touches[0]);
-	};
-	
-	this.__documentTouchEndHandler = function(event)
-	{
-		event = this.util.getEvent(event);
-		if (event.touches.length === 0) 
+		else
 		{
-			this.__upActionHandler(event.changedTouches[0]);
+			this.util.changeStyleClass(this,"nsPanelCollapsed","nsPanel");
+			this.__body.style.display = "";
+			this.style.height = (this.__lastHeight) ? this.__lastHeight : (this.__lastBodyHeight + this.__header.offsetHeight + "px");
+			this.__lastBodyHeight = 0;
+			
+			this.util.changeStyleClass(this.__divGhost,"nsPanelCollapsed","nsPanel");
 		}
-	};
-	this.__isDragReady = false;
-	this.__dragoffset = {x: 0,y: 0};
-	this.__downActionHandler = function(event)
-	{
-		this.__calculatePosition(event);
-		var isResizing = this.__isResizeValid();
-		var isDragging = !isResizing && this.__isDragValid();
-		if(isResizing)
+		divGhostBody.style.display = this.__body.style.display;
+		this.__divGhost.style.height = this.style.height;
+		this.__body.style.height = "";
+		this.__handleMinMaxIcon(direction < 0);
+		#container 
 		{
-			this.__startResize();
+				/*position:absolute;*/
+	               background-color: blue;
 		}
-		else if(isDragging)
-		{
-			this.__startDrag(event);
-		}
-		this.__dragResizeSetting = {
-			    posX: this.__posX,
-			    posY: this.__posY,
-			    clientX: event.clientX,
-			    clientY: event.clientY,
-			    elementWidth: this.__elementRect.width,
-			    elementHeight: this.__elementRect.height,
-			    isResizing: this.__config.resizeEnabled && isResizing,
-			    isDragging: isDragging,
-			    isResizeTop: this.__resizeDirection.top,
-			    isResizeLeft: this.__resizeDirection.left,
-			    isResizeRight: this.__resizeDirection.right,
-			    isResizeBottom: this.__resizeDirection.bottom
-		 };
-	};
-	
-	this.__moveActionHandler = function(event)
-	{
-		this.__calculatePosition(event);
-		this.__tempEvent = event;
-		this.__rePaint = true;
-		this.__moveDrag(event);
-	};
-	
-	this.__upActionHandler = function(event)
-	{ 
-		this.__calculatePosition(event);
-		if (this.__dragResizeSetting) 
-		{
-			if(this.__dragResizeSetting.isResizing)
-			{
-				this.__endResize();
-			}
-			else if(this.__dragResizeSetting.isDragging)
-			{
-				this.__endDrag();
-			}
-		}
-		this.__dragResizeSetting = null;
-	};
-	
-	/*********************************Resize Methods Starts*********************************/
-	this.__initializeResize = function()
-	{
+        #elem{
+            
+            background-color: green;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -o-user-select: none;
+            -ms-user-select: none;
+            -khtml-user-select: none;     
+            user-select: none;
+        }
+        <div id='container' style="width: 600px;height: 400px;">		
+		<div id="elem"  style="width: 200px;height: 100px;">
+			<div style='width:100%;height:100%;padding:10px'>
+			<select id=test>
+				<option value=1>first
+				<option value=2>second
+			</select>
+			<INPUT TYPE=text value="123">
+			</div>
+		</div>
 		
-	};
-	
-	this.__resizeElement = function()
-	{
-		if(this.__dragResizeSetting.isResizeRight) 
-	    {
-	    	this.__config.element.style.width = Math.max(this.__posX, this.__config.minWidth) + "px";
-	    }
-	    if(this.__dragResizeSetting.isResizeBottom) 
-	    {
-	    	this.__config.element.style.height = Math.max(this.__posY, this.__config.minHeight) + "px";
-	    }
-	    if(this.__dragResizeSetting.isResizeLeft) 
-	    {
-		     var currentWidth = Math.max(this.__dragResizeSetting.clientX - this.__tempEvent.clientX  + this.__dragResizeSetting.elementWidth, this.__config.minWidth);
-		     if (currentWidth > this.__config.minWidth) 
-		     {
-		    	 this.__config.element.style.width = currentWidth + "px";
-		    	 this.__config.element.style.left = this.__tempEvent.clientX + "px";	
-		     }
-	    }
-	    if (this.__dragResizeSetting.isResizeTop) 
-	    {
-	    	var currentHeight = Math.max(this.__dragResizeSetting.clientY - this.__tempEvent.clientY  + this.__dragResizeSetting.elementHeight, this.__config.minHeight);
-		    if(currentHeight > this.__config.minHeight) 
-		    {
-		    	this.__config.element.style.height = currentHeight + "px";
-		    	this.__config.element.style.top = this.__tempEvent.clientY + "px";	
-		    }
-	    }
-	    this.__updateHiddenDivDimension();
-	};
-	
-	this.__startResize = function()
-	{
-		if(this.__config.resizeStartCallback)
-		{
-			this.__config.resizeStartCallback();
-		}
-	};
-	
-	this.__endResize = function()
-	{
-		if(this.__config.resizeEndCallback)
-		{
-			this.__config.resizeEndCallback();
-		}
-	};
-	
-	this.__isResizeValid = function()
-	{
-		if(this.__config.resizeEnabled)
-		{
-			var retValue =  this.__resizeDirection.right || this.__resizeDirection.bottom || this.__resizeDirection.top || this.__resizeDirection.left;
-			return retValue;
-		}
-		return false;
-	};
-		
-	/*********************************Resize Methods Ends*********************************/
-		
-	/*********************************Drag Methods Starts*********************************/
-	this.__initializeDrag = function()
-	{
-		var element = this.__config.element;
-		var style = getComputedStyle(element);
-		if (style.position !== "relative" && style.position !== "absolute" ) 
-		{
-			element.style.position = "relative";
-		}
-	};
-	
-	this.__dragElement = function()
-	{
-	};
-
-	this.__startDrag = function(event)
-	{
-		if(this.__config.dragStartCallback)
-		{
-			this.__config.dragStartCallback();
-		}
-		this.__isDragReady = true;
-		/*event.pageX = event.pageX || event.clientX + (document.documentElement.scrollLeft ?
-		        document.documentElement.scrollLeft :
-		        document.body.scrollLeft);
-		event.pageY = event.pageY || event.clientY + (document.documentElement.scrollTop ?
-		        document.documentElement.scrollTop :
-		        document.body.scrollTop);
-		this.__dragoffset.x = event.pageX - this.__config.element.offsetLeft;//this.__divHidden.offsetLeft;
-		this.__dragoffset.y = event.pageY - this.__config.element.offsetTop;//this.__divHidden.offsetTop;*/
-		var rectElement = this.__config.element.getBoundingClientRect();
-		
-		this.__dragoffset.posX = event.clientX;
-		this.__dragoffset.posY = event.clientY;
-		this.__dragoffset.elementTop = rectElement.top;
-		this.__dragoffset.elementLeft = rectElement.left;
-		this.__dragoffset.elementWidth = rectElement.width;
-		this.__dragoffset.elementHeight = rectElement.height;
-		this.__dragoffset.diffX = this.__dragoffset.posX - this.__dragoffset.elementLeft;
-		this.__dragoffset.diffY = this.__dragoffset.posY - this.__dragoffset.elementTop;
-		this.__dragoffset.containerWidth = 0;
-		this.__dragoffset.containerHeight = 0;
-		if(this.__config.enableDragContainment)
-		{
-			var containerRect = this.__config.container.getBoundingClientRect();
-			this.__dragoffset.containerWidth = containerRect.width;
-			this.__dragoffset.containerHeight = containerRect.height;
-		}
-		
-	};
-	
-	this.__moveDrag = function(event)
-	{
-		if (this.__isDragReady) 
-		{
-			this.__setHiddenDivVisiblity(true);
-			/*event.pageX = event.pageX || event.clientX + (document.documentElement.scrollLeft ?
-				          document.documentElement.scrollLeft :
-				          document.body.scrollLeft);
-			event.pageY = event.pageY || event.clientY + (document.documentElement.scrollTop ?
-				          document.documentElement.scrollTop :
-				          document.body.scrollTop);
-			var newTop = (event.pageY - this.__dragoffset.y);
-			var newLeft = (event.pageX - this.__dragoffset.x);
-			if(this.util.isOnScreen(this.__divHidden,newLeft,newTop))
-			{
-				this.__divHidden.style.top = newTop + "px";
-				this.__divHidden.style.left = newLeft  + "px";
-			}*/
-			var posX = event.clientX;
-            var posY = event.clientY;
-            var newX = posX - this.__dragoffset.diffX;
-            var newY = posY - this.__dragoffset.diffY;
-            var newPosition = this.__getRestrictedPosition(newX,newY);
-            this.__divHidden.style.top = newPosition.y + "px";
-			this.__divHidden.style.left = newPosition.x  + "px";
-			//console.log(this.util.isOnScreen(this.__divHidden));
-	     }
-	};
-	
-	this.__endDrag = function()
-	{
-		this.__isDragReady = false;
-		this.__config.element.style.top = this.__divHidden.style.top;
-		this.__config.element.style.left = this.__divHidden.style.left;
-		this.__dragoffset = {x:0,y:0};
-		this.__setHiddenDivVisiblity(false);
-		if(this.__config.dragEndCallback)
-		{
-			this.__config.dragEndCallback();
-		}
-	};
-	
-	this.__getRestrictedPosition = function(newX,newY)
-	{
-		if(this.__config.enableDragContainment)
-		{
-			newX = (newX < 0) ? 0 : newX;
-			newY = (newY < 0) ? 0 : newY;
-			if((newX + this.__dragoffset.elementWidth) > this.__dragoffset.containerWidth)
-			{
-				newX = this.__dragoffset.containerWidth - this.__dragoffset.elementWidth;
-			}
-			if((newY + this.__dragoffset.elementHeight) > this.__dragoffset.containerHeight)
-			{
-				newY = this.__dragoffset.containerHeight - this.__dragoffset.elementHeight;
-			}
-		}
-		return {x:newX,y:newY};
-	};
-	
-	this.__isDragValid = function()
-	{
-		if(this.__config.dragEnabled)
-		{
-			var retValue = this.__posX > 0 && this.__posX < this.__elementRect.width && this.__posY > 0 && this.__posY < this.__elementRect.height && this.__posY < 30;
-			return retValue;
-		}
-		return false;
-	};
-	/*********************************Drag Methods Ends*********************************/
-	/*********************************Common Methods Starts*********************************/
-	this.__animateAction = function()
-	{
-		this.util.getRequestAnimationFrame.bind(window)(this.__animateAction.bind(this));
-		if(this.__rePaint)
-		{
-			this.__rePaint = false;
-			if(this.__dragResizeSetting && this.__dragResizeSetting.isResizing) 
-			{
-				this.__resizeElement();
-				return;
-			}
-			if(this.__dragResizeSetting && this.__dragResizeSetting.isDragging) 
-			{
-				this.__dragElement();
-				return;
-			}
-			this.__setElementCursor();
-		}
-	};
-	
-	this.__calculatePosition = function(event)
-	{
-		  this.__elementRect = this.__config.element.getBoundingClientRect();
-		  this.__posX = event.clientX - this.__elementRect.left;
-		  this.__posY = event.clientY - this.__elementRect.top;
-
-		  this.__resizeDirection.top = this.__posY < this.__ELEMENT_OFFSET;
-		  this.__resizeDirection.left = this.__posX < this.__ELEMENT_OFFSET;
-		  this.__resizeDirection.right = this.__posX >= this.__elementRect.width - this.__ELEMENT_OFFSET;
-		  this.__resizeDirection.bottom = this.__posY >= this.__elementRect.height - this.__ELEMENT_OFFSET;
-		  
-		  this.__dragEdge.right = window.innerWidth - this.__ELEMENT_OFFSET;
-		  this.__dragEdge.bottom = window.innerHeight - this.__ELEMENT_OFFSET;
-	};
-	
-	this.__setElementCursor = function() 
-	{
-			if(this.__config.resizeEnabled && this.__resizeDirection.right && this.__resizeDirection.bottom || this.__resizeDirection.left && this.__resizeDirection.top) 
-			{
-				 this.__config.element.style.cursor = "nwse-resize";
-			} 
-			else if(this.__config.resizeEnabled && this.__resizeDirection.right && this.__resizeDirection.top || this.__resizeDirection.bottom && this.__resizeDirection.left) 
-			{
-				 this.__config.element.style.cursor = "nesw-resize";
-			} 
-			else if(this.__config.resizeEnabled && (this.__resizeDirection.right || this.__resizeDirection.left)) 
-			{
-				 this.__config.element.style.cursor = "ew-resize";
-			} 
-			else if(this.__config.resizeEnabled && (this.__resizeDirection.bottom || this.__resizeDirection.top)) 
-			{
-				 this.__config.element.style.cursor = "ns-resize";
-			} 
-			else if(this.__isDragValid()) 
-			{
-				 this.__config.element.style.cursor = "move";
-			} 
-			else 
-			{
-				 this.__config.element.style.cursor = "default";
-			}
-	};
-	
-	this.__setHiddenDivVisiblity = function(isVisible) 
-	{
-		this.__divHidden.style.display = (isVisible ? "" : "none");
-		this.__config.element.style.display = (isVisible ? "none" : "");
-	};
-	
-	this.__updateHiddenDivDimension = function() 
-	{
-		this.__updateElementDimension(this.__divHidden, this.__elementRect.left,this.__elementRect.top, this.__elementRect.width, this.__elementRect.height);
-	};
-	
-	this.__updateElementDimension = function(element,posX,posY,width,height) 
-	{
-		var updateDimension = function(property,value)
-		{
-			(value !== -1) ? (element.style[property] = value + "px") : null;
-		};
-		updateDimension("left",posX);
-		updateDimension("top",posY);
-		updateDimension("width",width);
-		updateDimension("height",height);
-	};
-	
-	this.__destroyElements = function()
-	{
-		if(this.__documentMouseMoveRef)
-		{
-			this.util.removeEvent(document,"mousemove",this.__documentMouseMoveRef);
-			this.__documentMouseMoveRef = null;
-		}
-		if(this.__documentMouseUpRef)
-		{
-			this.util.removeEvent(document,"mouseup",this.__documentMouseUpRef);
-			this.__documentMouseUpRef = null;
-		}
-		if(this.__documentTouchMoveRef)
-		{
-			this.util.removeEvent(document,"touchmove",this.__documentTouchMoveRef);
-			this.__documentTouchMoveRef = null;
-		}
-		if(this.__documentTouchEndRef)
-		{
-			this.util.removeEvent(document,"touchend",this.__documentTouchEndRef);
-			this.__documentTouchEndRef = null;
-		}
-	};
-	
-	this.__createGhost = function(element)
-	{
-		var divHidden = this.util.createDiv(element.id + "Hidden", "nsGhostElement");
-		divHidden.style.width = this.util.getStyleValue(element,"width");
-		divHidden.style.height = this.util.getStyleValue(element,"height");
-		
-		return divHidden;
-	};
-	/*********************************Common Methods Ends*********************************/
-	this.__initialize();
-};
+	</div>	
+	var element = document.getElementById("elem");
+			var container = document.getElementById("container");
+			var util = new NSUtil();
+				var dragResizeSetting = {element:element,
+						dragEnabled:true,
+						resizeEnabled:true,
+						minWidth:50,
+						minHeight:50,
+					    enableDragContainment:true,
+					    container:container
+				};
+				var nsDragResizeElements = new util.nsDragResizeElements(dragResizeSetting);
