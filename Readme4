@@ -1,47 +1,75 @@
-this.__isMinimizingMaximizing = false;
-this.util.addEvent(this,this.__nsDragResizeElements.DRAG_STARTING,this.__dragResizeEventHandler.bind(this));
-if(this.__titleClass)
-		{
-			this.util.addStyleClass(divTitleBar,this.__titleClass);
-		}
-		nsPanel.__headerDoubleClickHandler = function(event)
-{
-	event = this.util.getEvent(event);
-	this.__initializeMinMax();
-	event.stopPropagation();
-	event.stopImmediatePropagation();
-};
-nsPanel.__dragResizeEventHandler = function(event)
-{
-	if(event.eventName === this.DRAG_STARTING)
-	{
-		var target = event.detail;
-		if(target && (this.util.hasStyleClass(target,"nsPanelMinMaxContainer")))
-		{
-			this.util.preventDefault(event);
-			event.stopImmediatePropagation();
-		}
-	}
-	else if(event.eventName === this.RESIZE_END)
-	{
-		this.__lastHeight = this.util.getStyleValue(this,"height");
-	}
-};
-nsPanel.__initializeMinMax = function()
-{
-	if(this.__body && !this.__isMinimizingMaximizing)
-	{
-		this.__nsDragResizeElements.stopMoveOnClick();
-		this.__isMinimizingMaximizing = true;
-		var isCollapsed = this.util.hasStyleClass(this,"nsPanelCollapsed");
-		this.__animateMinMax(isCollapsed);
-	}
-};
-this.__isMinimizingMaximizing = false;
+this.__enableModal = true;
 
-.nsPanelTitleBar {
-    text-align: left;
-    font-weight: bold;
-    min-height: 20px;
-    max-height: 20px;
-}
+this.__divModal = null;
+	this.__isMinimizingMaximizing = false;
+	this.__isInternalRemove = false;
+nsPanel.open = function()
+{
+	this.__divModal.style.display = "block";
+};
+
+nsPanel.close = function()
+{
+	this.__divModal.style.display = "none";
+};
+nsPanel.removeComponent = function() 
+{
+	if(!this.__isInternalRemove)
+	{
+		if(this.__nsDragResizeElements)
+		{
+			this.__nsDragResizeElements.destroy();
+		}
+		this.base.removeComponent();
+	}
+	this.__isInternalRemove = false;
+};
+nsPanel.__createStructure = function()
+{
+	this.util.addStyleClass(this,"nsPanel");
+	this.util.addStyleClass(this,this.__styleClass);
+	if(this.__enableModal)
+	{
+		var parentNode = this.parentNode;
+		if(!parentNode)
+		{
+			parentNode = document.body;
+		}
+		this.__divModal = this.__createModal();
+		this.__isInternalRemove = true;
+		this.__divModal.appendChild(this);
+		parentNode.appendChild(this.__divModal);
+		this.util.addStyleClass(this,"nsModalContent");
+		this.util.addEvent(window,"click",this.__windowClickHandler.bind(this));
+	}
+	//this.__container = this.__createOuterContainer();
+	this.__header = this.__createTitleBar(this);
+	this.__body = this.__createBody(this);
+	this.__lastHeight = this.util.getStyleValue(this,"height");
+	var dragResizeSetting = {element:this,
+			enableDrag:this.__enableDrag,
+			enableResize:this.__enableResize,
+			enableMoveOnClick:this.__enableMoveOnClick,
+			minWidth:this.__minWidth,
+			minHeight:this.__minHeight,
+			createGhostElementCallback:this.__createGhostElement.bind(this),
+			enableDragContainment:true};
+	this.__nsDragResizeElements = new this.util.nsDragResizeElements(dragResizeSetting);
+	this.util.addEvent(this,this.__nsDragResizeElements.DRAG_STARTING,this.__dragResizeEventHandler.bind(this));
+	this.util.addEvent(this,this.__nsDragResizeElements.RESIZE_END,this.__dragResizeEventHandler.bind(this));
+};
+
+nsPanel.__windowClickHandler = function(event)
+{
+	var target = this.util.getTarget(event);
+	if(target === this.__divModal)
+	{
+		//this.close();
+	}
+};
+
+nsPanel.__createModal = function()
+{
+	var divModal = this.util.createDiv(this.getID() + "modal","nsModal");
+	return divModal;
+};
