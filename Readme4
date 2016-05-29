@@ -1,75 +1,63 @@
-this.__enableModal = true;
-
-this.__divModal = null;
-	this.__isMinimizingMaximizing = false;
-	this.__isInternalRemove = false;
-nsPanel.open = function()
-{
-	this.__divModal.style.display = "block";
-};
-
-nsPanel.close = function()
-{
-	this.__divModal.style.display = "none";
-};
-nsPanel.removeComponent = function() 
-{
-	if(!this.__isInternalRemove)
+	if(this.__enableDrag)
 	{
-		if(this.__nsDragResizeElements)
+		this.util.addStyleClass(this,"nsPanelModalContentDrag");
+	}
+nsPanel.__createTitleBar = function(parentElement)
+{
+	if(parentElement)
+	{
+		var divTitleBar = this.util.createDiv(this.getID() + this.__TITLE_CONTAINER_ID,"nsPanelTitleBar");
+		if(this.__titleClass)
 		{
-			this.__nsDragResizeElements.destroy();
+			this.util.addStyleClass(divTitleBar,this.__titleClass);
 		}
-		this.base.removeComponent();
-	}
-	this.__isInternalRemove = false;
-};
-nsPanel.__createStructure = function()
-{
-	this.util.addStyleClass(this,"nsPanel");
-	this.util.addStyleClass(this,this.__styleClass);
-	if(this.__enableModal)
-	{
-		var parentNode = this.parentNode;
-		if(!parentNode)
+		if(this.__title && this.__title.length > 0)
 		{
-			parentNode = document.body;
+			var titleText = document.createTextNode(this.__title);
+			divTitleBar.appendChild(titleText);
 		}
-		this.__divModal = this.__createModal();
-		this.__isInternalRemove = true;
-		this.__divModal.appendChild(this);
-		parentNode.appendChild(this.__divModal);
-		this.util.addStyleClass(this,"nsModalContent");
-		this.util.addEvent(window,"click",this.__windowClickHandler.bind(this));
+		var svgShapes = new NSSvgShapes();
+		var objSVG = new NSSvg();
+		var divIcon = this.util.createDiv(this.getID() + this.__TITLE_CONTAINER_ID + "IconContainer");
+		divIcon.style.float = "right";
+		//click Handler not working if we remove float=right from icon span in IE
+		//that is the close icon is before minimize icon 
+		if(this.__enableModal)
+		{
+			svgShapes.addCloseIcon();
+			var spanClose = document.createElement("span");
+			this.util.addStyleClass(spanClose,"nsPanelCloseContainer");
+			spanClose.style.cursor = "pointer";
+			spanClose.style.marginLeft = "5px";
+			spanClose.style.float = "right";
+			var closeID = this.getID() + "Close";
+			var svg = objSVG.addSVG(spanClose,closeID,"nsPanelClose",null,null,null,null,null,null,true);
+			objSVG.addUse(svg,closeID + "use","nsPanelCloseUse","#" + svgShapes.__CLOSE_ICON_ID);
+			divIcon.appendChild(spanClose);
+			this.util.addEvent(spanClose,"click",this.__closeIconClickHandler.bind(this));
+		}
+		if(this.__enableCollapse)
+		{
+			svgShapes.addMinimizeInPage();
+			svgShapes.addMaximizeInPage();
+			var spanMinMax = document.createElement("span");
+			this.util.addStyleClass(spanMinMax,"nsPanelMinMaxContainer");
+			spanMinMax.style.cursor = "pointer";
+			spanMinMax.style.float = "right";
+			var minMaxID = this.getID() + "MinMax";
+			var svg = objSVG.addSVG(spanMinMax,minMaxID,"nsPanelMinMax",null,null,null,null,null,null,true);
+			objSVG.addUse(svg,minMaxID + "use","nsPanelMinMaxUse","#" + new NSSvgShapes().__MINIMIZE_ICON_ID);
+			divIcon.appendChild(spanMinMax);
+			var headerDoubleClickRef = this.__headerDoubleClickHandler.bind(this);
+			this.util.addEvent(spanMinMax,"click",headerDoubleClickRef);
+			if(this.__enableTitleDblClick)
+			{
+				this.util.addEvent(divTitleBar,"dblclick",headerDoubleClickRef);
+			}
+		}
+		divTitleBar.appendChild(divIcon);
+		parentElement.appendChild(divTitleBar);
+		return divTitleBar;
 	}
-	//this.__container = this.__createOuterContainer();
-	this.__header = this.__createTitleBar(this);
-	this.__body = this.__createBody(this);
-	this.__lastHeight = this.util.getStyleValue(this,"height");
-	var dragResizeSetting = {element:this,
-			enableDrag:this.__enableDrag,
-			enableResize:this.__enableResize,
-			enableMoveOnClick:this.__enableMoveOnClick,
-			minWidth:this.__minWidth,
-			minHeight:this.__minHeight,
-			createGhostElementCallback:this.__createGhostElement.bind(this),
-			enableDragContainment:true};
-	this.__nsDragResizeElements = new this.util.nsDragResizeElements(dragResizeSetting);
-	this.util.addEvent(this,this.__nsDragResizeElements.DRAG_STARTING,this.__dragResizeEventHandler.bind(this));
-	this.util.addEvent(this,this.__nsDragResizeElements.RESIZE_END,this.__dragResizeEventHandler.bind(this));
-};
-
-nsPanel.__windowClickHandler = function(event)
-{
-	var target = this.util.getTarget(event);
-	if(target === this.__divModal)
-	{
-		//this.close();
-	}
-};
-
-nsPanel.__createModal = function()
-{
-	var divModal = this.util.createDiv(this.getID() + "modal","nsModal");
-	return divModal;
+	return null;
 };
