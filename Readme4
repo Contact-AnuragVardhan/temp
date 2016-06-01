@@ -1,63 +1,18 @@
-	if(this.__enableDrag)
-	{
-		this.util.addStyleClass(this,"nsPanelModalContentDrag");
-	}
-nsPanel.__createTitleBar = function(parentElement)
-{
-	if(parentElement)
-	{
-		var divTitleBar = this.util.createDiv(this.getID() + this.__TITLE_CONTAINER_ID,"nsPanelTitleBar");
-		if(this.__titleClass)
-		{
-			this.util.addStyleClass(divTitleBar,this.__titleClass);
-		}
-		if(this.__title && this.__title.length > 0)
-		{
-			var titleText = document.createTextNode(this.__title);
-			divTitleBar.appendChild(titleText);
-		}
-		var svgShapes = new NSSvgShapes();
-		var objSVG = new NSSvg();
-		var divIcon = this.util.createDiv(this.getID() + this.__TITLE_CONTAINER_ID + "IconContainer");
-		divIcon.style.float = "right";
-		//click Handler not working if we remove float=right from icon span in IE
-		//that is the close icon is before minimize icon 
-		if(this.__enableModal)
-		{
-			svgShapes.addCloseIcon();
-			var spanClose = document.createElement("span");
-			this.util.addStyleClass(spanClose,"nsPanelCloseContainer");
-			spanClose.style.cursor = "pointer";
-			spanClose.style.marginLeft = "5px";
-			spanClose.style.float = "right";
-			var closeID = this.getID() + "Close";
-			var svg = objSVG.addSVG(spanClose,closeID,"nsPanelClose",null,null,null,null,null,null,true);
-			objSVG.addUse(svg,closeID + "use","nsPanelCloseUse","#" + svgShapes.__CLOSE_ICON_ID);
-			divIcon.appendChild(spanClose);
-			this.util.addEvent(spanClose,"click",this.__closeIconClickHandler.bind(this));
-		}
-		if(this.__enableCollapse)
-		{
-			svgShapes.addMinimizeInPage();
-			svgShapes.addMaximizeInPage();
-			var spanMinMax = document.createElement("span");
-			this.util.addStyleClass(spanMinMax,"nsPanelMinMaxContainer");
-			spanMinMax.style.cursor = "pointer";
-			spanMinMax.style.float = "right";
-			var minMaxID = this.getID() + "MinMax";
-			var svg = objSVG.addSVG(spanMinMax,minMaxID,"nsPanelMinMax",null,null,null,null,null,null,true);
-			objSVG.addUse(svg,minMaxID + "use","nsPanelMinMaxUse","#" + new NSSvgShapes().__MINIMIZE_ICON_ID);
-			divIcon.appendChild(spanMinMax);
-			var headerDoubleClickRef = this.__headerDoubleClickHandler.bind(this);
-			this.util.addEvent(spanMinMax,"click",headerDoubleClickRef);
-			if(this.__enableTitleDblClick)
-			{
-				this.util.addEvent(divTitleBar,"dblclick",headerDoubleClickRef);
-			}
-		}
-		divTitleBar.appendChild(divIcon);
-		parentElement.appendChild(divTitleBar);
-		return divTitleBar;
-	}
-	return null;
-};
+this.DRAG_STARTED = "dragStarted";
+	this.DRAG_END = "dragEnd";
+self.util.dispatchEvent(self.__nsList,self.__nsList.DRAG_STARTED,arrItems,{items:arrItems});
+self.util.dispatchEvent(self.__nsList,self.__nsList.DRAG_END,null,null);
+
+
+lstDemo.util.addEvent(lstDemo,lstDemo.DRAG_STARTED,dragStartHandler);
+						lstDemo.util.addEvent(lstDemo,lstDemo.DRAG_END,dragEndHandler);
+function dragStartHandler(event)
+				{
+					var arrItems = event.detail;
+					console.log(arrItems + " dragging");
+				}
+				
+				function dragEndHandler(event)
+				{
+					console.log("drag End Handler");
+				}
