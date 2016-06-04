@@ -1,22 +1,8 @@
-.handle {
-	  cursor: move;
-	  position: absolute;
-	  top: 0px;
-	}
-	
-	.other {
-  margin-left: 20px;
-}
-.rightList {
-    float: left;
-    margin-left: 10px;
-    }
-    
-    lstDemo1.util.addStyleClass(lstDemo1,"rightList");
-    
-    htmlText = "<div class='hbox'>";
-							htmlText += "<span class='handle'>:::</span>";
-							htmlText += "<span class='other'>";
-							htmlText += "<input id='" + ("chk" + fieldIndex) + "' type='checkbox' onchange='checkBox_changeHandler(event)' checked='" + item["isChecked"] + "'>";
-							htmlText += "<label>" + item["id"] + "</label>";
-							htmlText += "</span>";
+function item1DroppingHandler(event)
+				{
+					var arrItems = event.detail;
+					if(event.cancelable && arrItems && arrItems.length > 0 && arrItems[0]["ns_field_disableHover"])
+					{
+						event.preventDefault();
+					}
+				}
