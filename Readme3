@@ -1,1 +1,109 @@
 
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+    pageEncoding="ISO-8859-1"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<script src="../lib/com/org/util/nsImport.js"></script>
+<title>Insert title here</title>
+ <style>
+ 	body,html
+	{
+		margin:0px;
+		padding:0px;
+		height:100%;
+		background:#FFFFFF;
+	}
+	.ui-resizable-e {
+	    cursor: ew-resize;
+	    width: 20px;
+	    right: -5px;
+	    top: 0;
+	    height: 100%;
+	}
+	.ui-resizable-handle {
+	    position: absolute;
+	    font-size: 0.1px;
+	    z-index: 99999;
+	    display: block;
+	}
+	.toggleLink {
+    position: absolute;
+    right: -13px;
+    color: #fff;
+    font-size: 24px;
+    font-weight: normal;
+    width: 13px;
+    height: 22px;
+    display: block;
+    text-indent: -9999px;
+    overflow: hidden;
+    background: red;
+    z-index: 9999;
+}
+ </style>
+</head>
+<body>
+	<nsimport file="nsDividerBox.js">
+	</nsimport>
+	
+	 <ns-dividerBox direction="vertical" style="height:100%;" class="verticalContainer">
+		<div id="top-vertical-content" style="width:10%;">
+			This is Left
+		</div>
+		<div id="top-vertical-content3" style="min-Width:40px;;width:90%;">
+			This is Right
+		</div>
+	</ns-dividerBox>
+</body>
+</html>
+
+<ns-dividerBox direction="vertical" style="width:90%;" class="verticalContainer">
+		<div id="top-vertical-content" style="min-Width:90px;width:20%;">
+			This is Left
+		</div>
+		<div id="top-vertical-content1" style="min-Width:40px;width:40%">
+			<ns-dividerBox direction="horizontal" style="height:500px;">
+				<div id="top-content" style="min-Height:40px;height:25%;">
+					This is the top part<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+				</div>
+				<div id="middle-content1" style="min-Height:20px;height:25%;">
+					This is the middle part 1<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+				</div>
+				<div id="middle-content2" style="min-Height:20px;height:25%;">
+					This is the middle part 2<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+				</div>
+				<div id="bottom-content" style="min-Height:30px;height:25%;">
+					This is the bottom part<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+					At w3schools.com you will learn how to make a website. We offer free tutorials in all web development technologies.<br/>
+				</div>
+			</ns-dividerBox>
+		</div>
+		<div id="top-vertical-content3" style="min-Width:40px;width:40%;">
+			This is Right
+		</div>
+	</ns-dividerBox>
