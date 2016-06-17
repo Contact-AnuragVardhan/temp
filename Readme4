@@ -1,101 +1,200 @@
-if(this.__divVirtualScrollParent)
+this.__advanceFilterGrid = function()
 	{
-		this.__divVirtualScrollParent.scrollTop = 0;
-	}
+		 var fieldSetting = null;
+		 var field = null;
+		 if(this.__isOrFilter)
+		 {
+			 var filter = [];
+			 var setting = {};
+			 var item = null;
+			 for(field in this.__objAdvancedFilterSetting)
+			 {
+				 fieldSetting = this.__objAdvancedFilterSetting[field];
+				 if(fieldSetting)
+				 {
+					 if(fieldSetting["arrText"] && fieldSetting["arrTextField"])
+					 {
+						 var arrTextField = fieldSetting["arrTextField"];
+						 var arrText = fieldSetting["arrText"];
+						 var length = arrText.length;
+						 filter[field] = [];
+						 for(var count = 0;count < length;count++)
+						 {
+							 item = {};
+							 item[field] = arrText[count][arrTextField];
+							 filter.push(item);
+						 }
+					 }
+					 else
+					 {
+						 item = {};
+						 item[field] = fieldSetting.text;
+						 filter.push(item);
+					 }
+					 setting[field] = {caseSensitive:fieldSetting.caseSensitive,multiline:false,matchType:fieldSetting.matchType};
+				 }
+			 }
+			 if(filter && filter.length > 0)
+			 {
+				 this.__handleFiltering(filter,setting);
+			 }
+			 else
+			 {
+				 this.__resetFiltering();
+			 }
+		 }
+		 else
+		 {
+			 var filter = {};
+			 var setting = {};
+			 for(field in this.__objAdvancedFilterSetting)
+			 {
+				 fieldSetting = this.__objAdvancedFilterSetting[field];
+				 if(fieldSetting)
+				 {
+					 if(fieldSetting["arrText"] && fieldSetting["arrTextField"])
+					 {
+						 var arrTextField = fieldSetting["arrTextField"];
+						 var arrText = fieldSetting["arrText"];
+						 var length = arrText.length;
+						 filter[field] = [];
+						 for(var count = 0;count < length;count++)
+						 {
+							 filter[field].push(arrText[count][arrTextField]);
+						 }
+					 }
+					 else
+					 {
+						 filter[field] = fieldSetting.text;
+					 }
+					 setting[field] = {caseSensitive:fieldSetting.caseSensitive,multiline:false,matchType:fieldSetting.matchType};
+				 }
+			 }
+			 if(filter && Object.keys(filter).length > 0)
+			 {
+				 this.__handleFiltering(filter,setting);
+			 }
+			 else
+			 {
+				 this.__resetFiltering();
+			 }
+		 }
+	};
 	
-	var rect = this.getBoundingClientRect();
-			var availableHeight = rect.height;
-			
-			this.__getListDetailFilter = function(dataField)
+	this.__getTextDetailFilter = function(dataField)
 	{
 		var self = this;
-		var itemRenderer = function(item,labelField,fieldIndex,isDisabled,listItem)
-		{
-			if(item)
-			{
-				var divRenderer = self.util.createDiv(colID + "filterListContainer" + item["id"] ,"nsFilterListRenderer");
-				var label = self.util.createElement("label");
-				var checkBox = self.util.createElement("input",null,"nsFilterListRendererCheckBox");
-				checkBox.setAttribute("type","checkbox");
-				label.appendChild(checkBox);
-				var spanText = self.util.createElement("span",null,"nsFilterListRendererText");
-				spanText.appendChild(document.createTextNode(item[labelField]));
-				label.appendChild(spanText);
-				divRenderer.appendChild(label);
-				return divRenderer;
-			}
-			return null;
-		};
 		var txtInputChangeHandler = function()
 		{
 			clearTimeout(self.__interval);
 			self.__interval = setTimeout(function(){
-					handleListFilter();
+					handleTextFilter();
 				}, self.SEARCH_INTERVAL);
 		};
-		var handleListFilter = function()
+		var handleTextFilter = function()
 		{
 			var item = null;
 			var text = null;
-			var text = txtFilter.value;
-			if(text === "")
+			if(txtFilter.value && txtFilter.value !== "")
 			{
-				lstFilter.resetFilter();
+				text = txtFilter.value;
+				item = {text:text,caseSensitive:Boolean.parse(arrSensitive[cmbSensitive.selectedIndex].value),matchType:arrOptions[cmbFilter.selectedIndex].value,sensitiveIndex:cmbSensitive.selectedIndex,
+						optionIndex:cmbFilter.selectedIndex,textInputText:txtFilter.value};
 			}
-			else
+			self.__objAdvancedFilterSetting[dataField] = item;
+			self.__advanceFilterGrid.bind(self)();
+			if(self.__enableApply)
 			{
-				lstFilter.filter(text);
+				self.__removePopUp();
 			}
 		};
-		var objPrev = this.__objAdvancedFilterSetting[dataField];
+		var resetTextFilter = function()
+		{
+			self.__objAdvancedFilterSetting[dataField] = null;
+			self.__advanceFilterGrid.bind(self)();
+			self.__removePopUp();
+		};
+		var createSelect = function(arrSource,strID,prevField)
+		{
+			var divSelect = self.util.createDiv(colID + strID + "detailFilterSelectContainer");
+			var cmbFilter = self.util.createElement("select",colID + strID + "detailFilterSelect","nsFilterSelect");
+			var option = null;
+			var item = null;
+			var label = null;
+			for(var count = 0;count < arrSource.length;count++)
+			{
+				item = arrSource[count];
+				option = document.createElement("option");
+				label = document.createTextNode(item["label"]);
+				option.appendChild(label);
+				option.setAttribute("value", item["id"]);
+				cmbFilter.appendChild(option);
+			}
+			if(objPrev && objPrev[prevField])
+			{
+				cmbFilter.selectedIndex = objPrev[prevField];
+			}
+			divSelect.appendChild(cmbFilter);
+			divDetailFilterContainer.appendChild(divSelect);
+			return cmbFilter;
+		};
+		var nsFilter = new NSFilter();
+		var arrSensitive = [{id:1,label:"Case-Insensitive",value:false},
+		                    {id:2,label:"Case-Sensitive",value:true}];
+		var arrOptions = [{id:1,label:"Contains",value:nsFilter.CONTAINS},
+		                  {id:2,label:"Exact",value:nsFilter.EXACT},
+		                  {id:3,label:"Starts With",value:nsFilter.STARTS_WITH},
+		                  {id:4,label:"Ends With",value:nsFilter.ENDS_WITH}];
+		var objPrev = this.__objAdvancedFilterSetting[dataField]
 		var colID = this.__getRendererID(dataField);
 		var divDetailFilterContainer = this.__nsPopUp.getPopUp();
-		var divTextInput = this.util.createDiv(colID + "detailFilterTextInputContainer","nsFilterLineContainer");
-		divTextInput.setAttribute("style","height:29px;");
+		var cmbSensitive = createSelect(arrSensitive,"sensitive","sensitiveIndex");
+		var cmbFilter = createSelect(arrOptions,"options","optionIndex");
+		var divTextInput = this.util.createDiv(colID + "detailFilterTextInputContainer");
 		var txtFilter = this.util.createElement("input",colID + "detailFilterTextInput","nsFilterTextInput");
-		txtFilter.setAttribute("placeholder", "Search...");
+		txtFilter.setAttribute("placeholder", "Enter Value");
 		if(objPrev && objPrev["textInputText"])
 		{
 			txtFilter.value = objPrev["textInputText"];
 		}
-		this.util.addEvent(txtFilter,"keyup",txtInputChangeHandler);
 		var divSearch = this.util.getSearchTextBox(txtFilter);
-		divSearch.style.width = "96%";
+		this.util.addStyleClass(divSearch,"nsFilterSearchTextBox");
 		divTextInput.appendChild(divSearch);
 		divDetailFilterContainer.appendChild(divTextInput);
-		
-		var divSelectAll = this.util.createDiv(colID + "detailFilterSelectAllContainer","nsFilterLineContainer");
-		divSelectAll.setAttribute("style","height:29px;");
-		var label = self.util.createElement("label");
-		var checkBox = self.util.createElement("input",null,"nsFilterListRendererCheckBox");
-		checkBox.setAttribute("type","checkbox");
-		label.appendChild(checkBox);
-		var spanText = self.util.createElement("span",null,"nsFilterListRendererText");
-		spanText.appendChild(document.createTextNode("Select All"));
-		label.appendChild(spanText);
-		divDetailFilterContainer.appendChild(label);
-		
-		var arrSource = this.__getUniqueValues(this.__nsGrid.__objGrid.__getFlatSource(),dataField);
-		var divList = this.util.createDiv(colID + "detailFilterListContainer");
-		var lstFilter = this.util.createElement("ns-List",colID + "detailFilterList","nsFilterList");
-		divList.appendChild(lstFilter);
-		divDetailFilterContainer.appendChild(divList);
-		var setting = {labelField:"label",enableVirtualScroll:true,enableDragDrop:false,enableDragByHandle:false,enableMultipleSelection:true,enableKeyboardNavigation:false,
-					   customScrollerRequired:false,enableMouseHover:true,enableMouseHoverAnimation:false,itemRenderer:itemRenderer.bind(this)};
-		setting["dataSource"] = arrSource;
-		lstFilter.setSetting(setting);
 		if(this.__enableApply)
 		{
-			this.__createApplySection.bind(this)(colID,divDetailFilterContainer,null,null);
+			this.__createApplySection.bind(this)(colID,divDetailFilterContainer,handleTextFilter,resetTextFilter);
 		}
 		else
 		{
-			//lstFilter.util.addEvent(lstFilter,lstFilter.ITEM_SELECTED,itemSelectHandler);
-			//lstFilter.util.addEvent(lstFilter,lstFilter.ITEM_UNSELECTED,itemUnSelectHandler);
-			
-			//this.util.addEvent(cmbFilter,"change",handleNumberFilter);
-			//this.util.addEvent(txtFilter,"keyup",txtInputChangeHandler);
+			this.util.addEvent(cmbSensitive,"change",handleTextFilter);
+			this.util.addEvent(cmbFilter,"change",handleTextFilter);
+			this.util.addEvent(txtFilter,"keyup",txtInputChangeHandler);
 		}
-		
-		
 	};
+	
+	if(self.__enableApply)
+			{
+				self.__removePopUp();
+			}
+			
+			var handleMainFilter = function()
+		{
+			var item = {arrText:arrSelected,arrTextField:"label",caseSensitive:false,matchType:new NSFilter().CONTAINS,items:arrSelected};
+			self.__objAdvancedFilterSetting[dataField] = item;
+			self.__advanceFilterGrid.bind(self)();
+			if(self.__enableApply)
+			{
+				self.__removePopUp();
+			}
+		};
+		var resetMainFilter = function()
+		{
+			self.__objAdvancedFilterSetting[dataField] = null;
+			self.__advanceFilterGrid.bind(self)();
+			self.__removePopUp();
+		};
+		if(this.__enableApply)
+		{
+			this.__createApplySection.bind(this)(colID,divDetailFilterContainer,handleMainFilter,resetMainFilter);
+		}
