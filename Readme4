@@ -1,1 +1,2 @@
-
+var util = new NSUtil();
+			util.dispatchEvent(window,this.NS_LOAD);
