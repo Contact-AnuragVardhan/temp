@@ -1,2 +1,22 @@
-var util = new NSUtil();
-			util.dispatchEvent(window,this.NS_LOAD);
+if(this.__listContainer)
+	{
+		this.util.removeAllChildren(this.__listContainer);
+	}
+	else
+	{
+		this.__createStructure();
+	}
+		listItem.setAttribute("nsNoData","true");
+		if(this.__listContainer && this.__listContainer.children && this.__listContainer.children.length > 0 && this.__listContainer.children.length < 3)
+		{
+			var listItem = null;
+			for(var count = 0;count < this.__listContainer.children.length;count++)
+			{
+				var listItem = this.__listContainer.children[count];
+				if(listItem.hasAttribute("nsNoData"))
+				{
+					this.__listContainer.removeChild(listItem);
+					break;
+				}
+			}
+		}
