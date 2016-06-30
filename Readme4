@@ -1,22 +1,40 @@
-if(this.__listContainer)
+NSUtil.prototype.isElementVisible = function(element) 
+{
+	 if(element)
+	 {
+		 if(!element.offsetParent)
+		 {
+			 return false;
+		 }
+		 var style = window.getComputedStyle(element);
+		 if(style.display === "none" || style.visibility  === "hidden")
+		 {
+			 return false;
+		 }
+	 }
+	 return true;
+};
+ var isIE = navigator.userAgent.match(/Trident/);//this.util.isBrowserIE();
+ 
+ if(this.__divCenterTableBodyContainer)
 	{
-		this.util.removeAllChildren(this.__listContainer);
+		this.__divCenterTableBodyContainer.scrollTop = 0;
 	}
-	else
+	
+	var child = null;
+	var dimension = null;
+	var item = null;
+	for (var count = 0; count < children.length; count++) 
 	{
-		this.__createStructure();
-	}
-		listItem.setAttribute("nsNoData","true");
-		if(this.__listContainer && this.__listContainer.children && this.__listContainer.children.length > 0 && this.__listContainer.children.length < 3)
+		child = children[count];
+		dimension = child.getBoundingClientRect();
+		if((dimension.width === 0 || dimension.height === 0) && (!this.util.isElementVisible(child)))
 		{
-			var listItem = null;
-			for(var count = 0;count < this.__listContainer.children.length;count++)
-			{
-				var listItem = this.__listContainer.children[count];
-				if(listItem.hasAttribute("nsNoData"))
-				{
-					this.__listContainer.removeChild(listItem);
-					break;
-				}
-			}
+			var clonedElement = child.cloneNode(true);
+			document.body.appendChild(clonedElement);
+			dimension = clonedElement.getBoundingClientRect();
+			document.body.removeChild(clonedElement);
 		}
+		item = {child:child,dimension:dimension};
+		arrChildElement[++childCount] = item;
+	}
