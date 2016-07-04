@@ -1,1 +1,78 @@
 
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Angular Sortable and Draggable Demo.</title>
+    <!--styles -->
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="dist/ng-sortable.min.css">
+    <link rel="stylesheet" type="text/css" href="dist/ng-sortable.style.min.css">
+    <link rel="stylesheet" type="text/css" href="styles/board.css">
+    <link rel="stylesheet" type="text/css" href="styles/app.css">
+    <link rel="stylesheet" type="text/css" href="styles/scrollableContainer.css">
+    <!--scripts-->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.7/angular.min.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.7/angular-route.js""></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/1.3.3/ui-bootstrap.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/1.3.3/ui-bootstrap-tpls.js"></script>
+    <script type="text/javascript" src="dist/ng-sortable.js"></script>
+    <script type="text/javascript" src="model.js"></script>
+    <script type="text/javascript" src="app.js"></script>
+    <script type="text/javascript" src="scripts/services/BoardManipulator.js"></script>
+    <script type="text/javascript" src="scripts/services/BoardDataFactory.js"></script>
+    <script type="text/javascript" src="scripts/services/BoardService.js"></script>
+    <script type="text/javascript" src="scripts/controllers/KanbanController.js"></script>
+    <script type="text/javascript" src="scripts/controllers/SprintController.js"></script>
+    <script type="text/javascript" src="scripts/controllers/CloneController.js"></script>
+    <script type="text/javascript" src="scripts/controllers/CtrlCloneController.js"></script>
+    <script type="text/javascript" src="scripts/controllers/HorizontalController.js"></script>
+    <script type="text/javascript" src="scripts/controllers/NewCardController.js"></script>
+    <script type="text/javascript" src="scripts/controllers/GridController.js"></script>
+    <script type="text/javascript" src="scripts/controllers/BlockController.js"></script>
+    <script type="text/javascript" src="scripts/controllers/ScrollableController.js"></script>
+    <script type="text/javascript" src="scripts/controllers/TableController.js"></script>
+
+</head>
+<body ng-app="demoApp">
+<nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container-fluid" ng-controller="DemoController">
+        <div class="board-header">
+<!--             <ul class="nav nav-tabs nav-justified"> -->
+<!--                 <li><a href="#/kanban" ng-class="{active: isActive('/kanban')}">Simple</a></li> -->
+<!--                 <li><a href="#/sprint" ng-class="{active: isActive('/sprint')}">Advanced</a></li> -->
+<!--                 <li><a href="#/clone" ng-class="{active: isActive('/clone')}">Clone</a></li> -->
+<!--                 <li><a href="#/ctrlclone" ng-class="{active: isActive('/ctrlclone')}">Ctrl Clone</a></li> -->
+<!--                 <li><a href="#/horizontal" ng-class="{active: isActive('/horizontal')}">Horizontal</a></li> -->
+<!--                 <li><a href="#/grid" ng-class="{active: isActive('/grid')}">Grid</a></li> -->
+<!--                 <li><a href="#/block" ng-class="{active: isActive('/block')}">Block</a></li> -->
+<!--                 <li><a href="#/scrollable" ng-class="{active: isActive('/scrollable')}">Scrollable</a></li> -->
+<!--                 <li><a href="#/table" ng-class="{active: isActive('/table')}">Table</a></li> -->
+
+<!--             </ul> -->
+        </div>
+   <div id="blocks" ng-controller="BlockController">
+    <div class="page-header">
+        <h3>Card blocks of different sizes.</h3>
+    </div>
+    <div id="columns" class="row">
+        <div class="col-sm-6 col-xs-6" ng-repeat="column in columns">
+            <div class="column">
+                <ul class="cards card-list" as-sortable="dragControlListeners" data-ng-model="column.cards">
+                    <li class="card" ng-repeat="card in column.cards" as-sortable-item>
+                        <div as-sortable-item-handle>
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <span class="card-title">{{card.title}}</span>
+                                    <span class="card-title">{{card.details}}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+</nav>
+</body>
+</html>
