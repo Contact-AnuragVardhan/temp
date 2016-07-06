@@ -1,28 +1,559 @@
-			if(referenceElement["__impl4cf1e782hg__"])
-	    	{
-				referenceElement = referenceElement["__impl4cf1e782hg__"];
-	    	}
-			if(insertElement["__impl4cf1e782hg__"])
-	    	{
-				insertElement = insertElement["__impl4cf1e782hg__"];
-	    	}
+var NSDragDrop = function(setting)
+{
+	this.ITEM_DROPPING = "itemDropping";
+	this.ITEM_DROPPED = "itemDropped";
+	this.DRAG_STARTING = "dragStarting";
+	this.DRAG_STARTED = "dragStarted";
+	this.DRAGGING = "dragging";
+	this.DRAG_END = "dragEnd";
+	
+	this.__setting = setting;
+	this.util = new NSUtil();
+	this.__id = null;
+	this.__config = null;
+	this.__data = null;
+	
+	this.__parentContainerType = null;
+	this.__divMovable = null;
+	this.__compPlaceholder = null;
+	this.__itemPosition = null;
+	this.__objSelectedItem = {scrollableContainer:null,containment:null};
+	this.__lastTarget = null;
+	this.__isDragging = false;
+	this.__holdTimeoutInterval = -1;
+	this.__documentMouseMoveRef = null;
+	this.__documentMouseUpRef = null;
+	this.__documentMouseMoveHoldRef = null;
+	this.__documentMouseUpHoldRef = null;
+	
+	this.__initialize();
+};
 
-var setting = {container:lstDemo,childNodeType:"LI",enableDragByHandle:true,dragHandlerClass:"handle",enableCloneMode:false,enableDragAfterHold:false,holdTime:500};
-		var nsDragDrop = new NSDragDrop(setting);
-		nsDragDrop.initialize();
-		
-		var setting1 = {container:lstDemo1,childNodeType:"LI",enableCloneMode:false};
-		var nsDragDrop1 = new NSDragDrop(setting1);
-		nsDragDrop1.initialize();
-		
-		var setting2 = {container:tbl1,childNodeType:"TR",enableDragByHandle:true,dragHandlerClass:"rowhandler",enableCloneMode:false,enableDragAfterHold:false
-						};//insertNodeCallback:insertTableNode,moveNodeCallback:moveTableNode,removeNodeCallback:removeTableNode
-		var nsDragDrop2 = new NSDragDrop(setting2);
-		nsDragDrop2.util.addEvent(tbl1,nsDragDrop2.NODE_DROPPABLE,itemDroppableHandler);
-		nsDragDrop2.initialize();
-		
-		var setting3 = {container:tbl2,childNodeType:"TR",enableDragByHandle:true,dragHandlerClass:"rowhandler",enableCloneMode:true,enableDragAfterHold:false,
-						insertNodeCallback:insertTableNode,moveNodeCallback:moveTableNode,removeNodeCallback:removeTableNode};
-		var nsDragDrop3 = new NSDragDrop(setting3);
-		nsDragDrop3.util.addEvent(tbl2,nsDragDrop3.NODE_DROPPABLE,itemDroppableHandler);
-		nsDragDrop3.initialize();
+NSDragDrop.prototype.remove = function() 
+{ 
+	
+};
+
+NSDragDrop.prototype.setDragData = function(data) 
+{ 
+	this.__data = data;
+};
+
+NSDragDrop.prototype.getDragData = function() 
+{ 
+	return this.__data;
+};
+
+NSDragDrop.prototype.__initialize = function()
+{
+	if(this.__setting)
+	{
+		this.__config = {
+				container: this.__setting["container"] || null,
+				childNodeType: this.__setting["childNodeType"] || null,
+				isContainerDraggable:(this.util.isUndefinedOrNull(this.__setting["isContainerDraggable"]) ? true : Boolean.parse(this.__setting["isContainerDraggable"])),
+				isContainerDroppable:(this.util.isUndefinedOrNull(this.__setting["isContainerDroppable"]) ? true : Boolean.parse(this.__setting["isContainerDroppable"])),
+				enableDragByHandle: Boolean.parse(this.__setting["enableDragByHandle"]),
+				dragHandlerClass: this.__setting["dragHandlerClass"] || "nsDragHandler",
+				enableDragAfterHold: Boolean.parse(this.__setting["enableDragAfterHold"]),
+				enableCloneMode: Boolean.parse(this.__setting["enableCloneMode"]),
+				holdTime:(this.util.isUndefinedOrNull(this.__setting["holdTime"]) ? 500 : parseInt(this.__setting["holdTime"])),
+				createCloneCallback: (this.__setting["createCloneCallback"] ? this.util.getFunction(this.__setting["createCloneCallback"]) : null),
+				createPlaceholderCallback: (this.__setting["createPlaceholderCallback"] ? this.util.getFunction(this.__setting["createPlaceholderCallback"]) : null),
+				nodeDroppableCallback: (this.__setting["nodeDroppableCallback"] ? this.util.getFunction(this.__setting["nodeDroppableCallback"]) : null),
+				nodeDraggableCallback: (this.__setting["containerDroppableCallback"] ? this.util.getFunction(this.__setting["containerDroppableCallback"]) : null),
+				insertNodeCallback: (this.__setting["insertNodeCallback"] ? this.util.getFunction(this.__setting["insertNodeCallback"]) : null),
+				moveNodeCallback: (this.__setting["moveNodeCallback"] ? this.util.getFunction(this.__setting["moveNodeCallback"]) : null),
+				removeNodeCallback: (this.__setting["removeNodeCallback"] ? this.util.getFunction(this.__setting["removeNodeCallback"]) : null),
+				nodeDragHoverClass: this.__setting["nodeDragHoverClass"] || "nsNodeDragHover",
+				nodeDraggingClass: this.__setting["nodeDraggingClass"] || "nsNodeDraggingClass"
+		};
+		if(this.__config.container && this.__config.childNodeType)
+		{
+			this.__parentContainerType = this.__config.container.tagName;
+			this.__prepareContainer();
+			this.__initializeChildren();
+		}
+	}
+};
+
+NSDragDrop.prototype.__initializeChildren = function()
+{
+	var arrChildNode = this.__config.container.getElementsByTagName(this.__config.childNodeType);
+	var childNode = null;
+	for (var count = 0; count < arrChildNode.length; count++) 
+	{
+		childNode = arrChildNode[count];
+		this.__prepareChildNode(childNode,count);
+	}
+};
+
+NSDragDrop.prototype.__prepareContainer = function()
+{
+	var container = this.__config.container;
+	var nsObject = {};
+	nsObject.id = this.__getID(); 
+	nsObject.isDraggable = this.__config.isContainerDraggable;
+	nsObject.isDroppable = this.__config.isContainerDroppable;
+	nsObject.insertNode = this.__insertNode.bind(this);
+	nsObject.moveNode = this.__moveNode.bind(this);
+	nsObject.removeNode = this.__removeNode.bind(this);
+	container.nsObject = nsObject;
+	var draggableClass = nsObject.isDraggable ? "nsDraggableContainer" : "nsNonDraggableContainer";
+	var droppableClass = nsObject.isDroppable ? "nsDroppableContainer" : "nsNonDroppableContainer";
+	this.util.addStyleClass(container,draggableClass);	
+	this.util.addStyleClass(container,droppableClass);	
+};
+
+NSDragDrop.prototype.__prepareChildNode = function(childNode,index)
+{
+	var isDragEnabled = this.__isNodeDraggable(childNode);
+	var isDropEnabled = this.__isNodeDroppable(childNode);
+	var nsObject = {};
+	nsObject.parent = this.__config.container;
+	nsObject.index = index;
+	this.util.removeStyleClass(childNode,this.__config.nodeDragHoverClass);
+	if(isDragEnabled) 
+	{
+		nsObject.position = this.util.getOffSet(childNode);
+		this.util.addStyleClass(childNode,"nsNodeDragEnabled");	
+		if(this.__config.enableDragByHandle)
+		{
+			var handle = childNode.querySelector("." + this.__config.dragHandlerClass);
+			if(handle)
+			{
+				this.util.addEvent(handle,"mousedown",this.__childMouseDownHandler.bind(this));
+				this.util.addEvent(handle,"touchstart",this.__childMouseDownHandler.bind(this));
+				this.util.addEvent(childNode,"mousedown",this.__dragStartPreventHandler.bind(this));
+				this.util.addEvent(childNode,"touchstart",this.__dragStartPreventHandler.bind(this));
+			}
+		}
+		else if(this.__config.enableDragAfterHold)
+		{
+			this.util.addEvent(childNode,"mousedown",this.__childHoldMouseDownHandler.bind(this));
+			this.util.addEvent(childNode,"touchstart",this.__childHoldMouseDownHandler.bind(this));
+		}
+		else
+		{
+			this.util.addEvent(childNode,"mousedown",this.__childMouseDownHandler.bind(this));
+			this.util.addEvent(childNode,"touchstart",this.__childMouseDownHandler.bind(this));
+		}
+	}
+	else
+	{
+		this.util.addStyleClass(childNode,"nsNodeDragDisable");					
+	}
+	nsObject.dragEnabled = isDragEnabled;
+	nsObject.dropEnabled = isDropEnabled;
+	childNode.nsObject = nsObject;
+};
+
+NSDragDrop.prototype.__childHoldMouseDownHandler= function(event)
+{
+	var self = this;
+	this.__holdTimeoutInterval = setTimeout(function () {
+         self.__childMouseDownHandler.bind(self)(event);
+       },this.__config.holdTime);
+	this.__addDocumentHoldListener();
+};
+
+NSDragDrop.prototype.__documentMouseMoveHoldHandler = function(event)
+{
+	this.__clearHoldTime();
+};
+
+NSDragDrop.prototype.__documentMouseUpHoldHandler = function(event)
+{
+	this.__clearHoldTime();
+};
+
+NSDragDrop.prototype.__childMouseDownHandler= function(event)
+{
+	if(!this.__isDragging)
+	{
+		event = this.util.getEvent(event);
+	    var target = this.util.getTarget(event);
+	    target = this.util.findParent(target,this.__config.childNodeType);
+	    if(target && target["nsObject"] && target["nsObject"]["dragEnabled"])
+		{
+	    	var cancelled = this.util.dispatchEvent(this.__config.container,this.DRAG_STARTING,{node:target},{node:target},true,true);
+	 		if(!cancelled)
+	 		{
+		    	this.__isDragging = true;
+		    	this.__addDocumentListener();
+		    	//TODO: Find parent with scroll
+		    	this.__objSelectedItem.scrollableContainer = document.documentElement;
+		    	//TODO: Find parent for containment
+		    	this.__objSelectedItem.containment = document.body;
+		    	this.__itemPosition = this.__positionStarted(event,target,this.__objSelectedItem.scrollableContainer);
+			    this.util.makeBodyUnselectable();
+			    // remove text selection (Chrome, FF, Opera, Safari)
+			    if (window.getSelection) 
+			    {
+					window.getSelection().removeAllRanges();
+				}
+				// IE8
+				else if (document.selection && document.selection.type === "Text") 
+				{
+					try 
+					{
+						document.selection.empty();
+					}
+					catch (error) 
+					{
+					}
+				}
+			    if(!this.__config.enableCloneMode)
+				{
+					this.__compPlaceholder = this.__createPlaceholder(target);
+					this.__compPlaceholder = this.util.getWebComponentElement(this.__compPlaceholder);
+					this.util.insertAfterElement(target,this.__compPlaceholder);
+				}
+				this.__divMovable = this.__cloneNode(target);
+				this.util.addStyleClass(target,this.__config.nodeDraggingClass);
+				this.__movePosition(event,this.__divMovable,this.__itemPosition,this.__objSelectedItem.containment,"absolute",this.__objSelectedItem.scrollableContainer);
+				//adding offset to movable component if enableDragAfterHold is true so that users see that a clone has been created
+				if(this.__config.enableDragAfterHold)
+				{
+					var rectMovable = this.__divMovable.getBoundingClientRect();
+					this.__divMovable.style.left = (rectMovable.left + 5) + "px";
+					this.__divMovable.style.top = (rectMovable.top + 5) + "px";
+				}
+				this.util.dispatchEvent(this.__config.container,this.DRAG_STARTED,target,{item:target});
+				event.stopPropagation();
+	 		}
+		}
+		return false;
+	}
+};
+
+NSDragDrop.prototype.__documentMouseMoveHandler = function(event)
+{
+	if(this.__divMovable)
+	{
+		var orignalNode = null;
+		if(this.__divMovable["nsObject"] && this.__divMovable["nsObject"]["orignalNode"])
+		{
+			orignalNode = this.__divMovable["nsObject"]["orignalNode"];
+		}
+		event = this.util.getEvent(event);
+		var objTargetElement = this.__getTargetElementDetails(event,orignalNode);
+		var targetX = objTargetElement.x;
+	    var targetY = objTargetElement.y;
+	    var targetElement = objTargetElement.element;
+	    if(this.__lastTarget)
+	    {
+	    	this.util.removeStyleClass(this.__lastTarget,this.__config.nodeDragHoverClass);
+	    }
+	    this.__movePosition(event,this.__divMovable,this.__itemPosition, this.__objSelectedItem.containment,"absolute",this.__objSelectedItem.scrollableContainer);
+	    if(targetElement)
+	    {
+	    	var container = objTargetElement.parent;
+		    var objTargetNSObject = targetElement["nsObject"];
+		    if(this.__config.enableCloneMode)
+		    {
+		    	this.util.addStyleClass(targetElement,this.__config.nodeDragHoverClass);
+		    }
+		    else
+		    {
+		    	if (this.__lastTarget !== targetElement) 
+		    	{
+		    		var placeholderIndex = this.__getPlaceHolderIndex(container);
+			        if (placeholderIndex < 0) 
+			        {
+			        	this.__insertBefore(targetElement);
+			        } 
+			        else 
+			        {
+			        	if (placeholderIndex <= objTargetNSObject.index) 
+				        {
+			        		this.__insertAfter(targetElement);
+				        } 
+				        else 
+				        {
+				        	this.__insertBefore(targetElement);
+				        }
+			        }
+		        }
+		    }
+	    }
+ 	    var data = {node:orignalNode,x:targetX,y:targetY,targetNode:targetElement};
+ 	    this.util.dispatchEvent(this.__config.container,this.DRAGGING,data,{item:data});
+	    this.util.preventDefault(event);
+	    this.__lastTarget = targetElement;
+	    return false;
+	}
+};
+
+NSDragDrop.prototype.__documentMouseUpHandler = function(event)
+{
+	this.__removeDocumentListener();
+	if(this.__divMovable)
+	{
+		var orignalNode = null;
+		if(this.__divMovable["nsObject"] && this.__divMovable["nsObject"]["orignalNode"])
+		{
+			orignalNode = this.__divMovable["nsObject"]["orignalNode"];
+		}
+		event = this.util.getEvent(event);
+		var objTargetElement = null
+		if(this.__config.enableCloneMode)
+		{
+			objTargetElement = this.__getTargetElementDetails(event,orignalNode);
+		}
+		else
+		{
+			objTargetElement = this.__getPlaceholderDetails(event);
+		}
+		var targetX = objTargetElement.x;
+	    var targetY = objTargetElement.y;
+	    var hasElementChanged = false;
+	    var targetElement = objTargetElement.element;
+	    if(targetElement)
+	    {
+	    	var container = objTargetElement.parent;
+	    	if(container && container.tagName.toLowerCase() === "tbody")
+	    	{
+	    		container = this.util.findParent(container,"table")
+	    	}
+	    	var objTargetNSObject = null;
+	    	var targetIndex = -1;
+	    	if(this.__config.enableCloneMode)
+			{
+	    		objTargetNSObject = targetElement["nsObject"];
+	    		targetIndex = objTargetNSObject["index"];
+			}
+	    	else
+	    	{
+	    		targetIndex = Array.prototype.indexOf.call(targetElement.parentNode.children,targetElement);
+	    	}
+	    	var item = (this.__data ? this.__data : {});
+	    	item.targetNode = targetElement;
+	    	item.node = orignalNode;
+	 	    var cancelled = this.util.dispatchEvent(this.__config.container,this.ITEM_DROPPING,item,{item:item},true,true);
+	 		if(!cancelled)
+	 		{
+	 			if(orignalNode === targetElement)
+	 			{
+	 				hasElementChanged = false;
+	 				this.__animateInvalidDrop(orignalNode);
+	 				console.debug("Item has not changed");
+	 			}
+	 		    if(this.__isSameContainer(container))
+	 		    {
+	 		    	if(orignalNode["nsObject"]["index"] !== targetIndex)
+	 		    	{
+	 		    		this.__moveNode(orignalNode,targetIndex,targetElement);
+	 		    		hasElementChanged = true;
+	 		    	}
+	 		    }
+	 		    else
+	 		    {
+	 		    	this.__removeNode(orignalNode);
+	 		    	container["nsObject"]["insertNode"](orignalNode,targetIndex,targetElement);
+	 		    	hasElementChanged = true;
+	 		    }
+	 		    this.util.dispatchEvent(this.__config.container,this.ITEM_DROPPED,item,{item:item},true,false);
+	 		}
+	 		else
+			{
+	 			hasElementChanged = false;
+	 			this.__animateInvalidDrop(orignalNode);
+				console.debug("Item drop was cancelled");
+			}
+	    }
+	    else
+		{
+	    	hasElementChanged = false;
+			this.__animateInvalidDrop(orignalNode);
+			console.debug("Item was dropped at invalid location");
+		}
+	    if(hasElementChanged)
+	    {
+	    	this.__dragEndCleanUp();
+	    }
+	    this.util.dispatchEvent(this.__config.container,this.DRAG_END,orignalNode,{item:orignalNode},true,false);
+		this.util.preventDefault(event);
+	    event.stopPropagation();
+		return false;
+	}
+	this.__dragEndCleanUp();
+};
+
+NSDragDrop.prototype.__dragStartPreventHandler = function(event)
+{
+	event = this.util.getEvent(event);
+	this.util.preventDefault(event);
+    event.stopPropagation();
+};
+
+NSDragDrop.prototype.__addDocumentListener = function() 
+{
+	if(!this.__documentMouseMoveRef)
+	{
+		this.__documentMouseMoveRef = this.__documentMouseMoveHandler.bind(this);
+		this.util.addEvent(document,"mousemove",this.__documentMouseMoveRef);
+	}
+	if(!this.__documentMouseUpRef)
+	{
+		this.__documentMouseUpRef = this.__documentMouseUpHandler.bind(this);
+		this.util.addEvent(document,"mouseup",this.__documentMouseUpRef);
+	}
+};
+
+NSDragDrop.prototype.__removeDocumentListener = function() 
+{
+	if(this.__documentMouseMoveRef)
+	{
+		this.util.removeEvent(document,"mousemove",this.__documentMouseMoveRef);
+		this.__documentMouseMoveRef = null;
+	}
+	if(!this.__documentMouseUpRef)
+	{
+		this.util.removeEvent(document,"mouseup",this.__documentMouseUpRef);
+		this.__documentMouseUpRef = null;
+	}
+};
+
+NSDragDrop.prototype.__addDocumentHoldListener = function() 
+{
+	if(!this.__documentMouseMoveHoldRef)
+	{
+		this.__documentMouseMoveHoldRef = this.__documentMouseMoveHoldHandler.bind(this);
+		this.util.addEvent(document,"mousemove",this.__documentMouseMoveHoldRef);
+	}
+	if(!this.__documentMouseUpHoldRef)
+	{
+		this.__documentMouseUpHoldRef = this.__documentMouseUpHoldHandler.bind(this);
+		this.util.addEvent(document,"mouseup",this.__documentMouseUpHoldRef);
+	}
+};
+
+NSDragDrop.prototype.__removeDocumentHoldListener = function() 
+{
+	if(this.__documentMouseMoveHoldRef)
+	{
+		this.util.removeEvent(document,"mousemove",this.__documentMouseMoveHoldRef);
+		this.__documentMouseMoveHoldRef = null;
+	}
+	if(!this.__documentMouseUpHoldRef)
+	{
+		this.util.removeEvent(document,"mouseup",this.__documentMouseUpHoldRef);
+		this.__documentMouseUpHoldRef = null;
+	}
+};
+
+NSDragDrop.prototype.__animateInvalidDrop = function(orignalNode)
+{
+	if(this.__divMovable && orignalNode)
+	{
+		var self = this;
+		var transitionEndCallback = function()
+		{
+			self.util.removeStyleClass(self.__divMovable,"nsAnimateGhost");
+			self.__dragEndCleanUp();
+			self.__resetChildren();
+		};
+		if(this.__config.enableCloneMode)
+		{
+			this.util.addStyleClass(this.__divMovable,"nsAnimateGhost");
+			var transition = new this.util.transition(this.__divMovable,transitionEndCallback);
+	    	var objSourceNSObject = orignalNode["nsObject"];
+	    	this.__divMovable.style.left = (objSourceNSObject.position.left) + "px";
+	    	this.__divMovable.style.top = (objSourceNSObject.position.top ) + "px";
+		}
+		else
+		{
+			transitionEndCallback();
+		}
+	}
+};
+
+NSDragDrop.prototype.__resetChildren = function()
+{
+	var arrChildNode = this.__config.container.getElementsByTagName(this.__config.childNodeType);
+	var childNode = null;
+	for (var count = 0; count < arrChildNode.length; count++) 
+	{
+		childNode = arrChildNode[count];
+		this.util.removeStyleClass(childNode,this.__config.nodeDragHoverClass);
+	}
+};
+
+NSDragDrop.prototype.__clearHoldTime = function()
+{
+	if(this.__holdTimeoutInterval > -1)
+	{
+		clearTimeout(this.__holdTimeoutInterval);
+		this.__holdTimeoutInterval = -1;
+		this.__removeDocumentHoldListener();
+	}
+};
+
+NSDragDrop.prototype.__insertNode = function(node,index,currentElement)
+{
+	if(this.__config.insertNodeCallback)
+	{
+		this.__config.insertNodeCallback(this.__config.container,node,index,currentElement,this.__data);
+	}
+	else
+	{
+		var container = this.__config.container;
+		if(this.__parentContainerType.toLowerCase() === "table")
+		{
+			currentElement.parentNode.insertBefore(node,currentElement);
+		}
+		else
+		{
+			container.insertBefore(node,currentElement);
+		}
+	}
+	this.__initializeChildren();
+};
+
+NSDragDrop.prototype.__moveNode = function(node,index,currentElement)
+{
+	if(this.__config.moveNodeCallback)
+	{
+		this.__config.moveNodeCallback(this.__config.container,node,index,currentElement,this.__data);
+	}
+	else
+	{
+		var container = this.__config.container;
+		if(this.__parentContainerType.toLowerCase() === "table")
+		{
+			currentElement.parentNode.insertBefore(node,currentElement);
+		}
+		else
+		{
+			//this.util.insertAfterElement(currentElement,node);
+			container.insertBefore(node,currentElement);
+		}
+	}
+	this.__initializeChildren();
+};
+
+NSDragDrop.prototype.__removeNode = function(node)
+{
+	if(this.__config.removeNodeCallback)
+	{
+		this.__config.removeNodeCallback(this.__config.container,node,this.__data);
+	}
+	else
+	{
+		var container = this.__config.container;
+		if(this.__parentContainerType.toLowerCase() === "table")
+		{
+			node.parentNode.removeChild(node);
+		}
+		else
+		{
+			//if not clone mode then element is already removed
+			if(this.__config.enableCloneMode)
+			{
+				container.removeChild(node);
+			}
+		}
+	}
+	this.__initializeChildren();
+};
