@@ -102,7 +102,9 @@ NSDragDrop.prototype.__prepareContainer = function()
 	var draggableClass = nsObject.isDraggable ? "nsDraggableContainer" : "nsNonDraggableContainer";
 	var droppableClass = nsObject.isDroppable ? "nsDroppableContainer" : "nsNonDroppableContainer";
 	this.util.addStyleClass(container,draggableClass);	
-	this.util.addStyleClass(container,droppableClass);	
+	this.util.addStyleClass(container,droppableClass);
+	var containerWebNode = this.util.getWebComponentElement(container);
+	containerWebNode.nsObject = nsObject;
 };
 
 NSDragDrop.prototype.__prepareChildNode = function(childNode,index)
@@ -146,6 +148,8 @@ NSDragDrop.prototype.__prepareChildNode = function(childNode,index)
 	nsObject.dragEnabled = isDragEnabled;
 	nsObject.dropEnabled = isDropEnabled;
 	childNode.nsObject = nsObject;
+	var childWebNode = this.util.getWebComponentElement(childNode);
+	childWebNode.nsObject = nsObject;
 };
 
 NSDragDrop.prototype.__childHoldMouseDownHandler= function(event)
@@ -171,10 +175,12 @@ NSDragDrop.prototype.__childMouseDownHandler= function(event)
 {
 	if(!this.__isDragging)
 	{
+		this.__clearHoldTime();
 		event = this.util.getEvent(event);
 	    var target = this.util.getTarget(event);
 	    target = this.util.findParent(target,this.__config.childNodeType);
-	    if(target && target["nsObject"] && target["nsObject"]["dragEnabled"])
+	    if(target && target["nsObject"] && target["nsObject"]["dragEnabled"] && target["nsObject"]["parent"] 
+	    	&& target["nsObject"]["parent"]["nsObject"] && target["nsObject"]["parent"]["nsObject"]["isDraggable"])
 		{
 	    	var cancelled = this.util.dispatchEvent(this.__config.container,this.DRAG_STARTING,{node:target},{node:target},true,true);
 	 		if(!cancelled)
@@ -220,6 +226,8 @@ NSDragDrop.prototype.__childMouseDownHandler= function(event)
 					this.__divMovable.style.top = (rectMovable.top + 5) + "px";
 				}
 				this.util.dispatchEvent(this.__config.container,this.DRAG_STARTED,target,{item:target});
+				//assuming data has been set as this is last step before dragging starts
+				target["nsObject"]["data"] = this.util.cloneObject(this.__data);
 				event.stopPropagation();
 	 		}
 		}
@@ -246,7 +254,8 @@ NSDragDrop.prototype.__documentMouseMoveHandler = function(event)
 	    	this.util.removeStyleClass(this.__lastTarget,this.__config.nodeDragHoverClass);
 	    }
 	    this.__movePosition(event,this.__divMovable,this.__itemPosition, this.__objSelectedItem.containment,"absolute",this.__objSelectedItem.scrollableContainer);
-	    if(targetElement)
+	    if(targetElement && targetElement["nsObject"] && targetElement["nsObject"]["parent"] 
+    		&& targetElement["nsObject"]["parent"]["nsObject"] && targetElement["nsObject"]["parent"]["nsObject"]["isDroppable"])
 	    {
 	    	var container = objTargetElement.parent;
 		    var objTargetNSObject = targetElement["nsObject"];
@@ -291,12 +300,18 @@ NSDragDrop.prototype.__documentMouseUpHandler = function(event)
 	if(this.__divMovable)
 	{
 		var orignalNode = null;
+		var nodeData = null;
 		if(this.__divMovable["nsObject"] && this.__divMovable["nsObject"]["orignalNode"])
 		{
 			orignalNode = this.__divMovable["nsObject"]["orignalNode"];
+			if(orignalNode && orignalNode["nsObject"])
+			{
+				nodeData = orignalNode["nsObject"]["data"];
+			}
 		}
 		event = this.util.getEvent(event);
-		var objTargetElement = null
+		var objTargetElement = null;
+		var isPlaceholder = false;
 		if(this.__config.enableCloneMode)
 		{
 			objTargetElement = this.__getTargetElementDetails(event,orignalNode);
@@ -304,17 +319,19 @@ NSDragDrop.prototype.__documentMouseUpHandler = function(event)
 		else
 		{
 			objTargetElement = this.__getPlaceholderDetails(event);
+			isPlaceholder = true;
 		}
 		var targetX = objTargetElement.x;
 	    var targetY = objTargetElement.y;
 	    var hasElementChanged = false;
 	    var targetElement = objTargetElement.element;
-	    if(targetElement)
+	    if(targetElement && (isPlaceholder || targetElement["nsObject"] && targetElement["nsObject"]["parent"] 
+			&& targetElement["nsObject"]["parent"]["nsObject"] && targetElement["nsObject"]["parent"]["nsObject"]["isDroppable"]))
 	    {
 	    	var container = objTargetElement.parent;
 	    	if(container && container.tagName.toLowerCase() === "tbody")
 	    	{
-	    		container = this.util.findParent(container,"table")
+	    		container = this.util.findParent(container,"table");
 	    	}
 	    	var objTargetNSObject = null;
 	    	var targetIndex = -1;
@@ -327,7 +344,7 @@ NSDragDrop.prototype.__documentMouseUpHandler = function(event)
 	    	{
 	    		targetIndex = Array.prototype.indexOf.call(targetElement.parentNode.children,targetElement);
 	    	}
-	    	var item = (this.__data ? this.__data : {});
+	    	var item = (nodeData ? nodeData : {});
 	    	item.targetNode = targetElement;
 	    	item.node = orignalNode;
 	 	    var cancelled = this.util.dispatchEvent(this.__config.container,this.ITEM_DROPPING,item,{item:item},true,true);
@@ -343,14 +360,17 @@ NSDragDrop.prototype.__documentMouseUpHandler = function(event)
 	 		    {
 	 		    	if(orignalNode["nsObject"]["index"] !== targetIndex)
 	 		    	{
-	 		    		this.__moveNode(orignalNode,targetIndex,targetElement);
+	 		    		this.__moveNode(orignalNode,targetIndex,targetElement,nodeData);
 	 		    		hasElementChanged = true;
 	 		    	}
 	 		    }
 	 		    else
 	 		    {
-	 		    	this.__removeNode(orignalNode);
-	 		    	container["nsObject"]["insertNode"](orignalNode,targetIndex,targetElement);
+	 		    	this.__removeNode(orignalNode,nodeData);
+	 		    	if(container["nsObject"] && container["nsObject"]["insertNode"])
+	 		    	{
+	 		    		container["nsObject"]["insertNode"](orignalNode,targetIndex,targetElement,nodeData);
+	 		    	}
 	 		    	hasElementChanged = true;
 	 		    }
 	 		    this.util.dispatchEvent(this.__config.container,this.ITEM_DROPPED,item,{item:item},true,false);
@@ -485,16 +505,16 @@ NSDragDrop.prototype.__clearHoldTime = function()
 	if(this.__holdTimeoutInterval > -1)
 	{
 		clearTimeout(this.__holdTimeoutInterval);
-		this.__holdTimeoutInterval = -1;
-		this.__removeDocumentHoldListener();
 	}
+	this.__holdTimeoutInterval = -1;
+	this.__removeDocumentHoldListener();
 };
 
-NSDragDrop.prototype.__insertNode = function(node,index,currentElement)
+NSDragDrop.prototype.__insertNode = function(node,index,currentElement,nodeData)
 {
 	if(this.__config.insertNodeCallback)
 	{
-		this.__config.insertNodeCallback(this.__config.container,node,index,currentElement,this.__data);
+		this.__config.insertNodeCallback(this.__config.container,node,index,currentElement,nodeData);
 	}
 	else
 	{
@@ -511,11 +531,11 @@ NSDragDrop.prototype.__insertNode = function(node,index,currentElement)
 	this.__initializeChildren();
 };
 
-NSDragDrop.prototype.__moveNode = function(node,index,currentElement)
+NSDragDrop.prototype.__moveNode = function(node,index,currentElement,nodeData)
 {
 	if(this.__config.moveNodeCallback)
 	{
-		this.__config.moveNodeCallback(this.__config.container,node,index,currentElement,this.__data);
+		this.__config.moveNodeCallback(this.__config.container,node,index,currentElement,nodeData);
 	}
 	else
 	{
@@ -533,11 +553,11 @@ NSDragDrop.prototype.__moveNode = function(node,index,currentElement)
 	this.__initializeChildren();
 };
 
-NSDragDrop.prototype.__removeNode = function(node)
+NSDragDrop.prototype.__removeNode = function(node,nodeData)
 {
 	if(this.__config.removeNodeCallback)
 	{
-		this.__config.removeNodeCallback(this.__config.container,node,this.__data);
+		this.__config.removeNodeCallback(this.__config.container,node,nodeData);
 	}
 	else
 	{
@@ -557,3 +577,141 @@ NSDragDrop.prototype.__removeNode = function(node)
 	}
 	this.__initializeChildren();
 };
+
+NSDragDrop.prototype.__getTargetElementDetails = function(event,orignalNode)
+{
+	var targetX = event.pageX - document.documentElement.scrollLeft;
+    var targetY = event.pageY - (window.pageYOffset || document.documentElement.scrollTop);
+    var targetElement = document.elementFromPoint(targetX, targetY);
+    var parent = null;
+    var childNodeType = null;
+    var arrElement = [];
+    var prevElement = null;
+    while(this.util.isElement(targetElement) && targetElement.tagName !== "HTML" && targetElement.tagName !== "BODY")
+    {
+    	if(targetElement === prevElement)
+    	{
+    		//console.log("Stop");
+    	}
+    	prevElement = targetElement;
+    	//console.log(targetElement.tagName + "," + targetElement.textContent);
+    	if(targetElement.tagName === this.__config.childNodeType)
+    	{
+    		childNodeType = targetElement;
+    	}
+    	else if(this.__parentContainerType.toLowerCase() === "table")
+    	{
+    		childNodeType = this.util.findParent(targetElement,this.__config.childNodeType);
+    		if(!childNodeType)
+    		{
+    			childNodeType = this.util.findChild(targetElement,this.__config.childNodeType);
+    		}
+    	}
+    	childNodeType = this.util.getWebComponentElement(childNodeType);
+    	if(childNodeType && childNodeType !== orignalNode && childNodeType["nsObject"] && childNodeType["nsObject"]["dropEnabled"])
+    	{
+    		targetElement = childNodeType;
+    		break;
+    	}
+    	arrElement.push({element:targetElement,display:targetElement.style.display});
+    	targetElement.style.display = "none";//pointerEvents = "none";
+    	
+    	targetElement = document.elementFromPoint(targetX, targetY);
+    }
+    for(var count = 0;count < arrElement.length;count++)
+    {
+    	arrElement[count].element.style.display = arrElement[count].display;//pointerEvents = "";
+    }
+    if(!this.util.isElement(targetElement) || targetElement.tagName === "HTML")
+    {
+    	targetElement = null;
+    }
+    if(targetElement)
+    {
+        if(!this.util.hasStyleClass(targetElement,this.__config.nodeDraggingClass))
+    	{
+        	//if not child then check parent
+        	var tmpTarget = targetElement.querySelector("." + this.__config.nodeDraggingClass);
+        	if(!tmpTarget)
+        	{
+        		tmpTarget = this.util.findParentBySelector(targetElement,"." + this.__config.nodeDraggingClass);
+        	}
+        	if(tmpTarget)
+        	{
+        		targetElement = tmpTarget;
+        	}
+    	}
+        if(targetElement["nsObject"] && targetElement["nsObject"]["parent"])
+    	{
+        	parent = targetElement["nsObject"]["parent"];
+    	}
+    }
+    return {element:targetElement,parent:parent,x:targetX,y:targetY};
+};
+
+NSDragDrop.prototype.__getPlaceholderDetails = function(event)
+{
+	var targetX = event.pageX - document.documentElement.scrollLeft;
+    var targetY = event.pageY - (window.pageYOffset || document.documentElement.scrollTop);
+	return {element:this.__compPlaceholder,parent:this.__compPlaceholder.parentNode,x:targetX,y:targetY};
+};
+
+NSDragDrop.prototype.__cloneNode = function(node)
+{
+	var id = this.__getID();
+	var divMovable = this.util.createDiv(id + "clonedItem", "nsDraggableCloneItem");
+	var clonedNode = null;
+	var rectContainer = this.__config.container.getBoundingClientRect();
+	if(this.__config.createCloneCallback)
+	{
+		var containerConfiguration = {width:rectContainer.width,height:rectContainer.height};
+		clonedNode = this.__config.createCloneCallback(node,containerConfiguration);
+		clonedNode.setAttribute("id","comp" + id + "ClonedNode");
+		divMovable.appendChild(clonedNode);
+	}
+	else
+	{
+		var container = this.__config.container.cloneNode(false);
+		container.setAttribute("id","comp" + id + "ClonedContainer");
+		if(this.__config.enableCloneMode)
+		{
+			clonedNode = node.cloneNode(true);
+			clonedNode.setAttribute("id","comp" + id + "ClonedNode");
+		}
+		else
+		{
+			clonedNode = node;
+		}
+		container.appendChild(clonedNode);
+		container.style.width = rectContainer.width + "px";
+		try
+		{
+			divMovable.appendChild(container);
+		}
+		catch(error)
+		{
+			this.util.getWebComponentElement(divMovable).appendChild(container);
+			//divMovable.appendChild(container);
+		}
+	}
+	document.body.appendChild(divMovable);
+	if (divMovable.setCapture) 
+	{
+		divMovable.setCapture();
+	}
+	if(node.nsObject)
+	{
+		var objCloned = {};//this.util.cloneObject(node.nsObject);
+		objCloned.orignalNode = node;
+		divMovable.nsObject = objCloned;
+		clonedNode.nsObject = objCloned;
+	}
+	return divMovable;
+};
+
+for (var i=0; i< 100; i++)
+	{
+	    var li = document.createElement('li');
+	    lstDemo.appendChild(li);
+	    li.innerHTML="<div class='handle'>:::</div><a href='#'> " + ("List Item" + i) + "</a>";
+	}
