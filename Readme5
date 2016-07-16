@@ -1,4 +1,13 @@
-var setting1 = {labelField:"hierarchy",enableHierarchical:true,enableVirtualScroll:false,enableDragDrop:true,
-										isDraggable:true,isDroppable:false,
-									enableMultipleSelection:true,enableKeyboardNavigation:true,customScrollerRequired:false,
-						 		   disableHoverField:"stopOver",enableDragAfterHold:true,enableCloneMode:false};//, template:"templateDemo",setData:"setData",itemRenderer:itemRenderer
+var width = this.util.getStyleValue(this.__baseComponent,"width");
+	var height = this.util.getStyleValue(this.__baseComponent,"height");
+	var rectBase = this.__baseComponent.getBoundingClientRect();
+	if(rectBase.width > 0)
+	{
+		width = rectBase.width + "px";
+	}
+	if(rectBase.height > 0)
+	{
+		height = rectBase.height + "px";
+	}
+	this.__divOuterContainer.style.width = width;
+	this.__divOuterContainer.style.height = height;
