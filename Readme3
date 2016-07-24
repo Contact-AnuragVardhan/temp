@@ -1,71 +1,12 @@
-	this.__isDraggable = true;
-	this.__isDroppable = true;
-	this.__enableDragByHandle = false;
-	this.__dragHandlerClass = null;
-	this.__enableDragAfterHold = false;
-	this.__holdTime = 500;
-	this.__enableCloneMode = false;
+//reset column visibility initially
+			this.__setColumnVisibility(count,true);
+var scrollBarWidth = this.util.getScrollBarWidth(this.__divCenterTableBodyContainer);
+this.__divCenterTableHeaderContainer.style.width = (this.__divCenterTableBodyContainer.offsetWidth - scrollBarWidth) + "px";
+var scrollBarWidth = this.util.getScrollBarWidth(this.__divCenterTableBodyContainer);
+	this.__divCenterTableHeaderContainer.style.width = (this.__divCenterTableBodyContainer.offsetWidth - scrollBarWidth) + "px";
 	
-	if(setting.hasOwnProperty("isDraggable"))
-		{
-			this.__isDraggable = Boolean.parse(setting["isDraggable"]);
-		}
-		if(setting.hasOwnProperty("isDroppable"))
-		{
-			this.__isDroppable = Boolean.parse(setting["isDroppable"]);
-		}
-		
-		if(setting.hasOwnProperty("enableDragAfterHold"))
-		{
-			this.__enableDragAfterHold = Boolean.parse(setting["enableDragAfterHold"]);
-		}
-		if(setting.hasOwnProperty("holdTime"))
-		{
-			this.__holdTime = parseInt(setting["holdTime"]);
-		}
-		if(setting.hasOwnProperty("enableCloneMode"))
-		{
-			this.__enableCloneMode = Boolean.parse(setting["enableCloneMode"]);
-		}
-		
-		if(listItem.parentNode === listContainer)
-					{
-						listContainer.removeChild(listItem);
-					}
-					
-					var setting = {container:container,childNodeType:"LI",isContainerDraggable:this.__nsList.__isDraggable,isContainerDroppable:this.__nsList.__isDroppable,
-					   enableDragByHandle:this.__nsList.__enableDragByHandle,dragHandlerClass:this.__nsList.__dragHandlerClass,
-					   enableDragAfterHold:this.__nsList.__enableDragAfterHold,enableCloneMode:this.__nsList.__enableCloneMode,holdTime:500,createCloneCallback:this.__createClone.bind(this),
-					   createPlaceholderCallback:this.__createPlaceholder.bind(this),nodeDroppableCallback:this.__isListItemDroppable.bind(this),
-					   nodeDraggableCallback:this.__isListItemDraggable.bind(this),insertNodeCallback:this.__insertListItemHandler.bind(this),
-					   moveNodeCallback:this.__moveListItemHandler.bind(this),removeNodeCallback:this.__removeListItemHandler.bind(this)};
-					   
-					   
-					   this.__createClone = function(listItem,containerConfiguration)
-	{
-		var listContainer = this.__nsList.__listContainer.cloneNode(false);
-		var data = this.__nsDragDrop.getDragData();
-		var arrItems = data.arrItems;
-		var clonedNode = null;
-		//make a clone only when clone Mode is ON or the list is not droppable
-		if(this.__nsList.__enableCloneMode || !this.__nsList.__isDroppable)
-		{
-			for(var count = 0;count < arrItems.length;count++)
-			{
-				clonedNode = arrItems[count][this.__nsList.__fieldItem].cloneNode(true);
-				clonedNode.setAttribute("id","comp" + listContainer.id + "ClonedNode" + count);
-				listContainer.appendChild(clonedNode);
-			}
-		}
-		else
-		{
-			for(var count = 0;count < arrItems.length;count++)
-			{
-				clonedNode = arrItems[count][this.__nsList.__fieldItem];
-				listContainer.appendChild(clonedNode);
-			}
-		}
-		listContainer.style.width = containerConfiguration.width + "px";
-		//listContainer.style.height = (arrItems.length * 20) + "px";
-		return listContainer;
-	};
+this.util.addStyleClass(obj,"nsResizeDetector");
+<script src="../lib/com/org/prototype/base/nsContainerBase.js"></script>
+
+var setting = {direction:"vertical"};
+			var dividerBox = new NSDividerBox(divVertical,setting);
