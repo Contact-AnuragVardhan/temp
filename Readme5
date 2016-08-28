@@ -1,82 +1,588 @@
-nsGrouping
-colArrow.enableFilter = false;
-colArrow.enableFilter = true;
-this.__nsGrid.__applyCustomClass(row,"bodyRow");
-this.__nsGrid.__applyCustomClass(cell,"bodyCell");
-        	if(colIndex === 0)
-	    	{
-	    		this.__nsGrid.__applyCustomClass(cell,"firstBodyColumn");
-	    	}
-        	else
-        	{
-        		this.__nsGrid.__applyCustomClass(cell,"nonFirstBodyColumn");
-        	}
-this.util.addStyleClass(cellText,"nsGroupCellText");
+.nsDataGridContainer
+{
+	background-color: #DDDDDD;
+	width:100%;
+	height:100%;
+}
+.nsDataGridContainer .nsDataGridTable
+{
+    width: 100%;
+    font-size:13px;
+	background-color: #EEE;
+	border: 0px;
+	margin: 0px;
+	padding: 0px;
+	background-color: #F6F6F6;
+	border-collapse: separate;
+	border-spacing: 0px;
+    border-color: grey;
+    table-layout: fixed;
+}
+.nsDataGridContainer .nsDataGridTitleBar
+{
+   padding: .3em .2em .2em .3em; position: relative; font-size: 12px; border-left: 0 none;border-right: 0 none; border-top: 0 none;
+   text-align: left;
+   border: 1px solid #848484; background: #848484; color: #ffffff; font-weight: bold; 
+   -moz-border-radius-topleft: 5px; -webkit-border-top-left-radius: 5px; -khtml-border-top-left-radius: 5px; border-top-left-radius: 5px;
+   -moz-border-radius-topright: 5px; -webkit-border-top-right-radius: 5px; -khtml-border-top-right-radius: 5px; border-top-right-radius: 5px;
+}
+.nsDataGridContainer .nsDataGridExport
+{
+	float: right;
+}
+.nsDataGridContainer .nsTableWrapper
+{
+    position: relative;
+}
+.nsDataGridContainer .nsDataGridHeaderContainer
+{
+	overflow: hidden; 
+}
+.nsDataGridHeader
+{
+/*   border-bottom : buttonshadow 1px solid; */
+  border-top : 1px solid #D4C7C7;
+/*   border-left : buttonshadow 1px solid; */
+  border-right : 1px solid #D4C7C7;
+  background-color: #EEEEEE;
+  color: black;
+  margin: 0px;
+  overflow:hidden;
+}
+.nsDataGridContainer .nsDataGridHeader:hover
+{
+	background-color: #acacac!important;	
+}
+.nsDataGridContainer .nsDataGridHeaderRenderer
+{
+  background-color: #EEEEEE;
+  margin: 0px;
+/*   border-bottom : buttonshadow 1px solid; */
+  border-top : 1px solid #D4C7C7;
+/*   border-left : buttonshadow 1px solid; */
+  border-right : 1px solid #D4C7C7;
+  overflow:hidden;
+}
+.nsDataGridHeaderCellContainer
+{
+  overflow:hidden;
+  align:center;
+  display: -webkit-box;           /* OLD - iOS 6-, Safari 3.1-6 */
+  display: -moz-box;              /* OLD - Firefox 19- (doesn't work very well) */
+  display: -ms-flexbox;           /* TWEENER - IE 10 */
+  display: -webkit-flex;          /* NEW - Chrome */
+  display: flex;               /* NEW, Spec - Opera 12.1, Firefox 20+ */
+  align-items:center;
+ /*  justify-content:center; */
+  vertical-align:middle;
+}
 
-nsPluggins
-this.__setIcon = function(iconName,animate)
+.nsDataGridContainer .nsDataGridHeaderCellContainer > *
+{
+	/*display:table-cell;*/ 
+	padding:5px;
+	vertical-align:middle;
+}
+
+.nsDataGridContainer .nsDottedCell
+{
+    border: 2px dotted red!important;
+}
+
+.nsGhostHeader
+{
+    -webkit-transition: all 0.5s ease-in-out;
+    -moz-transition: all 0.5s ease-in-out;
+    -o-transition: all 0.5s ease-in-out;
+    -ms-transition: all 0.5s ease-in-out;
+    transition: all 0.5s ease-in-out;
+}
+
+.nsHeaderMove
+{
+	cursor:move;
+}
+
+.nsHeaderText
+{
+	text-align:center;
+	word-break: break-all;
+	font-weight: bold;
+	font-size: 13.5px;
+}
+.nsHeaderText:hover
+{
+	color: red;
+}
+.nsHeaderSortContainer
+{
+	text-align:center;
+	word-break: break-all;
+	font-weight: bold;
+}
+.nsSortAsc 
+{
+	width: 0; 
+	height: 0; 
+	border-left: 5px solid transparent;
+	border-right: 5px solid transparent;
+	border-bottom: 5px solid black;
+}
+.nsSortAsc:hover
+{
+	border-bottom: 5px solid red;
+}
+.nsSortSpacer
+{
+	margin-top:2px;
+}
+.nsSortDesc 
+{
+	width: 0; 
+	height: 0; 
+	border-left: 5px solid transparent;
+	border-right: 5px solid transparent;
+	border-top: 5px solid black;
+}
+.nsSortDesc:hover
+{
+	border-top: 5px solid red;
+}
+.nsDataGridContainer .nsMenuUse
+{
+	fill:black;
+}
+.nsDataGridContainer .nsMenuUse:hover
+{
+	fill: red;
+}
+.nsDataGridContainer .nsMenuArrowSVG
+{
+    width:16px;
+	height:16px;
+}
+.nsDataGridContainer .nsMenuArrow
+{
+	fill:white;
+}
+.nsDataGridContainer .nsFilterContainer
+{
+  padding: 3px 5px;
+  overflow:hidden;
+  align:center;
+  display: -webkit-box;           /* OLD - iOS 6-, Safari 3.1-6 */
+  display: -moz-box;              /* OLD - Firefox 19- (doesn't work very well) */
+  display: -ms-flexbox;           /* TWEENER - IE 10 */
+  display: -webkit-flex;          /* NEW - Chrome */
+  display: flex;               /* NEW, Spec - Opera 12.1, Firefox 20+ */
+  align-items:center;
+  /*justify-content:center;*/
+  vertical-align:middle;
+}
+.nsDataGridContainer .nsFilter
+{
+  display: table-cell;
+  vertical-align: middle;
+  padding-left: 5px;
+}
+
+.nsDataGridContainer .nsCenterContainer {
+    position: relative;
+    overflow: hidden;
+    top:0;
+    left:0;
+}
+.nsDataGridContainer .nsDataGridBodyContainer
+{
+	overflow:auto;
+}
+.nsDataGridContainer .nsDataGridBodyContainerVirtual
+{
+	float:left;
+	overflow-y:hidden;
+	width:97%;
+	width: -webkit-calc(100% - 18px);
+	width: -moz-calc(100% - 18px);
+	width: -o-calc(100% - 18px);
+	width: calc(100% - 18px);
+}
+.nsDataGridContainer .nsDataGridOddRow
+{
+    background-color: #FFFFFF;
+	color: black;
+}
+.nsDataGridContainer .nsDataGridEvenRow 
+{
+    background-color: #fbfbfb;
+	color: black; 
+}
+.nsDataGridContainer .nsBodyDataGridCell
+{
+/*     border-bottom : buttonshadow 1px solid; */
+    border-top : 1px solid #D5D5D5;
+/*     border-left : buttonshadow 1px solid; */
+    border-right : 1px solid #D5D5D5;
+    cursor : default;
+    padding:0px;
+/*     text-align:left; */
+    font-weight:normal;
+    vertical-align:middle;
+    color:#000000;
+    word-break: break-all;
+}
+
+.nsDataGridContainer .nsFixedDataGridCell
+{
+	position: relative;
+}
+
+.nsDataGridContainer .nsFixedRightFirstCell
+{
+	border-left : buttonshadow 1px solid;
+}
+
+.nsDataGridContainer .nsFixedDataGridCellAnimate
+{
+	-webkit-transition: left 0.2s, right 0.2s;
+	-moz-transition: left 0.2s, right 0.2s;
+	-ms-transition: left 0.2s, right 0.2s;
+	-o-transition: left 0.2s, right 0.2s;
+	transition: left 0.2s, right 0.2s;
+}
+
+.nsDataGridContainer .nsDataGridHover
+{
+    background-color: #CCCCCC;
+}
+.nsDataGridContainer .nsDataGridSelection > td
+{
+    background-color: #b0bed9!important;
+}
+
+.nsDataGridContainer .nsGroupCell 
+{
+  position: relative;
+  overflow: hidden;
+  min-height: 19px;
+}
+
+.nsDataGridContainer .nsArrowParent
+{
+	position: absolute;
+    top: 0px;
+    left:0px;
+}
+
+.nsDataGridContainer .nsGroupCellText
+{
+	padding-left: 2em;
+}
+
+.nsDataGridContainer .nsResizeHandleActive
+{
+	cursor: e-resize;
+}
+
+.nsDataGridContainer .nsResizeHandle 
+{
+	cursor: e-resize;
+	width: 2px;
+	border-right: 1px dashed #1E90FF;
+	position:absolute;
+	top:0;
+	left:0;
+}
+
+.nsDataGridContainer .nsGridArrowFill 
+{
+	width:16px;
+	height:16px;
+    fill:#000000;
+	/*stroke:#000000;
+	stroke-width:0.5;*/
+}
+
+.nsDataGridContainer .nsGridGroupSVG
+{
+    width:16px;
+	height:16px;
+}
+
+.nsGridGroupIcon
+{
+    /*fill:#FFFFFF;*/
+	stroke:#FFFFFF;
+	stroke-width:2.5;
+}
+
+.nsDataGridContainer .nsExportIcon
+{
+ 	width:16px;
+	height:16px;
+	fill:#FFFFFF;
+}
+.nsDataGridContainer .nsExportIcon:hover
+{
+	fill:red;
+}
+
+.nsMoveIcon
+{
+ 	width:16px;
+	height:16px;
+}
+.nsMoveIcon:hover
+{
+	fill:red;
+}
+
+.nsDataGridContainer .nsNoRecordsFound 
+{
+    text-align: center;
+}
+
+.nsDataGridContainer .nsTruncateToFit,.nsDataGridContainer .nsTruncateToFit *
+{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nsDataGridContainer .nsAnimateLeftToRight 
+{
+	  -webkit-animation-name: ag-shake-left-to-right;
+	  -moz-animation-name: ag-shake-left-to-right;
+	  -o-animation-name: ag-shake-left-to-right;
+	  -ms-animation-name: ag-shake-left-to-right;
+	  animation-name: ag-shake-left-to-right;
+	  -webkit-animation-duration: 0.2s;
+	  -moz-animation-duration: 0.2s;
+	  -o-animation-duration: 0.2s;
+	  -ms-animation-duration: 0.2s;
+	  animation-duration: 0.2s;
+	  -webkit-animation-iteration-count: infinite;
+	  -moz-animation-iteration-count: infinite;
+	  -o-animation-iteration-count: infinite;
+	  -ms-animation-iteration-count: infinite;
+	  animation-iteration-count: infinite;
+	  -webkit-animation-direction: alternate;
+	  -moz-animation-direction: alternate;
+	  -o-animation-direction: alternate;
+	  -ms-animation-direction: alternate;
+	  animation-direction: alternate;
+ } 
+.nsDataGridContainer .nsGridScrollerCauseParent
+{
+	overflow-x:hidden;
+	overflow-y:auto;
+	width:18px;
+	max-width:18px;
+}
+.nsDataGridContainer .nsFilterSelect
+{
+    margin: 4px 4px 0px 4px;
+    width: 96%;
+}
+.nsDataGridContainer .nsSearchTextBoxWrapper
+{
+	margin: 4px;
+}
+.nsDataGridContainer .nsFilterButtonDiv
+{
+  border-top: 1px solid #d3d3d3;
+  padding: 2px;
+  text-align: center;
+}
+.nsDataGridContainer .nsFilterIconSVG
+{
+    width:16px;
+	height:16px;
+}
+.nsDataGridContainer .nsFilterIconSVG:hover
+{
+    fill:red;
+    cursor: pointer; 
+	cursor: hand;
+}
+
+.nsDataGridContainer .nsFilterLineContainer 
+{
+    border-bottom: 1px solid #d3d3d3;
+}
+
+.nsDataGridContainer .nsFilterList
+{
+	width:99%;
+    height:180px;
+}
+
+.nsDataGridContainer .nsFilterListRenderer
+{
+	-o-text-overflow: ellipsis;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.nsDataGridContainer .nsFilterListRendererCheckBox
+{
+	position: relative;
+    top: 2px;
+    left: 2px;
+}
+
+.nsDataGridContainer .nsFilterListRendererText
+{
+	margin-left: 4px;
+}
+
+.nsDataGridContainer .nsFilterSearchTextBox
+{
+	width:96%;
+}
+
+ @-moz-keyframes nsAnimateLeftToRight 
+{
+	from 
 	{
-		if(iconName)
-		{
-			var divDrag = this.__objColumnDrag.dragElement;
-			var divMove = divDrag.querySelector(".nsHeaderMove");
-			var objSVG = new NSSvg();
-			var iconID = null;
-			switch(iconName) 
-			{
-		         case "left":
-		        	 iconID = new NSSvgShapes().__MOVE_ICON_ID;
-		             break;
-		         case "right":
-		        	 iconID = new NSSvgShapes().__RIGHT_ICON_ID;
-		             break;
-		         case "move":
-		        	 iconID = new NSSvgShapes().__LEFT_ICON_ID;
-		             break;
-		         default:
-		        	 iconID = null;
-		             break;
-			}
-			if(divMove)
-			{
-				this.util.removeAllChildren(divMove);
-				if(iconID)
-				{
-					var containerID = divMove.getAttribute("id");
-					if(!containerID)
-					{
-						containerID = this.util.getUniqueId();
-					}
-					var svg = objSVG.addSVG(divMove,containerID + iconID + "svg","nsMoveIcon",null,null,null,null,null,null,false);
-					objSVG.addUse(svg,containerID + "use",null,"#" + iconID);
-					
-					//divMove.appendChild(icon);
-				}
-				animate ? this.util.addStyleClass(divMove,"nsAnimateLeftToRight") : this.util.removeStyleClass(divMove,"nsAnimateLeftToRight");
-			}
-		}
-	};
-	
-	nsFlatGrid
-	
-	if(attributeName === "pagesize" && parseInt(this.__nsGrid.setting.hasOwnProperty("pageSize")) > 0)
-	{
-		this.__nsGrid.__pageSize = parseInt(this.__nsGrid.setting["pageSize"]);
-		this.__nsGrid.dataSource(this.__nsGrid.__dataSource,true);
+		padding-left: 6px;    
+		padding-right: 2px;  
+	}  
+	to 
+	{    
+		padding-left: 2px;    
+		padding-right: 6px;  
 	}
-	this.__nsGrid.__applyCustomClass(row,"bodyRow");
-	this.__nsGrid.__applyCustomClass(cell,"bodyCell");
-	    	if(colIndex === 0)
-	    	{
-	    		this.__nsGrid.__applyCustomClass(cell,"firstBodyColumn");
-	    	}
-	    	else
-        	{
-        		this.__nsGrid.__applyCustomClass(cell,"nonFirstBodyColumn");
-        	}
+}
+
+@-webkit-keyframes nsAnimateLeftToRight 
+{
+	from 
+	{
+		padding-left: 6px;
+		padding-right: 2px;  
+	}  
+	to 
+	{    
+		padding-left: 2px;    
+		padding-right: 6px;  
+	}
+}
+
+@-o-keyframes nsAnimateLeftToRight 
+{
+	from 
+	{
+		padding-left: 6px;
+		padding-right: 2px;  
+	}  
+	to 
+	{    
+		padding-left: 2px;    
+		padding-right: 6px;  
+	}
+}
+
+@keyframes nsAnimateLeftToRight 
+{
+	from 
+	{
+		padding-left: 6px;
+		padding-right: 2px;  
+	}  
+	to 
+	{    
+		padding-left: 2px;    
+		padding-right: 6px;  
+	}
+}
+
+	/* Force table to not be like tables anymore */
+.nsMobileStackGrid table,.nsMobileStackGrid thead,.nsMobileStackGrid tbody,.nsMobileStackGrid th,.nsMobileStackGrid td,.nsMobileStackGrid tr {
+	display: block;
+}
+
+/* Hide table headers (but not display: none;, for accessibility) */
+.nsMobileStackGrid thead tr {
+	position: absolute;
+	top: -9999px;
+	left: -9999px;
+}
+
+.nsMobileStackGrid .nsDataGridHeader,.nsMobileStackGrid .nsArrow{
+	display:none;
+}
+.nsMobileStackGrid .nsDataGridHeaderRenderer{
+	display:none;
+}
 
 
+.nsArrow{
+	height:15px;
+}
 
-        	
+.nsMobileStackGrid tr { 
+	border: 1px solid #ccc;
+}
 
+.nsMobileStackGrid td {
+	/* Behave  like a "row" */
+	border: none;
+	border-bottom: 1px solid #eee;
+	position: relative;
+	padding-left: 50%;
+	min-height: 20px; 
+	
+}
 
+.nsMobileStackGrid .nsBodyDataGridCell
+{
+	text-align:center;
+	padding-left:0px!important;
+}
+
+.nsMobileStackGrid td:before {
+	/* Now like a table header */
+	position: absolute;
+	/* Top/left values mimic padding */
+	/*top: 6px;*/
+	left: 6px;
+	width: 45%;
+	padding-right: 10px;
+	white-space: nowrap;
+	vertical-align:middle;
+}
+
+.nsMobileStackGrid td:nth-of-type(n):before {	
+	font-weight: bold;
+}
+
+.nsMobileColumnToggleGrid320 th.column-priority-6, .nsMobileColumnToggleGrid320 td.column-priority-6, 
+.nsMobileColumnToggleGrid320 th.column-priority-5, .nsMobileColumnToggleGrid320 td.column-priority-5, 
+.nsMobileColumnToggleGrid320 th.column-priority-4, .nsMobileColumnToggleGrid320 td.column-priority-4, 
+.nsMobileColumnToggleGrid320 th.column-priority-3, .nsMobileColumnToggleGrid320 td.column-priority-3, 
+.nsMobileColumnToggleGrid320 th.column-priority-2, .nsMobileColumnToggleGrid320 td.column-priority-2 {
+    display: none;
+}
+
+.nsMobileColumnToggleGrid480 th.column-priority-6, .nsMobileColumnToggleGrid480 td.column-priority-6, 
+.nsMobileColumnToggleGrid480 th.column-priority-5, .nsMobileColumnToggleGrid480 td.column-priority-5, 
+.nsMobileColumnToggleGrid480 th.column-priority-4, .nsMobileColumnToggleGrid480 td.column-priority-4, 
+.nsMobileColumnToggleGrid480 th.column-priority-3, .nsMobileColumnToggleGrid480 td.column-priority-3 {
+    display: none;
+}
+
+.nsMobileColumnToggleGrid640 th.column-priority-6, .nsMobileColumnToggleGrid640 td.column-priority-6, 
+.nsMobileColumnToggleGrid640 th.column-priority-5, .nsMobileColumnToggleGrid640 td.column-priority-5, 
+.nsMobileColumnToggleGrid640 th.column-priority-4, .nsMobileColumnToggleGrid640 td.column-priority-4 {
+    display: none;
+}
+
+.nsMobileColumnToggleGrid800 th.column-priority-6, .nsMobileColumnToggleGrid800 td.column-priority-6, 
+.nsMobileColumnToggleGrid800 th.column-priority-5, .nsMobileColumnToggleGrid800 td.column-priority-5 {
+    display: none;
+}
+
+.nsMobileColumnToggleGrid960 th.column-priority-6, .nsMobileColumnToggleGrid960 td.column-priority-6 {
+    display: none;
+}
