@@ -1,5 +1,79 @@
+nsGrouping
+colArrow.enableFilter = false;
+colArrow.enableFilter = true;
+this.__nsGrid.__applyCustomClass(row,"bodyRow");
+this.__nsGrid.__applyCustomClass(cell,"bodyCell");
+        	if(colIndex === 0)
+	    	{
+	    		this.__nsGrid.__applyCustomClass(cell,"firstBodyColumn");
+	    	}
+        	else
+        	{
+        		this.__nsGrid.__applyCustomClass(cell,"nonFirstBodyColumn");
+        	}
+this.util.addStyleClass(cellText,"nsGroupCellText");
 
-
+nsPluggins
+this.__setIcon = function(iconName,animate)
+	{
+		if(iconName)
+		{
+			var divDrag = this.__objColumnDrag.dragElement;
+			var divMove = divDrag.querySelector(".nsHeaderMove");
+			var objSVG = new NSSvg();
+			var iconID = null;
+			switch(iconName) 
+			{
+		         case "left":
+		        	 iconID = new NSSvgShapes().__MOVE_ICON_ID;
+		             break;
+		         case "right":
+		        	 iconID = new NSSvgShapes().__RIGHT_ICON_ID;
+		             break;
+		         case "move":
+		        	 iconID = new NSSvgShapes().__LEFT_ICON_ID;
+		             break;
+		         default:
+		        	 iconID = null;
+		             break;
+			}
+			if(divMove)
+			{
+				this.util.removeAllChildren(divMove);
+				if(iconID)
+				{
+					var containerID = divMove.getAttribute("id");
+					if(!containerID)
+					{
+						containerID = this.util.getUniqueId();
+					}
+					var svg = objSVG.addSVG(divMove,containerID + iconID + "svg","nsMoveIcon",null,null,null,null,null,null,false);
+					objSVG.addUse(svg,containerID + "use",null,"#" + iconID);
+					
+					//divMove.appendChild(icon);
+				}
+				animate ? this.util.addStyleClass(divMove,"nsAnimateLeftToRight") : this.util.removeStyleClass(divMove,"nsAnimateLeftToRight");
+			}
+		}
+	};
+	
+	nsFlatGrid
+	
+	if(attributeName === "pagesize" && parseInt(this.__nsGrid.setting.hasOwnProperty("pageSize")) > 0)
+	{
+		this.__nsGrid.__pageSize = parseInt(this.__nsGrid.setting["pageSize"]);
+		this.__nsGrid.dataSource(this.__nsGrid.__dataSource,true);
+	}
+	this.__nsGrid.__applyCustomClass(row,"bodyRow");
+	this.__nsGrid.__applyCustomClass(cell,"bodyCell");
+	    	if(colIndex === 0)
+	    	{
+	    		this.__nsGrid.__applyCustomClass(cell,"firstBodyColumn");
+	    	}
+	    	else
+        	{
+        		this.__nsGrid.__applyCustomClass(cell,"nonFirstBodyColumn");
+        	}
 
 
 
