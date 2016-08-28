@@ -1,73 +1,8 @@
-NSList.prototype.setContextMenuSetting = function(contextMenuSetting)
-{
-	this.__contextMenuSetting = contextMenuSetting;
-};
 
-NSList.prototype.addItems = function(arrItem)
-{
-	this.__addItem(arrItem);
-};
-var config = {
-				caseSensitive: this.util.isUndefinedOrNull(filterSetting["caseSensitive"]) ? Boolean.parse(filterSetting["caseSensitive"]) : false,
-				multiline: this.util.isUndefinedOrNull(filterSetting["multiline"]) ? Boolean.parse(filterSetting["multiline"]) : true,
-				matchType: filterSetting["matchType"] || new NSFilter().CONTAINS
-		};
-		
-nsSVG
-	this.__MOVE_ICON_ID = "nsSvgMove";
-	this.__LEFT_ICON_ID = "nsSvgLeft";
-	this.__RIGHT_ICON_ID = "nsSvgRight";
-	
-	NSSvgShapes.prototype.addMoveIcon = function()
-{
-	var MOVE_ICON_VIEWPORT = "0 0 18.00 22.00";
-	var MOVE_ICON_PATH = "M 8.00006,2L 10.0001,2L 10.0001,4L 8.00006,4L 8.00006,2 Z M 8,6L 10,6L 10,8L 8," +
-			"8L 8,6 Z M 8,10L 10,10L 10,12L 8,12L 8,10 Z M 8,14L 10,14L 10,16L 8,16L 8,14 Z M 8,18L 10,18L 10,20L 8,20L 8,18 Z";
-	var group = this.__objSVG.createGroup(this.__MOVE_ICON_ID + "group");
-	var path = this.__objSVG.createPath(this.__MOVE_ICON_ID + "path",MOVE_ICON_PATH,null,null);
-	path.setAttribute("fill","#909090");
-	path.setAttribute("fill-rule","evenodd");
-	group.appendChild(path);
-	this.__objSVG.addElementInSymbol(this.__MOVE_ICON_ID,MOVE_ICON_VIEWPORT,group);
-};
 
-nsHierarchical
 
-	this.__ARROW_COLLAPSE_PATH = "M 0 9.99994L 6.10352e-005 -3.05176e-005L 5 5.00006L 0 9.99994 Z";
-	this.__ARROW_EXPANDED_PATH = "M 0 3.05176e-005L 9.99994 9.15527e-005L 4.99988 5.00003L 0 3.05176e-005 Z";
-this.__nsGrid.__applyCustomClass(row,"bodyRow");
 
-this.__nsGrid.__applyCustomClass(cell,"bodyCell");
-        	if(colIndex === 0)
-	    	{
-	    		this.__nsGrid.__applyCustomClass(cell,"firstBodyColumn");
-	    	}
-        	else
-        	{
-        		this.__nsGrid.__applyCustomClass(cell,"nonFirstBodyColumn");
-        	}
-        	this.util.addStyleClass(cellText,"nsGroupCellText");
 
-NSSvgShapes.prototype.addLeftIcon = function()
-{
-	var LEFT_ICON_VIEWPORT = "0 0 11.00 8.00";
-	var LEFT_ICON_PATH = "M 11,5.99921L 5.00073,5.99921L 5.00073,7.99896L 0,4.00006L 5.00073,6.10352e-005L 5.00073,1.99969L 11,1.99969L 11,5.99921 Z";
-	var group = this.__objSVG.createGroup(this.__LEFT_ICON_ID + "group");
-	var path = this.__objSVG.createPath(this.__LEFT_ICON_ID + "path",LEFT_ICON_PATH,null,null);
-	path.setAttribute("fill","#282828");
-	path.setAttribute("fill-rule","evenodd");
-	group.appendChild(path);
-	this.__objSVG.addElementInSymbol(this.__LEFT_ICON_ID,LEFT_ICON_VIEWPORT,group);
-};
+        	
 
-NSSvgShapes.prototype.addRightIcon = function()
-{
-	var RIGHT_ICON_VIEWPORT = "0 0 11.00 8.00";
-	var RIGHT_ICON_PATH = "M 0,1.99976L 5.99927,1.99976L 5.99927,0L 11,3.9989L 5.99927,7.9989L 5.99927,5.99927L 0,5.99927L 0,1.99976 Z ";
-	var group = this.__objSVG.createGroup(this.__RIGHT_ICON_ID + "group");
-	var path = this.__objSVG.createPath(this.__RIGHT_ICON_ID + "path",RIGHT_ICON_PATH,null,null);
-	path.setAttribute("fill","#282828");
-	path.setAttribute("fill-rule","evenodd");
-	group.appendChild(path);
-	this.__objSVG.addElementInSymbol(this.__RIGHT_ICON_ID,RIGHT_ICON_VIEWPORT,group);
-};
+
