@@ -1,9 +1,108 @@
-var hasVerticalScrollbar= this.__divVirtualScrollParent.scrollHeight > this.__divVirtualScrollParent.clientHeight;
-	if(hasVerticalScrollbar)
+this.__fieldVisibleIndex = this.__fieldPrefix + "_row_visible_index";
+this.__updateVisibleIndex(null,0);
+this.__updateVisibleIndex(null,index - 1);
+
+NSGrid.prototype.__getFirstVisibleItemBeforeIndex = function(itemIndex)
+{
+	var arrItems = this.__getAllItems();
+	if(arrItems && arrItems.length > 0)
 	{
-		this.__divVirtualScrollParent.style.height = null;
+		for(var count = itemIndex;count >= 0;count--)
+		{
+			var item = arrItems[count];
+			if(item && item[this.__fieldRowVisible])
+			{
+				return item;
+			}
+		}
 	}
-	else
+	return null;
+};
+
+NSGrid.prototype.__getVisibleItemByIndex = function(source,index)
+{
+	var arrItems = source;
+	if(!arrItems)
 	{
-		this.__divVirtualScrollParent.style.height = this.__divVirtualScrollParent.style.maxHeight;
+		arrItems = this.__getAllItems();
 	}
+	if(arrItems && arrItems.length > 0)
+	{
+		var self = this; 
+		var findItem = function(itemCompare)
+		{
+			 return (itemCompare[self.__fieldVisibleIndex] === (index + 1));
+		}
+		return this.__arrFlatHierarchicalSource.find(findItem);
+	}
+	return null;
+};
+
+NSGrid.prototype.__updateVisibleIndex = function(source,fromIndex)
+{
+	var arrItems = source;
+	if(!arrItems)
+	{
+		arrItems = this.__getAllItems();
+	}
+	if(this.util.isUndefinedOrNull(fromIndex))
+	{
+		fromIndex = 0;
+	}
+	if(arrItems && arrItems.length > 0)
+	{
+		var visibleRowIndex = 1;
+		if(fromIndex > 0)
+		{
+			var visibleItem = this.__getFirstVisibleItemBeforeIndex(fromIndex);
+			if(visibleItem)
+			{
+				visibleRowIndex = visibleItem[this.__fieldVisibleIndex];
+				fromIndex = visibleItem[this.__fieldIndex] - 1;
+			}
+		}
+		var length = arrItems.length;
+		var item = null;
+		for(var count = fromIndex; count < length; count++)
+		{
+			item = arrItems[count];
+			if(item)
+			{
+				if(item[this.__fieldRowVisible])
+				{
+					item[this.__fieldVisibleIndex] = visibleRowIndex;
+					visibleRowIndex++;
+				}
+				else
+				{
+					item[this.__fieldVisibleIndex] = -1;
+				}
+			}
+		}
+		for(var count = fromIndex; count < length; count++)
+		{
+			item = arrItems[count];
+			console.log(item[this.__fieldIndex] + "," + item[this.__fieldRowVisible] + "," + item[this.__fieldVisibleIndex]);
+		}
+	}
+};
+
+nsGrouping
+item[this.__nsGrid.__fieldVisibleIndex] = totalRowCount;
+if(this.__nsGrid.__enableVirtualScroll)
+		{
+			item = this.__nsGrid.__getVisibleItemByIndex(this.__nsGrid.__arrFlatHierarchicalSource,count);
+		}
+		else
+		{
+			item = this.__nsGrid.__arrFlatHierarchicalSource[count];
+		}
+		
+if(this.__nsGrid.__enableVirtualScroll)
+		{
+			item = this.__nsGrid.__getVisibleItemByIndex(this.__nsGrid.__arrFlatHierarchicalSource,count);
+		}
+		else
+		{
+			item = this.__nsGrid.__arrFlatHierarchicalSource[count];
+		}
