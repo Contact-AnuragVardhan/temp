@@ -1,27 +1,5 @@
-
-<div id="dgHierarchyHolisticViewcolnamerendererdetailFilterContainer" class="nsPopUp nsShowPopUp" style="width: 268px;margin: 5px;">
-	<div style="padding-bottom: 8px;">
-		<span id="dgHierarchyHolisticViewcolnamerendereroptionsdetailFilterSelectContainer" style="display:inline-block;">
-			<select id="dgHierarchyHolisticViewcolnamerendereroptionsdetailFilterSelect" class="nsFilterSelect">
-				<option value="1">Contains</option>
-				<option value="2">Exact</option>
-				<option value="3">Starts With</option>
-				<option value="4">Ends With</option>
-			</select>
-		</span>
-		<span id="dgHierarchyHolisticViewcolnamerendererdetailFilterTextInputContainer">
-				<input id="dgHierarchyHolisticViewcolnamerendererdetailFilterTextInput" class="nsFilterTextInput nsSearchInput" placeholder="Enter Value">
-		</span>
-	</div>
-	<div>
-		<div style="display: inline-block;">
-			<label>
-				<input type="checkbox"> Case Sensitive
-			</label>
-		</div>
-		<div id="dgHierarchyHolisticViewcolnamerendererdetailFilterApplyButtonContainer" class="nsFilterButtonDiv" style="float:right;">
-			<button id="dgHierarchyHolisticViewcolnamerendererdetailFilterApply" class="nsFilterButton nsButton nsButtonBlue nsButtonShadow nsButtonFont12">Filter</button>
-			<button id="dgHierarchyHolisticViewcolnamerendererdetailFilterReset" class="nsFilterButton nsButton nsButtonOrange nsButtonShadow nsButtonFont12">Cancel</button>
-		</div>
-	</div>
-</div>
+var visibleIndex = item[this.__fieldVisibleIndex];
+		//to get actual rowIndex use row.rowIndex
+		this.__objGrid.__resetDataInBody(visibleIndex,visibleIndex + rowLength,row.rowIndex);
+		
+element = this.util.getElement(element);
