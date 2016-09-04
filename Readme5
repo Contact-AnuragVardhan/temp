@@ -1,5 +1,57 @@
-var visibleIndex = item[this.__fieldVisibleIndex];
-		//to get actual rowIndex use row.rowIndex
-		this.__objGrid.__resetDataInBody(visibleIndex,visibleIndex + rowLength,row.rowIndex);
-		
-element = this.util.getElement(element);
+/*useVisibleIndex flag is used when we want to use visible index,generally true for all cases except for expandCollapse all due to performance issues*/  
+NSGroupingGrid.prototype.__resetDataInBody= function(fromIndex,toIndex,fromRowIndex,useVisibleIndex)
+{
+	if(!fromRowIndex)
+	{
+		fromRowIndex = 0;
+	}
+	if(!useVisibleIndex)
+	{
+		useVisibleIndex = false;
+	}
+	var row = null;
+	var item = null;
+	var arrRows = this.__nsGrid.__tblCenterBodyBody.rows;
+	var rowLength = arrRows.length;
+	var length = this.__nsGrid.__arrFlatHierarchicalSource.length;
+	var indexCount = fromIndex;
+	var rowCount = fromRowIndex;
+	for(var count = fromIndex; count < length; count++)
+	{
+		if(this.__nsGrid.__enableVirtualScroll && useVisibleIndex)
+		{
+			item = this.__nsGrid.__getVisibleItemByIndex(this.__nsGrid.__arrFlatHierarchicalSource,count);
+		}
+		else
+		{
+			item = this.__nsGrid.__arrFlatHierarchicalSource[count];
+		}
+		//breaking if item not found as if large data set is rendered and after collapse all the while scrolling after a while item is null still it goes to end of data set which are hidden
+		if(item)
+		{
+			if(item[this.__nsGrid.__fieldRowVisible])
+			{
+				if(rowLength <= rowCount) // || indexCount > toIndex
+				{
+					break;
+				}
+				row = arrRows[rowCount];
+				this.__resetRow(row,item);
+				indexCount++;
+				rowCount++;
+			}
+		}
+		else
+		{
+			break;
+		}
+	}
+	for(var rowIndex = rowCount;rowIndex < rowLength;rowIndex++)
+	{
+		row = arrRows[rowIndex];
+		row.style.display = "none";
+		row.setAttribute("ns-index",null);
+		row.setAttribute("ns-level",null);
+		row.setAttribute("ns-parent-index",null);
+	}
+};
