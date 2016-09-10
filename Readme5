@@ -1,57 +1,142 @@
-/*useVisibleIndex flag is used when we want to use visible index,generally true for all cases except for expandCollapse all due to performance issues*/  
-NSGroupingGrid.prototype.__resetDataInBody= function(fromIndex,toIndex,fromRowIndex,useVisibleIndex)
-{
-	if(!fromRowIndex)
-	{
-		fromRowIndex = 0;
-	}
-	if(!useVisibleIndex)
-	{
-		useVisibleIndex = false;
-	}
-	var row = null;
-	var item = null;
-	var arrRows = this.__nsGrid.__tblCenterBodyBody.rows;
-	var rowLength = arrRows.length;
-	var length = this.__nsGrid.__arrFlatHierarchicalSource.length;
-	var indexCount = fromIndex;
-	var rowCount = fromRowIndex;
-	for(var count = fromIndex; count < length; count++)
-	{
-		if(this.__nsGrid.__enableVirtualScroll && useVisibleIndex)
-		{
-			item = this.__nsGrid.__getVisibleItemByIndex(this.__nsGrid.__arrFlatHierarchicalSource,count);
-		}
-		else
-		{
-			item = this.__nsGrid.__arrFlatHierarchicalSource[count];
-		}
-		//breaking if item not found as if large data set is rendered and after collapse all the while scrolling after a while item is null still it goes to end of data set which are hidden
-		if(item)
-		{
-			if(item[this.__nsGrid.__fieldRowVisible])
-			{
-				if(rowLength <= rowCount) // || indexCount > toIndex
+var isSuccess = false;
+				var setValue = null;
+				if(childRow)
 				{
-					break;
+					var childCell = childRow.cells[cellIndex];
+					if(childCell.getElementsByTagName(control.tagName).length > 0)
+					{
+						var childControl = childCell.getElementsByTagName(control.tagName)[0];
+						if(childControl)
+						{
+							if(callBack)
+							{
+								setValue = callBack(control,childControl,item,dataField,cellIndex,colItem,childCell,row);
+								isSuccess = true;
+							}
+							else
+							{
+								setValue = this.util.setControlValue(childControl,cascadeValue);
+								isSuccess = true;
+							}
+						}
+					}
 				}
-				row = arrRows[rowCount];
-				this.__resetRow(row,item);
-				indexCount++;
-				rowCount++;
-			}
-		}
-		else
-		{
-			break;
-		}
-	}
-	for(var rowIndex = rowCount;rowIndex < rowLength;rowIndex++)
-	{
-		row = arrRows[rowIndex];
-		row.style.display = "none";
-		row.setAttribute("ns-index",null);
-		row.setAttribute("ns-level",null);
-		row.setAttribute("ns-parent-index",null);
-	}
-};
+				else
+				{
+					setValue = cascadeValue;
+					isSuccess = true;
+				}
+				if(isSuccess)
+				{
+					item[dataField] = setValue;
+				}
+				
+	this.__clearHoldTime();
+	.nsGroupCell > * 
+{
+    display: inline-block;
+    padding: 3px;
+}
+
+
+.nsListNoRecordsFound 
+{
+    text-align: center;
+}
+
+.nsListGroupCell 
+{
+  	position: relative;
+  	overflow: hidden;
+  	min-height: 19px;
+}
+
+.nsListGroupCell > * 
+{
+    display: inline-block;
+    padding: 3px;
+}
+
+.nsListGroupCellText
+{
+	padding-left: 1.5em;
+}
+
+.nsListArrowParent
+{
+	position: absolute;
+    top: 0px;
+    left:0px;
+}
+
+.nsListArrow
+{
+	height:15px;
+}
+
+.nsListArrowFill 
+{
+	width:16px;
+	height:16px;
+    fill:#000000;
+	/*stroke:#000000;
+	stroke-width:0.5;*/
+} 
+
+.nsListTruncateToFit,.nsListTruncateToFit *
+{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nsListDottedRow 
+{
+    position: relative;
+    margin: 0;
+    padding: 0;
+    border: none; 
+}
+/* line 25, /Users/jonasvonandrian/jquery-sortable/source/css/jquery-sortable.css.sass */
+.nsListDottedRow:before 
+{
+  	position: absolute;
+  	content: "";
+  	width: 0;
+  	height: 0;
+  	margin-top: -5px;
+  	left: -5px;
+  	top: -4px;
+  	border: 5px solid transparent;
+  	border-left-color: red;
+  	border-right: none; 
+}
+
+var setting1 = {labelField:"hierarchy",enableHierarchical:true,enableVirtualScroll:false,enableDragDrop:true,
+										isDraggable:true,isDroppable:false,
+										enableMultipleSelection:true,enableKeyboardNavigation:true,customScrollerRequired:false,
+						 		   		disableHoverField:"stopOver",enableDragAfterHold:true,holdTime:300,enableCloneMode:true,enableContextMenu:true,
+						 		   		contextMenuProvider:contextMenuProvider,enableTruncateToFit:true,enableToolTipForTruncateText:true,
+						 		   		toolTipRenderer:toolTipRenderer};//, template:"templateDemo",setData:"setData",itemRenderer:itemRenderer
+						 		   		
+function toolTipRenderer(item,labelField,fieldIndex,isDisabled,listItem)
+				{
+					if(item)
+					{
+						return item[labelField] + " (" + item["id"] + ")";
+					}
+					return null;
+				}
+				
+function setSelectedIndex()
+				{
+					var txtSelectedIndex = document.getElementById('txtSelectedIndex'); 
+					var lstDemo1 = document.getElementById('lstDemo1'); 
+					nsList1.setSelectedIndex(parseInt(txtSelectedIndex.value));
+					nsList1.scrollToIndex(txtSelectedIndex.value,true);
+					return false;
+				}
+				
+,truncateToFit:true
+
+totalRecords:500,rowHeight:30
