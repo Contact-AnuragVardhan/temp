@@ -3,3 +3,5 @@ var text = "hello {{3}} and another {{2}}";
 var regex = new RegExp("[^{}]+(?=\})", "g");
 var matches = text.match(regex);
 console.log(matches);
+
+https://svn.code.sf.net/p/jsnslib/trunk
