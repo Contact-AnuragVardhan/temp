@@ -4,9 +4,9 @@
 <head>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8">
  
-  <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.1.js"></script>
-  <!--<script type="text/javascript" src="http://enscrollplugin.com/releases/enscroll-0.6.0.min.js"></script>-->
-  <script type="text/javascript" src="enscroll.js"></script>
+ <link href="../lib/css/com/org/component.css" rel="stylesheet" media="all" />
+  <script src="../lib/com/org/util/nsUtil.js"></script>
+  <script src="../lib/com/org/util/nsScroller3.js"></script>
     
   
 
@@ -122,28 +122,6 @@
 
 
   </style>
-  
-<script type='text/javascript'>//<![CDATA[
-$(function(){
-$('#scrollbox4').enscroll({
-    verticalTrackClass: 'track4',
-    verticalHandleClass: 'handle4',
-    drawScrollButtons: true,
-    scrollUpButtonClass: 'scroll-up1',
-    scrollDownButtonClass: 'scroll-down1',
-    horizontalScrolling:true,
-    horizontalTrackClass: 'horizontal-track2',
-    horizontalHandleClass: 'horizontal-handle2',
-     cornerClass: 'corner2'
-});
-
-
-
-//$('#scrollbox4').scrollTop($("p[name='p2']").height())
-
-});//]]> 
-
-</script>
 
   
 </head>
@@ -159,20 +137,7 @@ $('#scrollbox4').enscroll({
 <button onclick="test()">Click</button>
 
 <script>
-	function test()
-	{
-		$('#scrollbox4').enscroll({
-		    verticalTrackClass: 'track4',
-		    verticalHandleClass: 'handle4',
-		    drawScrollButtons: true,
-		    scrollUpButtonClass: 'scroll-up1',
-		    scrollDownButtonClass: 'scroll-down1',
-		    horizontalScrolling:true,
-		    horizontalTrackClass: 'horizontal-track2',
-		    horizontalHandleClass: 'horizontal-handle2',
-		     cornerClass: 'corner2'
-		});
-	}
+	
 	
 </script>
 
