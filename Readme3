@@ -1,20 +1,167 @@
-model["changeText"] = function(text)
-		{
-    		model["countries"][2]["code"] = text;
-    		return text;
-		}
-    	model["changeArray"] = function(event)
-    	{
-    		alert(model["changeText"]("aa"));
-    	}
-    	//model.iss
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="description" content="A jquery plugin to create simple donut, bar or line charts with dom nodes, style with css.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>cssCharts.js - jquery css charts</title>
+       
+
+        <link rel="stylesheet" href="../chart.css">
+	<script src="http://localhost:8080/JSLib/lib/com/org/util/nsUtil.js"></script>
+
+        <style>
+          /* page specific styles*/
+          h1{text-align:center;font-family:sans-serif;font-size:28px;color:#333;padding:40px 0 0 0;}
+          h2{text-align:center;font-family:sans-serif;font-size:18px;color:#333;padding:40px 0 0 0;}
+          hr{width:60%;height:1px;background:none;border:none;border-bottom:1px dashed rgba(0,0,0,0.1);outline:none;margin:40px auto 60px auto;}
+
+          .desc p{text-align:center;font-size:16px;color:rgba(0,0,0,0.6);padding:20px 0 0 0;font-family:sans-serif;}
+          .desc a{color:blue;}
+          .wrap{margin:0 auto;width:640px;padding-bottom:100px;}
+          #line{width:400px;}
+          /* page specific styles*/
+        </style>
+    </head>
+    <body onload="initialize()">
+      <div class="wrap">
+
+        
+
+       
+
+        <div class="chart">
+            <ul class="bar-chart" ></ul>
+        </div>
+        <!-- data max is the 100% point of the graph -->
+        <!-- set data-grid to 0 for no grid -->
+        <!-- data-width is the individual bars width -->
+
+        
+
+      </div>
 	
+      <script>
 	
-	<span>{{abc}}</span>
-	<span>{{tempName.def.abc}}</span>
-	function changeArray()
+	"use strict";
+function NSChart(element,model) 
+{
+	this.__element = element;
+	this.util = new NSUtil();
+	
+	this.__initialize();
+};
+
+NSChart.prototype.__initialize = function()
+{
+	this.__createBarChart();
+};
+
+NSChart.prototype.__createBarChart = function()
+{
+	this.util.addStyleClass(this.__element.parentNode,"bar");
+	var data = "[4,2,3],[4,5,2],[8,3,5],[4,2,2],[4,2,6]";
+	var unit = "Kg";
+	var height = this.__element.getBoundingClientRect().height;
+	var grid = 0;
+	var barWidth = 20;
+	var max = 10;
+	var self = this;
+	if(parseInt(grid,10) === 0) 
 	{
-		//objData["abc"] = "efg";
-		objData["tempName"]["def"]["abc"] = "efg";
-		//objData["countries"][2]["code"] = "aa";
+		this.__element.style.background = "none";
 	}
+	if(!unit)
+	{
+		unit = "%";
+	}
+	var maxData = function()
+	{
+		var arr = JSON.parse("[" + data + "]");
+		return Math.max.apply(Math, arr.map(function(i) { return i[0]; }));
+	};
+	var createBlockParent = function()
+	{
+		var ul = self.util.createElement("ul");
+		return ul;
+	};
+	var createChild = function(value)
+	{
+		var title = value + unit;
+		var percent = (value/max) * 100;
+		var li = self.util.createElement("li");
+		li.style.height = height + "px";
+		var span = self.util.createElement("span");
+		span.setAttribute("title",title);
+		if(barWidth)
+		{
+			span.setAttribute("style","height:" + percent + "%;" + "width:" + barWidth + "px;");
+		}
+		else
+		{
+			span.setAttribute("style","height:" + percent + "%;");
+		}
+		li.appendChild(span);
+		return li;
+	};
+	var createGridChild = function(percentageBottom,value)
+	{
+		var hr = self.util.createElement("hr");
+		hr.style.bottom = percentageBottom + "%";
+		hr.setAttribute("data-y",value + unit);
+		return hr;
+	};
+	if(maxData() > max || !max)
+	{ 
+		max = maxData(); 
+	}
+	data = JSON.parse("[[" + data + "]]");
+	var length = data[0].length;
+	var blockParent = null;
+	var arrItem = [];
+	var item = {};
+	var child = null;
+	var childLength = data[0][0].length;
+	for(var count = 0;count < length;count++)
+	{
+		arrItem = data[0][count];
+		blockParent = createBlockParent();
+		for(var innerCount = 0;innerCount < childLength;innerCount++)
+		{
+			item = arrItem[innerCount];
+			child = createChild(item);
+			blockParent.appendChild(child);
+		}
+		this.__element.appendChild(blockParent);
+	}
+	var grid = this.util.createDiv(null,"grid");
+	for(var count = 0;count < 10;count++)
+	{
+		var toPerc = (count * 10).toFixed(0);
+		var converter = max / 100;
+		var toUnit = (toPerc * converter).toFixed(0);
+		if(count % 2 === 0)
+		{
+			var line = createGridChild(toPerc,toUnit);
+			grid.appendChild(line);
+		}
+	}
+	this.__element.parentNode.appendChild(grid);
+	this.__element.parentNode.style.width = this.__element.getBoundingClientRect().width + "px";
+};
+	
+	
+	function initialize()
+	{
+		var chart = new NSChart(document.querySelector(".bar-chart"));
+	}
+        /*$(function() {
+            $('.bar-chart').cssCharts({type:"bar"});
+            //$('.donut-chart').cssCharts({type:"donut"}).trigger('show-donut-chart');
+            $('.line-chart').cssCharts({type:"line"});
+
+            $('.pie-thychart').cssCharts({type:"pie"});
+        });*/
+      </script>
+    </body>
+</html>
