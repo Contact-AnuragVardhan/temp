@@ -7,8 +7,8 @@
         <title>cssCharts.js - jquery css charts</title>
        
 
-        <link rel="stylesheet" href="../chart.css">
-	<script src="http://localhost:8080/JSLib/lib/com/org/util/nsUtil.js"></script>
+        <link rel="stylesheet" href="../demo/css/chart.css">
+		<script src="../lib/com/org/util/nsUtil.js"></script>
 
         <style>
           /* page specific styles*/
@@ -33,9 +33,10 @@
         <div class="chart">
             <ul class="bar-chart" ></ul>
         </div>
-        <!-- data max is the 100% point of the graph -->
-        <!-- set data-grid to 0 for no grid -->
-        <!-- data-width is the individual bars width -->
+        <br/><br/><br/>
+        <div class="chart">
+          <div class="pie-thychart"></div>
+        </div>
 
         
 
@@ -44,28 +45,301 @@
       <script>
 	
 	"use strict";
-function NSChart(element,model) 
+function NSChart(element,option) 
 {
 	this.__element = element;
+	this.__option = option;
 	this.util = new NSUtil();
+	this.__id = null;
+	
+	this.namespace = "http://www.w3.org/2000/svg";
+	this.xmlns = "http://www.w3.org/2000/xmlns/";
+	this.xlink = "http://www.w3.org/1999/xlink";
+	this.version = "1.2";
 	
 	this.__initialize();
 };
 
 NSChart.prototype.__initialize = function()
 {
-	this.__createBarChart();
+	if(this.__element && this.__option && this.__option["type"])
+	{
+		switch(this.__option["type"]) 
+		{
+		    case "bar":
+		        this.__createBarChart();
+		        break;
+		    case "pie":
+		        this.__createPieChart();
+		        break;
+		    case "donut":
+		        this.__createPieChart();
+		        break;
+		    case "line":
+		        this.__createPieChart();
+		        break;
+		}
+	}
 };
 
 NSChart.prototype.__createBarChart = function()
 {
+	var id = this.__getID();
+	var data = [[1,-2],[4,5],[4,2],[6,9],[4,3],[4,-3],[-4,8]];
+	var width = this.__element.offsetWidth;
+	var height = this.__element.offsetHeight;
+	var type = "grouped";
+	var self = this;
+	var createSVG = function()
+	{
+		var svg = self.__createSVG.bind(self)(id + "svg",null,width,height,null);
+		return svg;
+	};
+	var sumArray = function(array)
+    {
+        if (typeof array === "number") 
+        {
+            return arr;
+        }
+        if(self.util.isUndefinedOrNull(array)) 
+        {
+            return 0;
+        }
+        var sum = 0;
+        var length = array.length;
+        for(var count = 0;count < length;count++) 
+        {
+            if (typeof array[count] === "number") 
+            {
+            	sum += array[count];
+            }
+        }
+        return sum;
+    };
+	var getMaxData = function()
+	{
+		var arrMaxValues = [];
+		var maxFunction = self.__maxArrayValue.bind(self);
+		for(var count = 0;count < data.length;count++) 
+		{
+            if (typeof data[count] === "number") 
+            {
+            	arrMaxValues.push(data[count]);
+            } 
+            else if(self.util.isArray(data[count]) && type === "grouped") 
+            {
+            	arrMaxValues.push(maxFunction(data[count]));
+            } 
+            else if(self.util.isArray(data[count]) && type === "stacked") 
+            {
+            	arrMaxValues.push(sumArray(data[count]));
+            }
+        }
+        var max = maxFunction(arrMaxValues);
+		return max;
+	};
+	var createChart = function()
+	{
+		var graphWidth  = width - properties.gutterLeft - properties.gutterRight;
+        var graphHeight = height - properties.gutterTop - properties.gutterBottom;
+        var max = getMaxData();
+        if (typeof properties.yMax === "number") 
+        {
+            max = properties.yMax;
+        }
+        if (properties.yMin === "mirror") 
+        {
+            var mirrorScale = true;
+            properties.yMin   = 0;
+        }
+	};
+	var svg = createSVG();
+	var coords = [];
+    var stackedBackfaces = [];
+    var colorsParsed = false;
+    var gradientCounter  = 1;
+    var properties =
+    {
+        gutterLeft: 25,
+        gutterRight: 25,
+        gutterTop: 25,
+        gutterBottom: 25,
+        yMax: null,
+        yMin: 0,
+    };
+     
+    this.__element.style.display = "inline-block";
+	this.__element.appendChild(svg);
+};
+
+NSChart.prototype.__createPieChart = function()
+{
+	this.util.addStyleClass(this.__element.parentNode,"pie");
+	var dataSet = [['people',20],['countries',30],['developers',60]];
+	var colorSet = "#FBE4DB,#F17F49,#BD380F";
+	var id = this.__getID();
+	var self = this;
+	var createSVG = function()
+	{
+		var svg = self.__createSVG.bind(self)(id + "svg","svg",null,null,"0 0 400 400");
+		return svg;
+	};
+	var getRandomNumber = function(min,max) 
+	{
+        return parseInt(Math.random() * (max - min + 1),10) + min;
+    };
+    var getSectionColor = function(index) 
+	{
+      	var color;
+      	if(colorSet && colorSet.length > index) 
+		{
+        	color = colorSet[index];
+      	}
+      	else
+		{
+        	var hue = getRandomNumber(10, 60); // Hue is a degree on the color wheel from 0 to 360. 0 is red, 120 is green, 240 is blue.
+        	var saturation = getRandomNumber(20, 100); // Saturation is a percentage value; 0% means a shade of gray and 100% is the full color.
+        	var lightness = getRandomNumber(30, 60); // Lightness is also a percentage; 0% is black, 100% is white.
+        	color = "hsl(" + hue + "," + saturation + "%," + lightness + "%)";
+      	}
+      	return color;
+    };
+    var createGroup = function(value,pathString,color,title,index)
+    {
+    	var path = self.__createPath(id + "Path" + index,pathString,"path",color);
+		path.setAttribute("data-val", value);
+		path.setAttribute("data-title", title);
+		var group = self.__createGroup.bind(self)(id + "Group" + index,"pathCont");
+		group.appendChild(path);
+		return group;
+    };
+    var createLegend = function(value,color,title,index)
+    {
+    	var li = self.util.createElement("li",id + "legend" + index);
+    	var i = self.util.createElement("i");
+    	i.style.background = color;
+    	var p = self.util.createElement("p");
+    	p.appendChild(document.createTextNode(title+ ": " + value))
+    	li.appendChild(i);
+    	li.appendChild(p);
+    	legendContainer.appendChild(li);
+    };
+	var drawChart = function(arrData)
+	{
+		if(arrValue && arrValue.length > 0)
+		{
+			var arrTitles = [];
+		    var arrValues = [];
+			var length = arrData.length;
+			var count = 0;
+			for(count = 0;count < length;count++)
+			{
+				arrTitles.push(arrData[count][0]);
+				arrValues.push(arrData[count][1]);
+			}
+			var totalValue = 0;
+			length = arrValues.length;
+			for(count = 0;count < length;count++)
+			{
+				totalValue += arrValues[count];
+			}
+			var arrSectorAngle = [];
+			for(count = 0;count < length;count++)
+			{
+				arrSectorAngle.push(360 * (arrValues[count] / totalValue));
+			}
+		    var startAngle = -90;
+		    var endAngle = -90;
+		    var xFrom = 0,yFrom = 0,xTo = 0,yTo = 0;
+		    var color = null,pathString = null;
+		    var group = null;
+			length = arrSectorAngle.length;
+			for(count = 0;count < length;count++)
+			{
+				 startAngle = endAngle;
+		         endAngle = startAngle + arrSectorAngle[count];
+		         xFrom = parseInt(Math.round(200 + 195 * Math.cos(Math.PI * startAngle/180)));
+		         yFrom = parseInt(Math.round(200 + 195 * Math.sin(Math.PI * startAngle/180)));
+		         xTo = parseInt(Math.round(200 + 195 * Math.cos(Math.PI * endAngle/180)));
+		         yTo = parseInt(Math.round(200 + 195 * Math.sin(Math.PI * endAngle/180)));
+		         pathString = "M200,200  L" + xFrom + "," + yFrom + "  A195,195 0 " + ((endAngle - startAngle > 180) ? 1 : 0) + ",1 " + xTo + "," + yTo + " z";
+		         color = getSectionColor(count);
+		         group = createGroup(arrValues[count],pathString,color,arrTitles[count],count);
+		         createLegend(arrValues[count],color,arrTitles[count],count);
+		         svg.insertBefore(group,svg.firstChild);
+			}
+		}
+	};
+	var removeToolTip = function()
+	{
+		var arrElement = document.querySelectorAll(".charts-tip");
+		for(var count = arrElement.length - 1;count > -1;count--)
+		{
+			document.body.removeChild(arrElement[count]);
+		}
+	};
+	var mouseMoveHandler = function(event)
+	{
+		event = self.util.getEvent(event);
+		var target = self.util.getTarget(event);
+		mousePosition = {x:event.pageX,y:event.pageY};
+        var value = target.getAttribute("data-val");
+        var title = target.getAttribute("data-title");
+        var color = target.getAttribute("fill");
+        if(value)
+        {
+        	var lastChild = self.__element.querySelector(".pathCont:last-child .path:last-child");
+        	var targetClone = target.cloneNode(true);
+            var parentClone = target.parentNode.cloneNode(true);
+            //console.log(mousePosition.x + "," + mousePosition.y);
+            tooltip.setAttribute("style","left:" + mousePosition.x + "px;" + "top:" + mousePosition.y + "px;");
+            removeToolTip();
+            tooltip.innerHTML = title+ ": " + value;
+            document.body.appendChild(tooltip);
+        	if(color)
+            {
+        		target.setAttribute("stroke",color);
+            }
+        	if(lastChild.getAttribute("id") !== target.getAttribute("id"))
+        	{
+        		target.parentNode.parentNode.removeChild(target.parentNode);
+        		svg.appendChild(parentClone);
+        	}
+        }
+	};
+	var mouseLeaveHandler = function(event)
+	{
+		removeToolTip();
+	};
+	
+	if(colorSet)
+	{ 
+		colorSet = colorSet.split(","); 
+	}
+	var mousePosition = {x:0,y:0};
+	var arrValue = dataSet;
+	var svg = createSVG();
+	var legendContainer = this.util.createElement("ul",id + "LegendContainer","pie-legend");
+	var tooltip = this.util.createDiv(id + "Tooltip","charts-tip");
+	drawChart(arrValue);
+	this.__element.appendChild(svg);
+	this.__element.appendChild(legendContainer);
+	this.util.addEvent(this.__element,"mousemove",mouseMoveHandler);
+	this.util.addEvent(this.__element,"mouseleave",mouseLeaveHandler);
+};
+
+/*NSChart.prototype.__createBarChart = function()
+{
 	this.util.addStyleClass(this.__element.parentNode,"bar");
-	var data = "[4,2,3],[4,5,2],[8,3,5],[4,2,2],[4,2,6]";
+	var gen = new WaveGenerator(22, 150);
+	var data = gen.next();
+	//var data = [[4,2,3],[4,5,2],[8,3,5],[4,2,2],[4,2,6]];
 	var unit = "Kg";
 	var height = this.__element.getBoundingClientRect().height;
 	var grid = 0;
 	var barWidth = 20;
 	var max = 10;
+	var id = this.__getID();
 	var self = this;
 	if(parseInt(grid,10) === 0) 
 	{
@@ -75,10 +349,51 @@ NSChart.prototype.__createBarChart = function()
 	{
 		unit = "%";
 	}
+	var isBlock = function()
+	{
+		var childLength = data[0].length;
+		var isBlock = true;
+		if(!childLength)
+		{
+			isBlock = false;
+		}
+		return isBlock;
+	};
 	var maxData = function()
 	{
-		var arr = JSON.parse("[" + data + "]");
-		return Math.max.apply(Math, arr.map(function(i) { return i[0]; }));
+		var maxValue = -1;
+		var arrItem = [];
+		var item = null;
+		var length = data.length;
+		if(isBlock())
+		{
+			var childLength = data[0].length;
+			for(var count = 0;count < length;count++)
+			{
+				arrItem = data[count];
+				for(var innerCount = 0;innerCount < childLength;innerCount++)
+				{
+					item = arrItem[innerCount];
+					if(item > maxValue)
+					{
+						maxValue = item;
+					}
+				}
+			}
+		}
+		else
+		{
+			arrItem = data;
+			for(var count = 0;count < length;count++)
+			{
+				item = arrItem[count];
+				if(item > maxValue)
+				{
+					maxValue = item;
+				}
+			}
+		}
+		return maxValue;
 	};
 	var createBlockParent = function()
 	{
@@ -115,20 +430,34 @@ NSChart.prototype.__createBarChart = function()
 	{ 
 		max = maxData(); 
 	}
-	data = JSON.parse("[[" + data + "]]");
-	var length = data[0].length;
+	var length = data.length;
 	var blockParent = null;
 	var arrItem = [];
-	var item = {};
+	var item = null;
 	var child = null;
-	var childLength = data[0][0].length;
-	for(var count = 0;count < length;count++)
+	if(isBlock())
 	{
-		arrItem = data[0][count];
-		blockParent = createBlockParent();
-		for(var innerCount = 0;innerCount < childLength;innerCount++)
+		var childLength = data[0].length;
+		for(var count = 0;count < length;count++)
 		{
-			item = arrItem[innerCount];
+			arrItem = data[count];
+			blockParent = createBlockParent();
+			for(var innerCount = 0;innerCount < childLength;innerCount++)
+			{
+				item = arrItem[innerCount];
+				child = createChild(item);
+				blockParent.appendChild(child);
+			}
+			this.__element.appendChild(blockParent);
+		}
+	}
+	else
+	{
+		arrItem = data;
+		blockParent = createBlockParent();
+		for(var count = 0;count < length;count++)
+		{
+			item = arrItem[count];
 			child = createChild(item);
 			blockParent.appendChild(child);
 		}
@@ -146,22 +475,208 @@ NSChart.prototype.__createBarChart = function()
 			grid.appendChild(line);
 		}
 	}
-	this.__element.parentNode.appendChild(grid);
 	this.__element.parentNode.style.width = this.__element.getBoundingClientRect().width + "px";
+	this.__element.parentNode.appendChild(grid);
+};*/
+
+NSChart.prototype.__getID = function()
+{
+	if(!this.__id)
+	{
+		if(this.__element.hasAttribute("id"))
+		{
+			this.__id = this.__element.getAttribute("id");
+		}
+		else if(this.__element.hasAttribute("name"))
+		{
+			this.__id = this.__element.getAttribute("name");
+		}
+		else
+		{
+			this.__id = "comp" + this.util.getUniqueId();
+		}
+	}
+	return this.__id;
+};
+
+NSChart.prototype.__createSVG = function(id,className,width,height,viewBox,disableEvents)
+{
+	var svg = document.createElementNS(this.namespace, "svg");
+	svg.setAttribute("xmlns", this.namespace);
+	svg.setAttributeNS(this.xmlns, "xmlns:xlink", this.xlink);
+	svg.setAttribute("version", this.version);
+	if(id)
+	{
+		svg.setAttribute("id",id);
+	}
+	if(className)
+	{
+		 this.util.addStyleClass(svg,className);
+	}
+	if(this.util.isNumber(width))
+	{
+		svg.setAttribute("width", width);
+	}
+	if(this.util.isNumber(height))
+	{
+		svg.setAttribute("height", height);
+	}
+	if(viewBox)
+	{
+		svg.setAttribute("viewBox", viewBox);
+	}
+	if(this.util.isUndefined(disableEvents) || disableEvents === null)
+	{
+		disableEvents = false;
+	}
+	if(disableEvents)
+	{
+		svg.style.pointerEvents = "none";
+	}
+	return svg;
+};
+
+NSChart.prototype.__createGroup = function(id,className) 
+{
+	 var group = document.createElementNS(this.namespace, "g");
+	 if(id)
+	 {
+		 group.setAttribute("id", id);
+	 }
+	 if(className)
+	 {
+		 this.util.addStyleClass(group,className);
+	 }
+	 return group;
+};
+
+NSChart.prototype.__createPath = function(id,pathString,className,fill) 
+{
+	 var path = document.createElementNS (this.namespace, "path");
+	 if(id)
+	 {
+		 path.setAttribute("id", id);
+	 }
+	 path.setAttribute("d", pathString);
+	 if(className)
+	 {
+		 this.util.addStyleClass(path,className);
+	 }
+	 if(fill)
+	 {
+		 path.setAttribute("fill", fill);
+	 }
+	 return path;
+};
+
+NSChart.prototype.__maxArrayValue = function(array)
+{
+    var max = null
+    if (typeof array === "number") 
+    {
+        return array;
+    }
+    if(this.util.isUndefinedOrNull(array)) 
+    {
+        return 0;
+    }
+    var length = array.length;
+    for(var count = 0;count < length;count++) 
+    {
+        if (typeof array[count] === "number") 
+        {
+            var value = arguments[1] ? Math.abs(array[count]) : array[count];            
+            if (typeof max === 'number') 
+            {
+                max = Math.max(max, value);
+            } 
+            else 
+            {
+                max = value;
+            }
+        }
+    }
+    return max;
 };
 	
 	
 	function initialize()
 	{
-		var chart = new NSChart(document.querySelector(".bar-chart"));
+		var barChart = new NSChart(document.querySelector(".bar-chart"),{type:"bar"});
+		var pieChart = new NSChart(document.querySelector(".pie-thychart"),{type:"pie"});
 	}
-        /*$(function() {
-            $('.bar-chart').cssCharts({type:"bar"});
-            //$('.donut-chart').cssCharts({type:"donut"}).trigger('show-donut-chart');
-            $('.line-chart').cssCharts({type:"line"});
+	
+	var WaveGenerator = (function(){
 
-            $('.pie-thychart').cssCharts({type:"pie"});
-        });*/
+
+		// Constructor
+		var WaveGenerator = function(resolution, amplitude){
+			this.resolution = resolution || 100;
+			this.amplitude = amplitude || 1;
+			this.gen = genFn();
+			this.t = 0;
+		};
+
+
+		// Random wave generator function
+		var genFn = function(){
+			var mask = 0xff;
+			var size = mask + 1;
+			var values = new Uint8Array(size * 2);
+			for(var i = 0; i < size; i++){
+				values[i] = values[size + i] = 0 | (Math.random() * 0xff);
+			}
+			var lerp = function(t, a, b){
+				return a + t * (b - a);
+			};
+			var fade = function(t){
+				return t * t * t * (t * (t * 6 - 15) + 10);
+			};
+			var grad2d = function(hash, x, y){
+				var u = (hash & 2) === 0 ? x : -x;
+				var v = (hash & 1) === 0 ? y : -y;
+				return u + v;
+			};
+			return function(x, y){
+				var intX = (0 | x) & mask;
+				var intY = (0 | y) & mask;
+				var fracX = x - (0 | x);
+				var fracY = y - (0 | y);
+				var r1 = values[intX] + intY;
+				var r2 = values[intX + 1] + intY;
+				var t1 = fade(fracX);
+				var t2 = fade(fracY);
+
+				var a1 = grad2d(values[r1], fracX, fracY);
+				var b1 = grad2d(values[r2], fracX - 1, fracY);
+				var a2 = grad2d(values[r1 + 1], fracX, fracY - 1);
+				var b2 = grad2d(values[r2 + 1], fracX - 1, fracY - 1);
+				return lerp(t2, lerp(t1, a1, b1), lerp(t1, a2, b2));
+			};
+		};
+
+
+		/**
+		 * Returns the next wave in the sequence.
+		 * 
+		 * @method next
+		 * @return {Array<number>} 
+		 */
+		WaveGenerator.prototype.next = function(){
+			this.t += 0.1;
+			var data = [];
+			for(var i = 0; i < this.resolution; i++){
+				var v = this.gen(11 * i / this.resolution, this.t);
+				data.push((1 - v) * this.amplitude / 2);
+			}
+			return data;
+		};
+
+
+		// Return constructor
+		return WaveGenerator;
+
+	}());
       </script>
     </body>
 </html>
