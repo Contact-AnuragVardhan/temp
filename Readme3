@@ -1,209 +1,86 @@
-<html>
-<head>
-	<style>
-		.stack
-		{
-			display: block;
-		}
-		.stack .row 
-		{ 
-			clear:both;
-		}
-		.stack .row .col    
-		{
-			background-color: #FFFFFF;
-		    float:left;
-		    width: 25%;
-		}
-		.stack .row .editor
-		{
-			min-height: 200px;
-    		height: calc(43% - 0px);
-    		border:1px solid;
-		}
-		.stack .output
-		{ 
-			clear:both;
-			border:1px solid;
-			width:99%;
-			min-height: 200px;
-    		height: calc(50% - 0px);
-		}
-		.center
-		{
-			text-align: center;
-		}
-		.right
-		{
-			text-align: right;
-			padding-right: 10px;
-		}
-		.grid {
-		  width: 100%;
-		  overflow: hidden;
-		
-		  -webkit-box-sizing: border-box;
-		  -moz-box-sizing: border-box;
-		  box-sizing: border-box;
-		}
-		
-		.output {
-		  border-left: 1px solid #e3e3e3;
-		  overflow: hidden;
-		}
-		
-		.output iframe {
-		  border: none;
-		  width: 100%;
-		  height: 100%;
-		}
-	</style>
-</head>
-<body>
-<div class="stack">
-	 <div class="row">
-        <div class="col center">
-            Html
-        </div>
-        <div class="col center">
-            CSS
-        </div>
-         <div class="col center">
-            Javascript
-        </div>
-        <div class="col center">
-           Binding Data
-        </div>
-    </div>
-    <div class="row">
-        <textarea id="divHtml" class="col editor">
-        	
-			<h1>My First CSS Example</h1>
-			<p>This is a paragraph.</p>
-			<button onclick="myFunction()">Try it</button>
-        </textarea>
-        <textarea id="divCSS" class="col editor">
-        	html,body {
-    background-color: lightblue;
-    height:100%;
-}
-
-h1 {
-    color: white;
-    text-align: center;
-}
-
-p {
-    font-family: verdana;
-    font-size: 20px;
-}
-        </textarea>
-        <textarea id="divJavascript" class="col editor">
-        	function myFunction() {
-			    alert("Hello! I am an alert box!");
-			}
-        </textarea>
-        <textarea id="txtData" class="col editor">
-        	 { "name":"John", "age":31, "city":"New York" }
-    	</textarea>
-    </div>
-    <div class="row right">
-    	<button id="btnRun" onclick="generateOuput()">Run</button>
-    </div>
-    <div class="output grid">
-		<iframe id="ifOutput"></iframe>
-	</div>
-    
-</div>
-
-
-
-
-</body>
-
-<script>
-
-function generateOuput()
+NSUtil.prototype.hasAttribute = function (element,attributeName)
 {
-	var divHtml = document.getElementById("divHtml");
-	var divCSS = document.getElementById("divCSS");
-	var divJavascript = document.getElementById("divJavascript");
-	var txtData = document.getElementById("txtData");
-	var ifOutput = document.getElementById("ifOutput");
-	var doc = ifOutput.contentDocument || ifOutput.contentWindow.document;
-	if(txtData.value)
+	if(element && attributeName && element["hasAttribute"])
 	{
-		var data = "";
-		try
-		{
-			data = JSON.parse(txtData.value.trim());	
-		}
-		catch(error)
-		{
-			data = JSON.parse(JSON.stringify(txtData.value.trim()));
-		}
-		console.log(data);
+		return (element.hasAttribute(attributeName) || element.hasAttribute("data-" + attributeName)); 
 	}
-	if(divCSS.value)
-	{
-		writeCSS(divCSS.value,doc);
-	}
-	if(divHtml.value)
-	{
-		doc.body.innerHTML = divHtml.value;
-	}
-	if(divJavascript.value)
-	{
-		writeJS(divJavascript.value,doc);
-	}
-}
+	return false;
+};
 
-function writeCSS(content,doc) 
+NSUtil.prototype.getAttribute = function (element,attributeName)
 {
-	if(!doc)
+	if(element && attributeName && element["hasAttribute"])
 	{
-		doc = document;
+		return (element.hasAttribute(attributeName) ? element.getAttribute(attributeName) : element.getAttribute("data-" + attributeName)); 
 	}
-	var css = doc.getElementById("nsStyle");
-	if(!css)
-	{
-		css = document.createElement("style");
-		css.setAttribute("id","nsStyle");
-		css.setAttribute("type","text/css");
-		doc.getElementsByTagName("head")[0].appendChild(css);
-	}
-	css.innerHTML = content;
-	//IE
-	/*if(css.styleSheet)
-	{
-	  	css.styleSheet.cssText = rule;
-	}
-	else
-	{
-	  	css.appendChild(document.createTextNode(rule));
-	}*/
-	
-}
+	return null;
+};
 
-function writeJS(content,doc) 
+NSUtil.prototype.removeAttribute = function (element,attributeName)
 {
-	if(!doc)
+	if(element && attributeName && element["hasAttribute"])
 	{
-		doc = document;
+		return (element.hasAttribute(attributeName) ? element.removeAttribute(attributeName) : element.removeAttribute("data-" + attributeName)); 
 	}
-	var script = doc.getElementById("nsScript");
-	if(!script)
+	return null;
+};
+ || (navigator.userAgent && navigator.userAgent.match(/Trident/))))
+ if(url)
+	 {
+		var xmlhttp;
+		if (window.XMLHttpRequest)
+		{// code for IE7+, Firefox, Chrome, Opera, Safari
+			xmlhttp = new XMLHttpRequest();
+		}
+		else
+		{// code for IE6, IE5
+			xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+		}
+		xmlhttp.onreadystatechange=function()
+		{
+		  if(xmlhttp.readyState === 4)
+		  {
+			  if (xmlhttp.status === 200) 
+			  {  
+				  if(callback)
+				  {
+					  callback(xmlhttp.responseText);
+				  }
+		      } 
+			  else 
+			  {
+				  console.debug("Error loading Template from URL:: " + url);
+				  if(errorCallback)
+				  {
+					 errorCallback(xmlhttp.statusText);
+				  }
+		      }  
+		  }
+		}
+		xmlhttp.open("GET",url,true);
+		xmlhttp.send();
+		this.__getResponseData = function()
 	{
-		script = document.createElement("script");
-		script.setAttribute("id","nsScript");
-		script.setAttribute("type","text/javascript");
-		doc.body.appendChild(script);
-	}
-	script.innerHTML = content;
-}
-
-
-
-
-</script>
-</html>
+		var contentType = this.__request.getResponseHeader("content-type");
+		var data = null;
+		var isXMLData = false;
+		var dataType = this.__requestDone.dataType;
+		if(!dataType && contentType && contentType.indexOf("xml") > -1)
+		{
+			isXMLData = true;
+		}
+		if(isXMLData || (dataType && dataType.indexOf("xml") > -1))
+		{
+			data = this.__request.responseXML;
+		}
+		else
+		{
+			data = this.__request.responseText;
+		}
+		// If the specified type is "script", execute the returned text response as if it was JavaScript
+		if (dataType == "script") 
+		{
+			eval.call(window, data);
+		}
+		return data;
+	};
