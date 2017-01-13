@@ -1,1960 +1,221 @@
-"use strict";
+<!DOCTYPE html>
 
-var NSGridSort = function(nsGrid)
+<html>
+<head>
+	<link href="css/nmGrid.css" rel="stylesheet" type="text/css" />
+    <link href="css/nsMenu.css" rel="stylesheet" type="text/css" />
+    <link href="css/component.css" rel="stylesheet" type="text/css" />
+    <link href="css/nsPagination.css" rel="stylesheet" type="text/css" />
+    <link href="css/nsList.css" rel="stylesheet" type="text/css" />
+<style>
+
+.nonFirstGridBodyCell
 {
-	this.__nsGrid = nsGrid;
-	this.util = this.__nsGrid.util;
-	this.__arrFields = [];
+	padding-left:5px !important;
+}
+
+/*For Menus */
+.compMenu {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid #e7e7e7;
+    background-color: #f3f3f3;
+    position: fixed;
+    top: 0;
+    width: 100%;
+}
+
+.compMenu li {
+    float: left;
+}
+
+.compMenu li a {
+    display: block;
+    color: #666;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+}
+
+.compMenu li a:hover:not(.active) {
+    background-color: #ddd;
+}
+
+.compMenu li a.active {
+    color: white;
+    background-color: #4CAF50;
+}
+
+/*End of Menus */
+
+</style>
+</head>
+<body>
+
+<ul id="compMenu" class="compMenu">
+  <li><a class="active" href="#hierarchical">Hierarchical</a></li>
+  <li><a href="#grouping">Grouping</a></li>
+  <li><a href="#multilevelgrouping">Multi Level Grouping</a></li>
+  <li><a href="#flat">Flat</a></li>
+  <li><a href="#asyncloading">Async Loading</a></li>
+  <li><a href="#refreshonscrollend">Refresh On Scroll End</a></li>
+  <li><a href="#pagination">Pagination Demo</a></li>
+  <li><a href="#mobileview">Mobile View</a></li>
+  <li><a href="#multisortcolumn">Multi Column Sort</a></li>
+</ul>
+<div id="divDetails" style="padding:20px;margin-top:30px;">
 	
-	this.__CLASS_SORTING_ASC = "nsSortedAsc";
-	this.__CLASS_SORTING_DESC = "nsSortedDesc";
-	
-	this.determineSortFunction = function(item)
-	{
-		return this.__determineSortFunction(item);
-	};
-	
-	this.handle = function(header,columnDetail,isMultiColumnSort,customIsAscending)
-	{
-		this.__handleSorting(header,columnDetail,isMultiColumnSort,customIsAscending);
-	};
-	
-	this.reset = function()
-	{
-		this.__resetColumnHeaders(false);
-	};
-	
-	this.__handleSorting= function(header,columnDetail,isMultiColumnSort,customIsAscending)
-	{
-		if(header && columnDetail && columnDetail.sortable)
-	    {
-			var sortAscending = true;
-			var isCustomSort = !this.util.isUndefined(customIsAscending);
-			isMultiColumnSort = Boolean.parse(isMultiColumnSort);
-			if (this.util.hasStyleClass(header,this.__CLASS_SORTING_ASC) || this.util.hasStyleClass(header,this.__CLASS_SORTING_DESC))
-			{
-		        if(this.util.hasStyleClass(header,this.__CLASS_SORTING_ASC))
-		        {
-		             this.__removeAscendingIndicator(header);
-		             sortAscending = false;
-		        }
-		        else if(this.util.hasStyleClass(header,this.__CLASS_SORTING_DESC))
-		        {
-		        	this.__removeDescendingIndicators(header);
-			       	sortAscending = true;
-		        }
-			}
-		   	else
-		   	{
-		   		sortAscending = !columnDetail.sortDescending;
-		   	}
-			if(!isMultiColumnSort)
-			{
-				this.__arrFields = [];
-				this.__resetColumnHeaders(true);
-			}
-			var isColumnExisting = false;
-			for(var count = 0;count < this.__arrFields.length;count++)
-			{
-				if(this.__arrFields[count]["field"] === columnDetail["sortField"])
-				{
-					isColumnExisting = true;
-					this.__arrFields[count]["sortAscending"] = sortAscending;
-				}
-			}
-			if(!isColumnExisting)
-			{
-				this.__arrFields.push({field:columnDetail.sortField,sortFunction:columnDetail.sortFunction,sortAscending:sortAscending});
-			}
-		   	//customIsAscending is passed it overrides the setting in columnDetail
-		   	if(isCustomSort)
-		   	{
-		   		sortAscending = customIsAscending;
-		   	}
-		   	if(sortAscending)
-		    {
-		   		this.__addAscendingIndicator(header);
-		    }
-		   	else
-		   	{
-		   		this.__addDescendingIndicator(header);
-		   	}
-		   	if(this.__nsGrid.__enableHierarchical || this.__nsGrid.__enableGrouping)
-		   	{
-		   		  this.__sortHierarchicalStructure(this.__nsGrid.__arrWrapper,this.__arrFields); 
-		   		  this.__nsGrid.__objGrid.__setWrapperSource(this.__nsGrid.__arrWrapper,0,-1,0,false);
-		   		  this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrFlatHierarchicalSource.slice(0);
-		   	}
-		   	else
-		   	{
-		   		  this.__sortArrOfObjectsByParam(this.__nsGrid.__arrWrapper,this.__arrFields);
-		   		  this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrWrapper.slice(0);
-		   	}
-		   	this.__nsGrid.__renderBody(true);
-		   	columnDetail[this.__nsGrid.__fieldColSortedAsc] = sortAscending;
-	    }
-		else
-		{
-			this.util.warning("nsGrid","This column is not sortable.");
-		}
-	};
+</div>
 
-	this.__sortHierarchicalStructure= function(dataSource,arrFields)
-	{
-		if(dataSource && dataSource.length > 0)
-		{
-			for(var count = 0;count < dataSource.length;count++)
-			{
-				var item = dataSource[count];
-				if(this.__nsGrid.__isNodeLastParent(item))
-				{
-					this.__sortArrOfObjectsByParam(item[this.__nsGrid.__childField],arrFields);
-				}
-				else if(item[this.__nsGrid.__fieldHasChild])
-				{
-					this.__sortHierarchicalStructure(item[this.__nsGrid.__childField],arrFields);
-				}
-			}
-		}
-	};
-	
-	//This method is based on Stuart Langridge's "sorttable" code
-	this.__determineSortFunction= function(item)
-	{
-		  var value = item.toString();
-	      var sortFunction = "__sortCaseInsensitive";
-	      if(this.__isDate(item) || value.match(/^\d\d[\/-]\d\d[\/-]\d\d\d\d$/) || value.match(/^\d\d[\/-]\d\d[\/-]\d\d$/))
-	      {
-	          sortFunction = "__sortDate";
-	      }
-	      if (value.match(/^[£$]/))
-	      {
-	          sortFunction = "__sortCurrency";
-	      }
-	      if (value.match(/^[\d\.]+$/) || value.match(/^[+-]?\d*\.?\d+([eE]-?\d+)?$/) || !isNaN(value))
-	      {
-	          sortFunction = "__sortNumeric";
-	      }
-	      return sortFunction;
-	};
+<script src="lib/nmUtil.js"></script>
+<script src="lib/nsContainerBase.js"></script> 
+<script src="lib/nsPagination.js"></script>
+<script src="lib/nsSVG.js"></script>
+<script src="lib/nsMenu.js"></script>
+<script src="lib/nsFlatGrid.js"></script>
+<script src="lib/nsGroupingGrid.js"></script>
+<script src="lib/nsHierarchicalGrid.js"></script>
+<script src="lib/nsFilter.js"></script>
+<script src="lib/nsGridPluggins.js"></script>
+<script src="lib/nmGrid.js"></script>
+<script src="lib/nsList.js"></script>
+<script src="lib/nsExport.js"></script>
+<script src="lib/extra/nsRouter.js"></script>
 
-	this.__sortArrOfObjectsByParam= function(arrToSort,arrFields)
-	{
-	    arrToSort.sort(function (item1, item2)
-	    {
-	        var retValue = 0;
-	        var objField = null;
-	        for (var count = 0; count < arrFields.length; count++) 
-	        {
-	        	objField = arrFields[count];
-	        	if(objField["sortAscending"] == null || objField["sortAscending"] == undefined)
-	     	    {
-	        		objField["sortAscending"] = true;  // default to true
-	     	    }
-	        	if (typeof this[objField["sortFunction"]] === "function")
-		        {
-	        		retValue = this[objField["sortFunction"]](item1,item2,objField["field"],objField["sortAscending"]);
-		        }
-	        	if (retValue !== 0) 
-	        	{
-	        		break;
-	        	}
-	        }
-	        return retValue;
-	    }.bind(this));
-	};
-	
-	this.__sortCaseInsensitive= function(item1, item2 , sortField, sortAscending)
-	{
-		if(!item1[sortField] && !item2[sortField])
-		{
-			return 0;
-		}
-		var retValue = -1;
-		if(!item1[sortField])
-		{
-			retValue = -1;
-		}
-		else if(!item2[sortField])
-		{
-			retValue = 1;
-		}
-		else
-		{
-			var firstString = item1[sortField].toLowerCase();
-		    var secondString = item2[sortField].toLowerCase();
-		      
-		    if(firstString == secondString)
-		    {
-		    	return 0;
-		    }
-		    if (firstString < secondString)
-		    {
-		        retValue = -1;
-		    }
-		    else
-		    {
-		        retValue = 1;
-		    }
-		}
-		
-	    if(sortAscending)
-	    {
-	        return retValue; 
-	    }
-	    return (retValue * -1);
-	};
-	 
-	this.__sortDate= function(item1, item2 , sortField, sortAscending)
-	{
-	      // y2k notes: two digit years less than 50 are treated as 20XX, greater than 50 are treated as 19XX
-	      var firstDateString = item1[sortField];
-	      var secondDateString = item2[sortField];
-	      var firstDate, secondDate, year = -1;
-	      if(this.__isDate(firstDateString) && this.__isDate(secondDateString))
-	      {
-	    	  if(sortAscending)
-	    	  {
-	    		  if (firstDateString > secondDateString) 
-	    		  {
-	    			  return 1;
-	    		  }
-	    		  if (firstDateString < secondDateString)
-	    		  {
-	    			  return -1;
-	    		  }
-	    		  return 0;
-	    	  }
-	    	  else
-	    	  {
-	    		  if (firstDateString > secondDateString) 
-	    		  {
-	    			  return -1;
-	    		  }
-	    		  if (firstDateString < secondDateString)
-	    		  {
-	    			  return 1;
-	    		  }
-	    		  return 0;
-	    	  }
-	      }
-	     
-	      if (firstDateString.length == 10)
-	      {
-	           firstDate = firstDateString.substr(6,4) + firstDateString.substr(3,2) + firstDateString.substr(0,2);
-	      }
-	      else
-	      {
-	           year = firstDateString.substr(6,2);
-	           if (parseInt(year) < 50)
-	           {
-	                year = "20" + year;
-	           }
-	           else
-	           {
-	                year = "19" + year;
-	           }
-	           firstDate = year + firstDateString.substr(3,2) + firstDateString.substr(0,2);
-	      }
-	     
-	      if (secondDateString.length == 10)
-	      {
-	           secondDate = secondDateString.substr(6,4)+secondDateString.substr(3,2)+secondDateString.substr(0,2);
-	      }
-	      else
-	      {
-	           year = secondDateString.substr(6,2);
-	           if (parseInt(year) < 50)
-	           {
-	                year = "20" + year;
-	           }
-	           else
-	           {
-	                year = "19" + year;
-	           }
-	           secondDate = year + secondDateString.substr(3,2) + secondDateString.substr(0,2);
-	      }
-	     
-	      if (firstDate == secondDate)
-	      {
-	          return 0;
-	      }
-	      var retValue = -1;
-	      if (firstDate < secondDate)
-	      {
-	          retValue = -1;
-	      }
-	      else
-	      {
-	          retValue = 1;
-	      }
-	      if(sortAscending)
-	      {
-	          return retValue; 
-	      }
-	      return (retValue * -1);
-	};
-
-	this.__sortCurrency= function(item1, item2 , sortField, sortAscending)
-	{
-	      var firstCurrency = item1[sortField].replace(/[^0-9.]/g,"");
-	      var secondCurrency = item2[sortField].replace(/[^0-9.]/g,"");
-	      if(sortAscending)
-	      {
-	          return parseFloat(firstCurrency) - parseFloat(secondCurrency); 
-	      }
-	      return parseFloat(secondCurrency) - parseFloat(firstCurrency);
-	};
-
-	this.__sortNumeric= function(item1, item2 , sortField, sortAscending)
-	{
-	      var firstNumber = parseFloat(item1[sortField]);
-	      if (isNaN(firstNumber))
-	      {
-	          firstNumber = 0;
-	      }
-	      var secondNumber = parseFloat(item2[sortField]);
-	      if (isNaN(secondNumber))
-	      {
-	          secondNumber = 0;
-	      }
-	      if(sortAscending)
-	      {
-	          return (firstNumber - secondNumber);
-	      }
-	      return (secondNumber - firstNumber);
-	};
-	
-	this.__isDate = function(value) 
-	{
-		var dateFormat;
-		  if (Object.prototype.toString.call(value) === '[object Date]') 
-		  {
-			  return true;
-		  }
-		  if (typeof value.replace === 'function') 
-		  {
-		    value.replace(/^\s+|\s+$/gm, '');
-		  }
-		  dateFormat = /(^\d{1,4}[\.|\\/|-]\d{1,2}[\.|\\/|-]\d{1,4})(\s*(?:0?[1-9]:[0-5]|1(?=[012])\d:[0-5])\d\s*[ap]m)?$/;
-		  return dateFormat.test(value);
-	};
-	
-	/******************************Create Sort Components*******************************/
-	this.__addAscendingIndicator = function(target)
-	{
-	     if(target)
-	     {
-	    	 this.__setSortIcons(target,true,false);
-	         this.util.addStyleClass(target,this.__CLASS_SORTING_ASC);
-	     }
-	};
-
-	this.__removeAscendingIndicator= function(target)
-	{
-	     if(target)
-	     {
-	          this.util.removeStyleClass(target,this.__CLASS_SORTING_ASC);
-	          this.__setSortIcons(target,false,false);
-	     }
-	};
-
-	this.__addDescendingIndicator= function(target)
-	{
-	    if(target)
-	    {
-	    	this.__setSortIcons(target,false,true);
-	        this.util.addStyleClass(target,this.__CLASS_SORTING_DESC);
-	    }
-	};
-
-	this.__removeDescendingIndicators= function(target)
-	{
-	     if(target)
-	     {
-	    	 this.util.removeStyleClass(target,this.__CLASS_SORTING_DESC);
-	    	 this.__setSortIcons(target,false,false);
-	     }
-	};
-
-	this.__resetIndicators= function(target)
-	{
-	     if(target)
-	     {
-	          this.__removeAscendingIndicator(target);
-	          this.__removeDescendingIndicators(target);
-	          this.__setSortIcons(target,true,true);
-	     }
-	};
-
-	this.__resetColumnHeaders= function(isInternal)
-	{
-	     var tblHeaderBody = null;
-	     //safari doesnot support table.tHead
-	     if (this.__nsGrid.__tblCenterHeader.tBodies && this.__nsGrid.__tblCenterHeader.tBodies.length > 0)
-	     {
-	    	 tblHeaderBody = this.__nsGrid.__tblCenterHeader.tBodies[0];
-	     }
-	     if (!tblHeaderBody || !tblHeaderBody.rows || tblHeaderBody.rows.length < 1)
-	     {
-	          return;
-	     }
-	     var headers = tblHeaderBody.rows[0].cells;
-	     for (var colCount = 0; colCount < headers.length; colCount++)
-	     {
-	          this.__resetIndicators(headers[colCount]);
-	     }
-	     if(isInternal)
-	     {
-	    	 for (var colCount = 0; colCount < this.__nsGrid.__columns.length; colCount++)
-		     {
-		    	 this.__nsGrid.__columns[colCount][this.__nsGrid.__fieldColSortedAsc] = null;
-		     }
-	     }
-	};
-
-	this.__setSortIcons= function(target,isAscVisible,isDescVisible)
-	{
-		if(target)
-		{
-			if(isAscVisible != null)
-			{
-				 var divSortAsc = document.getElementById(target.getAttribute("id") + "SortAsc");
-				 if(divSortAsc)
-				 {
-					 divSortAsc.style.display = isAscVisible ? "" : "none";
-				 }
-			}
-			if(isDescVisible != null)
-			{
-				 var divSortDesc = document.getElementById(target.getAttribute("id") + "SortDesc");
-				 if(divSortDesc)
-				 {
-					 divSortDesc.style.display = isDescVisible ? "" : "none";
-				 }
-			}
-		}
-	};
-	/******************************End of Create Sort Components*******************************/
-};
-
-/******************************************************End of Sorting Logic*************************************************************/
-
-var NSGridColumnMove = function(nsGrid)
+<script>
+var nsRouter = null;
+var callbackInterval = null;
+var util = null;
+function loadHandler(event) 
 {
-	this.__MIN_DRAG_OFFSET = 100;
-	
-	this.__nsGrid = nsGrid;
-	this.util = nsGrid.util;
-	
-	this.__objColumnDrag = null;
-	this.__lastDragEvent = null;
-	this.__lastDragInfo = null;
-	this.__isColumnDragged = false;
-	this.__scrollLeft = false;
-    this.__scrollRight = false;
-	this.__dragColumnMoveRef = null;
-	this.__dragColumnEndRef = null;
-	this.__scrollInterval = null;
-	this.__animationSteps = null;
-	this.__moveAttempts = 0;
-	this.__scrollableContainer = null;
-	this.__maxZIndex = 0;
-	
-	this.handle = function(event,target)
-	{
-		this.__maxZIndex = this.util.getMaxZIndex(target);
-		this.__scrollableContainer = this.__getScrollableContainer();
-		this.__startColumnMove(event,target);
-	};
-	
-	this.__startColumnMove = function(event,target)
-	{
-		if(this.__nsGrid.__onGridLine)
-		{
-			return;
-		}
-		var objColumn = this.__nsGrid.__getColumnObject(target.getAttribute("currentColumnIndex"));
-		var columnIndex = this.__nsGrid.__getColumnIndexByObject(objColumn);
-		if(columnIndex > -1)
-		{
-			this.__lastDragEvent = event;
-			this.__isColumnDragged = true;
-			this.__objColumnDrag = {};
-			this.__objColumnDrag.source = target;
-			this.__objColumnDrag.objColumn = objColumn;
-			this.__objColumnDrag.columnIndex = columnIndex;
-			var position = this.util.getEventPosition(event,this.__nsGrid.__divCenterTableHeaderContainer);
-			this.__objColumnDrag.dragElement = this.__createCopyItem(target,position);
-			this.__objColumnDrag.dragElementAdded = false;
-			this.__objColumnDrag.position = position;
-			this.__dragColumnMoveRef = this.__dragColumnMoveHandler.bind(this);
-			this.__dragColumnEndRef = this.__dragColumnEndHandler.bind(this);
-			this.util.addEvent(document,"mousemove",this.__dragColumnMoveRef);
-			this.util.addEvent(document,"mouseup",this.__dragColumnEndRef);
-		}
-	};
+	var loadTemplateRef = loadTemplate.bind(this);
+	var arrRoute = [{route:"/hierarchical",templateUrl:"template/hierarchicalGrid.jsp",callback:"loadHierarchicalHandler",handler:loadTemplateRef},
+	                {route:"/grouping",templateUrl:"template/groupingGrid.jsp",callback:"loadGroupHandler",handler:loadTemplateRef},
+	                {route:"/multilevelgrouping",templateUrl:"template/multiLeveGroupingGrid.jsp",callback:"loadMultiLevelGroupHandler",handler:loadTemplateRef},
+					{route:"/flat",templateUrl:"template/flatGrid.jsp",callback:"loadFlatHandler",handler:loadTemplateRef},
+	                {route:"/asyncloading",templateUrl:"template/asyncLoading.jsp",callback:"loadAysncHandler",handler:loadTemplateRef},
+	                {route:"/refreshonscrollend",templateUrl:"template/refreshOnScrollEnd.jsp",callback:"loadRefreshOnScrollEnd",handler:loadTemplateRef},
+	                {route:"/pagination",templateUrl:"template/paginationDemo.jsp",callback:"loadPagination",handler:loadTemplateRef},
+	                {route:"/multisortcolumn",templateUrl:"template/multiSortColumn.jsp",callback:"loadMultiSortColumnView",handler:loadTemplateRef},
+	                {route:"/mobileview",templateUrl:"template/mobileView.jsp",callback:"loadMobileView",handler:loadTemplateRef}
+	                ];
+	var setting = {mode:"hash",defaultRoute:"/hierarchical"};//,templateTarget:"myDiv"
+	util = new NSUtil();
+	nsRouter = new NSRouter(arrRoute,setting);
+	//console.log(document.querySelector('[data-ns-container]') || document.querySelector('[ns-container]'));
+}
 
-	this.__dragColumnMoveHandler = function(event)
-	{
-		event = this.util.getEvent(event);
-		var direction = this.__getDragDirection(event);
-		this.__lastDragEvent = event;
-		
-		var position = this.util.getEventPosition(event);
-		var leftOffset = this.__objColumnDrag.position.left - position.left;
-	    var topOffset = this.__objColumnDrag.position.top - position.top;
-	    var dragRadius = (leftOffset * leftOffset) + (topOffset * topOffset);
-	    if(!this.__objColumnDrag.dragElementAdded && dragRadius > this.__MIN_DRAG_OFFSET)
-	    {
-	    	document.body.appendChild(this.__objColumnDrag.dragElement);
-	    	this.__objColumnDrag.dragElementAdded = true;
-	    }
-	    this.__positionDragElement(event);
-	    /*var posEvent = this.util.getEventPosition(event);
-	    this.__objColumnDrag.dragElement.style.left = posEvent.left + "px";
-        this.__objColumnDrag.dragElement.style.top = posEvent.top + "px";*/
-	    if(this.__objColumnDrag.lastDropTarget)
-	    {
-	    	this.util.removeStyleClass(this.__objColumnDrag.lastDropTarget,"nsDottedCell"); 
-	    	this.__objColumnDrag.lastDropTarget = null;
-	    }
-	    var target = this.util.getTarget(event);
-	    var element = this.util.findParentBySelector(target,"." + this.__nsGrid.__CLASS_TABLE_HEADER_DROPPABLE_CELL);
-	    if(element != this.__objColumnDrag.source)
-	    {
-	    	this.util.addStyleClass(element,"nsDottedCell");   
-	    	this.__objColumnDrag.lastDropTarget = element;
-	    }
-	    var objDrag = this.__getDragInfoObject(event,direction);
-	    this.__handleScrollMovement(objDrag);
-	    event.preventDefault();
-	};
-
-	this.__dragColumnEndHandler = function(event)
-	{
-		this.__lastDragEvent = null;
-		this.__isColumnDragged = false;
-		this.__stopScrollAnimation();
-		if(this.__objColumnDrag.lastDropTarget)
-	    {
-	    	this.util.removeStyleClass(this.__objColumnDrag.lastDropTarget,"nsDottedCell"); 
-	    	this.__objColumnDrag.lastDropTarget = null;
-	    }
-		this.util.removeEvent(document,"mousemove",this.__dragColumnMoveRef);
-		this.__dragColumnMoveRef = null;
-		this.util.removeEvent(document,"mouseup",this.__dragColumnEndRef);
-		this.__dragColumnEndRef = null;
-		if(this.__objColumnDrag.dragElementAdded)
-		{
-			var position = this.util.getEventPosition(event);
-			position.top = position.top + this.__nsGrid.__divCenterTableHeaderContainer.scrollTop;
-			position.left = position.left + this.__nsGrid.__divCenterTableHeaderContainer.scrollLeft;
-			var tablePosition = this.util.getOffSet(this.__nsGrid.__tblCenterHeader);
-			if (position.top < tablePosition.top || position.top > (tablePosition.top + this.__nsGrid.__tblCenterHeader.offsetHeight)) 
-			{
-				this.util.addStyleClass(this.__objColumnDrag.dragElement,"nsGhostHeader");
-				var transitionEndCallback = function()
-				{
-					this.__removeDragElement();
-				};
-				var transition = new this.util.transition(this.__objColumnDrag.dragElement,transitionEndCallback.bind(this));
-				this.__objColumnDrag.dragElement.style.left = (this.__objColumnDrag.position.left - this.__nsGrid.__divCenterTableHeaderContainer.scrollLeft) + "px"; //position.left + "px";
-				this.__objColumnDrag.dragElement.style.top = (this.__objColumnDrag.position.top ) + "px";
-			    return;
-			}
-			var targetIndex = this.__getHeaderColumnByPosition(position);
-		    if (targetIndex > -1 && targetIndex != this.__objColumnDrag.columnIndex) 
-		    {
-		    	this.__nsGrid.moveColumn(this.__objColumnDrag.columnIndex,targetIndex);
-		    }
-		    this.__removeDragElement();
-		}
-	};
-	
-	this.__getScrollableContainer = function() 
-	{
-		var container = this.__nsGrid.__divCenterTableBodyContainer;
-		/*var docBody = document.documentElement || document.body;
-		if(!this.util.hasScrollbar(this.__nsGrid.__divCenterTableBodyContainer,"x") 
-				&& this.util.hasScrollbar(docBody,"x"))
-		{
-			container = docBody;
-		}*/
-		return container;
-	};
-	
-	this.__createCopyItem = function(target,position)
-	{
-		var divDrag = null;
-		if(target && position)
-		{
-			divDrag = this.util.createDiv(this.__nsGrid.getID() + "Drag",this.__nsGrid.__CLASS_TABLE_HEADER_CELL);
-			divDrag.innerHTML = target.innerHTML;
-			//divDrag.style.backgroundColor = "red";
-			divDrag.style.position = "absolute";
-			divDrag.style.left = (position.left) + "px";
-			divDrag.style.top = (position.top) + "px";
-			//giving 50px padding to the width if width is very less
-			divDrag.style.width = (target.offsetWidth + 50) + "px";
-			divDrag.style.height = target.offsetHeight + "px";
-			//divDrag.style.opacity = 0.7;
-			if(this.__maxZIndex > 0)
-			{
-				divDrag.style.zIndex = this.__maxZIndex;
-			}
-		}
-		return divDrag;
-	};
-	
-	this.__positionDragElement = function(event)
-	{
-		var posEvent = this.util.getEventPosition(event);
-		var rectDragElement = this.__objColumnDrag.dragElement.getBoundingClientRect();
-        var objDimension = this.util.getDocumentDimension();
-        var browserWidth = objDimension.width - 2;
-        var browserHeight = objDimension.height - 2;
-        // put DragElement vertically in middle of cursor
-        var yPos = posEvent.top - (rectDragElement.height / 2);
-        var xPos = posEvent.left;
-        if (browserWidth > 0) 
-        {
-            if ((xPos + this.__objColumnDrag.dragElement.clientWidth) > browserWidth) 
-            {
-            	xPos = browserWidth - this.__objColumnDrag.dragElement.clientWidth;
-            }
-        }
-        if (browserHeight > 0) 
-        {
-            if ((yPos + this.__objColumnDrag.dragElement.clientHeight) > browserHeight) 
-            {
-            	yPos = browserHeight - this.__objColumnDrag.dragElement.clientHeight;
-            }
-        }
-        xPos = Math.max(0,xPos);
-        yPos = Math.max(0,yPos);
-        this.__objColumnDrag.dragElement.style.left = xPos + "px";
-        this.__objColumnDrag.dragElement.style.top = yPos + "px";
-	};
-	
-	this.__removeDragElement = function()
-	{
-		if(this.__objColumnDrag && this.__objColumnDrag.dragElement)
-		{
-			document.body.removeChild(this.__objColumnDrag.dragElement);
-			this.__objColumnDrag.dragElement = null;
-		}
-	};
-
-	this.__getHeaderColumnByPosition = function(position) 
-	{
-		if(this.__nsGrid.__tblCenterHeader.tBodies && this.__nsGrid.__tblCenterHeader.tBodies.length > 0 && this.__nsGrid.__tblCenterHeader.tBodies[0].rows && this.__nsGrid.__tblCenterHeader.tBodies[0].rows.length > 0)
-		{
-			var headerBodyRowCells = this.__nsGrid.__tblCenterHeader.tBodies[0].rows[0].cells;
-		    for (var count = 0; count < headerBodyRowCells.length; count++) 
-		    {
-		    	var cell = headerBodyRowCells[count];
-		    	if(this.util.hasStyleClass(cell,this.__nsGrid.__CLASS_TABLE_HEADER_DROPPABLE_CELL))
-		    	{
-		    		var rowPosition = this.util.getOffSet(cell);
-			    	if (rowPosition.left <= position.left && position.left <= rowPosition.left + headerBodyRowCells[count].offsetWidth) 
-			    	{
-			    		return count;
-			    	}
-		    	}
-		    }
-		    return -1;
-		}
-	};
-	
-	/*Horizontal Scroll Logic for Edge cases */
-	this.__getDragDirection = function(event) 
-	{
-	    var direction = null;
-	    if (this.__lastDragEvent.clientX > event.clientX) 
-	    {
-	        direction = "left";
-	    }
-	    else if (this.__lastDragEvent.clientX < event.clientX) 
-	    {
-	        direction = "right";
-	    }
-	    return direction;
-	};
-
-	this.__getDragInfoObject = function(event,direction) 
-	{
-	    // localise x and y to the target component
-	    var rect = this.__nsGrid.__divCenterTableHeaderContainer.getBoundingClientRect();
-	    var x = event.clientX - rect.left;
-	    var y = event.clientY - rect.top;
-	    var objDragInfo = 
-	    {
-	        event: event,
-	        x: x,
-	        y: y,
-	        direction: direction
-	    };
-	    return objDragInfo;
-	};
-
-	this.__handleScrollMovement = function(objDragInfo) 
-	{
-		this.__lastDragInfo = objDragInfo;
-	    if (!objDragInfo || !objDragInfo.direction) 
-	    {
-	        return;
-	    }
-	    var adjustedScrollPos = this.__getAdjustedScrollPosition(objDragInfo);
-	    this.__setScrollVariables(adjustedScrollPos);
-	};
-
-	this.__getAdjustedScrollPosition = function(objDragInfo) 
-	{
-		return objDragInfo.x + this.__scrollableContainer.scrollLeft;
-	};
-
-	this.__setScrollVariables = function (adjustedScrollPos) 
-	{
-	    if (this.__scrollableContainer) 
-	    {
-	        //below logic checks if the scroll should move right or left
-	        var xPosLeft = this.__scrollableContainer.scrollLeft;
-	        var xPosRight = xPosLeft + this.__scrollableContainer.clientWidth;
-	        this.__scrollLeft = adjustedScrollPos < (xPosLeft + 50);
-	        this.__scrollRight = adjustedScrollPos > (xPosRight - 100);
-	        if(this.__scrollLeft || this.__scrollRight) 
-	        {
-	            this.__startScrollAnimation();
-	        }
-	        else 
-	        {
-	            this.__stopScrollAnimation();
-	        }
-	    }
-	};
-
-	this.__startScrollAnimation = function() 
-	{
-	    if (!this.__scrollInterval) 
-	    {
-	        this.__animationSteps = 0;
-	        this.__moveAttempts = 0;
-	        this.__scrollInterval = setInterval(this.__scrollBody.bind(this), 100);
-	        if (this.__scrollLeft) 
-	        {
-	        	this.__setIcon("left",true);
-	            //this.dragAndDropService.setGhostIcon(dragAndDropService_1.DragAndDropService.ICON_LEFT, true);
-	        }
-	        else 
-	        {
-	        	this.__setIcon("right",true);
-	            //this.dragAndDropService.setGhostIcon(dragAndDropService_1.DragAndDropService.ICON_RIGHT, true);
-	        }
-	    }
-	};
-	
-	this.__stopScrollAnimation = function () 
-	{
-	    if (this.__scrollInterval) 
-	    {
-	        clearInterval(this.__scrollInterval);
-	        this.__scrollInterval = null;
-	        this.__setIcon("move",false);
-	        //this.dragAndDropService.setGhostIcon(dragAndDropService_1.DragAndDropService.ICON_MOVE);
-	    }
-	};
-
-	this.__scrollBody = function() 
-	{
-	    var pixelsToMove;
-	    this.__animationSteps++;
-	    pixelsToMove = 10 + (this.__animationSteps * 5);
-	    if (pixelsToMove > 100) 
-	    {
-	        pixelsToMove = 100;
-	    }
-	    var pixelsMoved = 0;
-	    if (this.__scrollLeft) 
-	    {
-	        pixelsMoved = this.__scrollBodyHorizontally(-pixelsToMove);
-	    }
-	    else if (this.__scrollRight) 
-	    {
-	        pixelsMoved = this.__scrollBodyHorizontally(pixelsToMove);
-	    }
-	    if (pixelsMoved !== 0) 
-	    {
-	        this.__handleScrollMovement(this.__lastDragInfo);
-	        this.__moveAttempts = 0;
-	    }
-	    else 
-	    {
-	        this.__moveAttempts++;
-	        if (this.__moveAttempts > 7) 
-	        {
-	            if (this.__scrollLeft) 
-	            {
-	                //this.columnController.setColumnPinned(this.__lastDragInfo.dragItem, column_1.Column.PINNED_LEFT);
-	            }
-	            else 
-	            {
-	                //this.columnController.setColumnPinned(this.__lastDragInfo.dragItem, column_1.Column.PINNED_RIGHT);
-	            }
-	            this.__pushScroll();
-	        }
-	    }
-	};
-
-	this.__scrollBodyHorizontally = function(pixels) 
-	{
-	    var oldScrollPosition = this.__scrollableContainer.scrollLeft;
-	    this.__scrollableContainer.scrollLeft = oldScrollPosition + pixels;
-	    var newScrollPosition = this.__scrollableContainer.scrollLeft;
-	    return newScrollPosition - oldScrollPosition;
-	};
-
-	this.__pushScroll = function() 
-	{
-	    if (this.__isColumnDragged) 
-	    {
-	        this.__handleScrollMovement(this.__lastDragEvent);
-	    }
-	};
-	
-	this.__setIcon = function(iconName,animate)
-	{
-		if(iconName)
-		{
-			var divDrag = this.__objColumnDrag.dragElement;
-			var divMove = divDrag.querySelector(".nsHeaderMove");
-			var objSVG = new NSSvg();
-			var iconID = null;
-			switch(iconName) 
-			{
-		         case "left":
-		        	 iconID = new NSSvgShapes().__MOVE_ICON_ID;
-		             break;
-		         case "right":
-		        	 iconID = new NSSvgShapes().__RIGHT_ICON_ID;
-		             break;
-		         case "move":
-		        	 iconID = new NSSvgShapes().__LEFT_ICON_ID;
-		             break;
-		         default:
-		        	 iconID = null;
-		             break;
-			}
-			if(divMove)
-			{
-				this.util.removeAllChildren(divMove);
-				if(iconID)
-				{
-					var containerID = divMove.getAttribute("id");
-					if(!containerID)
-					{
-						containerID = this.util.getUniqueId();
-					}
-					var svg = objSVG.addSVG(divMove,containerID + iconID + "svg","nsMoveIcon",null,null,null,null,null,null,false);
-					objSVG.addUse(svg,containerID + "use",null,"#" + iconID);
-				}
-				animate ? this.util.addStyleClass(divMove,"nsAnimateLeftToRight") : this.util.removeStyleClass(divMove,"nsAnimateLeftToRight");
-			}
-		}
-	};
-	/*End of Horizontal Scroll Logic for Edge cases */
-};
-
-var NSGridFilter = function(nsGrid)
+function loadTemplate(item)
 {
-	this.SEARCH_INTERVAL = 500;
-	this.__nsGrid = nsGrid;
-	this.__enableApply = true;
-	this.__isOrFilter = false;
-	
-	this.util = nsGrid.util;
-	this.isFiltered = false;
-	this.__interval = null;
-	this.__objControl = {};
-	this.__filteredColumn = [];
-	this.__objAdvancedFilterSetting = {};
-	this.__nsPopUp = null;
-	this.__maxZIndex = -1;
-	this.__documentClickRef = null;
-	this.__documentKeyUpRef = null;
-	
-	this.processColumnObject = function(objColumn)
+	var self = this;
+	var divDetails = document.querySelector("#divDetails");
+	if(item["templateUrl"])
 	{
-		if(this.__nsGrid.__enableFilter)
+		selectMenu(null,item["route"]);
+		var templateLoadHandler = function(templateText)
 		{
-			if(objColumn.hasOwnProperty("enableFilter"))
+			divDetails.innerHTML = "";
+			if(templateText)
 			{
-				objColumn.enableFilter = Boolean.parse(objColumn["enableFilter"]);
+				divDetails.appendChild(getElementFromText(templateText));
+				fireCallback(item);
+				//callbackInterval = setInterval(function(){fireCallback(item)} ,1000);
 			}
 			else
 			{
-				objColumn.enableFilter = true;
+				console.error(item["templateUrl"] + " was not loaded.Please check the URL")
 			}
-			if(objColumn.enableFilter)
-			{
-				var objFilter = objColumn["filter"];
-				if(objFilter)
-				{
-					if(objFilter.hasOwnProperty("filterRenderer"))
-					{
-						var filterRenderer = objFilter["filterRenderer"];
-						if (typeof filterRenderer === "string" || filterRenderer instanceof String)
-						{
-							if(this.util.isFunction(filterRenderer))
-							{
-								objFilter.filterRenderer = window[filterRenderer];
-							}
-						}
-					}
-					else if(objFilter.hasOwnProperty("filterTemplate") && objFilter["filterTemplate"])
-					{
-						objFilter.filterTemplate = this.util.getTemplate(objFilter["filterTemplate"]);
-					}
-					else
-					{
-						objFilter.filterRenderer = this.__defaultRenderer.bind(this);
-					}
-					if(this.__nsGrid.__enableAdvancedFilter)
-					{
-						if(objFilter.hasOwnProperty("enableAdvancedFilter"))
-						{
-							objFilter.enableAdvancedFilter = Boolean.parse(objFilter["enableAdvancedFilter"]);
-						}
-						else
-						{
-							objFilter.enableAdvancedFilter = true;
-						}
-						objFilter["advancedFilterType"] = objFilter["advancedFilterType"] ? objFilter["advancedFilterType"] : this.__nsGrid.ADVANCED_FILTER_TEXT;
-						if(objFilter.hasOwnProperty("advancedFilterHandler"))
-						{
-							var advancedFilterHandler = objFilter["advancedFilterHandler"];
-							if (typeof advancedFilterHandler === "string" || advancedFilterHandler instanceof String)
-							{
-								if(this.util.isFunction(advancedFilterHandler))
-								{
-									objFilter.advancedFilterHandler = window[advancedFilterHandler];
-								}
-							}
-						}
-					}
-					else
-					{
-						objFilter.enableAdvancedFilter = false;
-					}
-				}
-				else
-				{
-					objColumn["filter"] = {filterRenderer:this.__defaultRenderer.bind(this),enableAdvancedFilter:this.__nsGrid.__enableAdvancedFilter,advancedFilterType:this.__nsGrid.ADVANCED_FILTER_TEXT};
-				}
-			}
-		}
-	};
-	
-	this.addFilterRenderer = function(rendererRow,rendererCell,colItem,colIndex,colID)
-	{
-		if(this.__nsGrid.__enableFilter && colItem && colItem["enableFilter"])
+		};
+		var templateErrorHandler = function(errorText)
 		{
-			var objFilter = colItem["filter"];
-			if(objFilter)
-			{
-				var divHeaderRendererContainer = this.util.createDiv(colID + "rendererContainer"); 
-				rendererCell.appendChild(divHeaderRendererContainer);
-				var templateRenderer = objFilter["filterTemplate"];
-				var itemRenderer = objFilter["filterRenderer"];
-				if(itemRenderer)
-				{
-					var objRenderer = itemRenderer(colItem,colIndex,rendererCell,rendererRow);
-					if(objRenderer)
-					{
-						if(this.util.isString(objRenderer))
-						{
-							var compSpan = document.createElement("span");
-							compSpan.innerHTML = objRenderer;
-							divHeaderRendererContainer.appendChild(compSpan);
-						}
-						else
-						{
-							divHeaderRendererContainer.appendChild(objRenderer);
-						}
-					}
-				}
-				else if(templateRenderer)
-				{
-					divHeaderRendererContainer.appendChild(templateRenderer.cloneNode(true));
-				}
-			}
-		}
-	};
-	
-	this.resetFilters = function()
-	{
-		if(this.__nsGrid.__enableFilter && this.__objControl)
-		{
-			 for(var field in this.__objControl)
-			 {
-				 var control = this.__objControl[field];
-				 if(control)
-				 {
-					 control.value = "";
-				 }
-			 }
-			 this.__resetFiltering();
-		}
-	};
-	
-	this.remove = function()
-	{
-		if(this.__documentClickRef)
-		{
-			this.util.removeEvent(document,"click", this.__documentClickRef, false);
-			this.__documentClickRef = null;
-		}
-		if(this.__documentKeyUpRef)
-		{
-			this.util.removeEvent(document,"keyup", this.__documentKeyUpRef, false);
-			this.__documentKeyUpRef = null;
-		}
-	};
-	
-	this.clearFilters = function() 
-	{
-		 for(var field in this.__objControl)
-		 {
-			 var control = this.__objControl[field];
-			 if(control && control.value)
-			 {
-				 control.value = "";
-			 }
-		 }
-	};
-	
-	this.resetVariables = function() 
-	{
-		this.__filteredColumn = [];
-		this.__objAdvancedFilterSetting = [];
-	};
-	
-	this.__initialize = function()
-	{
-		if(!this.__documentClickRef)
-		{
-			this.__documentClickRef = this.__documentClickHandler.bind(this);
-			this.util.addEvent(document,"click", this.__documentClickRef);
-		}
-		if(!this.__documentKeyUpRef)
-		{
-			this.__documentKeyUpRef = this.__documentKeyUpHandler.bind(this);
-			this.util.addEvent(document,"keyup", this.__documentKeyUpRef);
-		}
-		this.__maxZIndex = this.util.getMaxZIndex(); 
-	};
-	
-	this.__defaultRenderer = function(colItem,colIndex,cell,row)
-	{
-		if(colItem)
-		{
-			var objFilter = colItem["filter"];
-			var dataField = colItem["dataField"];
-			var headerText = colItem["headerText"];
-			var rendererID =this.__getRendererID(dataField);
-			var divRenderer = this.util.createDiv(rendererID,"nsFilterContainer");
-			var txtFilter = this.util.createElement("input","txt" + rendererID,"nsFilter");
-			//this.util.addStyleClass(txtFilter,"nsSearchInlineTextBox");
-			txtFilter.setAttribute("type","search");
-			txtFilter.setAttribute("field",dataField);
-			//txtFilter.setAttribute("placeholder","Search " + headerText);
-			this.util.addEvent(txtFilter,"input",this.__txtInputChangeHandler.bind(this));
-			//this.util.addEvent(txtFilter,"search",this.__txtInputChangeHandler.bind(this));
-			//var divSearch = this.util.getSearchTextBox(txtFilter);
-			//txtFilter.style.width = (cell.offsetWidth / 2) + "px";
-			divRenderer.appendChild(txtFilter);
-			this.__objControl[dataField] = txtFilter;
-			if(objFilter && objFilter["enableAdvancedFilter"])
-			{
-				var divFilterIconContainer = this.util.createDiv(rendererID + "FilterIconContainer","nsFilterIconContainer");
-				divFilterIconContainer.setAttribute("field",dataField);
-				this.util.addEvent(divFilterIconContainer,"click",this.__filterIconClickHandler.bind(this));
-				var objSVG = new NSSvg();
-				var filterID = new NSSvgShapes().__FILTER_ICON_ID;
-				var svg = objSVG.addSVG(divFilterIconContainer,rendererID + "filtersvg","nsFilterIconSVG",null,null,null,null,null,null,true);
-				objSVG.addUse(svg,rendererID + "use",null,"#" + filterID);
-				divRenderer.appendChild(divFilterIconContainer);
-			}
-			return divRenderer;
-		}
-		return null;
-	};
-	
-	this.__txtInputChangeHandler = function(event)
-	{
-		var target = this.util.getTarget(event);
-		var dataField = target.getAttribute("field");
-		if(dataField)
-		{
-			this.__objAdvancedFilterSetting[dataField] = null;
-		}
-		clearTimeout(this.__interval);
-		var base = this;
-		this.__interval = setTimeout(function(){
-				base.__filterGrid.bind(base)();
-			}, this.SEARCH_INTERVAL);
-	};
-	
-	this.__filterIconClickHandler = function(event)
-	{
-		var target = this.util.getTarget(event);
-		target = this.util.getWebComponentElement(target);
-		if(target && !this.util.hasStyleClass(target,"nsFilterIconContainer"))
-		{
-			target = this.util.findParentBySelector(target,".nsFilterIconContainer");
-		}
-		var dataField = target.getAttribute("field");
-		var objColumn = this.__nsGrid.__getColumnObjectByDataField(dataField);
-		var objFilter = objColumn["filter"];
-		if(this.__nsPopUp)
-		{
-			this.__removePopUp();
-		}
-		var control = this.__objControl[dataField];
-		if(control)
-		{
-			control.value = "";
-		}
-		var colID = this.__getRendererID(dataField);
-		var popUpSetting = {id:colID + "detailFilterContainer",type:"div",width:275,position:this.util.POS_BOTTOMLEFT,closeOnOutsideClick:true};
-		if(objColumn[this.__nsGrid.__fieldColIndex] === 0 || (this.__nsGrid.__enableGrouping && objColumn[this.__nsGrid.__fieldColIndex] === 1))
-		{
-			popUpSetting.position = this.util.POS_BOTTOMRIGHT; 
-		}
-		this.__nsPopUp = new this.util.nsPopUp(popUpSetting);
-		this.__nsPopUp.create();
-		var popUp = this.__nsPopUp.getPopUp();
-		if(this.__maxZIndex > 0)
-		{
-			popUp.style.zIndex = this.__maxZIndex;
-		}
-		this.util.addEvent(popUp,"click",this.__detailFilterClickHandler.bind(this));
-		var advancedFilterType = objFilter["advancedFilterType"];
-		if(objFilter.advancedFilterHandler)
-		{
-			objFilter.advancedFilterHandler(dataField,this.__nsPopUp,this.__objAdvancedFilterSetting,this.__getRendererID(dataField),this.__enableApply,
-					this.__createApplySection.bind(this),this.__advanceFilterGrid.bind(this),this.__removePopUp.bind(this));
-		}
-		else if(advancedFilterType === this.__nsGrid.ADVANCED_FILTER_TEXT)
-		{
-			this.__getTextDetailFilter(dataField);
-		}
-		else if(advancedFilterType === this.__nsGrid.ADVANCED_FILTER_NUMBER)
-		{
-			this.__getNumberDetailFilter(dataField);
-		}
-		else if(advancedFilterType === this.__nsGrid.ADVANCED_FILTER_LIST)
-		{
-			this.__getListDetailFilter(dataField);
-		}
-		this.__nsPopUp.show();
-		this.__nsPopUp.placePopUp(event);
-		//event.stopImmediatePropagation();
-		event.stopPropagation();
-	};
-	
-	this.__filterGrid = function()
-	{
-		 var conditionFilter = null;
-		 if(this.__isOrFilter)
-		 {
-			 var filter = [];
-			 var setting = {};
-			 for(var field in this.__objControl)
-			 {
-				 var control = this.__objControl[field];
-				 if(control && control.value)
-				 {
-					 var item = {};
-					 item[field] = control.value;
-					 setting[field] = {caseSensitive:false,multiline:false,matchType:new NSFilter().CONTAINS};
-					 filter.push(item);
-				 }
-			 }
-			 conditionFilter = filter;
-		 }
-		 else
-		 {
-			 var filter = {};
-			 var setting = {};
-			 for(var field in this.__objControl)
-			 {
-				 var control = this.__objControl[field];
-				 if(control && control.value)
-				 {
-					 filter[field] = control.value;
-					 setting[field] = {caseSensitive:false,multiline:false,matchType:new NSFilter().CONTAINS};
-				 }
-			 }
-			 conditionFilter = Object.keys(filter);
-		 }
-		 if(filter && conditionFilter && conditionFilter.length > 0)
-		 {
-			 this.__handleFiltering(filter,setting);
-		 }
-		 else
-		 {
-			 this.__resetFiltering();
-		 }
-	};
-	
-	this.__advanceFilterGrid = function()
-	{
-		 var fieldSetting = null;
-		 var field = null;
-		 var conditionFilter = null;
-		 if(this.__isOrFilter)
-		 {
-			 var filter = [];
-			 var setting = {};
-			 var item = null;
-			 for(field in this.__objAdvancedFilterSetting)
-			 {
-				 fieldSetting = this.__objAdvancedFilterSetting[field];
-				 if(fieldSetting)
-				 {
-					 if(fieldSetting["arrText"] && fieldSetting["arrTextField"])
-					 {
-						 var arrTextField = fieldSetting["arrTextField"];
-						 var arrText = fieldSetting["arrText"];
-						 var length = arrText.length;
-						 filter[field] = [];
-						 for(var count = 0;count < length;count++)
-						 {
-							 item = {};
-							 item[field] = arrText[count][arrTextField];
-							 filter.push(item);
-						 }
-					 }
-					 else
-					 {
-						 item = {};
-						 item[field] = fieldSetting.text;
-						 filter.push(item);
-					 }
-					 setting[field] = {caseSensitive:fieldSetting.caseSensitive,multiline:false,matchType:fieldSetting.matchType};
-				 }
-			 }
-			 conditionFilter = filter;
-		 }
-		 else
-		 {
-			 var filter = {};
-			 var setting = {};
-			 for(field in this.__objAdvancedFilterSetting)
-			 {
-				 fieldSetting = this.__objAdvancedFilterSetting[field];
-				 if(fieldSetting)
-				 {
-					 if(fieldSetting["arrText"] && fieldSetting["arrTextField"])
-					 {
-						 var arrTextField = fieldSetting["arrTextField"];
-						 var arrText = fieldSetting["arrText"];
-						 var length = arrText.length;
-						 filter[field] = [];
-						 for(var count = 0;count < length;count++)
-						 {
-							 filter[field].push(arrText[count][arrTextField]);
-						 }
-					 }
-					 else
-					 {
-						 filter[field] = fieldSetting.text;
-					 }
-					 setting[field] = {caseSensitive:fieldSetting.caseSensitive,multiline:false,matchType:fieldSetting.matchType};
-				 }
-			 }
-			 conditionFilter = Object.keys(filter);
-		 }
-		 if(filter && conditionFilter && conditionFilter.length > 0)
-		 {
-			 this.__handleFiltering(filter,setting);
-		 }
-		 else
-		 {
-			 this.__resetFiltering();
-		 }
-	};
-	
-	this.__handleFiltering = function(filter,setting,recordLimit)
-	{
-		if(this.__nsGrid.__enableFilter)
-		{
-			this.__filteredColumn = [];
-			if(filter)
-		    {
-				 var isHierarchical = false;
-				 var source = this.__nsGrid.__arrWrapper;
-				 if(this.__nsGrid.__enableHierarchical || this.__nsGrid.__enableGrouping)
-				 {
-					 isHierarchical = true;
-				 }
-			   	 var nsFilter = new NSFilter(source,filter,setting,recordLimit,isHierarchical,this.__nsGrid.__childField,this.__nsGrid.__filterFunction,this.__nsGrid.__hierarchyFilterChildrenFunction);
-			   	 this.__nsGrid.__arrInternalSource = nsFilter.execute();
-			   	 this.__nsGrid.__arrFilteredGroupedSource =  this.__nsGrid.__arrInternalSource.slice(0);
-			   	 if(filter instanceof Array) 
-		  	     {
-			   		 for (var count = 0; count < filter.length; count++) 
-			         {
-			 	   		var item = filter[count];
-			 	   		var key = Object.keys(item)[0];
-			 	   		var colItem = this.__nsGrid.__getColumnObjectByDataField(key);
-			 	   		this.__filteredColumn.push({field:key,text:item[key],item:colItem});
-			         }
-		  	     }
-		  		 else if(typeof(filter) === "object") 
-		  	     {
-		  	        for(var key in filter) 
-		  	        {
-		  	        	var colItem = this.__nsGrid.__getColumnObjectByDataField(key);
-		  	        	this.__filteredColumn.push({field:key,text:filter[key],item:colItem});
-		  	        }
-		  	     }
-			   	 if(isHierarchical)
-			   	 {
-			   		this.__nsGrid.__objGrid.__setWrapperSource(this.__nsGrid.__arrInternalSource,0,-1,0,false);
-			   		this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrFlatHierarchicalSource.slice(0); 
-			   	 }
-			   	 this.__nsGrid.__updateTotalRecords();
-			   	 this.__nsGrid.__renderBody(false);
-			   	 this.isFiltered = true;
-		    }
-		}
-	};
+			divDetails.innerHTML = "";
+			console.error(item["templateUrl"] + " was not loaded.Please check the URL")
+		};
+		util.getTemplateFromURL(item["templateUrl"],templateLoadHandler,templateErrorHandler);
+	}
+}
 
-	this.__resetFiltering = function()
+function fireCallback(item)
+{
+	//evalScript(document.querySelector("#divDetails"),item);
+	if(window[item["callback"]])
 	{
-		if(this.__nsGrid.__enableFilter)
-		{
-			if(this.__nsGrid.__dataSource)
-			{
-				this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrWrapper.slice(0);
-				this.__nsGrid.__arrFilteredGroupedSource =  this.__nsGrid.__arrInternalSource.slice(0);
-				this.__filteredColumn = [];
-				if(this.__nsGrid.__enableHierarchical || this.__nsGrid.__enableGrouping)
-				{
-					this.__nsGrid.__objGrid.__setWrapperSource(this.__nsGrid.__arrInternalSource,0,-1,0,false);
-					this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrFlatHierarchicalSource.slice(0); 
-				}
-				this.__nsGrid.__updateTotalRecords();
-				this.__nsGrid.__renderBody(false);
-				this.isFiltered = false;
-				//this.unHighlightText();
-			}
-		}
-	};
+		clearInterval(callbackInterval);
+		window[item["callback"]]();
+	}
+}
 
-	this.__highlightDiv = function(divText,colIndex)
+function deselectAllMenu()
+{
+	var arrActive = document.querySelectorAll('.active');
+	for(var count = 0;count < arrActive.length;count++)
 	{
-		var length = this.__filteredColumn.length;
-		for (var count = 0; count < length; count++) 
-	    {
-			var item = this.__filteredColumn[count].item;
-			if(item && item[this.__nsGrid.__fieldColIndex] === colIndex)
-			{
-				var text = this.__filteredColumn[count].text;
-				this.util.highlightText(divText,text,"nsTextHighlight");
-			}
-	    }
-	};
-	
-	this.__documentClickHandler = function(event) 
-	{
-		event = this.util.getEvent(event);
-		this.__removePopUp();
-		this.util.dispatchEvent(this.__nsGrid.__baseComponent,this.__nsGrid.ADVANCED_FILTER_CLOSING);
-		/*var target = this.util.getTarget(event);
-		if(!(target && target.getAttribute("id") && target.getAttribute("id").endsWith("FilterIconContainer")))
-		{
-			this.__removePopUp();
-			this.util.preventDefault(event);
-		}*/
-	};
+		arrActive[count].setAttribute("class","");
+	}
+}
 
+function selectMenu(anchor,path)
+{
+	deselectAllMenu();
+	if(!anchor)
+	{
+		var compMenu = document.querySelector("#compMenu");
+		var arrAnchor = compMenu.querySelectorAll("a");
+		for(var count = 0;count < arrAnchor.length;count++)
+		{
+			if(arrAnchor[count].getAttribute("href").substring(1) === path.substring(1))
+			{
+				anchor = arrAnchor[count];
+			}
+		}
+	}
+	anchor.setAttribute("class","active");
+}
 
-	this.__documentKeyUpHandler = function(event) 
+function getElementFromText(htmlText)
+{
+	if(htmlText)
 	{
-		event = this.util.getEvent(event);
-		if(event.keyCode === this.util.KEYCODE.ESC) 
+		var div = document.createElement("div");
+		div.innerHTML = htmlText;
+		var scripts = div.getElementsByTagName("script");
+		for (var i = 0; i < scripts.length; ++i) 
 		{
-			this.__removePopUp();
-			this.util.dispatchEvent(this.__nsGrid.__baseComponent,this.__nsGrid.ADVANCED_FILTER_CLOSING);
+		   var script = scripts[i];
+		   eval(script.innerHTML);
 		}
-	};
-	
-	this.__detailFilterClickHandler = function(event)
-	{
-		event = this.util.getEvent(event);
-		event.stopImmediatePropagation();
-	};
-	
-	this.__removePopUp = function()
-	{
-		if(this.__nsPopUp)
+		if(div["childNodes"] && div["childNodes"].length > 1)
 		{
-			this.__nsPopUp.remove();
-			this.__nsPopUp = null;
+			return div;
 		}
-	};
-	
-	this.__getTextDetailFilter = function(dataField)
-	{
-		var self = this;
-		var txtInputChangeHandler = function()
-		{
-			clearTimeout(self.__interval);
-			self.__interval = setTimeout(function(){
-					handleTextFilter();
-				}, self.SEARCH_INTERVAL);
-		};
-		var handleTextFilter = function()
-		{
-			var item = null;
-			var text = null;
-			if(txtFilter.value && txtFilter.value !== "")
-			{
-				text = txtFilter.value;
-				item = {text:text,caseSensitive:chkSensitive.checked,matchType:arrOptions[cmbFilter.selectedIndex].value,sensitiveChecked:chkSensitive.checked,
-						optionIndex:cmbFilter.selectedIndex,textInputText:txtFilter.value};
-			}
-			self.__objAdvancedFilterSetting[dataField] = item;
-			self.__advanceFilterGrid.bind(self)();
-			if(self.__enableApply)
-			{
-				self.__removePopUp();
-			}
-		};
-		var resetTextFilter = function()
-		{
-			self.__objAdvancedFilterSetting[dataField] = null;
-			self.__advanceFilterGrid.bind(self)();
-			self.__removePopUp();
-		};
-		var createSelect = function(arrSource,strID,prevField)
-		{
-			var divSelect = self.util.createElement("span",colID + strID + "detailFilterSelectContainer");
-			var cmbFilter = self.util.createElement("select",colID + strID + "detailFilterSelect","nsFilterSelect");
-			cmbFilter.style.height = "25px";
-			var option = null;
-			var item = null;
-			var label = null;
-			for(var count = 0;count < arrSource.length;count++)
-			{
-				item = arrSource[count];
-				option = document.createElement("option");
-				label = document.createTextNode(item["label"]);
-				option.appendChild(label);
-				option.setAttribute("value", item["id"]);
-				cmbFilter.appendChild(option);
-			}
-			if(objPrev && objPrev[prevField])
-			{
-				cmbFilter.selectedIndex = objPrev[prevField];
-			}
-			divSelect.style.display = "inline-block";
-			divSelect.style.width = "40%";
-			divSelect.appendChild(cmbFilter);
-			divUpperContainer.appendChild(divSelect);
-			return cmbFilter;
-		};
-		var createCheckbox = function(text,strID,prevField)
-		{
-			var divCheckbox = self.util.createElement("span",colID + strID + "detailFilterCheckboxContainer");
-			var label = self.util.createElement("label",colID + strID + "detailFilterLabel",null);
-			var checkbox = self.util.createElement("input",colID + strID + "detailFilterCheckbox",null);
-			checkbox.setAttribute("type","checkbox");
-			label.appendChild(checkbox);
-			if(text)
-			{
-				label.appendChild(document.createTextNode(text));
-			}
-			if(objPrev && objPrev[prevField])
-			{
-				checkbox.setAttribute("checked",true);
-			}
-			label.style.fontWeight = "400";
-			label.style.cursor = "pointer";
-			checkbox.style.marginRight = "5px";
-			divCheckbox.style.paddingTop = "5px";
-			divCheckbox.style.display = "inline-block";
-			divCheckbox.appendChild(label);
-			divLowerContainer.appendChild(divCheckbox);
-			return checkbox;
-		};
-		var nsFilter = new NSFilter();
-		var arrOptions = [{id:1,label:"Contains",value:nsFilter.CONTAINS},
-		                  {id:2,label:"Exact",value:nsFilter.EXACT},
-		                  {id:3,label:"Starts With",value:nsFilter.STARTS_WITH},
-		                  {id:4,label:"Ends With",value:nsFilter.ENDS_WITH}];
-		var objPrev = this.__objAdvancedFilterSetting[dataField]
-		var colID = this.__getRendererID(dataField);
-		var divDetailFilterContainer = this.__nsPopUp.getPopUp();
-		//divDetailFilterContainer.style.width = "275px";
-		divDetailFilterContainer.style.padding = "10px";
-		var divUpperContainer = this.util.createDiv(colID + "detailFilterUpperContainer");
-		divUpperContainer.style.paddingBottom = "8px";
-		var divLowerContainer = this.util.createDiv(colID + "detailFilterLowerContainer");
-		var cmbFilter = createSelect(arrOptions,"options","optionIndex");
-		var divTextInput = this.util.createElement("span",colID + "detailFilterTextInputContainer");
-		divTextInput.style.float = "right";
-		divTextInput.style.width = "60%";
-		var txtFilter = this.util.createElement("input",colID + "detailFilterTextInput","nsFilterTextInput");
-		txtFilter.setAttribute("placeholder", "Enter Value here");
-		txtFilter.style.width = "100%";
-		if(objPrev && objPrev["textInputText"])
-		{
-			txtFilter.value = objPrev["textInputText"];
-		}
-		//var divSearch = this.util.getSearchTextBox(txtFilter);
-		//this.util.addStyleClass(divSearch,"nsFilterSearchTextBox");
-		divTextInput.appendChild(txtFilter);
-		divUpperContainer.appendChild(divTextInput);
-		var chkSensitive = createCheckbox("Case Sensitive","sensitive","sensitiveChecked");
-		if(this.__enableApply)
-		{
-			this.__createApplySection.bind(this)(colID,divLowerContainer,handleTextFilter,resetTextFilter);
-		}
-		else
-		{
-			this.util.addEvent(chkSensitive,"click",handleTextFilter);
-			this.util.addEvent(cmbFilter,"change",handleTextFilter);
-			this.util.addEvent(txtFilter,"keyup",txtInputChangeHandler);
-		}
-		divDetailFilterContainer.appendChild(divUpperContainer);
-		divDetailFilterContainer.appendChild(divLowerContainer);
-	};
-	
-	this.__getNumberDetailFilter = function(dataField)
-	{
-		var self = this;
-		var txtInputChangeHandler = function()
-		{
-			clearTimeout(self.__interval);
-			self.__interval = setTimeout(function(){
-					handleNumberFilter();
-				}, self.SEARCH_INTERVAL);
-		};
-		var handleNumberFilter = function()
-		{
-			var item = null;
-			var text = null;
-			if(txtFilter.value && txtFilter.value !== "")
-			{
-				text = arrOptions[cmbFilter.selectedIndex].sign + txtFilter.value;
-				item = {text:text,caseSensitive:false,matchType:new NSFilter().CONTAINS,index:cmbFilter.selectedIndex,textInputText:txtFilter.value};
-			}
-			self.__objAdvancedFilterSetting[dataField] = item;
-			self.__advanceFilterGrid.bind(self)();
-			if(self.__enableApply)
-			{
-				self.__removePopUp();
-			}
-		};
-		var resetNumberFilter = function()
-		{
-			self.__objAdvancedFilterSetting[dataField] = null;
-			self.__advanceFilterGrid.bind(self)();
-			self.__removePopUp();
-		};
-		
-		var arrOptions = [{id:1,label:"<=",toolTip:"Less than Equals To",sign:"<="},
-		                  {id:2,label:">=",toolTip:"Greater than Equals To",sign:">="},
-		                  {id:3,label:"<",toolTip:"Less than",sign:"<"},
-		                  {id:4,label:">",toolTip:"Greater than",sign:">"},
-		                  {id:5,label:"=",toolTip:"Equals",sign:""}];
-		var objPrev = this.__objAdvancedFilterSetting[dataField]
-		var colID = this.__getRendererID(dataField);
-		var divDetailFilterContainer = this.__nsPopUp.getPopUp();
-		//divDetailFilterContainer.style.width = "225px";
-		divDetailFilterContainer.style.padding = "10px";
-		var divUpperContainer = this.util.createDiv(colID + "detailFilterUpperContainer");
-		divUpperContainer.style.paddingBottom = "8px";
-		var divLowerContainer = this.util.createDiv(colID + "detailFilterLowerContainer");
-		var divSelect = this.util.createElement("span",colID + "detailFilterSelectContainer");
-		var cmbFilter = this.util.createElement("select",colID + "detailFilterSelect","nsFilterSelect");
-		cmbFilter.style.height = "25px";
-		divSelect.style.display = "inline-block";
-		divSelect.style.width = "20%";
-		var option = null;
-		var item = null;
-		var label = null;
-		for(var count = 0;count < arrOptions.length;count++)
-		{
-			item = arrOptions[count];
-			option = document.createElement("option");
-			label = document.createTextNode(item["label"]);
-			option.appendChild(label);
-			//option.setAttribute("text", item["label"]);
-			option.setAttribute("value", item["id"]);
-			cmbFilter.appendChild(option);
-		}
-		if(objPrev && objPrev["index"])
-		{
-			cmbFilter.selectedIndex = objPrev["index"];
-		}
-		divSelect.appendChild(cmbFilter);
-		divUpperContainer.appendChild(divSelect);
-		var divTextInput = this.util.createElement("span",colID + "detailFilterTextInputContainer");
-		var txtFilter = this.util.createElement("input",colID + "detailFilterTextInput","nsFilterTextInput");
-		txtFilter.setAttribute("placeholder", "Enter Value here");
-		if(objPrev && objPrev["textInputText"])
-		{
-			txtFilter.value = objPrev["textInputText"];
-		}
-		divTextInput.style.float = "right";
-		divTextInput.style.width = "80%";
-		txtFilter.style.width = "100%";
-		divTextInput.appendChild(txtFilter);
-		divUpperContainer.appendChild(divTextInput);
-		if(this.__enableApply)
-		{
-			this.__createApplySection.bind(this)(colID,divLowerContainer,handleNumberFilter,resetNumberFilter);
-		}
-		else
-		{
-			this.util.addEvent(cmbFilter,"change",handleNumberFilter);
-			this.util.addEvent(txtFilter,"keyup",txtInputChangeHandler);
-		}
-		divDetailFilterContainer.appendChild(divUpperContainer);
-		divDetailFilterContainer.appendChild(divLowerContainer);
-	};
-	
-	this.__getListDetailFilter = function(dataField)
-	{
-		var self = this;
-		var itemRenderer = function(item,labelField,fieldIndex,isDisabled,listItem)
-		{
-			if(item)
-			{
-				var divRenderer = self.util.createElement("span",colID + "filterListContainer" + item["id"] ,"nsFilterListRenderer");
-				var label = self.util.createElement("label");
-				var checkBox = self.util.createElement("input",null,"nsFilterListRendererCheckBox");
-				checkBox.setAttribute("type","checkbox");
-				checkBox.checked = Boolean.parse(item["selected"]);
-				this.util.addEvent(checkBox,"click",checkBoxClickHandler);
-				label.style.fontWeight = "400";
-				label.style.cursor = "pointer";
-				checkBox.style.marginRight = "5px";
-				label.appendChild(checkBox);
-				label.appendChild(document.createTextNode(item[labelField]));
-				divRenderer.appendChild(label);
-				return divRenderer;
-			}
-			return null;
-		};
-		var txtInputChangeHandler = function()
-		{
-			clearTimeout(self.__interval);
-			self.__interval = setTimeout(function(){
-					handleListFilter(true);
-				}, self.SEARCH_INTERVAL);
-		};
-		var handleListFilter = function(isReset)
-		{
-			var item = null;
-			var text = null;
-			var text = txtFilter.value;
-			if(text === "")
-			{
-				objNSList.resetFilter();
-			}
-			else
-			{
-				var setting = {caseSensitive:false,multiline:false,matchType:new NSFilter().CONTAINS};
-				objNSList.filter(text,setting,true);
-			}
-			if(isReset)
-			{
-				arrSelected = objNSList.__arrInternalSource;
-			}
-		};
-		var checkBoxClickHandler = function(event)
-		{
-			var target = self.util.getTarget(event);
-			var checked = target.checked;
-			target = self.util.findParent(target,"li");
-			var source = objNSList.__arrInternalSource;
-			var index = objNSList.__getIndexFromTarget(target);
-			if(index > -1)
-			{
-				tempItem = objNSList.__getItemByIndex(index);
-				if(tempItem)
-				{
-					var selectedIndex = source.findIndex(findIndexfromSelectedArray);
-					if(checked && selectedIndex > -1)
-					{
-						arrSelected.push(tempItem);
-					}
-					else if(!checked && selectedIndex > -1)
-					{
-						arrSelected.splice(selectedIndex,1);
-					}
-					tempItem["selected"] = checked;
-				}
-				setSelectAllCheckBox();
-			}
-		};
-		
-		var chkSelectAllClickHandler = function(event)
-		{
-			if(arrSource)
-			{
-				var length = arrSource.length;
-				var checked = chkSelectAll.checked;
-				var source = objNSList.__arrInternalSource;
-				var item = null;
-				for(var count = 0;count < length;count++)
-				{
-					item = arrSource[count];
-					item["selected"] = checked;
-				}
-				if(source)
-				{
-					for(var count = 0;count < source.length;count++)
-					{
-						item = source[count];
-						item["selected"] = checked;
-					}
-				}
-				if(checked)
-				{
-					arrSelected = self.util.cloneObject(arrSource);
-				}
-				else
-				{
-					arrSelected = [];
-				}
-				objNSList.__renderBody(false);
-			}
-		};
-		
-		var setSelectAllCheckBox = function()
-		{
-			var isAllSelected = isSelectedAll();
-			var isNoneSelected = isUnselectedAll();
-			if(isAllSelected)
-			{
-				chkSelectAll.indeterminate = false;
-				chkSelectAll.checked = true;
-			}
-			else if(isNoneSelected)
-			{
-				chkSelectAll.indeterminate = false;
-				chkSelectAll.checked = false;
-			}
-			else
-			{
-				chkSelectAll.indeterminate = true;
-			}
-		};
-		
-		var findIndexfromSelectedArray = function(element,index,array)
-		{
-			return (element["id"] === tempItem["id"]);
-		};
-		
-		var isSelectedAll = function()
-		{
-			if(arrSource && arrSelected)
-			{
-				return (arrSource.length === arrSelected.length);
-			}
-			return false;
-		};
-		
-		var isUnselectedAll = function()
-		{
-			if(arrSelected)
-			{
-				return (arrSelected.length === 0);
-			}
-			return true;
-		};
-		
-		var handleMainFilter = function()
-		{
-			var arrTemp = [];
-			if(arrSelected && arrSelected.length > 0)
-			{
-				for(var count = 0;count < arrSelected.length;count++)
-				{
-					if(arrSelected[count]["selected"])
-					{
-						arrTemp.push(arrSelected[count]);
-					}
-				}
-			}
-			var item = {arrText:arrTemp,arrTextField:"label",caseSensitive:true,matchType:new NSFilter().EXACT,arrSelected:arrSelected,textInputText:txtFilter.value};
-			self.__objAdvancedFilterSetting[dataField] = item;
-			self.__advanceFilterGrid.bind(self)();
-			if(self.__enableApply)
-			{
-				self.__removePopUp();
-			}
-		};
-		var resetMainFilter = function()
-		{
-			self.__objAdvancedFilterSetting[dataField] = null;
-			self.__advanceFilterGrid.bind(self)();
-			self.__removePopUp();
-		};
-		
-		var tempItem = null;
-		var objPrev = this.__objAdvancedFilterSetting[dataField];
-		if(!objPrev)
-		{
-			objPrev = {};
-		}
-		var arrSelected = objPrev["arrSelected"];
-		var arrSource = this.__getUniqueValues(this.__nsGrid.__objGrid.__getFlatSource(),dataField,arrSelected);
-		if(!arrSelected)
-		{
-			arrSelected = this.util.cloneObject(arrSource);
-		}
-		var colID = this.__getRendererID(dataField);
-		var divDetailFilterContainer = this.__nsPopUp.getPopUp();
-		//divDetailFilterContainer.style.width = "240px";
-		divDetailFilterContainer.style.padding = "10px";
-		var divUpperContainer = this.util.createDiv(colID + "detailFilterUpperContainer");
-		divUpperContainer.style.paddingBottom = "8px";
-		var divLowerContainer = this.util.createDiv(colID + "detailFilterLowerContainer");
-		var divTextInput = this.util.createDiv(colID + "detailFilterTextInputContainer","nsFilterLineContainer");
-		divTextInput.setAttribute("style","height:29px;");
-		var txtFilter = this.util.createElement("input",colID + "detailFilterTextInput","nsFilterTextInput");
-		txtFilter.setAttribute("placeholder", "Enter Value here");
-		txtFilter.style.width = "100%";
-		if(objPrev["textInputText"])
-		{
-			txtFilter.value = objPrev["textInputText"];
-		}
-		this.util.addEvent(txtFilter,"keyup",txtInputChangeHandler);
-		divTextInput.appendChild(txtFilter);
-		divUpperContainer.appendChild(divTextInput);
-		divDetailFilterContainer.appendChild(divUpperContainer);
-		divDetailFilterContainer.appendChild(divLowerContainer);
-		var divList = this.util.createDiv(colID + "detailFilterListContainer");
-		var lstFilter = this.util.createElement("div",colID + "detailFilterList","nsFilterList");
-		lstFilter.style.height = "300px";
-		divList.appendChild(lstFilter);
-		divUpperContainer.appendChild(divList);
-		var setting = {labelField:"label",enableVirtualScroll:false,enableDragDrop:false,enableDragByHandle:false,enableMultipleSelection:true,enableKeyboardNavigation:false,
-					   customScrollerRequired:false,enableMouseHover:true,enableMouseHoverAnimation:false,itemRenderer:itemRenderer.bind(this)};
-		setting["dataSource"] = arrSource;
-		var objNSList = new NSList(lstFilter,setting);
-		
-		var divSelectAll = this.util.createElement("span",colID + "detailFilterSelectAllContainer","nsFilterLineContainer");
-		var label = self.util.createElement("label");
-		var chkSelectAll = self.util.createElement("input",null,"nsFilterListRendererCheckBox");
-		chkSelectAll.setAttribute("type","checkbox");
-		this.util.addEvent(chkSelectAll,"click",chkSelectAllClickHandler);
-		label.appendChild(chkSelectAll);
-		label.appendChild(document.createTextNode("Select All"));
-		label.style.fontWeight = "400";
-		label.style.cursor = "pointer";
-		chkSelectAll.style.marginRight = "5px";
-		divSelectAll.style.paddingTop = "5px";
-		divSelectAll.style.display = "inline-block";
-		divSelectAll.appendChild(label);
-		divLowerContainer.appendChild(divSelectAll);
-		if(this.__enableApply)
-		{
-			this.__createApplySection.bind(this)(colID,divLowerContainer,handleMainFilter,resetMainFilter);
-		}
-		handleListFilter(false);
-		setSelectAllCheckBox();
-	};
-	
-	this.__createApplySection = function(colID,parent,applyClickHandler,resetClickHandler)
-	{
-		var divApplyButton = this.util.createDiv(colID + "detailFilterApplyButtonContainer","nsFilterButtonDiv");
-		var btnFilter = this.util.createElement("button",colID + "detailFilterApply","nsFilterButton");
-		this.util.addStyleClass(btnFilter,"nsButton");
-		this.util.addStyleClass(btnFilter,"nsButtonGreen");
-		this.util.addStyleClass(btnFilter,"nsButtonShadow");
-		this.util.addStyleClass(btnFilter,"nsButtonFont12");
-		btnFilter.innerHTML = "Filter";
-		divApplyButton.appendChild(btnFilter);
-		var btnCancel = this.util.createElement("button",colID + "detailFilterReset","nsFilterButton");
-		this.util.addStyleClass(btnCancel,"nsButton");
-		this.util.addStyleClass(btnCancel,"nsButtonGrey");
-		this.util.addStyleClass(btnCancel,"nsButtonShadow");
-		this.util.addStyleClass(btnCancel,"nsButtonFont12");
-		btnCancel.innerHTML = "Cancel";
-		divApplyButton.appendChild(btnCancel);
-		divApplyButton.style.float = "right";
-		parent.appendChild(divApplyButton);
-		this.util.addEvent(btnFilter,"click",applyClickHandler);
-		this.util.addEvent(btnCancel,"click",resetClickHandler);
-	};
-	
-	this.__getRendererID = function(dataField)
-	{
-		return (this.__nsGrid.getID() + "col" + dataField + "renderer");
-	};
-	
-	this.__getUniqueValues = function(arrSource,dataField,arrSelected)
-	{
-		var findItem = function(element, index, array) 
-		{
-			return (item["value"] === element["value"]);
-		};
-		var arrReturn = null;
-		var item = {};
-		if(arrSource && arrSource.length > 0 && dataField)
-		{
-			var objMap = {};
-			var value = "";
-			var length = arrSource.length;
-			var count = 0;
-			var arrTemp = [];
-			var itemPrev = {};
-			arrReturn = [];
-		    for(count = 0; count < length;count++)
-		    {
-		    	value = arrSource[count][dataField];
-		    	if(value)
-		    	{
-		    		objMap[value] = value;
-		    	}
-		    }
-		    arrTemp = Object.keys(objMap);
-		    length = arrTemp.length;
-		    if(length > 0)
-		    {
-		    	for(count = 0; count < length;count++)
-			    {
-			    	value = arrTemp[count];
-			    	item = {id:count,label:value,value:value,selected:true};
-			    	//if arrSelected is present and then item is not found then it is unselected
-			    	//if arrSelected is not present then all Items are selected
-			    	if(arrSelected)
-			    	{
-			    		itemPrev = arrSelected.find(findItem);
-			    		if(itemPrev)
-			    		{
-			    			item["selected"] = itemPrev["selected"];
-			    		}
-			    		else
-			    		{
-			    			item["selected"] = false;
-			    		}
-			    	}
-			    	arrReturn.push(item);
-			    }
-		    }
-		}
-		return arrReturn;
-	};
-	
-	this.__initialize();
+		return div.firstChild;
+	}
+	return null;
 };
+
+function evalScript(div,item)
+{
+	var scripts = div.getElementsByTagName("script");
+	for (var i = 0; i < scripts.length; ++i) 
+	{
+	   var script = scripts[i];
+	   eval(script.innerHTML);
+	}
+	if(window[item["callback"]])
+	{
+		clearInterval(callbackInterval);
+		window[item["callback"]]();
+	}
+}
+
+window.addEventListener('load', loadHandler);
+</script>
+
+<script id="script1">
+</script>
+
+</body>
+</html>
+
