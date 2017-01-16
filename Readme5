@@ -1,501 +1,498 @@
-<html>
-<head>
-	<style>
-		.stack
+<div>
+	<!-- hierarchical,group,normal -->
+	<!-- scroll,pages -->
+	<!-- auto,manual -->
+	<!-- stack,columnToggle -->
+	<div id="dgDemo">
+	</div> 
+	<br/>
+	<br/>
+	<button type="button" onclick="changeGridView();">Toggle Grid View</button>
+	<script>
+	var column = [
+		      		{headerText:"Id",dataField:"id",width:"200px",sortable:true,sortDescending:true,draggable:false,resizable:true,minWidth:50,priority:1,showMenu:true,
+		      		 filter:{advancedFilterType:"number"}},
+		      		{headerText:"Country",dataField:"country",width:"200px",sortable:true,sortDescending:true,draggable:false,resizable:true,priority:2,showMenu:true,
+		      					filter:{enableAdvancedFilter:true}},
+		      		{headerText:"Price",dataField:"price",toolTipField:"price",width:"200px",sortable:true,sortDescending:true,priority:5
+			      					,showMenu:true,itemRenderer:"priceItemRenderer"},
+		      		{headerText:"Hierarchy",dataField:"hierarchy",width:"200px",sortable:true,sortDescending:false,priority:1,showMenu:true,
+		      					filter:{enableAdvancedFilter:true,advancedFilterType:"list"}},
+		      		{headerText:"Year",dataField:"year",width:"200px",sortable:true,sortDescending:true,priority:3,showMenu:true,
+		      						filter:{advancedFilterType:"number"}},
+		      		{headerText:"Employees",dataField:"employees",width:"200px",sortable:false,sortDescending:true,headerTruncateToFit:true,
+		      		 truncateToFit:true,toolTipRenderer:"employeeToolTipRenderer",priority:4,showMenu:true,
+		      		 filter:{advancedFilterType:"list"}},//toolTipRenderer:employeeToolTipRenderer
+		      		{headerText:"Date",dataField:"date",width:"200px",sortable:true,sortDescending:true,labelFunction:"dateLabelFunction",priority:5,showMenu:true}
+		      	];
+		var setting = {nsTitle:"Pagination Demo",type:"",enablePagination:true,paginationType:"scroll",enableFilter:true,enableAdvancedFilter:true,
+					   paginationMode:"auto",pageSize:100,fetchRecordCallBack:"addRows",totalRecords:600,
+					   enableMouseHover:true,enableMultipleSelection:true,
+					   rowKeyField:"id",columnResizable:true,enableVariableRowHeight:true,columnDraggable:true,rowHeight:30,leftFixedColumn:0,rightFixedColumn:0,
+			           enableFixedColumnAnimation:false,enableRowMove:false,isSameTableMove:false,rowMoverDropEndHandler:"rowDropEndHandler",
+			           enableExport:false,enableResponsive:true,responsiveMode:"stack",
+			           heightOffset:250,customClass:{bodyCell:"nonFirstGridBodyCell"}};
+		var nsGrid = null;
+		var arrItems = [];
+		window["loadPagination"] = function ()
 		{
-			display: block;
-		}
-		.stack .row 
-		{ 
-			clear:both;
-		}
-		.stack .row .col    
-		{
-			background-color: #FFFFFF;
-		    float:left;
-		    width: 25%;
-		}
-		.stack .row .editor
-		{
-			min-height: 200px;
-    		height: calc(43% - 0px);
-    		border:1px solid;
-    		resize: none;
-		}
-		.stack .output
-		{ 
-			clear:both;
-			border:1px solid;
-			width:99%;
-			min-height: 200px;
-    		height: calc(50% - 0px);
-		}
-		.center
-		{
-			text-align: center;
-		}
-		.right
-		{
-			text-align: right;
-			padding-right: 10px;
-		}
-		.grid {
-		  width: 100%;
-		  overflow: hidden;
-		
-		  -webkit-box-sizing: border-box;
-		  -moz-box-sizing: border-box;
-		  box-sizing: border-box;
-		}
-		
-		.output {
-		  border-left: 1px solid #e3e3e3;
-		  overflow: hidden;
-		}
-		
-		.output iframe {
-		  border: none;
-		  width: 100%;
-		  height: 100%;
-		}
-	</style>
-	<style>
-/* The Modal (background) */
-.modal {
-    display: none; /* Hidden by default */
-    position: fixed; /* Stay in place */
-    z-index: 1; /* Sit on top */
-    padding-top: 100px; /* Location of the box */
-    left: 0;
-    top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgb(0,0,0); /* Fallback color */
-    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
-}
-
-/* Modal Content */
-.modal-content {
-    position: relative;
-    background-color: #fefefe;
-    margin: auto;
-    padding: 0;
-    border: 1px solid #888;
-    width: 80%;
-    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
-    -webkit-animation-name: animatetop;
-    -webkit-animation-duration: 0.4s;
-    animation-name: animatetop;
-    animation-duration: 0.4s
-}
-
-/* Add Animation */
-@-webkit-keyframes animatetop {
-    from {top:-300px; opacity:0} 
-    to {top:0; opacity:1}
-}
-
-@keyframes animatetop {
-    from {top:-300px; opacity:0}
-    to {top:0; opacity:1}
-}
-
-/* The Close Button */
-.close {
-    color: white;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-}
-
-.close:hover,
-.close:focus {
-    color: #000;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-.modal-header {
-    padding: 2px 16px;
-    background-color: #5cb85c;
-    color: white;
-}
-
-.modal-body {padding: 2px 16px;}
-
-.modal-footer {
-    padding: 2px 16px;
-    background-color: #5cb85c;
-    color: white;
-}
-</style>
-	<script src="js/nsUtil.js"></script>
-	<script src="js/nsBinding.js"></script>
-</head>
-<body onload="initialize()">
-<div class="stack">
-	 <div class="row">
-        <div class="col center">
-            Html
-        </div>
-        <div class="col center">
-            CSS
-        </div>
-         <div class="col center">
-            Javascript
-        </div>
-        <div class="col center">
-           Binding Data
-        </div>
-    </div>
-    <div class="row">
-        <textarea id="divHtml" class="col editor">
-			<h1>My First CSS Example</h1>
-			<input id="txtName" type="text" ns-bindIt>
-			<span id="spanAge" ns-bindIt></span>
-			<ul id="ulData">
-		          <li id="liData" ns-bindIt>
-		            <strong>  Country Name : </strong> <span id="spanCountryName" ns-bindIt></span> -
-		            <strong>  Country Code : </strong> <span id="spanCountryCode" ns-bindIt></span>
-		            <strong>  color : </strong> <span id="spanColor" ns-bindIt></span>
-		             <input id="txtCountryName" type="text" ns-bindIt>
-		          </li>
-		    </ul>
-        </textarea>
-        <!-- 
-        
-        <strong>  Country Code : </strong> <span id="spanCountryCode" ns-bindIt></span>
-					<strong>  color : </strong> <span id="spanColor" ns-bindIt></span>
-		            <input id="txtCountryName" type="text" ns-bindIt>
-		            <input id="txtCountryCode" type="text" ns-bindIt>
-         -->
-        <textarea id="divCSS" class="col editor">
-        	html,body {
-    background-color: lightblue;
-    height:100%;
-}
-
-h1 {
-    color: white;
-    text-align: center;
-}
-
-p {
-    font-family: verdana;
-    font-size: 20px;
-}
-        </textarea>
-        <textarea id="divJavascript" class="col editor">
-        	function myFunction() {
-			    alert("Hello! I am an alert box!");
+			var dgDemo = document.getElementById("dgDemo");
+			nsGrid = new NSGrid(dgDemo,setting);
+			arrItems = [];
+			var item = {};
+			//var dgDemoDest = document.getElementById("dgDemoDest");
+			var totalRecords = parseInt(nsGrid.getAttribute("totalRecords"));
+			if(nsGrid.getAttribute("enablePagination") === "true" && nsGrid.getAttribute("paginationMode") === "manual")
+			{
+				totalRecords = 250;
 			}
-        </textarea>
-        <textarea id="txtData" class="col editor">
-        	 { "name":"John", "age":31, "city":"New York","tempColor":"red","name1":"Anurag" }
-    	</textarea>
-    </div>
-    <div class="row right">
-    	<button id="btnRun" onclick="parseHTML()">Run</button>
-    </div>
-    <div class="output grid">
-		<iframe id="ifOutput"></iframe>
-	</div>
-    
-</div>
-
-<div id="myModal" class="modal">
-
-  <!-- Modal content -->
-  <div class="modal-content">
-    <div class="modal-header">
-      <span class="close">&times;</span>
-      <h4>Add Binding To Elements</h4>
-    </div>
-    <div class="modal-body">
-      <div id="divTable"></div>
-    </div>
-    <div class="modal-footer">
-      <button id="btnOutput" onclick="generateOuput()">Bind</button>
-    </div>
-  </div>
-
-</div>
-<div id="divShadow" style="display: none;"></div>
-
-
-</body>
-
-<script>
-var util = new NSUtil();
-
-function initialize()
-{
-	intializePopUp();
-}
-
-function closePopUp()
-{
-	var modal = document.getElementById('myModal');
-	modal.style.display = "none";
-}
-
-function showPopUp()
-{
-	var modal = document.getElementById('myModal');
-	modal.style.display = "block";
-}
-
-function windowClickHandler(event)
-{
-	var modal = document.getElementById('myModal');
-	if (event.target == modal) 
-	{
-		closePopUp();
-	}
-}
-
-function intializePopUp()
-{
-	var span = document.getElementsByClassName("close")[0];
-	span.onclick = closePopUp;
-	window.onclick = windowClickHandler;
-}
-
-function parseHTML()
-{
-	var divHtml = document.getElementById("divHtml");
-	if(divHtml.value)
-	{
-		divShadow = document.getElementById("divShadow");
-		divShadow.innerHTML = divHtml.value;
-		var arrElements = divShadow.querySelectorAll("[ns-bindIt]");
-		if(arrElements && arrElements.length > 0)
-		{
-			generateTable(arrElements);
-			showPopUp();
+			for(var count = 0;count < totalRecords;count++)
+			{
+				item = {id: count, hierarchy: 'Hierarchy ' + count, supervisor: "Supervisor " + count, country: 'UK', employees: "EmployeesEmployeesEmployees" + count, price: (10 * count), year: 1985 + count,checked:false};
+				if((count % 2) === 0)
+				{
+					item["country"] = "US";
+				}
+				var date = new Date();
+		        date.setFullYear(2015, Math.floor(Math.random() * 12), Math.floor(Math.random() * 27));
+		        date.setHours(Math.floor(Math.random()*23), Math.floor(Math.random()*59), Math.floor(Math.random()*59), 0);
+		        item["date"] = date;
+				arrItems.push(item);
+			}
+			nsGrid.setColumn(column);
+			var util = nsGrid.util;
+			var localStorageUtil = new util.localStorage();
+			var state = localStorageUtil.getData("nsGrid");
+			nsGrid.setState(state);
+			nsGrid.dataSource(arrItems);
+			nsGrid.util.addEvent(dgDemo,nsGrid.ITEM_SELECTED,itemSelectHandler);
+			nsGrid.util.addEvent(dgDemo,nsGrid.ITEM_UNSELECTED,itemUnSelectHandler);
+			nsGrid.fixFixedHeader();
+			window["updatePrices"]();
 		}
-	}
-}
-
-function generateTable(arrElements) 
-{
-	var arrColumn = ["Element","Property","Field Name","Add"];
-    var divTable = document.getElementById("divTable");
-    divTable.innerHTML = "";
-    table = document.createElement("table");
-    table.setAttribute("id","tblData");
-    var header = table.createTHead();
-	var headerRow = header.insertRow(-1);
-	for (var colIndex = 0; colIndex < arrColumn.length; colIndex++)
-    {
-        var colItem = arrColumn[colIndex];
-        var headerCell = headerRow.insertCell(-1);
-		var headerTextNode = document.createTextNode(colItem);
-		headerCell.appendChild(headerTextNode);
-    }
-	body = document.createElement("tbody");
-	table.appendChild(body);
-	var bodyCell = null;
-	for (var rowIndex = 0; rowIndex < arrElements.length; rowIndex++)
-    {
-		var bodyRow = body.insertRow(-1);
-		var element = arrElements[rowIndex];
-		if(!element.getAttribute("id"))
-		{
-			element.setAttribute("id","comp" + util.getUniqueId());
-		}
-		createRow(bodyRow,element.getAttribute("id"));
-		/*for (var colIndex = 0; colIndex < arrColumn.length; colIndex++)
-	    {
-	        var colItem = arrColumn[colIndex];
-	        var bodyCell = bodyRow.insertCell(-1);
-    		var textNode = document.createTextNode(item);
-    		bodyCell.appendChild(textNode);
-	    }*/
-    }
-	divTable.appendChild(table);
-   
-}
-
-function createRow(bodyRow,id)
-{
-	var bodyCell = bodyRow.insertCell(-1);
-	bodyCell.appendChild(document.createTextNode(id));
-	bodyCell = bodyRow.insertCell(-1);
-	bodyCell.innerHTML="<input type='text' placeholder='Property of the Element'></input>";
-	bodyCell = bodyRow.insertCell(-1);
-	bodyCell.innerHTML="<input type='text' placeholder='Field from Source'></input>";
-	bodyCell = bodyRow.insertCell(-1);
-	bodyCell.innerHTML="<button onclick=\"addRow(event)\">Add Row</button>";
-}
-
-function addRow(event)
-{
-	var target = util.getTarget(event);
-	var row = util.findParent(target,"TR");
-	if(row)
-	{
-		var tblData =  document.querySelector("#tblData");
-		var tblBody = tblData.tBodies[0];
-		var insertedRow = tblData.insertRow(row.rowIndex + 1);
-		createRow(insertedRow,row.cells[0].innerHTML);
-	}
-}
-
-function generateOuput()
-{
-	var divShadow = document.getElementById("divShadow");
-	var tblData =  document.querySelector("#tblData");
-	var tblBody = tblData.tBodies[0];
-	for (var rowCount = 0; rowCount < tblBody.rows.length; rowCount++) 
-	{
-	    var row = tblBody.rows[rowCount];
-	    var id = row.cells[0].innerHTML;
-	    var txtProperty = row.cells[1].firstChild;
-	    var txtField = row.cells[2].firstChild;
-	    if(txtProperty.value && txtField.value)
-	    {
-	    	var element = divShadow.querySelector("#" + id);
-	    	if(element)
-	    	{
-	    		var property = txtProperty.value;
-	    		var field = txtField.value;
-	    		if(property!="id")
-	    		{
-	    			if(property == "html")
-	    			{
-	    				element.innerHTML += "{{" + field + "}}";	
-	    			}
-	    			else if(property == "repeater")//if(field.split(" ").length === 3 && field.indexOf("in") > -1)
-	    			{
-	    				element.setAttribute("nsbind-repeater","{{" + field + "}}");
-	    			}
-	    			else
-	    			{
-	    				element.setAttribute(property,"{{" + field + "}}");
-	    			}
-	    		}
-	    	}
-	    }
-	}
-	var divCSS = document.getElementById("divCSS");
-	var divJavascript = document.getElementById("divJavascript");
-	var txtData = document.getElementById("txtData");
-	var ifOutput = document.getElementById("ifOutput");
-	var doc = ifOutput.contentDocument || ifOutput.contentWindow.document;
-	if(divCSS.value)
-	{
-		writeCSS(divCSS.value,doc);
-	}
-	if(divShadow)
-	{
-		doc.body.innerHTML = divShadow.innerHTML;
-	}
-	if(divJavascript.value)
-	{
-		writeJS(divJavascript.value,doc);
-	}
-	if(txtData.value)
-	{
-		var data = "";
-		try
-		{
-			data = JSON.parse(txtData.value.trim());
-			data["countries"] = [{
-		          name: 'Afghanistan',
-		          code: 'AF'
-		        }, {
-		          name: 'Aland Islands',
-		          code: 'AX'
-		        }, {
-		          name: 'Albania',
-		          code: 'AL'
-		        }, {
-		          name: 'Algeria',
-		          code: 'DZ'
-		        }, {
-		          name: 'American Samoa',
-		          code: 'AS'
-		        }, {
-		          name: 'AndorrA',
-		          code: 'AD'
-		        }, {
-		          name: 'Angola',
-		          code: 'AO'
-		        }, {
-		          name: 'Anguilla',
-		          code: 'AI'
-		        }, {
-		          name: 'Antarctica',
-		          code: 'AQ'
-		        }, {
-		          name: 'Antigua and Barbuda',
-		          code: 'AG'
-		        }, {
-		          name: 'Argentina',
-		          code: 'AR'
-		     	}];
-		}
-		catch(error)
-		{
-			data = JSON.parse(JSON.stringify(txtData.value.trim()));
-		}
-		console.log(data);
-		if(data && !util.isString(data))
-		{
-			var nsBind = new NSBinding(doc.body,data);
-		}
-	}
-	closePopUp();
-}
-
-function writeCSS(content,doc) 
-{
-	if(!doc)
-	{
-		doc = document;
-	}
-	var css = doc.getElementById("nsStyle");
-	if(!css)
-	{
-		css = document.createElement("style");
-		css.setAttribute("id","nsStyle");
-		css.setAttribute("type","text/css");
-		doc.getElementsByTagName("head")[0].appendChild(css);
-	}
-	css.innerHTML = content;
-	//IE
-	/*if(css.styleSheet)
-	{
-	  	css.styleSheet.cssText = rule;
-	}
-	else
-	{
-	  	css.appendChild(document.createTextNode(rule));
-	}*/
 	
-}
+		window["dateLabelFunction"] = function (item,dataField,colItem)
+		{
+			if(item && item[dataField])
+			{
+				var date = item[dataField];
+				return ((date.getMonth() + 1) + '/' + date.getDate() + '/' +  date.getFullYear());
+			}
+			return "";
+		}
+		
+		window["employeeToolTipRenderer"] = function (item,dataField)
+		{
+			if(item && item[dataField])
+			{
+				return "<span>" + item[dataField] + "</span>";// );
+			}
+			return null;
+		}
+	
+		window["filterRenderer"] = function (colItem,colIndex)
+		{
+			var htmlText = "";
+			if(colItem)
+			{
+				if(colItem["dataField"] === "date")
+				{
+					htmlText = "<div class='filterContainer'><input type='text' class='date filter' field='date' onchange='keyUpHandler(event)'/></div>";
+					
+				}
+				else 
+				{
+					var field = colItem["dataField"];
+					htmlText = "<div class='filterContainer'><input id='txt" + field + "' type='search' results='5' placeholder='Search " + field +"' +   field='" + field + "' class='filter' " +
+								   " onkeyup='keyUpHandler(event)'/></div>";
+				}
+			}
+			return htmlText;
+		}
+		
+		var timeout = null;
+		window["keyUpHandler"] = function (event)
+		{
+			clearTimeout(timeout);
+			timeout = setTimeout(function () {
+					filterGrid();
+			    }, 500);
+		}
+		
+		window["filterGrid"] = function ()
+		{
+			var arrID = ["id","country","hierarchy","employees","year","date"];
+			 var dgDemo = document.getElementById("dgDemo");
+			 //and condition
+			 /*var filter = {};
+			 var setting = {};
+			 for(var count = 0;count < arrID.length ;count++)
+			 {
+				 var control = document.querySelector("#txt" + arrID[count]);
+				 if(control && control.value)
+				 {
+					 var key = control.getAttribute("field");
+					 if(key === "date")
+					 {
+						 filter[key] = filterDate;
+						 setting[key] = {value:control.value};
+					 }
+					 else
+					 {
+						 filter[key] = control.value;
+						 setting[key] = {caseSensitive:false,multiline:false,matchType:new NSFilter().CONTAINS};
+					 } 
+				 }
+			 }
+			 if(filter && Object.keys(filter).length > 0)
+			 {
+				 dgDemo.filter(filter,setting);
+			 }
+			 else
+			 {
+				 dgDemo.resetFilter();
+			 }*/
+			 //or condition
+			 var filter = [];
+			 var setting = {};
+			 for(var count = 0;count < arrID.length ;count++)
+			 {
+				 var control = document.querySelector("#txt" + arrID[count]);
+				 if(control && control.value)
+				 {
+					 var item = {};
+					 var key = control.getAttribute("field");
+					 if(key === "date")
+					 {
+						 item[key] = filterDate;
+						 setting[key] = {value:control.value};
+					 }
+					 else
+					 {
+						 item[key] = control.value;
+						 setting[key] = {caseSensitive:false,multiline:false,matchType:new NSFilter().CONTAINS};
+					 } 
+					 if(item)
+					 {
+						 filter.push(item);
+					 }
+				 }
+			 }
+			 if(filter && filter.length > 0)
+			 {
+				 nsGrid.filter(filter,setting);
+			 }
+			 else
+			 {
+				 nsGrid.resetFilter();
+			 }
+		}
+		
+		window["filterDate"] = function (item,setting)
+		{
+			if(item && setting && setting["value"])
+			{
+				var value = setting["value"];
+				value = value.replace(/\\/g, "");
+				var now = moment(item);
+				if (moment(value).isAfter(now, 'day'))
+				{
+					return false;
+				}
+				return true;
+			}
+			return false;
+		}
+		
+		window["itemRenderer"] = function (data,dataField,rowIndex,columnIndex,row)
+		{
+			/*var selected = data[dataField];
+			//row.update();
+			if(selected)
+			{
+				return '<input type="checkbox" checked>';
+			}
+			else
+			{
+				return '<input type="checkbox">';
+			}*/
+			if(data["checked"])
+			{
+				return "<a href=# class='purple' onclick='anchorClick(event," + rowIndex +"," + data["id"] +")'>" + returnAlphabets("a",rowIndex + 1) + "</a>";
+			}
+			else
+			{
+				return "<a href=# onclick='anchorClick(event," + rowIndex +"," + data["id"] +")'>" + returnAlphabets("a",rowIndex + 1) + "</a>";
+			}
+			/*if(data["checked"])
+			{
+				return "<a href=# class='purple' onclick='anchorClick(event," + rowIndex +"," + data["id"] +")'>" + "Visit W3Schools.com!" + "</a>";
+			}
+			else
+			{
+				return "<a href=# onclick='anchorClick(event," + rowIndex +"," + data["id"] +")'>" + "Visit W3Schools.com!" + "</a>";
+			}*/
+			
+		}
+		
+		window["returnAlphabets"] = function (alphabet,count)
+		{
+			var retValue = "";
+			for(var innerCount= 1;innerCount < count;innerCount++)
+			{
+				retValue += alphabet;
+			}
+			return retValue;
+		}
+		
+		window["anchorClick"] = function (event,rowIndex,keyValue)
+		{
+			//alert(rowIndex);
+			 var objItem = nsGrid.getItemInfo(event);
+			 objItem["item"]["checked"] = true;
+			 nsGrid.updateCellByIndex(rowIndex,"checked");
+			 //nsGrid.updateCellByKeyField(keyValue,"checked");
+			 //nsGrid.updateRowByKeyField(keyValue);
+			 console.log(objItem.rowIndex + "," + rowIndex);
+			 event.preventDefault();
+		}
+	
+		window["setData"] = function (renderer,data,dataField,colItem,row)
+		{
+			if(renderer)
+			{
+				if(data)
+				{
+					renderer.rendererBody.chk.onchange = checkBox_changeHandler;
+					renderer.rendererBody.chk.checked = data[dataField];
+				}
+				else
+				{
+					clearData(renderer);
+				}
+			}
+		}
+		
+		window["clearData"] = function (renderer)
+		{
+			if(renderer)
+			{
+				renderer.rendererBody.chk.checked = false;
+			}
+		}
+		
+		window["checkBox_changeHandler"] = function (event) 
+		{					
+			var checked = event.target.checked ? "checked":"unchecked";
+			event.target.data["hierarchy"] = event.target.data["hierarchy"] + "1"; 
+			event.target.data["checked"] = checked;
+		    alert(event.target.data["id"] + " is " + checked);
+		    event.target.row.update();
+		    event.stopImmediatePropagation();
+		}
+		
+		var showingLoader = false;
+		window["showHideLoader"] = function ()
+		{
+			if(showingLoader)
+			{
+				nsGrid.hideLoader();
+			}
+			else
+			{
+				nsGrid.showLoader();
+			}
+			showingLoader = !showingLoader;
+		}
+		
+		window["dataSourceRefreshHandler"] = function ()
+		{
+			nsGrid.dataSource(arrItems);
+		}
+		
+		window["columnRefreshHandler"] = function ()
+		{
+			nsGrid.setColumn(column);
+			dataSourceRefreshHandler();
+		}
+		
+		window["changeFontSize"] = function ()
+		{
+			nsGrid.setFontSize("14px");
+		}
+		
+		var isReflowView = false;
+		window["changeGridView"] = function ()
+		{
+			isReflowView = !isReflowView;
+			nsGrid.changeDeviceView(isReflowView);
+		}
+		
+		window["addColumn"] = function ()
+		{
+			var column = {};
+			column.headerText = "Price";
+			column.dataField = "price";
+			column.width = "100px";
+			column.sortable = true;
+			column.sortDescending = true;
+			
+			nsGrid.addColumn(column);
+			
+		}
+		
+		window["hideColumn"] = function ()
+		{
+			nsGrid.hideColumn("country");
+		}
+		
+		window["swapColumns"] = function ()
+		{
+			nsGrid.swapColumns(3,4);
+		}
+		
+		window["moveColumn"] = function ()
+		{
+			nsGrid.moveColumn(4,1);
+		}
+		
+		window["saveState"] = function ()
+		{
+			var state = nsGrid.getState();
+			var util = nsGrid.util;
+			var localStorageUtil = new util.localStorage();
+			localStorageUtil.setData("nsGrid",state);
+		}
+		
+		window["resetState"] = function ()
+		{
+			var util = nsGrid.util;
+			var localStorageUtil = new util.localStorage();
+			localStorageUtil.removeData("nsGrid");
+		}
+		
+		window["selectRows"] = function ()
+		{
+			nsGrid.setSelectedIndexes([3,4,5]);
+		}
+		
+		window["sort"] = function ()
+		{
+			nsGrid.sortBy("year");
+		}
+		
+		window["addRows"] = function (fromRecord,toRecord,pageSize)
+		{
+			console.log("In addRows with fromRecord::" + fromRecord + ",toRecord::" + toRecord + ",pageSize::" + pageSize);
+			var arrItems = [];
+			var item = null;
+			for(var count = fromRecord;count <= toRecord;count++)
+			{
+				item = {id: count, hierarchy: 'Hierarchy ' + count, supervisor: "Supervisor " + count, country: 'UK', employees: "Employees " + count, price: (10 * count), year: 1985 + count,checked:false};
+				arrItems.push(item);
+			}
+			nsGrid.addRows(arrItems);
+		}
+		
+		window["contextMenuProvider"] = function (item,columnIndex,rowIndex)
+		{
+			console.log(item + "," + columnIndex + "," + rowIndex);
+			var index = columnIndex + rowIndex;
+			var source = [];
+			for(var count = index;count < index + 5;count++)
+			{
+				source.push({title: 'Menu ' + count,iconHTML: '<i class="fa fa-folder-open"></i>',handler: menuClickHandler});
+			}
+			return source;
+		}
+		
+		window["menuClickHandler"] = function (target,item)
+		{
+			if(item)
+			{
+				console.log("Menu with text " + item.title + " was selected for Target " + target.nodeName + " with text as "  + target.innerHTML);			
+			}
+		}
+		//https://github.com/NeXTs/Clusterize.js/blob/master/clusterize.js
+		window["itemSelectHandler"] = function (event)
+		{
+			console.log("Item Selected with details::" + event.detail + " with hierarchy " + event.detail.hierarchy);
+			//console.log("Item Selected with details::" + event.detail + " with index " + event.index);
+		}
+		
+		window["itemUnSelectHandler"] = function (event)
+		{
+			console.log("Item Unselected with details::" + event.detail  + " with hierarchy " + event.detail.hierarchy);
+		}
+		
+		window["fixedLeftColumn"] = function (event)
+		{
+			setting["leftFixedColumn"] = 1;
+			var dgDemo = document.getElementById("dgDemo");
+			dgDemo.innerHTML = "";
+			window["loadPagination"]();
+			nsGrid.fixFixedHeader();
+		}
+		
+		window["fixedColumn"] = function (event)
+		{
+			setting["rightFixedColumn"] = 1;
+			setting["leftFixedColumn"] = 1;
+			var dgDemo = document.getElementById("dgDemo");
+			dgDemo.innerHTML = "";
+			window["loadPagination"]();
+			nsGrid.fixFixedHeader();
+			/*nsGrid = new NSGrid(dgDemo,setting);
+			nsGrid.dataSource(arrItems,true);*/
+		}
+		
+		window["generateRandomNumbers"] = function()
+		{
+			return Math.floor(Math.random() * 90 + 10);
+		}
+		
+		var priceInterval = null;
+		window["updatePrices"] = function()
+		{
+			clearInterval(priceInterval);
+			for(var count = 0;count < 45;count++)
+			{
+				var price = window["generateRandomNumbers"]();
+				nsGrid.getItemInfo(count)["item"]["price"] = price;
+				nsGrid.updateCellByIndex(count,"price");
+			}
+		}
+		
+		window["priceItemRenderer"] = function(data,dataField,rowIndex,columnIndex,row)
+		{
+			var div = document.createElement("DIV"); 
+			var text = "";
+			if(data)
+			{
+				text = data[dataField] ? data[dataField] : "";
+				if(text && text != "")
+				{
+					div.appendChild(document.createTextNode(text));
+				}
+				div.style.textAlign = "center";
+				div.style.backgroundColor = "";
+				if(parseInt(text) > 40 && parseInt(text) < 70)
+				{
+					div.style.backgroundColor = "#FF9900";
+				}
+				else if(parseInt(text) >= 70 && parseInt(text) < 100)
+				{
+					div.style.backgroundColor = "#FF0000";
+				}
+				else
+				{
+					div.style.backgroundColor = "#00FF00";
+				}
+			}
+			return div;
+		};
+		
+		//# sourceURL=paginationGrid.js
+	</script>
+</div>
 
-function writeJS(content,doc) 
-{
-	if(!doc)
-	{
-		doc = document;
-	}
-	var script = doc.getElementById("nsScript");
-	if(!script)
-	{
-		script = document.createElement("script");
-		script.setAttribute("id","nsScript");
-		script.setAttribute("type","text/javascript");
-		doc.body.appendChild(script);
-	}
-	script.innerHTML = content;
-}
-
-
-
-
-</script>
-</html>
