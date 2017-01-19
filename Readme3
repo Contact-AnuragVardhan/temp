@@ -1,80 +1,178 @@
-Configuration options (settings option of grid):
-	nsTitle:  can set the title for the grid
-	type:  sets the grid type (default Value: “normal”).
-Types of Grids: 
-	normal - Flat Grid with no parent child relationship
-	group - Grouping Grid where the data Source is flat and then grid internally groups according to properties like isSingleLevelGrouping and groupbyfield
-	hierarchical – Hierarchical Grid with nth level of parent child relationship.
-The data source is also hierarchical with child Field in the source mentioned through property childField
-	enableMouseHover (boolean): if this flag is true then on mouse hover rows background color will get changed. (default Value: true).
-	enableMultipleSelection (boolean): if this flag is true then multi selection rows is allowed(default Value: false). 
-	enableKeyboardNavigation (boolean): if this flag is true then keyboard navigation is allowed. (default Value: false). (Current implementation has some issues)
-	childField : specify the name of the field that defines the hierarchy (default Value: “children”)
-	rowKeyField :  specify the name of the field that is unique to every row in the datasource.
-	If blank then grid generates an internal key field which is index of the row.
-	groupByField : specify the name of the fields (comma separated) in the datasource by which the datasource needs to be grouped. 
-	columnMinWidth (number):  sets the minimum column width while resizing. It can be overridden on column basis.
-	customScrollerRequired (boolean):  for future purpose
-	columnResizable(boolean):  Enable column resizing on the entire grid. It can be overridden on column basis. (default Value: true).
-columnDraggable (boolean):  Enable column dragging on the entire grid. It can be overridden on column basis. (default Value: true).
-enablePagination (boolean): If this flag is true pagination is enabled (default Value: true).
-paginationType : defines type of Pagination (scroll or pages) (default Value: scroll). 
-Two types of Pagination available
-	pages : pagination is available in forms of Pages (a page control is added below the grid showing page numbers and on click of it the corresponding records are shown.)
-	scroll: pagination is available in form of infinite scrolling. (technique that loads content continuously as the user scrolls down the page) 
-paginationMode : defines mode of Pagination (auto or manual) (default Value: auto). 
-Two types of pagination mode:
-	auto: In this mode the pagination is handled by the grid internally
-	manual: In this mode pagination is handled by the developer. The grid calls a callback defined in fetchRecordCallBack and rows are added using addRows  function.
-	enableAsyncLoadPagination (boolean): When this flag is true and paginationType is scroll  and paginationMode is auto then initially the grid creates rows according to pageSize and then creates the other rows asynchronously(without user feeling it) (default Value: false).
-pageSize(Number) : No of records to be displayed per page.
-totalRecords(Number)  : Total number of records, set automatically when using paginationMode auto, but needs to be set by user for server side pagination or paginationMode manual
-fetchRecordCallBack : Callback method called to fetch records when paginationMode is manual or enableServerCall is true.
-enableServerCall(boolean): If the flag is true then data is fetched from server when page changes. (default Value: false).
- enableToolTipForTruncateText (boolean) : if this flag is true and truncateToFit is true for a column then toolTip will be shown as Custom ToolTip.
-if this Flag is false and truncateToFit is true for a column then toolTip will be shown as Title. (defaultValue:false)
- 	enableVariableRowHeight (boolean) : if this flag is true then rows in the Grid will vary according to the height of the content.
-                                     if this flag is false the row will take the height of rowHeight if defined else 
-                                     if virtual scroll is enabled then the row takes the calculated height of the row. 
-enableContextMenu(boolean): If the flag is true then context menu on row is enabled. (defaultValue:false)
-contextMenuProvider: Callback function called to get the context menu items for a particular record
-enableFilter(boolean): if true then grid adds filter boxes to each column header, allowing filtering within the column for the entire grid. Filtering can then be disabled on individual columns using the enableFilter flag in column definition. (defaultValue:false)
-filterFunction:  if the filter logic has to be changed for the grid then a callback can be assigned to this property.
-Function declaration: filterFunction(item,filterObject,setting,isHierarchical,childField,parentItem)
-hierarchyFilterChildrenFunction: callback function called (when grid type is hierarchical or group)  for each child item for filtered items which decides whether the child will be included or not.
-Callback function should return a Boolean value.
-Declaration: hierarchyFilterChildren(childItem,childIndex,isFound,filterObject,settingObject,item)
-enableAdvancedFilter (boolean): if this flag is true then advanced filter is enabled. (defaultValue:false)
-Types of advanced filters:
-	text :  the filter is for string search.
-	number: the filter is for number search.
-	list: this filter is for excel type search where unique values for the column is listed in a list field.	
-enableVirtualScroll(boolean) : if this flag is true then virtual Scroll is enabled in the grid (defaultValue:false)
-enableDataRefreshOnScrollEnd(boolean) : if this flag is true and  enableVirtualScroll is true then data is refreshed when user stops scrolling (recommended when data is huge and view port height is very limited) (Default Value: false)
-dataRefreshfireDelay(in milliseconds): delay the subsequent data Refresh after scroll ends if enableDataRefreshOnScrollEnd is true. if no delay is required set the value to 0 (defaultValue:100)
-	bottomPercentageForAddRows (integer) : percentage from the bottom of the view port that triggers the add rows for infinite scroll pagination (defaultValue:15)
+<html>
+<head>
+	<script src="js/nsUtil.js"></script>
+	<script src="js/nsBinding.js"></script>
+	<style>
+	.red
+	{
+		color:red;
+	}
 	
-rowHeight(Number): Height of the row, in pixels if enableVariableRowHeight is false.
-enableExport(Boolean): if this flag is true then grid data can be exported to formats (
-xls,csv,doc,text,xml,json,pdf,image,xlsx,docx) . (defaultValue:false)
-exportFileName: File name with which the data will be exported.  
-enableResponsive(Boolean): if this is true then the grid will automatically become responsive. . (defaultValue:false)
-responsiveMode: defines the responsive mode. . (defaultValue:”stack”).
- Two types of responsive modes are available.
-	stack : In this mode grid stacks the table headers to a two column layout with headers on the left when the viewport width becomes equivalent to mobile device width.
-	columntoggle:  In this mode the column will be hiiden according to the viewport width and column priority.
-	enableRowClick(Boolean): if this flag is true then click event on row is enabled.
-(defaultValue:false)
-noDataMessage: defines the message to display when there is no data in the grid.
-leftFixedColumn(number): the number of left columns which will be fixed(fixed columns are not draggable and resizable).
-rightFixedColumn(number): the number of right columns which will be fixed(fixed columns are not draggable and resizable).
-enableFixedColumnAnimation(Boolean): if this flag is true then the fixed column moves with effects on scroll end.
-(defaultValue:false)
-enableRowMove(Boolean): if this flag is true then grid rows can be moved. (defaultValue:false)
-isSameTableMove(Boolean): this flag is true then grid rows can be moved within the same grid only. (defaultValue:false)
-rowMoverDropEndHandler: this is a callback function called when row is dropped.
-Declaration:  dropEndHandler(row)
-renderInCachedMode(Boolean): if this flag is true then the grid caches all the row objects and renders from the cached version. Generally used for IE to improve performance except when we are using Virtual scrolling. (defaultValue:false)
-enableVariableRowHeight(Boolean):if this flag is true then rows in the Grid will vary according to the height of the content. (defaultValue:false)
-                                     if this Flag is false the row will take the height of rowHeight if defined else 
-                                     if virtual scroll is enabled then takes the calculated height of the row. 
+	.blue
+	{
+		color:blue;
+	}
+	</style>
+</head>
+<body>
+
+<div id="myDiv">
+	<span>{{abc}}</span>
+	<span>{{tempName.abc}}</span>
+ 	<input type="text" value="{{tempName.name}}">
+	<span data-nsbind-style="color:{{tempColor}}">{{tempName.name}}</span>
+	<input type="text" onchange="{{nameChange}}"></input>
+	<button onclick="changeColor()">Click</button>
+	<button onclick="changeArray()">Change</button>
+	<button onclick="changeArraySource()">Change Array Source</button>
+	<button onclick="addArray()">Add Array Record</button>
+	<ul>
+          <li nsbind-repeater="{{country in countries}}">
+            <strong>  Country Name : </strong> {{country..name}} -
+            <strong>  Country Code : </strong> {{country..code}}
+			<strong>  color : </strong> {{tempColor}}
+            <input type="text" value="{{country..name}}">
+            <input type="text" value="{{country..code}}">
+          </li>
+    </ul>
+</div>
+
+<script>
+	var x = new NSArray([{name:"Anurag",value:"A"},{name:"Anurag1",value:"A1"},{name:"Anurag2",value:"A2"}]);
+	x.addEventListener("itemadded", function(e) {
+	    console.log("Added %o at index %d.", e.item, e.index);
+	  });
+	x.addEventListener("itemadded", function(e) {
+	    console.log("Added %o at index %d.", e.item, e.index);
+	  });
+
+	  x.addEventListener("itemset", function(e) {
+	    console.log("Set index %d to %o.", e.index, e.item);
+	  });
+
+	  x.addEventListener("itemremoved", function(e) {
+	    console.log("Removed %o at index %d.", e.item, e.index);
+	  });
+	 
+	  //console.log("popping and unshifting...");
+	  x.unshift(x.pop());
+
+	  //console.log("updated array: %o", x.slice());
+
+	  //console.log("reversing array...");
+	  //console.log("updated array: %o",x.reverse().slice() );
+	  x.reverse().slice()
+
+	  //console.log("splicing...");
+	  x.splice(1, 2, {name:"Anurag3",value:"A3"});
+	  //console.log("setting index 2...");
+	  x[2] = {name:"Anurag4",value:"A4"};
+
+	  //console.log("setting length to 10...");
+	  x.length = 10;
+	  //console.log("updated array: %o", x.slice());
+
+	  //console.log("setting length to 2...");
+	  x.length = 2;
+
+	  //console.log("extracting first element via shift()");
+	  x.shift();
+
+	  //console.log("updated array: %o", x.slice());
+	
+	
+	var objData = {};
+	function loadHandler(event) 
+	{
+		objData = {name:"Anurag",tempColor:"red",tempClass:"red"};
+		objData["tempName"] = {name:"Anurag",tempColor:"red"};
+		objData["countries"] = [{
+	          name: 'Afghanistan',
+	          code: 'AF'
+	        }, {
+	          name: 'Aland Islands',
+	          code: 'AX'
+	        }, {
+	          name: 'Albania',
+	          code: 'AL'
+	        }, {
+	          name: 'Algeria',
+	          code: 'DZ'
+	        }, {
+	          name: 'American Samoa',
+	          code: 'AS'
+	        }, {
+	          name: 'AndorrA',
+	          code: 'AD'
+	        }, {
+	          name: 'Angola',
+	          code: 'AO'
+	        }, {
+	          name: 'Anguilla',
+	          code: 'AI'
+	        }, {
+	          name: 'Antarctica',
+	          code: 'AQ'
+	        }, {
+	          name: 'Antigua and Barbuda',
+	          code: 'AG'
+	        }, {
+	          name: 'Argentina',
+	          code: 'AR'
+	     	}];
+		objData["nameChange"] = function(event)
+		{
+			var text = event.target.value;
+			objData["name"] = text;
+		}
+		//var nsMvc = new NSBinding("myDiv",objData);
+		//console.log(document.querySelector('[data-ns-container]') || document.querySelector('[ns-container]'));
+	}
+	
+	function nameChange(event)
+	{
+		var text = event.target.value;
+		objData["name"] = text;
+	}
+	
+	function changeColor()
+	{
+		objData["tempColor"] = "blue";
+		//objData["tempClass"] = "blue";
+		objData["tempName"]["name"] = "Var";
+	}
+	
+	function changeArray()
+	{
+		objData["countries"].splice(2, 0, {name:"India",code:"IN"}); 
+		//objData["countries"].push({name:"India",code:"IN"});
+		//objData["countries"][2]["code"] = "aa";
+		//objData["abc"] = "efg";
+		//objData["tempName"]["abc"] = "efg";
+		//objData["countries"][2]["code"] = "aa";
+	}
+	
+	function changeArraySource()
+	{
+		objData["countries"] = [{
+	          name: 'Afghanistan',
+	          code: 'AF'
+	        }, {
+	          name: 'Aland Islands',
+	          code: 'AX'
+	        }];
+	}
+	
+	function addArray()
+	{
+		objData["countries"][11] = {
+	          name: 'India',
+	          code: 'IND'
+	        };
+	}
+    
+	window.addEventListener('load', loadHandler);
+	
+</script>
+</body>
+</html>
