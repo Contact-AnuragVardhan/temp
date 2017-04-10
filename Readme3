@@ -1,559 +1,425 @@
-<html>
-<head>
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-<link href="http://localhost:8080/JSLib/lib/css/com/org/nsGrid.css" rel="stylesheet" type="text/css" />
-<link href="http://localhost:8080/JSLib/lib/css/com/org/nsMenu.css" rel="stylesheet" type="text/css" />
-<link href="http://localhost:8080/JSLib/lib/css/com/org/component.css" rel="stylesheet" type="text/css" />
-<link href="http://localhost:8080/JSLib/lib/css/com/org/nsPagination.css" rel="stylesheet" type="text/css" />
-<link href="http://localhost:8080/JSLib/lib/css/com/org/nsList.css" rel="stylesheet" type="text/css" />
-<style>
-	.nonFirstGridBodyCell
-{
-	padding-left:5px !important;
-}
-ul, ol 
-{
-    list-style-type: none;
-}
-
-.closeFile 
-{
-    color: red;
-    font-size: 24px;
-    font-weight: bold;
-    vertical-align: middle;
-    padding-left: 5px;
-}
-</style>
-<style>
-.modal {
-    display: none; /* Hidden by default */
-    position: fixed; /* Stay in place */
-    z-index: 1; /* Sit on top */
-    padding-top: 100px; /* Location of the box */
-    left: 0;
-    top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgb(0,0,0); /* Fallback color */
-    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
-}
-
-/* Modal Content */
-.modal-content {
-    position: relative;
-    background-color: #fefefe;
-    margin: auto;
-    padding: 0;
-    border: 1px solid #888;
-    width: 80%;
-    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
-    -webkit-animation-name: animatetop;
-    -webkit-animation-duration: 0.4s;
-    animation-name: animatetop;
-    animation-duration: 0.4s
-}
-/* The Close Button */
-.close {
-    color: white;
-    float: right;
-    font-size: 20px;
-    font-weight: bold;
-}
-
-.close:hover,
-.close:focus {
-    color: #000;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-.modal-header {
-    padding: 2px 16px;
-    background-color: #5cb85c;
-    color: white;
-}
-
-.modal-body {padding: 2px 16px;}
-
-.modal-footer {
-    padding: 2px 16px;
-    background-color: #5cb85c;
-    color: white;
-}
-
-.modal-opened
-{
-	display:block;
-}
-	
-</style>
-<style type="text/css">
-.form-style-2{
-    padding: 20px 12px 10px 20px;
-    font: 13px Arial, Helvetica, sans-serif;
-}
-.form-style-2-heading{
-    font-weight: bold;
-    font-style: italic;
-    border-bottom: 2px solid #ddd;
-    margin-bottom: 20px;
-    font-size: 15px;
-    padding-bottom: 3px;
-}
-.form-style-2 label{
-    display: block;
-    margin: 0px 0px 15px 0px;
-}
-.form-style-2 label > span{
-    width: 100px;
-    font-weight: bold;
-    float: left;
-    padding-top: 8px;
-    padding-right: 5px;
-}
-.form-style-2 span.required{
-    color:red;
-}
-.form-style-2 .tel-number-field{
-    width: 40px;
-    text-align: center;
-}
-.form-style-2 input.input-field{
-    width: 48%;
-    
-}
-
-.form-style-2 input.input-field, 
-.form-style-2 .tel-number-field, 
-.form-style-2 .textarea-field, 
- .form-style-2 .select-field{
-    box-sizing: border-box;
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
-    border: 1px solid #C2C2C2;
-    box-shadow: 1px 1px 4px #EBEBEB;
-    -moz-box-shadow: 1px 1px 4px #EBEBEB;
-    -webkit-box-shadow: 1px 1px 4px #EBEBEB;
-    border-radius: 3px;
-    -webkit-border-radius: 3px;
-    -moz-border-radius: 3px;
-    padding: 7px;
-    outline: none;
-}
-.form-style-2 .input-field:focus, 
-.form-style-2 .tel-number-field:focus, 
-.form-style-2 .textarea-field:focus,  
-.form-style-2 .select-field:focus{
-    border: 1px solid #0C0;
-}
-.form-style-2 .textarea-field{
-    height:100px;
-    width: 55%;
-}
-.form-style-2 input[type=submit],
-.form-style-2 input[type=button]{
-    border: none;
-    padding: 8px 15px 8px 15px;
-    background: #FF8500;
-    color: #fff;
-    box-shadow: 1px 1px 4px #DADADA;
-    -moz-box-shadow: 1px 1px 4px #DADADA;
-    -webkit-box-shadow: 1px 1px 4px #DADADA;
-    border-radius: 3px;
-    -webkit-border-radius: 3px;
-    -moz-border-radius: 3px;
-}
-.form-style-2 input[type=submit]:hover,
-.form-style-2 input[type=button]:hover{
-    background: #EA7B00;
-    color: #fff;
-}
-</style>
-</head>
-<body onload="initialize()">
-
-<div id="divScreenDetails">
-	
-</div>
-
-<button onclick="openNewScreen()">Add New</button>
-
-<div id="divNewScreen" class="modal">
-	<div class="modal-content">
-		<div data-nsModalClose class="modal-header">
-		    <span class="close">&times;</span>
-		    <span>Add New Screen</span>
-		</div>
-		<div class="modal-body">
-	    	<div class="form-style-2">
-				<form id="formScreen" action="" method="post">
-					<label for="txtScreenName"><span>Screen Name <span class="required">*</span></span><input type="text" id="txtScreenName" name="txtScreenName" class="input-field" value="" required/></label>
-					<label for="txtScreenHTML"><span>Screen HTML <span class="required">*</span></span><textarea id="txtScreenHTML" name="txtScreenHTML" class="textarea-field" required></textarea></label>
-					<label for="btnBrowseFiles"><span>External Files </span><input type="file" id="btnBrowseFiles" name="btnBrowseFiles" multiple="true" onchange="makeFileList()" size="41" title="Attach"></label>
-					<div id="divFiles" style="height: 10%;"></div>
-				</form>
-			</div>
-	  	</div>
-		<div class="modal-footer">
-    		<label><span>&nbsp;</span><button id="btnSubmit" onclick="submitHandler()">Submit</button></label>
-  		</div>
-	</div>
-</div>
-
-<script src="http://localhost:8080/JSLib/lib/com/org/util/nsUtil.js"></script>
-<script src="http://localhost:8080/JSLib/lib/com/org/prototype/base/nsContainerBase.js"></script> 
-<script src="http://localhost:8080/JSLib/lib/com/org/util/nsPagination.js"></script>
-<script src="http://localhost:8080/JSLib/lib/com/org/util/nsSVG.js"></script>
-<script src="http://localhost:8080/JSLib/lib/com/org/util/nsMenu.js"></script>
-<script src="http://localhost:8080/JSLib/lib/com/org/util/nsFlatGrid.js"></script>
-<script src="http://localhost:8080/JSLib/lib/com/org/util/nsGroupingGrid.js"></script>
-<script src="http://localhost:8080/JSLib/lib/com/org/util/nsHierarchicalGrid.js"></script>
-<script src="http://localhost:8080/JSLib/lib/com/org/util/nsFilter.js"></script>
-<script src="http://localhost:8080/JSLib/lib/com/org/util/nsGridPluggins.js"></script>
-<script src="http://localhost:8080/JSLib/lib/com/org/prototype/nsGrid.js"></script>
-<script src="http://localhost:8080/JSLib/lib/com/org/prototype/nsList.js"></script>
-<script src="http://localhost:8080/JSLib/lib/com/org/util/nsExport.js"></script>
-<script src="http://localhost:8080/JSLib/lib/com/org/util/nsRouter.js"></script>
-
-<script>
-var column = [
-	      		{headerText:"Screen",dataField:"screenName",width:"200px",sortable:true,sortDescending:true,draggable:false,resizable:true,showMenu:true},
-	      		{headerText:"Created Date",dataField:"createdDate",width:"200px",sortable:true,sortDescending:true,draggable:false,resizable:true,showMenu:true},
-	      		{headerText:"",dataField:"delete",width:"200px",sortable:false,sortDescending:true,draggable:false,resizable:true,showMenu:true,itemRenderer:"deleteItemRenderer"},
-	      	];
-	var setting = {nsTitle:"Flat Grid Demo",type:"",renderInCachedMode:false,enableVirtualScroll:true,enableDataRefreshOnScrollEnd:false,dataRefreshfireDelay:100, 
-		 		   enableFilter:true,enableAdvancedFilter:true,enablePagination:false,paginationType:"scroll",enableAsyncLoadPagination:false, 
-			 	   paginationMode:"auto",enableMouseHover:true,enableMultipleSelection:true,childField:"children",rowKeyField:"id",
-		           customScrollerRequired:false,groupByField:"country,year",columnResizable:true,enableVariableRowHeight:true,
-		           columnDraggable:true,pageSize:100,fetchRecordCallBack:"addRows",totalRecords:600,rowHeight:30,leftFixedColumn:0,rightFixedColumn:1,
-		           enableFixedColumnAnimation:false,enableRowMove:false,isSameTableMove:false,rowMoverDropEndHandler:"rowDropEndHandler",
-		           enableContextMenu:false,contextMenuProvider:"contextMenuProvider",enableExport:true,enableResponsive:true,responsiveMode:"stack",
-		           heightOffset:250,customClass:{bodyCell:"nonFirstGridBodyCell"}};
-	var fileListSetting = {labelField:"name",enableVirtualScroll:false,isDraggable:false,isDroppable:true,
-						   enableDragDrop:false,enableDragByHandle:false,enableDragAfterHold:false,
-			               enableMultipleSelection:false,enableKeyboardNavigation:true,customScrollerRequired:false,
-			               enableMouseHover:true,enableMouseHoverAnimation:false,disableDraggableFunction:null,
-			               enableTruncateToFit:true,enableToolTipForTruncateText:true,itemRenderer:"fileListItemRenderer"};
-
-	var nsGrid = null;
-	var popUp = null;
-	var nsFileList = null;
-	function initialize()
-	{
-		getScreens();
-	}
-	
-	function getScreens()
-	{
-		var divScreenDetails = document.getElementById("divScreenDetails");
-		if(!nsGrid)
-		{
-			nsGrid = new NSGrid(divScreenDetails,setting);
-			nsGrid.setColumn(column);
-		}
-		var util = nsGrid.util;
-		getScreensDetails(function(result)
-		{
-			nsGrid.dataSource(result);
-		});
-	}
-	
-	window["deleteItemRenderer"] = function(data,dataField,rowIndex,columnIndex,row)
-	{
-		var span = document.createElement("span"); 
-		if(data)
-		{
-			var util = nsGrid.util;
-			var iconEdit = document.createElement("i");
-			iconEdit.innerHTML = "mode_edit";
-			iconEdit.setAttribute("class","material-icons");
-			iconEdit.setAttribute("style","vertical-align: middle;font-size: 15px;color:red");
-			util.addEvent(iconEdit,"click",function(event)
+this.__initialize = function()
 			{
-				console.log(data);
-			});
-			span.appendChild(iconEdit);
-			var spanDelete = document.createElement("span");
-			spanDelete.innerHTML = "&times;";
-			spanDelete.setAttribute("class","closeFile");
-			span.appendChild(spanDelete);
-			util.addEvent(spanDelete,"click",function(event)
-			{
-				console.log(data);
-			});
-		}
-		return span;
-	};
-	
-	function openNewScreen()
-	{
-		if(!popUp)
-		{
-			popUp = new NSModal(document.getElementById("divNewScreen"));
-		}
-		popUp.open();
-		if(!nsFileList)
-		{
-			var divFiles = document.querySelector("#divFiles");
-			nsFileList =  new NSList(divFiles,fileListSetting);
-		}
-	}
-	
-	function makeFileList() 
-	{
-		var btnBrowseFiles = document.getElementById("btnBrowseFiles");
-		var arrFiles = []; 
-		for (var count = 0; count < btnBrowseFiles.files.length; count++) 
-		{
-			var item = {name:btnBrowseFiles.files[count].name};
-			arrFiles.push(item);
-		}
-		nsFileList.dataSource(arrFiles);
-	}
-	
-	window["fileListItemRenderer"] = function(data,labelField,rowIndex,columnIndex,row)
-	{
-		var util = nsFileList.util;
-		var span = document.createElement("span");
-		var text = data[labelField] ? data[labelField] : "";
-		var spanText = document.createElement("span");
-		spanText.appendChild(document.createTextNode(text));
-		span.appendChild(spanText);
-		/*var spanDelete = document.createElement("span");
-		spanDelete.innerHTML = "&times;";
-		spanDelete.setAttribute("class","closeFile");
-		span.appendChild(spanDelete);
-		util.addEvent(spanDelete,"click",function(event)
-		{
-			removeFile(text);
-			makeFileList();
-		});*/
-		
-		return span;
-	}
-	
-	function removeFile(fileName) 
-	{
-		var btnBrowseFiles = document.getElementById("btnBrowseFiles");
-		for (var count = 0; count < multiple .files.length; count++) 
-		{
-			if(btnBrowseFiles.files[count].name === fileName) 
-			{
-				btnBrowseFiles.files.splice(count,1);
-				return;
-			}
+				this.__tblBody = this.__table.tBodies[0];
+				this.__range = {cursor:null,start:null,topLeft:null,bottomRight:null};
+				if(!this.__tblMouseDownRef)
+				{
+					this.__tblMouseDownRef = this.__tblMouseDownHandler.bind(this);
+					this.util.addEvent(this.__table,"mousedown", this.__tblMouseDownRef);
+				}
+				if(!this.__documentMouseDownRef)
+				{
+					this.__documentMouseDownRef = this.__documentMouseDownHandler.bind(this);
+					this.util.addEvent(document,"mousedown", this.__documentMouseDownRef);
+				}
+				if(!this.__tblKeyEventRef)
+				{
+					this.__tblKeyEventRef = this.__tblKeyEventHandler.bind(this);
+					this.util.addEvent(document,"keypress", this.__tblKeyEventRef);
+					this.util.addEvent(document,"keyup", this.__tblKeyEventRef);
+					this.util.addEvent(document,"keydown", this.__tblKeyEventRef);
+				}
+			};
 			
-		}
-    }
-	
-	function submitHandler()
-	{
-		var formScreen = document.getElementById("formScreen");
-		//if (!formScreen.checkValidity()) 
-        //{                
-			insertScreenDetail({"screenName": document.getElementById("txtScreenName").value,
-								"screenHTML": document.getElementById("txtScreenHTML").value,
-								"createdDate": "aaa"},function(result){
-									popUp.close();
-									getScreens();
-								});
-        //}
-	}
-</script>
-
-<script>
-	function getScreensDetails(callback)
-	{
-		var ajax = new nsAjax();
-		ajax.post("getAllScreen.do").then(function(result){
-			if(callback)
+			this.__tblMouseDownHandler = function(event)
 			{
-				callback(result);
-			}
-		});
-	}
-	
-	function insertScreenDetail(item,callback)
-	{
-		if(item)
-		{
-			var ajax = new nsAjax();
-			ajax.post("insertScreen.do",item).then(function(result){
-				if(callback)
-				{
-					callback(result);
-				}
-			});
-		}
-	}
-</script>
-
-<script>
-var NSModal = function(popUp) 
-{
-	var util = new NSUtil();
-	var self = this;
-	var initilaize = function()
-	{
-		 var modalClose = getChildByProperty(popUp,"nsModalClose");
-		 if(modalClose)
-		 {
-			 util.addEvent(modalClose,"click",self.close.bind(self));
-		 }
-	};
-	var getChildByProperty = function(parent,propertyName,value)
-	{
-		if(propertyName)
-		{
-			if(!parent)
-			{
-				parent = document;
-			}
-			if(!value)
-			{
-				value = "";
-			}
-			var child = parent.querySelector("[" + propertyName + "='" + value + "']") || parent.querySelector("[data-" + propertyName + "='" + value + "']");
-			return child;
-		}
-		return null;
-	};
-	
-	this.open = function()
-	{
-		util.addStyleClass(popUp,"modal-opened");
-	};
-	
-	this.close = function()
-	{
-		util.removeStyleClass(popUp,"modal-opened");
-	};
-	initilaize();
-};
-</script>
-
-<script>
-var nsAjax = function()
-{
-	var self = this;
-	this.__getRequest = function() 
-	{
-		if (window.ActiveXObject)
-		{
-			return new ActiveXObject('Microsoft.XMLHTTP');
-		}
-		else if (window.XMLHttpRequest)
-		{
-			return new XMLHttpRequest();
-		}
-		return false;
-	};
-	
-	this.__getParam = function(data)
-	{
-		var strParam = "";
-		var param = data;
-		for(var paramKey in param)
-		{
-			if(param[paramKey])
-			{
-				strParam += "&" + paramKey + "=" + param[paramKey];
-			}
-		}
-		if(strParam && strParam.length > 1)
-		{
-			strParam = strParam.substring(1);
-		}
-		return strParam;
-	};
-	
-	this.__defaultSuccessHandler = function(successHandler,request)
-	{
-		if(successHandler)
-		{
-			var responseData = request.responseText;
-            var responseJson = responseData ? JSON.parse(responseData) : responseData;
-			successHandler(responseJson);
-		}
-	};
-	
-	this.__defaultErrorHandler = function(errorHandler,request)
-	{
-		if(errorHandler)
-		{
-			errorHandler(request);
-		}
-	};
-	
-	this.processRequest = function(methodType,url,data)
-	{
-		var objPromise = new Promise(function(resolve,reject)
-		{
-			var request = self.__getRequest();
-			if(request) 
-			{
-				var strParam = null;
-				if (methodType.toUpperCase() === "POST") 
-				{
-					request.open("POST",url, true);
-					request.setRequestHeader("Content-Type", "application/json");
-					//request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-					if(data && typeof data === 'object')
-					{
-						strParam = JSON.stringify(data);
-					}
-					else
-					{
-						strParam = data;
-					}
-				} 
-				else 
-				{
-					strParam = self.__getParam(data);
-					if(strParam && strParam != "")
-					{
-						url += "?" + strParam;
-						//so that send method sends as null for GET
-						strParam = null;
-					}
-					request.open("GET",url, true);
-				}
-				request.onreadystatechange = function()
+				var event = this.util.getEvent(event);
+				var target = this.util.getTarget(event);
+				var cell = this.__closestCell(target);
+		        if(cell)
 		        {
-		           if (request.readyState === 4)
-		           {
-		              if (request.status === 200)
-		              {
-		                 self.__defaultSuccessHandler(resolve,request);
-		              } 
-		              else 
-		              {
-		            	  self.__defaultErrorHandler(reject,request);
-		              }
-		           }
-		           else 
-		           {
-		              console.log("request processing going on");
-		           }
+		        	var position = this.__getCellPosition(cell);
+			        this.__selectCell(position,event.shiftKey);
+			        event.preventDefault();
+			        this.__refreshCells();
+		        }
+		        if(!this.__documentMouseUpRef)
+				{
+					this.__documentMouseUpRef = this.__documentMouseUpHandler.bind(this);
+					this.util.addEvent(document,"mouseup", this.__documentMouseUpRef);
+				}
+		        if(!this.__tblMouseMoveRef)
+				{
+		        	this.__tblMouseMoveRef = this.__movingHandler.bind(this);
+					this.util.addEvent(this.__table,"mousemove", this.__tblMouseMoveRef);
+				}
+			};
+			
+			this.__documentMouseDownHandler = function(event)
+			{
+				var event = this.util.getEvent(event);
+				var target = this.util.getTarget(event);
+				if(this.__setFocus(this.__table === target || (this.__table.compareDocumentPosition(target) & Node.DOCUMENT_POSITION_CONTAINED_BY)))
+				{
+			    	//scope.$apply();
 			    }
-				//request.responseType = "JSON";
-				request.send(strParam);
-			}
-   		});
-   		return objPromise;
-	}; 		
-	this.post = function(url,data)
-	{
-		return self.processRequest("POST",url,data);
-	};
-	this.get = function(url,data)
-	{
-		return self.processRequest("GET",url,data);
-	};
-};
-</script>
-
-</body>
-</html>
+			};
+			
+			this.__documentMouseUpHandler = function(event)
+			{
+				if(this.__tblMouseMoveRef)
+				{
+					this.util.removeEvent(this.__table,"mousemove",this.__tblMouseMoveRef);
+					this.__tblMouseMoveRef = null;
+				}
+			};
+			
+			this.__tblMouseMoveHandler = function(event)
+			{
+				this.__movingHandler(event);
+			};
+			
+			this.__tblKeyEventHandler = function(event)
+			{
+				if(this.__hasFocus)
+				{
+					var event = this.util.getEvent(event);
+					var target = this.util.getTarget(event);
+					if(!this.__isKeyStrokeValid(target,this.__table))
+					{
+						if(event.type == "keydown" && this.__KeyMoveHandler(event))
+						{
+							this.__refreshCells();
+							event.stopImmediatePropagation();
+							event.preventDefault();
+					    }
+					}
+				}
+			};
+			
+			this.__movingHandler = function(event)
+			{
+				var event = this.util.getEvent(event);
+				var target = this.util.getTarget(event);
+				var cell = this.__closestCell(target);
+		        if(cell)
+		        {
+		        	this.__selectCell(this.__getCellPosition(cell),true);
+		        	this.__refreshCells();
+		        }
+			};
+			
+			this.__focus = function()
+			{
+			  if(this.__table.ownerDocument.activeElement)
+			  {
+				 this.__table.ownerDocument.activeElement.blur();
+			  }
+			  this.__hasFocus = true;
+			};
+			
+			this.__blur = function()
+			{
+				this.__hasFocus = false;
+			};
+			
+			this.__setFocus = function(enableFocus)
+			{
+			  	if(this.__hasFocus != enableFocus)
+			  	{
+				    if(enableFocus)
+				    {
+				      	this.__focus();
+				    }
+				    else
+				    {
+				      	this.__blur();
+				    }
+				    return true;
+			  	}
+			};
+			
+			this.__selectCell = function(position,isExpanding)
+			{
+				 if(position)
+				 {
+					 this.__focus();
+					 var size = this.__getTotalSize();
+					 if(size && size.row && size.col)
+					 {
+						 if(isExpanding && typeof(isExpanding) == "object")
+						 {
+							 isExpanding = this.__getBoundCellPosition(isExpanding,size);
+						 }
+						 this.__setCurrentRange(this.__getBoundCellPosition(position,size),isExpanding);
+					 }
+				 }
+			};
+			
+			this.__refreshCells = function()
+			{
+				this.__drawCursorClass("cursor",this.__range.cursor);
+		        var position = {topLeft:this.__range.topLeft,bottomRight:this.__range.bottomRight};
+		        this.__drawAreaClass("area",position);
+			};
+			
+			this.__drawAreaClass = function(cssClass,position)
+			{
+				var cell = null;
+				var row = null;
+				var rowIndex = null;
+			  	var colIndex = null;
+			  	var processTable = function(arrElement,arrClass)
+				{
+					arrElement.forEach(function(element) 
+					{
+						arrClass.forEach(function(cssClass) 
+						{
+							self.util.removeStyleClass(element,cssClass);
+						});
+					});
+				};
+				var addStyleClass = function(element,cssClass)
+				{
+					self.util.addStyleClass(element,cssClass);
+				};
+				processTable(this.__table.querySelectorAll("tbody>tr>td." + cssClass),[cssClass,cssClass + "-l",cssClass + "-r"]);
+				processTable(this.__table.querySelectorAll("colgroup>col." + cssClass),[cssClass,cssClass + "-l",cssClass + "-r"]);
+				processTable(this.__table.querySelectorAll("tbody>tr." + cssClass),[cssClass,cssClass + "-t",cssClass + "-b"]);
+			  	if(position && position.topLeft)
+			  	{
+				    for(rowIndex = position.topLeft.row,row = this.__tblBody.rows[rowIndex];rowIndex <= position.bottomRight.row && row;rowIndex++,row= this.__tblBody.rows[rowIndex])
+				    {
+				    	addStyleClass(row,cssClass);
+				      	if(rowIndex == position.topLeft.row)
+				      	{
+				      		addStyleClass(row,cssClass + "-t");
+				      	}
+				      	if(rowIndex == position.bottomRight.row)
+				      	{
+				      		addStyleClass(row,cssClass + "-b");
+				      	}
+				      	for(colIndex = position.topLeft.col,cell = row.cells[colIndex];colIndex <= position.bottomRight.col && cell;colIndex++,cell = row.cells[colIndex])
+				      	{
+				      		addStyleClass(cell,cssClass);
+				        	if(colIndex == position.topLeft.col)
+				        	{
+				        		addStyleClass(cell,cssClass + "-l");
+				        	}
+				        	if(colIndex == position.bottomRight.col)
+				        	{
+				        		addStyleClass(cell,cssClass + "-r");
+				        	}
+				      	}
+				    }
+				    for(colIndex = position.topLeft.col;colIndex <= position.bottomRight.col;colIndex++)
+				    {
+				    	cell = this.__getColGroup(colIndex);
+				      	addStyleClass(cell,cssClass);
+				      	if(colIndex == position.topLeft.col)
+			        	{
+			        		addStyleClass(cell,cssClass + "-l");
+			        	}
+			        	if(colIndex == position.bottomRight.col)
+			        	{
+			        		addStyleClass(cell,cssClass + "-r");
+			        	}
+				    }
+				 }
+			};
+			
+			this.__drawCursorClass = function(cssClass,position)
+			{
+				var self = this;
+				var processTable = function(arrElement)
+				{
+					arrElement.forEach(function(element) 
+					{
+						self.util.removeStyleClass(element,cssClass);
+					});
+				};
+				processTable(this.__table.querySelectorAll("tbody>tr>td." + cssClass));
+				processTable(this.__table.querySelectorAll("colgroup>col." + cssClass));
+				processTable(this.__table.querySelectorAll("tbody>tr." + cssClass));
+			  	if(position)
+			  	{
+			    	var cell = this.__getCell(position);
+			    	if(cell)
+			    	{
+			    		this.util.addStyleClass(cell,cssClass);
+			    		this.util.addStyleClass(cell.parentNode,cssClass);
+			    	}
+			    	this.util.addStyleClass(this.__getColGroup(position.col),cssClass);
+			  	}
+			};
+			
+			this.__KeyMoveHandler = function(event)
+			{
+				var event = this.util.getEvent(event);
+			  	if(event.ctrlKey || event.metaKey || event.altKey) 
+			  	{
+			  		return;
+			  	}
+			  	var shiftKey = event.shiftKey;
+			  	var keyCode = this.util.KEYCODE;
+			  	switch(event.keyCode)
+			  	{
+				  case keyCode.UP:
+				    this.__selectMove({row:-1,col:0},shiftKey);
+				    return true;
+				  case keyCode.DOWN:
+				    this.__selectMove({row:+1,col:0},shiftKey);
+				    return true;
+				  case keyCode.LEFT:
+				    this.__selectMove({row:0,col:-1},shiftKey);
+				    return true;
+				  case keyCode.RIGHT:
+				    this.__selectMove({row:0,col:+1},shiftKey);
+				    return true;
+				  case keyCode.TAB:
+				    this.__selectMove({row:0,col:shiftKey ? -1:+1});
+				    return true;
+				  case keyCode.ESC:
+					this.__deSelectCurrentRange();
+			    	return true;
+			  	}
+			};
+			
+			this.__isKeyStrokeValid = function(target,validElement)
+			{
+			  	while(target)
+			  	{
+			    	if(target.tagName == "INPUT" || target.tagName == "TEXTAREA" || target.contentEditable == "true" || target.tagName == "SELECT")
+			    	{
+			    		return true;	
+			    	}
+			    	if(target == validElement)
+			    	{
+			    		return false;
+			    	}
+			    	target = target.parentNode;
+			  	}
+			  	return false;
+			};
+			
+			this.__selectMove = function(move,isExpanding)
+			{
+			  	var cursor = this.__range.cursor || {};
+			  	var size = this.__getTotalSize();
+			  	if(!size||!size.row||!size.col)
+			  	{
+			      	return;
+			  	}
+			  	var position = this.__getBoundCellPosition({row:cursor.row + (move.row || 0),col:cursor.col + (move.col||0)},size);
+			  	if(isExpanding && typeof(isExpanding) == "object")
+			  	{
+			  		isExpanding = this.__getBoundCellPosition(isExpanding,size);
+			  	}
+			  	this.__selectCell(position,isExpanding);
+			};
+			
+			this.__getColGroup = function(colIndex)
+			{
+			  	if(!this.__colgroup)
+			  	{
+			    	this.__colgroup = this.__getElementsSnapshot(this.__table,"colgroup")[0];
+			    	if(!this.__colgroup)
+			    	{
+			      		this.__colgroup = this.__table.ownerDocument.createElement("colgroup");
+			      		this.__table.appendChild(this.__colgroup);
+			    	}
+			  	}
+			  	while(!this.__colgroup.children[colIndex])
+			  	{
+			    	var col = this.__table.ownerDocument.createElement("col");
+			    	this.__colgroup.appendChild(col);
+			  	}
+			  	return this.__colgroup.children[colIndex];
+			};
+			
+			this.__closestCell = function(target)
+			{
+			  	while(target.parentNode)
+			  	{
+			    	if(target.parentNode.parentNode == this.__tblBody)
+			    	{
+			    		return target;	
+			    	}
+			    	target = target.parentNode;
+			  	}
+			  	return null;
+			};
+			
+			this.__getCellPosition = function(cell)
+			{
+				return {row:cell.parentNode.sectionRowIndex,col:cell.cellIndex};
+			};
+			
+			this.__getTotalSize = function()
+			{
+				 if(this.__tblBody)
+				 {
+				    var rowLength = this.__tblBody.rows.length;
+				    if(rowLength)
+				    {
+				      	return {row:rowLength,col:this.__tblBody.rows[0].cells.length};
+				    }
+				 }
+				 return null;
+			};
+				
+			this.__getBoundCellPosition = function(cellPosition,totalSize)
+			{
+				 return {
+				    col: ((isNaN(cellPosition.col)|| cellPosition.col >= totalSize.col) ? 0 : ((cellPosition.col<0) ? totalSize.col - 1 : cellPosition.col)),
+				    row: ((isNaN(cellPosition.row)|| cellPosition.row >= totalSize.row) ? 0 : ((cellPosition.row<0) ? totalSize.row-1 : cellPosition.row))
+				 };
+			};
+			
+			this.__getCell = function(position)
+			{
+			  	if(position && this.__tblBody)
+			  	{
+			  		var row = this.__tblBody.rows[position.row];
+					if(row && row.cells)
+					{
+						return row.cells[position.col];
+					}
+			  	}
+			  	return null;
+			};
+			//range selection methods
+			this.__setCurrentRange = function(position,isExpanding)
+			{
+			  	this.__range.cursor = this.__hasPositionChanged(this.__range.cursor,{row:position.row,col:position.col});
+			  	if(typeof(isExpanding) == "object")
+			  	{
+			  		this.__range.start = this.__hasPositionChanged(this.__range.start,{row:isExpanding.row,col:isExpanding.col});
+			  	}
+			  	if(!isExpanding || !this.__range.start)
+			  	{
+			  		this.__range.start = this.__range.topLeft = this.__range.bottomRight = this.__range.cursor;
+			  	}
+			  	else
+			  	{
+			  		this.__range.topLeft = this.__hasPositionChanged(this.__range.topLeft,{row:Math.min(this.__range.start.row,this.__range.cursor.row),col:Math.min(this.__range.start.col,this.__range.cursor.col)});
+			  		this.__range.bottomRight = this.__hasPositionChanged(this.__range.bottomRight,{row:Math.max(this.__range.start.row,this.__range.cursor.row),col:Math.max(this.__range.start.col,this.__range.cursor.col)});
+			 	}
+			};
+			
+			this.__deSelectCurrentRange = function()
+			{
+				this.__range.cursor = this.__range.start = this.__range.topLeft = this.__range.bottomRight = undefined;
+			};
+			
+			this.__hasPositionChanged = function(oldPosition,newPosition)
+			{
+			  	return (!oldPosition || oldPosition.row != newPosition.row || oldPosition.col != newPosition.col) ? newPosition : oldPosition;
+			};
+			
+			this.__isValidRange = function(position)
+			{
+			  	return (this.__range.cursor && this.__range.topLeft.row <= position.row && position.row <= this.__range.bottomRight.row && this.__range.topLeft.col <= position.col && position.col <= this.__range.bottomRight.col);
+			};
+			//end of range selection methods
+			this.__getElementsSnapshot = function(element,type)
+			{
+				var xPathResult = element.ownerDocument.evaluate(type,element,null,XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,null);
+				var length = xPathResult.snapshotLength;
+				var arrReturn = new Array(length);
+				for(var count = 0;count < length; count++)
+				{
+					arrReturn[count] = xPathResult.snapshotItem(count);
+				}
+				return arrReturn;
+			};
