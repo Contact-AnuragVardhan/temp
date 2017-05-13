@@ -1,40 +1,8 @@
-if(this.hasAttribute("showExpandCollapseIcon"))
-		{
-			this.__showExpandCollapseIcon = this.util.isUndefinedOrNull(this.getAttribute("showExpandCollapseIcon")) ? true : Boolean.parse(this.getAttribute("showExpandCollapseIcon"));
-		}
-NSGrid.prototype.expandCollapseByRow = function(element,rowIndex)
-{
-	if(element)
+if(this.__nsGrid.hasAttribute("multiLevelGroupColumn"))
 	{
-		element = this.util.findParent(element,"TR");
-		if(element)
-		{
-			rowIndex = parseInt(element.getAttribute("ns-index"));
-		}
+		this.__multiLevelGroupColumn = this.__nsGrid.getAttribute("multiLevelGroupColumn");
 	}
-	if(rowIndex > -1)
+	else
 	{
-		var isCollapse = this.__isRowCollapsed(null,rowIndex);
-		this.__showHideRow(parseInt(rowIndex),element,!isCollapse);
+		this.__multiLevelGroupColumn = {headerText:"Group",dataField:this.__nsGrid.getID() + "_group_field",width:"100px",enableFilter:true,groupRenderer:this.__groupTextRenderer.bind(this)};
 	}
-};
-NSGrid.prototype.__isRowCollapsed = function(element,rowIndex)
-{
-	if(element)
-	{
-		element = this.util.findParent(element,"TR");
-		if(element)
-		{
-			rowIndex = parseInt(element.getAttribute("ns-index"));
-		}
-	}
-	if(rowIndex > -1)
-	{
-		var item = this.__getItemByIndex(rowIndex);
-		if(item)
-		{
-			return item[this.__fieldIsCollapsed];
-		}
-	}
-	return false;
-};
