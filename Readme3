@@ -1,8 +1,143 @@
-if(this.__nsGrid.hasAttribute("multiLevelGroupColumn"))
+this.__lastEditor = null;
+this.__tblClickRef = null;
+	this.__tbldblClickRef = null;
+	
+		this.destroy = function()
 	{
-		this.__multiLevelGroupColumn = this.__nsGrid.getAttribute("multiLevelGroupColumn");
-	}
-	else
+		this.deselectAll();
+		if(this.__tblMouseDownRef)
+		{
+			this.util.removeEvent(this.__table,"mousedown", this.__tblMouseDownRef);
+			this.__tblMouseDownRef = null;
+		}
+		if(this.__tblClickRef)
+		{
+			this.util.removeEvent(this.__table,"click", this.__tblClickRef);
+			this.__tblClickRef = null;
+		}
+		if(this.__tbldblClickRef)
+		{
+			this.util.removeEvent(this.__table,"dblclick", this.__tbldblClickRef);
+			this.__tbldblClickRef = null;
+		}
+		if(this.__tblMouseMoveRef)
+		{
+			this.util.removeEvent(this.__table,"mousemove", this.__tblMouseMoveRef);
+			this.__tblMouseMoveRef = null;
+		}
+		if(this.__documentMouseDownRef)
+		{
+			this.util.removeEvent(document,"mousedown", this.__documentMouseDownRef);
+			this.__documentMouseDownRef = null;
+		}
+		if(this.__documentMouseUpRef)
+		{
+			this.util.removeEvent(document,"mouseup", this.__documentMouseUpRef);
+			this.__documentMouseUpRef = null;
+		}
+        if(this.__documentMouseMoveRef)
+		{
+			this.util.removeEvent(document,"mousemove", this.__documentMouseMoveRef);
+			this.__documentMouseMoveRef = null;
+		}
+		if(this.__documentKeyEventRef)
+		{
+			this.util.removeEvent(document,"keypress", this.__documentKeyEventRef);
+			this.util.removeEvent(document,"keyup", this.__documentKeyEventRef);
+			this.util.removeEvent(document,"keydown", this.__documentKeyEventRef);
+			this.__documentKeyEventRef = null;
+		}
+		if(this.__documentCopyRef)
+		{
+			this.util.removeEvent(document,"copy", this.__documentCopyRef);
+			this.__documentCopyRef = null;
+		}
+		if(this.__documentPasteRef)
+		{
+			this.util.removeEvent(document,"paste", this.__documentPasteRef);
+			this.__documentPasteRef = null;
+		}
+	};
+	
+	this.__tblMouseDownHandler = function(event)
 	{
-		this.__multiLevelGroupColumn = {headerText:"Group",dataField:this.__nsGrid.getID() + "_group_field",width:"100px",enableFilter:true,groupRenderer:this.__groupTextRenderer.bind(this)};
-	}
+		if(!this.__lastEditor)
+		{
+			event = this.util.getEvent(event);
+			var target = this.util.getTarget(event);
+			//var cell = this.__closestCell(target);
+			var cell = this.util.findParent(target,"TD");
+	        if(cell)
+	        {
+	        	this.__fireSelectionStartEvent();
+	        	this.__selectedCell = cell;
+	        	var position = this.__getCellPosition(cell);
+		        this.__selectCell(position,event.shiftKey);
+		        event.preventDefault();
+		        this.__refreshCells();
+	        }
+	        if(!this.__documentMouseUpRef)
+			{
+				this.__documentMouseUpRef = this.__documentMouseUpHandler.bind(this);
+				this.util.addEvent(document,"mouseup", this.__documentMouseUpRef);
+			}
+	        if(!this.__documentMouseMoveRef)
+			{
+				this.__documentMouseMoveRef = this.__documentMouseMoveHandler.bind(this);
+				this.util.addEvent(document,"mousemove", this.__documentMouseMoveRef);
+			}
+	        if(!this.__tblMouseMoveRef)
+			{
+	        	this.__tblMouseMoveRef = this.__tblMouseMoveHandler.bind(this);
+				this.util.addEvent(this.__table,"mousemove", this.__tblMouseMoveRef);
+			}
+		}
+	};
+	
+	this.__tblMouseMoveHandler = function(event)
+	{
+		this.__movingHandler(event);
+	};
+	
+	this.__tblClickHandler = function(event)
+	{
+		event = this.util.getEvent(event);
+		var target = this.util.getTarget(event);
+		var cell = this.util.findParent(target,"TD");
+		if (!cell || (this.__lastEditor && this.__lastEditor.__cell == cell)) 
+		{
+			if(this.__lastEditor)
+			{
+				this.__lastEditor.setFocus();	
+			}
+	        return;
+	    }
+		if (this.__lastEditor && this.__lastEditor.__cell != cell) 
+		{
+			this.__commitEditorChanges(this.__lastEditor);
+	    }
+		if(this.__config.enableFillHandle && cell)
+		{
+        	this.__fireSelectionStartEvent();
+        	this.__selectedCell = cell;
+        	var position = this.__getCellPosition(cell);
+	        this.__selectCell(position,event.shiftKey);
+	        event.preventDefault();
+	        this.__refreshCells();
+			this.__repositionHandle(cell);
+		}
+	};
+	
+	this.__tbldblClickHandler = function(event)
+	{
+		event = this.util.getEvent(event);
+		var target = this.util.getTarget(event);
+		var cell = this.util.findParent(target,"TD");
+		if(!this.__lastEditor || (this.__lastEditor && this.__lastEditor.__cell != cell))//if(this.__selectedCell != cell)
+		{
+			this.__selectedCell = cell;
+			this.__handleEditor(this.__selectedCell,event);
+		}
+	};
+	
+	var cell = this.util.findParent(target,"TD");
