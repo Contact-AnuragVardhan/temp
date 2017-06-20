@@ -1,71 +1,52 @@
-	setting: this will be an object with each key as the dataField to be filtered and value as the setting which needs to be applied for that dataField filtering.
-	Settings can be 
-	caseSensitive(Boolean): if true the search will be case sensitive.
-	multiline(Boolean): if true the search will be for multiline values.
-	matchType: This represents the type of search which needs to be implemented. Its values can be "exact", "startsWith", "endsWith", "contains"
-	recordLimit(Number): if this parameter is set then the filtering logic will restrict the number of records to be returned to that limit.
-resetFilters: it will reset all the filtering conditions of the grid and reset the grid state.
-highlightText: This function will highlight a text in the grid for a particular column.
-Parameters:
-	dataField:  The datafield which represents the column to be highlighted.
-	text:  The text to be highlighted in the column.
-unHighlightText: This function will un-highlight all the highlighted text in the grid.
-fixFixedHeader: This function is called to fix the fixed columns. It should be called if the Grid has Fixed Columns and the header calculation is not perfect due to external elements. It should be called after all the elements are rendered.
-changeDeviceView: This function is called to programmatically change the grid’s view from tabular to the device view(depending on responsiveMode set for the grid) .
-scrollToIndex : This function scrolls the grid to the row whose index is passed a parameter.
-Parameters:
-	index : The item index to which the grid needs to scroll down.
-	animationRequired: If this flag is true then grid will scroll to the row with animation.
-			         If this flag is false then grid scrolls directly to the intended row.
-Events:
-ITEM_SELECTED: The grid fires this event when a row is selected. The item related to the selected row can be accessed using detail parameter in the event object of its listener (i.e. event.detail)
-ITEM_UNSELECTED: The grid fires this event when a row is unselected. The item related to the unselected row can be accessed using detail parameter in the event object of its listener (i.e. event.detail)
-
-
-
-
-
-
-
-
-
- 
-Column Specific Properties:
-headerText :  Text for the header of this column.
-dataField:  Mandatory Field. The name of the field or property in the data source item associated with the column.
-sortField: The name of the field or property in the data source item on which column should be sorted.
-If it is null or undefined then sortField takes the value of dataField.
- toolTipField : The name of the field or property in the data source item on which toolTip should be shown for the column.
-width: The property defines the width of the column.
-sortable: A flag that indicates whether the user can click on the header of this column to sort the data source on this column.
-resizable:  A flag that indicates whether the user is allowed to resize the column.
-draggable:  A flag that indicates whether the user is allowed to drag the column to a new position.
-                    If true, the user can drag the column headers to a new position
- minWidth : The minimum width of the column below which the column cannot be resized.
- sortDescending: Indicates whether the column sort is in ascending or descending.
-If this flag is true then the column will be sorted in descending order else in ascending order.
- labelFunction :  A user-supplied function to run on each item to determine its label.
- toolTipRenderer : User-supplied function to run on each item to determine its toolTip.
- itemRenderer:  The function represents the custom item renderer for the column.
- template: represents the template tag or template id for rendering the cell in the column.
- setData: A function which gets called for setting the data in a cell when template is defined.
- headerTemplate : represents the template tag or template id for rendering the header.
-groupRenderer: A function that returns HTML or HTML element for  the Group Renderer  on the column if grid is in Grouping Mode.
- headerTruncateToFit: If this property is true, and the header cell size is smaller than its text, the text of the header cell is truncated using a localizable string, such as "...".
- truncateToFit: If this property is true, and the cell size is smaller than its text, the text of the cell is truncated using a localizable string, such as "...".
- showMenu: If this property is true, this shows the column level Menu
- priority: It sets the priority for the column to be visible if Grids  enableResponsive property is true and responsiveMode is columnToggle.
-enableFilter(boolean): if true then grid adds filter boxes to the column header, allowing filtering within the column for the entire grid.
-filter : This is an object with below properties:
-filterRenderer: A function that returns HTML or HTML element  for  the filter on the column.
-This is used to apply custom filtering on the column.
-	filterTemplate: represents the template tag or template id for rendering the filter for the column.
-	enableAdvancedFilter (boolean): if true then grid adds advanced filtering option to the column header. (Default Value: true)
-	advancedFilterType: This represents the advanced filter type to be applied on the column.
-Types of advanced filters:
-	text :  the filter is for string search.
-	number: the filter is for number search.
-	list: this filter is for excel type search where unique values for the column is listed in a list field.
-advancedFilterHandler: This represents a callback function which the developer uses to implement a custom Advance Filter.
-Callback Definition: 
-function(dataField,nsPopUp,objAdvancedFilterSetting,rendererID,isEnableApply,createApplySectionCallback,advanceFilterGridCallback,removePopUpCallback);
+var column = [
+		      		{headerText:"Id",dataField:"id",width:"200px",sortable:true,sortDescending:true,draggable:false,resizable:true,minWidth:50,priority:1,showMenu:true,
+		      		 filter:{advancedFilterType:"number"},extraRowHeaderRenderer:"extraRowHeaderRenderer"},
+		      		{headerText:"Country",dataField:"country",width:"200px",sortable:true,sortDescending:true,draggable:false,resizable:true,priority:2,showMenu:true,
+		      					filter:{enableAdvancedFilter:true},autoSize:false},
+		      		{headerText:"Employees",dataField:"employees",width:"200px",sortable:false,sortDescending:true,headerTruncateToFit:true,
+		      			      	truncateToFit:true,toolTipRenderer:"employeeToolTipRenderer",priority:4,showMenu:true,
+		      			      	filter:{advancedFilterType:"list"}},//toolTipRenderer:employeeToolTipRenderer
+		      		{headerText:"Price",dataField:"price",toolTipField:"price",width:"200px",sortable:true,sortDescending:true,priority:5
+			      					,showMenu:true,itemRenderer:"priceItemRenderer",enableFilter:false},
+		      		{headerText:"Hierarchy",dataField:"hierarchy",width:"200px",sortable:true,sortDescending:false,priority:1,showMenu:true,
+		      					filter:{enableAdvancedFilter:true,advancedFilterType:"list"},multiSelectionEditor:NSGrid.MULTI_SELECTION_EDITORS_TEXTAREA},
+		      		{headerText:"Year",dataField:"year",width:"200px",sortable:true,sortDescending:true,priority:3,showMenu:true,
+		      						filter:{advancedFilterType:"number"},extraRowHeaderRenderer:"extraRowHeaderRenderer"},
+		      		{headerText:"Date",dataField:"date",width:"200px",sortable:true,sortDescending:true,labelFunction:"dateLabelFunction",priority:5,showMenu:true}
+		      	];
+		var multiCellSelectionSetting = {scrollableElement:null,enableFillHandle:false,enableKeyboardNavigation:true,enableCopy:true,enablePaste:true,cellClass:null,areaClass:null};
+		var setting = {nsTitle:"Flat Grid Demo",type:"",renderInCachedMode:false,enableVirtualScroll:false,enableDataRefreshOnScrollEnd:false,dataRefreshfireDelay:100, 
+					   enableMouseHover:false,enableColumnMouseHover:false,headerExtraRowCount:1,enableFilter:true,enableAdvancedFilter:true,enablePagination:false,paginationType:"scroll",enableAsyncLoadPagination:false, 
+				 	   paginationMode:"auto",enableMultipleSelection:false,childField:"children",rowKeyField:"id",
+			           customScrollerRequired:false,groupByField:"country,year",columnResizable:true,enableVariableRowHeight:true,
+			           columnDraggable:true,pageSize:100,fetchRecordCallBack:"addRows",totalRecords:600,rowHeight:30,leftFixedColumn:0,rightFixedColumn:1,
+			           enableFixedColumnAnimation:false,enableRowMove:false,isSameTableMove:false,rowMoverDropEndHandler:"rowDropEndHandler",
+			           enableContextMenu:false,contextMenuProvider:"contextMenuProvider",enableExport:true,enableResponsive:true,responsiveMode:"stack",
+			           heightOffset:250,customClass:{bodyCell:""},theme:"White",enableCellSelection:false,enableRowSelection:false,columnAutoSize:true,
+			           enableMultiCellSelection:true,multiCellSelectionSetting:multiCellSelectionSetting};
+				   
+				   window["extraRowHeaderRenderer"] = function(dataField,colItem,source,rowIndex,colIndex,cell,row)
+		{
+			var total = 0;
+			if(source && source.length > 0)
+			{
+				var item = {};
+				for(var count = 0;count < source.length;count++)
+				{
+					item = source[count];
+					total += item[dataField];
+				}
+			}
+			var htmlText = "" + total;
+			return htmlText;
+		}
+		
+			var multiLevelGroupColumn = {headerText:"Grouped Column",dataField:"group",width:"10%",resizable:true,autoSize:true,minWidth:50,priority:1,
+								headerRenderer:"groupColumnHeaderRenderer",groupRenderer:"groupItemRenderer"};
+	var setting = {nsTitle:"Multi Level Grouping Grid Demo",type:"group",isSingleLevelGrouping:"false",
+					enableVirtualScroll:true,groupByField:"country,year",
+			 	   enableFilter:true,enableAdvancedFilter:true,enableMouseHover:true,enableMultipleSelection:true,
+			 	   childField:"children",rowKeyField:"id",columnResizable:true,enableVariableRowHeight:false,
+		           columnDraggable:true,rowHeight:22,leftFixedColumn:0,rightFixedColumn:0,
+		           enableExport:true,enableResponsive:true,responsiveMode:"stack",multiLevelGroupColumn:multiLevelGroupColumn,showExpandCollapseIcon:false,
+		           heightOffset:250,customClass:{nonFirstBodyColumn:"nonFirstGridBodyCell"}};
