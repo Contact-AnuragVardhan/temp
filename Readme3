@@ -1,143 +1,273 @@
-this.__lastEditor = null;
-this.__tblClickRef = null;
-	this.__tbldblClickRef = null;
-	
-		this.destroy = function()
+package com.org;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+
+public class FileMerger 
+{
+	private static final char LINE_FEED = '\n';
+    private static final char CARRIAGE_RETURN = '\r';
+    private static final char SPACE = ' ';
+    private static final char TAB = '\t';
+    
+    private String currentScript = "";
+    private StringBuffer outputBuffer;
+    private int pos;
+    private char ch;
+    private char lastAppend;
+    private boolean endReached;
+    private boolean contentAppendedAfterLastIdentifier = true;
+    
+    public void compressFiles(String[] arrInputFile,String outputFile) throws Exception
 	{
-		this.deselectAll();
-		if(this.__tblMouseDownRef)
+    	if(arrInputFile != null && arrInputFile.length > 0 && outputFile != null)
 		{
-			this.util.removeEvent(this.__table,"mousedown", this.__tblMouseDownRef);
-			this.__tblMouseDownRef = null;
+    		StringBuilder outputScript = new StringBuilder();
+    		for (String filename : arrInputFile)
+ 		    {
+ 		    	String inputScript = readFile(filename);
+ 		    	inputScript = compressScript(inputScript);
+ 		    	//inputScript = inputScript.replaceAll("\\r", "").replaceAll("\\n", "");
+ 		    	outputScript.append(inputScript);
+ 		    }
+    		FileWriter outputFileWriter = new FileWriter(outputFile);
+		    outputFileWriter.write(outputScript.toString());
+		    outputFileWriter.close();
 		}
-		if(this.__tblClickRef)
-		{
-			this.util.removeEvent(this.__table,"click", this.__tblClickRef);
-			this.__tblClickRef = null;
-		}
-		if(this.__tbldblClickRef)
-		{
-			this.util.removeEvent(this.__table,"dblclick", this.__tbldblClickRef);
-			this.__tbldblClickRef = null;
-		}
-		if(this.__tblMouseMoveRef)
-		{
-			this.util.removeEvent(this.__table,"mousemove", this.__tblMouseMoveRef);
-			this.__tblMouseMoveRef = null;
-		}
-		if(this.__documentMouseDownRef)
-		{
-			this.util.removeEvent(document,"mousedown", this.__documentMouseDownRef);
-			this.__documentMouseDownRef = null;
-		}
-		if(this.__documentMouseUpRef)
-		{
-			this.util.removeEvent(document,"mouseup", this.__documentMouseUpRef);
-			this.__documentMouseUpRef = null;
-		}
-        if(this.__documentMouseMoveRef)
-		{
-			this.util.removeEvent(document,"mousemove", this.__documentMouseMoveRef);
-			this.__documentMouseMoveRef = null;
-		}
-		if(this.__documentKeyEventRef)
-		{
-			this.util.removeEvent(document,"keypress", this.__documentKeyEventRef);
-			this.util.removeEvent(document,"keyup", this.__documentKeyEventRef);
-			this.util.removeEvent(document,"keydown", this.__documentKeyEventRef);
-			this.__documentKeyEventRef = null;
-		}
-		if(this.__documentCopyRef)
-		{
-			this.util.removeEvent(document,"copy", this.__documentCopyRef);
-			this.__documentCopyRef = null;
-		}
-		if(this.__documentPasteRef)
-		{
-			this.util.removeEvent(document,"paste", this.__documentPasteRef);
-			this.__documentPasteRef = null;
-		}
-	};
-	
-	this.__tblMouseDownHandler = function(event)
-	{
-		if(!this.__lastEditor)
-		{
-			event = this.util.getEvent(event);
-			var target = this.util.getTarget(event);
-			//var cell = this.__closestCell(target);
-			var cell = this.util.findParent(target,"TD");
-	        if(cell)
-	        {
-	        	this.__fireSelectionStartEvent();
-	        	this.__selectedCell = cell;
-	        	var position = this.__getCellPosition(cell);
-		        this.__selectCell(position,event.shiftKey);
-		        event.preventDefault();
-		        this.__refreshCells();
-	        }
-	        if(!this.__documentMouseUpRef)
-			{
-				this.__documentMouseUpRef = this.__documentMouseUpHandler.bind(this);
-				this.util.addEvent(document,"mouseup", this.__documentMouseUpRef);
-			}
-	        if(!this.__documentMouseMoveRef)
-			{
-				this.__documentMouseMoveRef = this.__documentMouseMoveHandler.bind(this);
-				this.util.addEvent(document,"mousemove", this.__documentMouseMoveRef);
-			}
-	        if(!this.__tblMouseMoveRef)
-			{
-	        	this.__tblMouseMoveRef = this.__tblMouseMoveHandler.bind(this);
-				this.util.addEvent(this.__table,"mousemove", this.__tblMouseMoveRef);
-			}
-		}
-	};
-	
-	this.__tblMouseMoveHandler = function(event)
-	{
-		this.__movingHandler(event);
-	};
-	
-	this.__tblClickHandler = function(event)
-	{
-		event = this.util.getEvent(event);
-		var target = this.util.getTarget(event);
-		var cell = this.util.findParent(target,"TD");
-		if (!cell || (this.__lastEditor && this.__lastEditor.__cell == cell)) 
-		{
-			if(this.__lastEditor)
-			{
-				this.__lastEditor.setFocus();	
-			}
-	        return;
-	    }
-		if (this.__lastEditor && this.__lastEditor.__cell != cell) 
-		{
-			this.__commitEditorChanges(this.__lastEditor);
-	    }
-		if(this.__config.enableFillHandle && cell)
-		{
-        	this.__fireSelectionStartEvent();
-        	this.__selectedCell = cell;
-        	var position = this.__getCellPosition(cell);
-	        this.__selectCell(position,event.shiftKey);
-	        event.preventDefault();
-	        this.__refreshCells();
-			this.__repositionHandle(cell);
-		}
-	};
-	
-	this.__tbldblClickHandler = function(event)
-	{
-		event = this.util.getEvent(event);
-		var target = this.util.getTarget(event);
-		var cell = this.util.findParent(target,"TD");
-		if(!this.__lastEditor || (this.__lastEditor && this.__lastEditor.__cell != cell))//if(this.__selectedCell != cell)
-		{
-			this.__selectedCell = cell;
-			this.__handleEditor(this.__selectedCell,event);
-		}
-	};
-	
-	var cell = this.util.findParent(target,"TD");
+	}
+    
+    public String readFile(String fileName) 
+    {    
+        File file = new File(fileName);    
+        char[] buffer = null;    
+        try 
+        {    
+            BufferedReader bufferedReader = new BufferedReader(new FileReader(file));    
+            buffer = new char[(int)file.length()];    
+            int i = 0;    
+            int c = bufferedReader.read();    
+            while (c != -1) 
+            {    
+                buffer[i++] = (char)c;    
+                c = bufferedReader.read();    
+            }    
+        } 
+        catch (IOException e) 
+        {    
+            e.printStackTrace();    
+        }    
+        return new String(buffer);    
+    }
+    
+    public String compressScript(String script) 
+    {
+    	currentScript = script;
+        outputBuffer = new StringBuffer(currentScript.length());
+        nextChar();
+
+        while (!endReached) 
+        {
+            if (Character.isJavaIdentifierStart(ch)) 
+            {
+                renderIdentifier();
+            } 
+            else if (ch == ' ') 
+            {
+                skipWhiteSpace();
+            } 
+            else if (isWhitespace()) 
+            {
+                // Compress whitespace
+                skipWhiteSpace();
+            } 
+            else if ((ch == '"') || (ch == '\'')) 
+            {
+                // Handle strings
+                renderString();
+            } 
+            else if (ch == '/') 
+            {
+                // Handle comments
+                nextChar();
+                if (ch == '/') 
+                {
+                    nextChar();
+                    skipLineComment();
+                } else if (ch == '*') 
+                {
+                    nextChar();
+                    skipBlockComment();
+                } 
+                else 
+                {
+                    append('/');
+                }
+            } 
+            else 
+            {
+                append(ch);
+                nextChar();
+            }
+            
+        }
+        currentScript = "";
+        pos = 0;
+        ch = '\u0000';
+        lastAppend = '\u0000';
+        endReached = false;
+        contentAppendedAfterLastIdentifier = true;
+        return outputBuffer.toString();
+    }
+    
+    private void append(char ch) 
+    {
+        lastAppend = ch;
+        outputBuffer.append(ch);
+        contentAppendedAfterLastIdentifier = true;
+    }
+    
+    private boolean isWhitespace() 
+    {
+        return ch == CARRIAGE_RETURN || ch == SPACE || ch == TAB || ch == LINE_FEED;        
+    }
+    
+    private void nextChar() 
+    {
+        if (!endReached) 
+        {
+            if (pos < currentScript.length()) 
+            {
+                ch = currentScript.charAt(pos++);
+            } else 
+            {
+                endReached = true;
+                ch = 0;
+            }
+        }
+    }
+    
+    private void renderIdentifier() 
+    {
+        if (!contentAppendedAfterLastIdentifier)
+        {
+            append(SPACE);
+        }
+        append(ch);
+        nextChar();
+        while (Character.isJavaIdentifierPart(ch)) 
+        {
+            append(ch);
+            nextChar();
+        }
+        contentAppendedAfterLastIdentifier = false;
+    }
+    
+    private void renderString() 
+    {
+        char startCh = ch; // Save quote char
+        append(ch);
+        nextChar();
+        while (true) 
+        {
+            if ((ch == LINE_FEED) || (ch == CARRIAGE_RETURN) || (endReached)) 
+            {
+                // JavaScript error: string not terminated
+                return;
+            } 
+            else 
+            {
+                if (ch == '\\') 
+                {
+                    append(ch);
+                    nextChar();
+                    if ((ch == LINE_FEED) || (ch == CARRIAGE_RETURN) || (endReached)) 
+                    {
+                        // JavaScript error: string not terminated
+                        return;
+                    }
+                    append(ch);
+                    nextChar();
+                } 
+                else 
+                {
+                    append(ch);
+                    if (ch == startCh) 
+                    {
+                        nextChar();
+                        return;
+                    }
+                    nextChar();
+                }
+            }
+        }
+    }
+    
+    private void skipLineComment() 
+    {
+        while ((ch != CARRIAGE_RETURN) && (ch != LINE_FEED)) 
+        {
+            if (endReached) 
+            {
+                return;
+            }
+            nextChar();
+        }
+    }
+
+    private void skipBlockComment() 
+    {
+        while (true) 
+        {
+            if (endReached) 
+            {
+                return;
+            }
+            if (ch == '*') 
+            {
+                nextChar();
+                if (ch == '/') 
+                {
+                    nextChar();
+                    return;
+                }
+            } 
+            else
+            {
+                nextChar();
+            }
+        }
+    }
+    
+    private void renderNewLine() 
+    {
+        if (lastAppend != '\n' && lastAppend != '\r') 
+        {
+            //append('\n');
+        }
+    }
+    
+    private void skipWhiteSpace() 
+    {
+        if (ch == LINE_FEED || ch == CARRIAGE_RETURN) 
+        {
+            renderNewLine();
+        } 
+        else 
+        {
+            append(ch);
+        }
+        nextChar();
+        while (ch == LINE_FEED || ch == CARRIAGE_RETURN || ch == SPACE || ch == TAB) 
+        {
+            if (ch == LINE_FEED || ch == CARRIAGE_RETURN) 
+            {
+                renderNewLine();
+            }
+            nextChar();
+        }
+    }
+    
+}
