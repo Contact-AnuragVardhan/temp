@@ -1,137 +1,248 @@
-this.__enableMultiCellSelection = false;
-	this.__tableCellNavigatorEventRef = null;
-	this.__tableCellSelectionEventRef = null;
-	this.__nsTableCellNavigator = null;
-	this.__nsCellSelection = null;
-	this.__multiCellSelectionSetting = null;
-			if(this.hasAttribute("enableMultiCellSelection"))
-		{
-			this.__enableMultiCellSelection =  Boolean.parse(this.getAttribute("enableMultiCellSelection"));
-		}
-		
-				if(this.hasAttribute("multiCellSelectionSetting"))
-		{
-			this.__multiCellSelectionSetting = this.getAttribute("multiCellSelectionSetting");
-		}
-		else
-		{
-			this.__multiCellSelectionSetting = {scrollableElement:null,enableFillHandle:false,enableKeyboardNavigation:true,enableCopy:true,enablePaste:true,cellClass:null,areaClass:null,areaClassLeft:null,areaClassRight:null,areaClassTop:null,areaClassBottom:null};
-		}
-		
-		if(this.__enableCellSelection)
-	{
-		if(this.__nsTableCellNavigator)
-		{
-			this.__nsTableCellNavigator.destroy();
-			if(this.__tableCellNavigatorEventRef)
-			{
-				this.util.removeEvent(self.__tblCenterBody,NSTableCellNavigator.CELL_SELECTED,this.__tableCellNavigatorEventRef);
-				this.util.removeEvent(self.__tblCenterBody,NSTableCellNavigator.CELL_UNSELECTED,this.__tableCellNavigatorEventRef);
-				this.util.removeEvent(self.__tblCenterBody,NSTableCellNavigator.CELL_SELECTABLE,this.__tableCellNavigatorEventRef);
-				this.__tableCellNavigatorEventRef = null;
-			}
-			this.__nsTableCellNavigator = null;
-		}
-		this.__nsTableCellNavigator = new NSTableCellNavigator(self.__tblCenterBody);
-		this.__tableCellNavigatorEventRef = this.__tableCellNavigatorEventHandler.bind(this);
-		this.util.addEvent(self.__tblCenterBody,NSTableCellNavigator.CELL_SELECTED,this.__tableCellNavigatorEventRef);
-		this.util.addEvent(self.__tblCenterBody,NSTableCellNavigator.CELL_UNSELECTED,this.__tableCellNavigatorEventRef);
-		this.util.addEvent(self.__tblCenterBody,NSTableCellNavigator.CELL_SELECTABLE,this.__tableCellNavigatorEventRef);
-	}
-	if(this.__enableMultiCellSelection)
-	{
-		if(this.__nsCellSelection)
-		{
-			this.__nsCellSelection.destroy();
-			if(this.__tableCellSelectionEventRef)
-			{
-				this.util.removeEvent(self.__tblCenterBody,NSCellSelection.SELECTION_START,this.__tableCellSelectionEventRef);
-				this.util.removeEvent(self.__tblCenterBody,NSCellSelection.SELECTION_END,this.__tableCellSelectionEventRef);
-				this.util.removeEvent(self.__tblCenterBody,NSCellSelection.SET_CELL_VALUE,this.__tableCellSelectionEventRef);
-				this.__tableCellSelectionEventRef = null;
-			}
-			this.__nsCellSelection = null;
-		}
-		var editors = [];
-		for (var colIndex = 0; colIndex < this.__columns.length; colIndex++)
-	    {
-			var colItem = this.__columns[colIndex];
-			if(colItem["multiSelectionEditor"])
-			{
-				editors.push({type:NSCellSelection.EDITORS[colItem["multiSelectionEditor"]]});
-			}
-			else
-			{
-				editors.push({type:NSCellSelection.EDITORS[NSGrid.MULTI_SELECTION_EDITORS_TEXT]});
-			}
-	    }
-		var setting = this.__multiCellSelectionSetting; 
-		setting.editors = editors;
-		this.__nsCellSelection = new NSCellSelection(self.__tblCenterBody,setting);
-		this.__tableCellSelectionEventRef = this.__tableCellSelectionEventHandler.bind(this);
-		this.util.addEvent(self.__tblCenterBody,NSCellSelection.SELECTION_START,this.__tableCellSelectionEventRef);
-		this.util.addEvent(self.__tblCenterBody,NSCellSelection.SELECTION_END,this.__tableCellSelectionEventRef);
-		this.util.addEvent(self.__tblCenterBody,NSCellSelection.SET_CELL_VALUE,this.__tableCellSelectionEventRef);
-	}
 
-NSGrid.prototype.__tableCellNavigatorEventHandler = function(event)
-{
-	switch(event.type)
-	{
-		case NSTableCellNavigator.CELL_SELECTED:
-			var cell = event.cell;
-			this.util.addStyleClass(cell,"nsCellFocus");
-			var row = event.row;
-		    var rowIndex = this.__getIndexFromRow(row);
-		    var item = this.__getItemByIndex(rowIndex);
-		    this.__dispatchEvent(NSGrid.CELL_SELECTED,item,{cellIndex:event.cellIndex,rowIndex:rowIndex,item:item,cell:cell,row:row});
-		break;
-		case NSTableCellNavigator.CELL_UNSELECTED:
-			var cell = event.cell;
-			this.util.removeStyleClass(cell,"nsCellFocus");
-			var row = event.row;
-			var rowIndex = this.__getIndexFromRow(row);
-			var item = this.__getItemByIndex(rowIndex);
-			this.__dispatchEvent(NSGrid.CELL_UNSELECTED,item,{cellIndex:event.cellIndex,rowIndex:rowIndex,item:item,cell:cell,row:row});
-		break;
-		case NSTableCellNavigator.CELL_SELECTABLE:
-			//var cell = event.cell;
-			//var row = event.row;	
-		break;
-	}
-};
+import com.google.javascript.jscomp.CompilationLevel;
+import com.google.javascript.jscomp.Compiler;
+import com.google.javascript.jscomp.CompilerOptions;
+import com.google.javascript.jscomp.CompilerOptions.LanguageMode;
+import com.google.javascript.jscomp.WarningLevel;
+import com.google.javascript.jscomp.SourceFile;
 
-NSGrid.prototype.__tableCellSelectionEventHandler = function(event)
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+
+import com.google.javascript.jscomp.*;
+import com.org.FileMerger;
+
+public class JSComplierDemo 
 {
-	switch(event.type)
+	private final String basePath = "C:\\Temp\\Anurag\\Workspace\\JSLib\\src\\main\\webapp\\";
+	private final String extJSURL = basePath + "lib\\com\\ext\\";
+	private final String baseJSURL = basePath + "lib\\com\\org\\";
+	private final String baseCSSURL = basePath + "lib\\css\\com\\org\\";
+	//private final String outputURL = basePath + "generated\\";
+	private final String outputURL = "C:\\Temp\\Anurag\\Workspace\\.metadata\\.plugins\\org.eclipse.wst.server.core\\tmp0\\wtpwebapps\\JSLib\\generated\\";
+	
+	private FileMerger fileMerger = null;
+	
+	private void loadBaseJSFile() throws Exception
 	{
-		case NSCellSelection.SELECTION_START:
-			console.debug("Selection Started");
-		break;
-		case NSCellSelection.SELECTION_END:
-			console.debug("Selection Ended with cells " + event.selectedCells);
-		break;
-		case NSCellSelection.SET_CELL_VALUE:
-			var cellIndex = event.cellIndex;
-			var cell = event.cell;
-			var row = event.row;
-			var dataToBeSet = event.dataToBeSet;
-			var rowIndex = this.__getIndexFromRow(row);
-			var item = this.__getItemByIndex(rowIndex);
-			if(this.__tblCenterHeader.tBodies && this.__tblCenterHeader.tBodies.length > 0 && this.__tblCenterHeader.tBodies[0].rows && this.__tblCenterHeader.tBodies[0].rows.length > 0)
+		Map<String,String> mapJSFiles = new HashMap<String,String>();
+		mapJSFiles.put("nsUtil", baseJSURL + "util\\nsUtil.js");
+		mapJSFiles.put("nsSVG", baseJSURL + "util\\nsSVG.js");
+		mapJSFiles.put("nsPluggins", baseJSURL + "util\\nsPluggins.js");
+		mapJSFiles.put("nsPinTip", baseJSURL + "util\\nsPinTip.js");
+		mapJSFiles.put("nsContainerBase", baseJSURL + "prototype\\base\\nsContainerBase.js");
+		mapJSFiles.put("nsConsole", baseJSURL + "util\\nsConsole.js");
+		
+		for(String key:mapJSFiles.keySet())
+		{
+			String inputFile = mapJSFiles.get(key);
+			String[] arrOutput = inputFile.split("\\\\");
+			String outputFileName = arrOutput[arrOutput.length - 1].replace(".js",".min.js");
+			loadFile(new String[]{inputFile},null,outputURL + outputFileName);
+		}
+	}
+	
+	private void loadJSFile(String component) throws Exception
+	{
+		Map<String,String> mapJSFiles = new HashMap<String,String>();
+		mapJSFiles.put("nsDividerBox", baseJSURL + "containers\\nsDividerBox.js");
+		mapJSFiles.put("nsBanner", baseJSURL + "containers\\nsBanner.js");
+		mapJSFiles.put("nsProgressBar", baseJSURL + "containers\\nsProgressBar.js");
+		mapJSFiles.put("nsGrid", baseJSURL + "prototype\\nsGrid.js");
+		mapJSFiles.put("nsList", baseJSURL + "prototype\\nsList.js");
+		mapJSFiles.put("nsTextBox", baseJSURL + "prototype\\nsTextBox.js");
+		mapJSFiles.put("nsMenu", baseJSURL + "util\\nsMenu.js");
+		mapJSFiles.put("nsPagination", baseJSURL + "util\\nsPagination.js");
+		mapJSFiles.put("nsPanel", baseJSURL + "containers\\nsPanel.js");
+		mapJSFiles.put("nsDragDrop", baseJSURL + "util\\nsDragDrop.js");
+		mapJSFiles.put("nsChart", baseJSURL + "prototype\\nsChart.js");
+		mapJSFiles.put("nsModal", baseJSURL + "containers\\nsModal.js");
+		mapJSFiles.put("nsExport", baseJSURL + "util\\nsExport.js");
+		mapJSFiles.put("nsFilter", baseJSURL + "util\\nsFilter.js");
+		mapJSFiles.put("nsFlatGrid", baseJSURL + "util\\nsFlatGrid.js");
+		mapJSFiles.put("nsHierarchicalGrid", baseJSURL + "util\\nsHierarchicalGrid.js");
+		mapJSFiles.put("nsGroupingGrid", baseJSURL + "util\\nsGroupingGrid.js");
+		mapJSFiles.put("nsGridPluggins", baseJSURL + "util\\nsGridPluggins.js");
+		mapJSFiles.put("nsBarChart", baseJSURL + "util\\nsBarChart.js");
+		mapJSFiles.put("nsPieChart", baseJSURL + "util\\nsPieChart.js");
+		mapJSFiles.put("nsLineChart", baseJSURL + "util\\nsLineChart.js");
+		mapJSFiles.put("nsDonutChart", baseJSURL + "util\\nsDonutChart.js");
+		
+		Map<String,String[]> mapJSDependency = new HashMap<String,String[]>();
+		mapJSDependency.put("nsProgressBar",new String[]{"nsModal"});
+		//mapJSDependency.put("nsGrid",new String[]{"nsMenu","nsPagination","nsExport","nsFilter","nsFlatGrid","nsHierarchicalGrid","nsGroupingGrid","nsGridPluggins"});
+		mapJSDependency.put("nsList",new String[]{"nsDragDrop","nsFilter","nsMenu"});
+		mapJSDependency.put("nsTextBox",new String[]{"nsList"});
+		mapJSDependency.put("nsChart",new String[]{"nsBarChart","nsPieChart","nsLineChart","nsDonutChart"});
+		
+		List<String> lstInput = new ArrayList<String>();
+		if(mapJSDependency.containsKey(component))
+		{
+			String[] arrFile = mapJSDependency.get(component);
+			if(arrFile != null && arrFile.length > 0)
 			{
-				var headerCell = this.__tblCenterHeader.tBodies[0].rows[0].cells[cellIndex];
-				var columnDetail = this.__getColumnObject(headerCell.getAttribute("currentColumnIndex"));
-				if(item && columnDetail)
+				for(String file:arrFile)
 				{
-					item[columnDetail["dataField"]] = dataToBeSet;
-					this.updateItemInDataSource(item);
-					this.__updateCellText(row,cell,item,columnDetail,rowIndex,columnDetail[self.__fieldColIndex]);
+					lstInput.add(mapJSFiles.get(file));
 				}
-			}	
-		break;
+			}
+		}
+		lstInput.add(mapJSFiles.get(component));
+		loadFile(lstInput.toArray(new String[0]),null,outputURL + component + ".min.js");
 	}
-};
+	
+	private void loadBaseCSSFile() throws Exception
+	{
+		/*Map<String,String> mapCSSFiles = new HashMap<String,String>();
+		mapCSSFiles.put("component", baseCSSURL + "/component.css");
+		mapCSSFiles.put("nsPinTip", baseCSSURL + "/nsPinTip.css");
+		
+		for(String key:mapCSSFiles.keySet())
+		{
+			String inputFile = mapCSSFiles.get(key);
+			String[] arrOutput = inputFile.split("\\\\");
+			String outputFileName = arrOutput[arrOutput.length - 1].replace(".css",".min.css");
+			loadFile(new String[]{inputFile},null,outputURL + outputFileName);
+		}*/
+	}
+	
+	private void loadCSSFile(String component) throws Exception
+	{
+		
+		Map<String,String> mapCSSFiles = new HashMap<String,String>();
+	}
+	
+	private void loadFile(String[] arrInputFile,String[] arrExternalFile,String outputFile) throws Exception
+	{
+		if(fileMerger == null)
+		{
+			fileMerger = new FileMerger();
+		}
+		fileMerger.compressFiles(arrInputFile, outputFile);
+		/*if(arrInputFile != null && arrInputFile.length > 0 && outputFile != null)
+		{
+			if(arrExternalFile == null)
+			{
+				arrExternalFile = new String[0];
+			}
+			Compiler compiler = new Compiler();
+		    CompilerOptions options = new CompilerOptions();
+		    options.setLanguageIn(LanguageMode.ECMASCRIPT_2015);
+			options.setLanguageOut(LanguageMode.ECMASCRIPT5_STRICT);
+			options.setAssumeStrictThis(true);
+			 //CompilationLevel.ADVANCED_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
+			CompilationLevel.SIMPLE_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
+			List<SourceFile> lstExternalFile = new ArrayList<SourceFile>();
+		    for (String filename : arrExternalFile)
+		    {
+		    	lstExternalFile.add(SourceFile.fromFile(filename));
+		    }
+		    List<SourceFile> lstInputFile = new ArrayList<SourceFile>();
+		    try 
+		    {
+		    	lstInputFile = CommandLineRunner.getBuiltinExterns(CompilerOptions.Environment.BROWSER);
+			} 
+		    catch (IOException e) 
+		    {
+			    System.out.println("Exception raised");
+			}
+		    for (String filename : arrInputFile)
+		    {
+		    	lstInputFile.add(SourceFile.fromFile(filename));
+		    }
+		    Result result = compiler.compile(lstExternalFile,lstInputFile,options);
+		    String output = compiler.toSource();
+		    for (JSError message : compiler.getWarnings())
+		    {
+		      System.err.println("Warning message: " + message.toString());
+		    }
+		    for (JSError message : compiler.getErrors())
+		    {
+		      System.err.println("Error message: " + message.toString());
+		    }
+		    FileWriter outputFileWriter = new FileWriter(outputFile);
+		    outputFileWriter.write(output);
+		    outputFileWriter.close();
+		}*/
+		
+		
+		
+	}
+	
+	public static void main(String[] args) throws Exception
+	{
+		JSComplierDemo objCompiler = new JSComplierDemo();
+		String[] arrComponent = {"nsProgressBar","nsGrid"};
+		objCompiler.loadBaseJSFile();
+		objCompiler.loadBaseCSSFile();
+		for(String component:arrComponent)
+		{
+			objCompiler.loadJSFile(component);
+			objCompiler.loadCSSFile(component);
+		}
+		// These are external JavaScript files you reference but don't want changed
+	    /*String externalJavascriptResources[] = {
+	        "jquery.js",
+	        "jqueryui.js"
+	    };*/
+		// These are the files you want optimized
+		
+		
+	    /*String primaryJavascriptToCompile[] = { 
+	    		baseJSURL + "prototype\\base\\nsContainerBase.js",
+	    		baseJSURL + "prototype\\nsGrid.js",
+	    };
+	    // This is where the optimized code will end up
+	    String outputFilename = basePath + "generated\\combined.min.js";
+	    Compiler compiler = new Compiler();
+	    CompilerOptions options = new CompilerOptions();
+	    //CompilationLevel.SIMPLE_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
+	    options.setLanguageIn(LanguageMode.ECMASCRIPT_2015);
+		options.setLanguageOut(LanguageMode.ECMASCRIPT5_STRICT);
+		options.setAssumeStrictThis(true);
+	    //WarningLevel.VERBOSE.setOptionsForWarningLevel(options);
+	    //CompilationLevel.ADVANCED_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
+		CompilationLevel.SIMPLE_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
+	    
+	    List<SourceFile> externalJavascriptFiles = new ArrayList<SourceFile>();
+	    List<SourceFile> primaryJavascriptFiles = new ArrayList<SourceFile>();
+	    try 
+	    {
+	    	primaryJavascriptFiles = CommandLineRunner.getBuiltinExterns(CompilerOptions.Environment.BROWSER);
+		} 
+	    catch (IOException e) 
+	    {
+		    System.out.println("Exception raised");
+		}
+	    for (String filename : primaryJavascriptToCompile)
+	    {
+	      primaryJavascriptFiles.add(SourceFile.fromFile(filename));
+	    }
+	    Result result = compiler.compile(externalJavascriptFiles, primaryJavascriptFiles, options);
+	    String output = compiler. toSource();
+	 
+	    for (JSError message : compiler.getWarnings())
+	    {
+	      System.err.println("Warning message: " + message.toString());
+	    }
+	 
+	    for (JSError message : compiler.getErrors())
+	    {
+	      System.err.println("Error message: " + message.toString());
+	    }
+	 
+	    FileWriter outputFile = new FileWriter(outputFilename);
+	    outputFile.write(output);
+	    outputFile.close();*/
 
-NSGrid.MULTI_SELECTION_EDITORS_TEXT = "TEXT";
-NSGrid.MULTI_SELECTION_EDITORS_TEXTAREA = "TEXTAREA";
+	}
+
+}
