@@ -1,49 +1,327 @@
-private void loadBaseCSSFile() throws Exception
-	{
-		Map<String,String> mapCSSFiles = new HashMap<String,String>();
-		mapCSSFiles.put("component", baseCSSURL + "component.css");
-		mapCSSFiles.put("nsPinTip", baseCSSURL + "nsPinTip.css");
+<%@page import="com.nomura.cwp.util.ApplicationContextProvider"%>
+<%@page import="com.nomura.cwp.services.impl.UserInfoServiceImpl"%>
+<%@page import="com.nomura.cwp.services.IUserInfoService"%>
+<!DOCTYPE html>
+<%@page import="java.util.Date"%>
+<%@ taglib uri="http://www.springframework.org/tags" prefix="spring" %>
+<%
+IUserInfoService  loginInfo = (IUserInfoService)ApplicationContextProvider.getApplicationContext().getBean("userInfoServiceImpl");
+int cacheParam = loginInfo.getBuildNumber() ; 
+%>
+<script type="text/javascript">
+
+var jsCacheParam = "<%=cacheParam%>"
+
+</script>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Insert title here</title>
+<link rel="stylesheet" href="${pageContext.request.contextPath}/webresources/plugins/bootstrap-3.3.4-dist/css/bootstrap.css?cache_param=<%=cacheParam%>">
+<link rel="stylesheet" type="text/css" href="http://netdna.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css?cache_param=<%=cacheParam%>">
+<!-- Font Awesome Icons -->
+<link href="${pageContext.request.contextPath}/webresources/plugins/font-awesome-4.4.0/css/font-awesome.css?cache_param=<%=cacheParam%>" rel="stylesheet" type="text/css" />
+ <!-- Theme style -->
+<link href="http://localhost:9060/complianceportal/NSS/webresources/plugins/adminLTE/css/AdminLTE.css?cache_param=<%=cacheParam%>" rel="stylesheet" type="text/css" />
+<!-- AdminLTE Skins. Choose a skin from the css/skins
+folder instead of downloading all of them to reduce the load. -->
+<link href="http://localhost:9060/complianceportal/NSS/webresources/plugins/adminLTE/css/skins/_all-skins.css?cache_param=<%=cacheParam%>" rel="stylesheet" type="text/css" />
+<script src="http://localhost:9060/complianceportal/NSS/app/common/nsContainerBase.js?cache_param=<%=cacheParam%>"></script>
+<script src="http://localhost:9060/complianceportal/NSS/app/common/nmUtil.js?cache_param=<%=cacheParam%>"></script>
+<style>
+	.sidebar-menu li.side-menu-header {
+    padding: 10px 10px 10px 20px;
+}
+.skin-red .sidebar-menu > li > a, .skin-red .sidebar-menu > li.active > a {
+    color: #2b444f;
+    background: #ffffff;
+    border-left-color: #ffffff;
+}
+.skin-red .sidebar-menu > li > a {
+    border-left: 3px solid transparent;
+}
+.sidebar-menu > li > a {
+    padding: 5px 5px 5px 15px;
+}
+
+.sidebar-collapse .side-menu-header-title {
+    display: none!important;
+}
+
+</style>
+</head>
+<body class="skin-red sidebar-mini fixed wysihtml5-supported app-body-background-color ng-scope " onload="init();">
+	<aside id="divMenu" style="background-color:#ffffff;">
 		
-		for(String key:mapCSSFiles.keySet())
-		{
-			String inputFile = mapCSSFiles.get(key);
-			String[] arrOutput = inputFile.split("\\\\");
-			String outputFileName = arrOutput[arrOutput.length - 1].replace(".css",".min.css");
-			loadFile(new String[]{inputFile},null,outputURL + outputFileName);
-		}
+	</aside>
+
+<script>
+	function init()
+	{
+		var dataSource = [{menuName:"Hierarchies",link:null,iconBeforeHtml:"<i class='fa fa-sitemap'></i>",iconAfterHtml:null,click:null,
+							childMenus:[{menuName:"Manage Hierarchies",link:"#hm",iconBeforeHtml:null,iconAfterHtml:null,click:null}]},
+						  {menuName:"Tasks",link:null,iconBeforeHtml:"<i class='fa fa-tasks'></i>",iconAfterHtml:null,click:null,
+							  childMenus:[{menuName:"Pending Tasks / Reviews",link:"#pendingTask",iconBeforeHtml:"<i class='fa fa-file-o'></i>",iconAfterHtml:null,click:null},
+							              {menuName:"Historical Reviews",link:"#historicalReview",iconBeforeHtml:"<i class='fa fa-file-o'></i>",iconAfterHtml:null,click:null},
+							  			  {menuName:"Outstanding Tasks",link:"#outstandingTask",iconBeforeHtml:"<i class='fa fa-file-o'></i>",iconAfterHtml:null,click:null}]},
+						  {menuName:"Contacts",link:"#about",iconBeforeHtml:"<i class='fa fa-home'></i>",iconAfterHtml:null,click:null}
+						];
+		var setting = {header:"NSS2 NAVIGATION",showCollapseIcon:true,iconCollapse:"<i class='fa fa-bars pull-right'></i>",
+						titleField:"menuName",childField:"childMenus",iconPosition:"right",iconMenuExpanded:"<i class='fa fa-angle-left'></i>",
+						iconMenuCollapsed:"<i class='fa fa-angle-left'></i>",
+						dataSource:dataSource};
+		
+		var divMenu = document.getElementById("divMenu");
+		var nsNav = new NSNavigation(divMenu,setting);
+		
 	}
+</script>
+
+<script>
+function NSNavigation(component,setting) 
+{
+	this.__setting = setting;
 	
-	private void loadCSSFile(String component) throws Exception
+	this.__navigationContainerParent = null;
+	this.__navigationContainer = null;
+	
+	this.__config = null;
+	this.__selectedItem = null;
+	this.__isNavOpen = false;
+	
+	this.__fieldPrefix = "__ns_nav_field";
+	this.__isOpenField = this.__fieldPrefix + "_open";
+	this.__fieldElementField = this.__fieldPrefix + "_element";
+	
+	this.base.__setBaseComponent.call(this,component);
+};
+
+nsExtendPrototype(NSContainerBase,NSNavigation);
+NSNavigation.prototype.constructor = NSNavigation;
+
+NSNavigation.prototype.initializeComponent = function() 
+{
+	this.base.initializeComponent.call(this);
+	this.__setSetting();
+};
+
+NSNavigation.prototype.setComponentProperties = function() 
+{
+	this.base.setComponentProperties.call(this);
+	if(this.__config.dataSource)
 	{
-		Map<String,String> mapCSSFiles = new HashMap<String,String>();
-		mapCSSFiles.put("nsMenu", baseCSSURL + "nsMenu.css");
-		mapCSSFiles.put("nsPagination", baseCSSURL + "nsPagination.css");
-		mapCSSFiles.put("nsModal", baseCSSURL + "nsModal.css");
-		mapCSSFiles.put("nsProgressBar", baseCSSURL + "nsProgressBar.css");
-		mapCSSFiles.put("nsProgressBar", baseCSSURL + "nsProgressBar.css");
-		mapCSSFiles.put("nsGrid", baseCSSURL + "nsGrid.css");
-		mapCSSFiles.put("nsList", baseCSSURL + "nsList.css");
-		mapCSSFiles.put("nsTextBox", baseCSSURL + "nsTextBox.css");
-		
-		Map<String,String[]> mapDependency = new HashMap<String,String[]>();
-		mapDependency.put("nsProgressBar",new String[]{"nsModal","nsProgressBar"});
-		mapDependency.put("nsGrid",new String[]{"nsGrid","nsMenu","nsPagination","nsList"});
-		mapDependency.put("nsList",new String[]{"nsList","nsMenu"});
-		mapDependency.put("nsTextBox",new String[]{"nsList","nsTextBox"});
-		mapDependency.put("nsMenu",new String[]{"nsMenu"});
-		mapDependency.put("nsPanel",new String[]{"nsPanel"});
-		
-		List<String> lstInput = new ArrayList<String>();
-		if(mapDependency.containsKey(component))
+		this.dataSource(this.__config.dataSource);
+	}
+};
+
+NSNavigation.prototype.propertyChange = function(attrName, oldVal, newVal, setProperty)
+{
+	var attributeName = attrName.toLowerCase();
+	this.base.propertyChange.call(this,attrName, oldVal, newVal, setProperty);
+};
+
+NSNavigation.prototype.removeComponent = function() 
+{
+	this.base.removeComponent.call(this);
+};
+
+NSNavigation.prototype.componentResized = function(event) 
+{
+	this.base.componentResized.call(this,event);
+};
+
+NSNavigation.prototype.toggle = function()
+{
+	if(this.__isNavOpen)
+	{
+		this.closeNavigation();
+	}
+	else
+	{
+		this.openNavigation();
+	}
+};
+
+NSNavigation.prototype.openNavigation = function()
+{
+	this.util.removeStyleClass(this.__config.containerElement,"sidebar-collapse");
+	this.util.addStyleClass(this.__config.containerElement,"sidebar-open");
+	this.__isNavOpen = true;
+};
+
+NSNavigation.prototype.closeNavigation = function()
+{
+	this.util.removeStyleClass(this.__config.containerElement,"sidebar-open");
+	this.util.addStyleClass(this.__config.containerElement,"sidebar-collapse");
+	this.__isNavOpen = false;
+};
+
+NSNavigation.prototype.dataSource = function(source)
+{
+	this.__config.dataSource = source;
+	if(this.__navigationContainer)
+	{
+		//this.util.removeAllChildren(this.__navigationContainer);
+		this.__createItem(this.__config.dataSource,this.__navigationContainer,1);
+	}
+};
+
+NSNavigation.prototype.__setSetting = function()
+{
+	if(!this.__setting)
+	{
+		this.__setting = {};
+	}
+	this.__config = {
+		containerElement: this.__setting["containerElement"] || document.body,
+		header: this.__setting["header"] || null,
+		showCollapseIcon: this.util.isUndefinedOrNull(this.__setting["showCollapseIcon"]) ? true : Boolean.parse(this.__setting["showCollapseIcon"]),
+		iconCollapse: this.__setting["iconCollapse"] || "<i class='fa fa-bars pull-right'></i>",
+		dataSource: this.__setting["dataSource"] || null,
+		titleField: this.__setting["titleField"] || "title",
+		childField: this.__setting["childField"] || "children",
+		iconPosition: this.__setting["iconPosition"] || "left",
+		iconMenuExpanded: this.__setting["iconMenuExpanded"] || "<i class='fa fa-angle-left'></i>",
+		iconMenuCollapsed: this.__setting["iconMenuCollapsed"] || "<i class='fa fa-angle-left pull-right'></i>",
+	};
+	this.__createStructure();
+};
+
+NSNavigation.prototype.__createStructure = function()
+{
+	if(!this.__navigationContainerParent)
+	{
+		this.util.removeAllChildren(this.__navigationContainerParent);
+		this.__navigationContainerParent = null;
+		this.__navigationContainer = null;
+	}
+	this.openNavigation();
+	this.util.addStyleClass(this.__baseComponent,"main-sidebar");
+	this.__navigationContainerParent = this.util.createDiv(this.getID() + "ContainerParent","sidebar");
+	this.__navigationContainer = this.util.createElement("ul",this.getID() + "Container","sidebar-menu");
+	this.__navigationContainerParent.appendChild(this.__navigationContainer);
+	this.__createHeader(this.__navigationContainer);
+	this.__baseComponent.appendChild(this.__navigationContainerParent);
+};
+
+NSNavigation.prototype.__createHeader = function(parent)
+{
+	var liHeader = this.util.createElement("li",null,"side-menu-header");
+	if(this.__config.header)
+	{
+		var span = this.util.createElement("span",null,"side-menu-header-title");
+		span.appendChild(document.createTextNode(this.__config.header));
+		liHeader.appendChild(span);
+	}
+	if(this.__config.showCollapseIcon)
+	{
+		var spanIcon = this.util.createElement("span");
+		spanIcon.innerHTML = this.__config.iconCollapse;
+		this.util.addEvent(spanIcon,"click",this.__toggleIconClickHandler.bind(this));
+		liHeader.appendChild(spanIcon);
+	}
+	parent.appendChild(liHeader);
+};
+
+NSNavigation.prototype.__createItem = function(arrItem,parent,level)
+{
+	if(arrItem)
+	{
+		if(!this.util.isArray(arrItem))
 		{
-			String[] arrFile = mapDependency.get(component);
-			if(arrFile != null && arrFile.length > 0)
+			arrItem = [arrItem];
+		}
+		var item = {};
+		for(var count = 0;count < arrItem.length;count++)
+		{
+			item = arrItem[count];
+			if(item)
 			{
-				for(String file:arrFile)
+				var li = this.util.createElement("li",null,"nsNavigationItem");
+				li.setAttribute("ns-Nav-Level",level);
+				var anchor = this.util.createElement("a",null);
+				this.util.addEvent(anchor,"click",this.__parentMenuClickHandler.bind(this,event,item));
+				li.appendChild(anchor);
+				if(item["iconBeforeHtml"])
 				{
-					lstInput.add(mapCSSFiles.get(file));
+					var spanIcon = this.util.createElement("span");
+					spanIcon.innerHTML = item["iconBeforeHtml"];
+					anchor.appendChild(spanIcon);
+					anchor.appendChild(document.createTextNode("\u00A0"));
 				}
+				var spanText = this.util.createElement("span",null,"nsNavMenuText");
+				spanText.appendChild(document.createTextNode(item[this.__config.titleField]));
+				anchor.appendChild(spanText);
+				if(item["iconAfterHtml"])
+				{
+					var spanIcon = this.util.createElement("span");
+					spanIcon.innerHTML = item["iconAfterHtml"];
+					anchor.appendChild(spanIcon);
+				}
+				if(item[this.__config.childField] && item[this.__config.childField].length > 0)
+				{
+					this.util.addStyleClass(li,"parent-menu");
+					anchor.setAttribute("href","#");
+					var spanIcon = this.util.createElement("span");
+					spanIcon.innerHTML = this.__config.iconMenuExpanded;
+					if(this.__config.iconPosition == "left")
+					{
+						anchor.insertBefore(spanIcon,anchor.firstChild);
+					}
+					else
+					{
+						this.util.addStyleClass(spanIcon,"pull-right");
+						anchor.appendChild(spanIcon);
+					}
+					var ul = this.util.createElement("ul",null,"treeview-menu");
+					li.appendChild(ul);
+					this.__createItem(item[this.__config.childField],ul,level + 1);
+				}
+				else
+				{
+					if(item["link"])
+					{
+						anchor.setAttribute("href",item["link"]);
+					}
+					else 
+					{
+						anchor.setAttribute("href","#");
+						if(item["click"])
+						{
+							this.util.addEvent(anchor,"click",item["click"]);	
+						}
+					}
+				}
+				if(level > 1)
+				{
+					this.util.addStyleClass(li,"nsNavigationChildItem");
+				}
+				item[this.__fieldElementField] = li;
+				item[this.__isOpenField] = false;
+				parent.appendChild(li);
 			}
 		}
-		loadFile(lstInput.toArray(new String[0]),null,outputURL + component + ".min.css");
 	}
+};
+
+NSNavigation.prototype.__toggleIconClickHandler = function(event)
+{
+	this.toggle();
+};
+
+NSNavigation.prototype.__parentMenuClickHandler = function(event,item)
+{
+	if(item && item[this.__fieldElementField])
+	{
+		item[this.__isOpenField] ? this.util.removeStyleClass(item[this.__fieldElementField],"active") : this.util.addStyleClass(item[this.__fieldElementField],"active");
+		item[this.__isOpenField] = !item[this.__isOpenField];
+		this.__selectedItem = item;
+	}
+	
+};
+
+
+</script>
+
+</body>
+</html>
