@@ -1,83 +1,3 @@
-<%@page import="com.nomura.cwp.util.ApplicationContextProvider"%>
-<%@page import="com.nomura.cwp.services.impl.UserInfoServiceImpl"%>
-<%@page import="com.nomura.cwp.services.IUserInfoService"%>
-<!DOCTYPE html>
-<%@page import="java.util.Date"%>
-<%@ taglib uri="http://www.springframework.org/tags" prefix="spring" %>
-<%
-IUserInfoService  loginInfo = (IUserInfoService)ApplicationContextProvider.getApplicationContext().getBean("userInfoServiceImpl");
-int cacheParam = loginInfo.getBuildNumber() ; 
-%>
-<script type="text/javascript">
-
-var jsCacheParam = "<%=cacheParam%>"
-
-</script>
-<html>
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<title>Insert title here</title>
-<link rel="stylesheet" href="${pageContext.request.contextPath}/webresources/plugins/bootstrap-3.3.4-dist/css/bootstrap.css?cache_param=<%=cacheParam%>">
-<link rel="stylesheet" type="text/css" href="http://netdna.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css?cache_param=<%=cacheParam%>">
-<!-- Font Awesome Icons -->
-<link href="${pageContext.request.contextPath}/webresources/plugins/font-awesome-4.4.0/css/font-awesome.css?cache_param=<%=cacheParam%>" rel="stylesheet" type="text/css" />
- <!-- Theme style -->
-<link href="http://localhost:9060/complianceportal/NSS/webresources/plugins/adminLTE/css/AdminLTE.css?cache_param=<%=cacheParam%>" rel="stylesheet" type="text/css" />
-<!-- AdminLTE Skins. Choose a skin from the css/skins
-folder instead of downloading all of them to reduce the load. -->
-<link href="http://localhost:9060/complianceportal/NSS/webresources/plugins/adminLTE/css/skins/_all-skins.css?cache_param=<%=cacheParam%>" rel="stylesheet" type="text/css" />
-<script src="http://localhost:9060/complianceportal/NSS/app/common/nsContainerBase.js?cache_param=<%=cacheParam%>"></script>
-<script src="http://localhost:9060/complianceportal/NSS/app/common/nmUtil.js?cache_param=<%=cacheParam%>"></script>
-<style>
-	.sidebar-menu li.side-menu-header {
-    padding: 10px 10px 10px 20px;
-}
-.skin-red .sidebar-menu > li > a, .skin-red .sidebar-menu > li.active > a {
-    color: #2b444f;
-    background: #ffffff;
-    border-left-color: #ffffff;
-}
-.skin-red .sidebar-menu > li > a {
-    border-left: 3px solid transparent;
-}
-.sidebar-menu > li > a {
-    padding: 5px 5px 5px 15px;
-}
-
-.sidebar-collapse .side-menu-header-title {
-    display: none!important;
-}
-
-</style>
-</head>
-<body class="skin-red sidebar-mini fixed wysihtml5-supported app-body-background-color ng-scope " onload="init();">
-	<aside id="divMenu" style="background-color:#ffffff;">
-		
-	</aside>
-
-<script>
-	function init()
-	{
-		var dataSource = [{menuName:"Hierarchies",link:null,iconBeforeHtml:"<i class='fa fa-sitemap'></i>",iconAfterHtml:null,click:null,
-							childMenus:[{menuName:"Manage Hierarchies",link:"#hm",iconBeforeHtml:null,iconAfterHtml:null,click:null}]},
-						  {menuName:"Tasks",link:null,iconBeforeHtml:"<i class='fa fa-tasks'></i>",iconAfterHtml:null,click:null,
-							  childMenus:[{menuName:"Pending Tasks / Reviews",link:"#pendingTask",iconBeforeHtml:"<i class='fa fa-file-o'></i>",iconAfterHtml:null,click:null},
-							              {menuName:"Historical Reviews",link:"#historicalReview",iconBeforeHtml:"<i class='fa fa-file-o'></i>",iconAfterHtml:null,click:null},
-							  			  {menuName:"Outstanding Tasks",link:"#outstandingTask",iconBeforeHtml:"<i class='fa fa-file-o'></i>",iconAfterHtml:null,click:null}]},
-						  {menuName:"Contacts",link:"#about",iconBeforeHtml:"<i class='fa fa-home'></i>",iconAfterHtml:null,click:null}
-						];
-		var setting = {header:"NSS2 NAVIGATION",showCollapseIcon:true,iconCollapse:"<i class='fa fa-bars pull-right'></i>",
-						titleField:"menuName",childField:"childMenus",iconPosition:"right",iconMenuExpanded:"<i class='fa fa-angle-left'></i>",
-						iconMenuCollapsed:"<i class='fa fa-angle-left'></i>",
-						dataSource:dataSource};
-		
-		var divMenu = document.getElementById("divMenu");
-		var nsNav = new NSNavigation(divMenu,setting);
-		
-	}
-</script>
-
-<script>
 function NSNavigation(component,setting) 
 {
 	this.__setting = setting;
@@ -86,12 +6,19 @@ function NSNavigation(component,setting)
 	this.__navigationContainer = null;
 	
 	this.__config = null;
-	this.__selectedItem = null;
+	this.__selectedParentMenuItem = null;
+	this.__selectedMenu = null;
+	this.__selectedMenuItem = null;
 	this.__isNavOpen = false;
+	this.__dynamicContainer = null;
 	
 	this.__fieldPrefix = "__ns_nav_field";
-	this.__isOpenField = this.__fieldPrefix + "_open";
-	this.__fieldElementField = this.__fieldPrefix + "_element";
+	this.__fieldIsOpen = this.__fieldPrefix + "_open";
+	this.__fieldElement = this.__fieldPrefix + "_element";
+	this.__fieldChildContainer = this.__fieldPrefix + "_childcontainer";
+	
+	this.__headerItem = null;
+	this.__headerItemHeight = 0;
 	
 	this.base.__setBaseComponent.call(this,component);
 };
@@ -130,7 +57,12 @@ NSNavigation.prototype.componentResized = function(event)
 	this.base.componentResized.call(this,event);
 };
 
-NSNavigation.prototype.toggle = function()
+NSNavigation.prototype.isNavOpen = function()
+{
+	return this.__isNavOpen;
+};
+
+NSNavigation.prototype.toggleNavigation = function()
 {
 	if(this.__isNavOpen)
 	{
@@ -144,16 +76,35 @@ NSNavigation.prototype.toggle = function()
 
 NSNavigation.prototype.openNavigation = function()
 {
-	this.util.removeStyleClass(this.__config.containerElement,"sidebar-collapse");
-	this.util.addStyleClass(this.__config.containerElement,"sidebar-open");
+	this.util.dispatchEvent(this.__baseComponent,NSNavigation.NAVIGATION_OPEN_START);
+	this.util.removeStyleClass(this.__config.containerElement,"nsNavCollapsed");
 	this.__isNavOpen = true;
+	var self = this;
+	var transitionEndCallback = function()
+	{
+		self.__resizeContentContainer();
+		this.util.dispatchEvent(this.__baseComponent,NSNavigation.NAVIGATION_OPEN_END);
+	};
+	var transition = new this.util.transition(this.__baseComponent,transitionEndCallback.bind(this));
 };
 
 NSNavigation.prototype.closeNavigation = function()
 {
-	this.util.removeStyleClass(this.__config.containerElement,"sidebar-open");
-	this.util.addStyleClass(this.__config.containerElement,"sidebar-collapse");
+	this.util.dispatchEvent(this.__baseComponent,NSNavigation.NAVIGATION_CLOSE_START);
+	this.util.addStyleClass(this.__config.containerElement,"nsNavCollapsed");
 	this.__isNavOpen = false;
+	var self = this;
+	var transitionEndCallback = function()
+	{
+		self.__resizeContentContainer();
+		this.util.dispatchEvent(this.__baseComponent,NSNavigation.NAVIGATION_CLOSE_END);
+	};
+	var transition = new this.util.transition(this.__baseComponent,transitionEndCallback.bind(this));
+};
+
+NSNavigation.prototype.selectMenu = function(item)
+{
+	this.__handleSelectedMenu(item);
 };
 
 NSNavigation.prototype.dataSource = function(source)
@@ -162,7 +113,7 @@ NSNavigation.prototype.dataSource = function(source)
 	if(this.__navigationContainer)
 	{
 		//this.util.removeAllChildren(this.__navigationContainer);
-		this.__createItem(this.__config.dataSource,this.__navigationContainer,1);
+		this.__createItems(this.__config.dataSource,this.__navigationContainer,1);
 	}
 };
 
@@ -174,6 +125,9 @@ NSNavigation.prototype.__setSetting = function()
 	}
 	this.__config = {
 		containerElement: this.__setting["containerElement"] || document.body,
+		elementsBeforeMenu: this.__setting["elementsBeforeMenu"] || null,
+		pageHeaderContainer: this.__setting["pageHeaderContainer"] || null,
+		pageContentContainer: this.__setting["pageContentContainer"] || null,
 		header: this.__setting["header"] || null,
 		showCollapseIcon: this.util.isUndefinedOrNull(this.__setting["showCollapseIcon"]) ? true : Boolean.parse(this.__setting["showCollapseIcon"]),
 		iconCollapse: this.__setting["iconCollapse"] || "<i class='fa fa-bars pull-right'></i>",
@@ -183,6 +137,9 @@ NSNavigation.prototype.__setSetting = function()
 		iconPosition: this.__setting["iconPosition"] || "left",
 		iconMenuExpanded: this.__setting["iconMenuExpanded"] || "<i class='fa fa-angle-left'></i>",
 		iconMenuCollapsed: this.__setting["iconMenuCollapsed"] || "<i class='fa fa-angle-left pull-right'></i>",
+		context: this.__setting["context"] || window,
+		collapseLeftOffset: parseInt(this.__setting["collapseLeftOffset"]) || 0,
+		collapseTopOffset: parseInt(this.__setting["collapseTopOffset"]) || 0,
 	};
 	this.__createStructure();
 };
@@ -196,34 +153,54 @@ NSNavigation.prototype.__createStructure = function()
 		this.__navigationContainer = null;
 	}
 	this.openNavigation();
-	this.util.addStyleClass(this.__baseComponent,"main-sidebar");
-	this.__navigationContainerParent = this.util.createDiv(this.getID() + "ContainerParent","sidebar");
-	this.__navigationContainer = this.util.createElement("ul",this.getID() + "Container","sidebar-menu");
+	this.util.addStyleClass(this.__baseComponent,"nsNavMainContainer");
+	this.util.addEvent(this.__baseComponent,"mouseleave",this.__parentMouseEventHandler.bind(this,event,null,"mouseleave"));
+	this.__navigationContainerParent = this.util.createDiv(this.getID() + "ContainerParent","nsNavContainerParent");
+	this.__addElementsBeforeMenu();
+	this.__navigationContainer = this.util.createElement("ul",this.getID() + "Container","nsNavContainer");
 	this.__navigationContainerParent.appendChild(this.__navigationContainer);
 	this.__createHeader(this.__navigationContainer);
+	if(this.__config.pageHeaderContainer)
+	{
+		this.__baseComponent.style.marginTop = this.__config.pageHeaderContainer.offsetHeight + "px";
+	}
 	this.__baseComponent.appendChild(this.__navigationContainerParent);
+	this.__headerItemHeight = this.__headerItem.offsetHeight;
+};
+
+NSNavigation.prototype.__addElementsBeforeMenu = function(parent)
+{
+	if(this.__config.elementsBeforeMenu && this.__config.elementsBeforeMenu.length > 0)
+	{
+		var length = this.__config.elementsBeforeMenu.length;
+		for(var count = 0;count < length;count++)
+		{
+			parent.appendChild(this.__config.elementsBeforeMenu[count]);
+		}
+	}
 };
 
 NSNavigation.prototype.__createHeader = function(parent)
 {
-	var liHeader = this.util.createElement("li",null,"side-menu-header");
+	this.__headerItem = this.util.createElement("li",null,"nsNavHeader");
 	if(this.__config.header)
 	{
-		var span = this.util.createElement("span",null,"side-menu-header-title");
+		var span = this.util.createElement("span",null,"nsNavHeaderTitle");
+		this.util.addStyleClass(span,"nsNavNonVisibleIcon");
 		span.appendChild(document.createTextNode(this.__config.header));
-		liHeader.appendChild(span);
+		this.__headerItem.appendChild(span);
 	}
 	if(this.__config.showCollapseIcon)
 	{
-		var spanIcon = this.util.createElement("span");
+		var spanIcon = this.util.createElement("span",null,"nsNavVisibleIcon");
 		spanIcon.innerHTML = this.__config.iconCollapse;
 		this.util.addEvent(spanIcon,"click",this.__toggleIconClickHandler.bind(this));
-		liHeader.appendChild(spanIcon);
+		this.__headerItem.appendChild(spanIcon);
 	}
-	parent.appendChild(liHeader);
+	parent.appendChild(this.__headerItem);
 };
 
-NSNavigation.prototype.__createItem = function(arrItem,parent,level)
+NSNavigation.prototype.__createItems = function(arrItem,parent,level)
 {
 	if(arrItem)
 	{
@@ -237,68 +214,118 @@ NSNavigation.prototype.__createItem = function(arrItem,parent,level)
 			item = arrItem[count];
 			if(item)
 			{
-				var li = this.util.createElement("li",null,"nsNavigationItem");
-				li.setAttribute("ns-Nav-Level",level);
-				var anchor = this.util.createElement("a",null);
-				this.util.addEvent(anchor,"click",this.__parentMenuClickHandler.bind(this,event,item));
-				li.appendChild(anchor);
-				if(item["iconBeforeHtml"])
-				{
-					var spanIcon = this.util.createElement("span");
-					spanIcon.innerHTML = item["iconBeforeHtml"];
-					anchor.appendChild(spanIcon);
-					anchor.appendChild(document.createTextNode("\u00A0"));
-				}
-				var spanText = this.util.createElement("span",null,"nsNavMenuText");
-				spanText.appendChild(document.createTextNode(item[this.__config.titleField]));
-				anchor.appendChild(spanText);
-				if(item["iconAfterHtml"])
-				{
-					var spanIcon = this.util.createElement("span");
-					spanIcon.innerHTML = item["iconAfterHtml"];
-					anchor.appendChild(spanIcon);
-				}
-				if(item[this.__config.childField] && item[this.__config.childField].length > 0)
-				{
-					this.util.addStyleClass(li,"parent-menu");
-					anchor.setAttribute("href","#");
-					var spanIcon = this.util.createElement("span");
-					spanIcon.innerHTML = this.__config.iconMenuExpanded;
-					if(this.__config.iconPosition == "left")
-					{
-						anchor.insertBefore(spanIcon,anchor.firstChild);
-					}
-					else
-					{
-						this.util.addStyleClass(spanIcon,"pull-right");
-						anchor.appendChild(spanIcon);
-					}
-					var ul = this.util.createElement("ul",null,"treeview-menu");
-					li.appendChild(ul);
-					this.__createItem(item[this.__config.childField],ul,level + 1);
-				}
-				else
-				{
-					if(item["link"])
-					{
-						anchor.setAttribute("href",item["link"]);
-					}
-					else 
-					{
-						anchor.setAttribute("href","#");
-						if(item["click"])
-						{
-							this.util.addEvent(anchor,"click",item["click"]);	
-						}
-					}
-				}
-				if(level > 1)
-				{
-					this.util.addStyleClass(li,"nsNavigationChildItem");
-				}
-				item[this.__fieldElementField] = li;
-				item[this.__isOpenField] = false;
+				var li = this.__createItem(item,level);
 				parent.appendChild(li);
+				item[this.__fieldElement] = li;
+				item[this.__fieldIsOpen] = false;
+			}
+		}
+	}
+};
+
+//While Changing this function, see if this change is applicable in __createDynamicItem function
+NSNavigation.prototype.__createItem = function(item,level)
+{
+	var li = this.util.createElement("li",null,"nsNavigationItem");
+	li.setAttribute("ns-Nav-Level",level);
+	if(item["cssClass"])
+	{
+		this.util.addStyleClass(li,item["cssClass"]);
+	}
+	if(level == 1)
+	{
+		this.util.addEvent(li,"mouseenter",this.__parentMouseEventHandler.bind(this,event,item,"mouseenter"));
+		//this.util.addEvent(li,"mouseleave",this.__parentMouseEventHandler.bind(this,event,item,"mouseleave"));
+		//this.util.addEvent(li,"click",this.__parentMouseEventHandler.bind(this,event,item,"mouseenter"));
+	}
+	var anchor = this.util.createElement("a",null);
+	li.appendChild(anchor);
+	if(item["iconBeforeHtml"])
+	{
+		var spanIcon = this.util.createElement("span");
+		this.util.addStyleClass(spanIcon);
+		spanIcon.innerHTML = item["iconBeforeHtml"];
+		var icon = spanIcon.firstChild;
+		anchor.appendChild(icon);
+		anchor.appendChild(document.createTextNode("\u00A0"));
+	}
+	var spanText = this.util.createElement("span",null,"nsNavMenuText");
+	this.util.addStyleClass(spanText,"nsNavNonVisibleIcon");
+	spanText.appendChild(document.createTextNode(item[this.__config.titleField]));
+	anchor.appendChild(spanText);
+	if(item["iconAfterHtml"])
+	{
+		var spanIcon = this.util.createElement("span");
+		spanIcon.innerHTML = item["iconAfterHtml"];
+		var icon = spanIcon.firstChild;
+		anchor.appendChild(icon);
+	}
+	var hasChildren = false;
+	if(item[this.__config.childField] && item[this.__config.childField].length > 0)
+	{
+		this.util.addEvent(anchor,"click",this.__parentMenuClickHandler.bind(this,event,item));
+		this.util.addStyleClass(li,"nsNavItemParent");
+		anchor.setAttribute("href","javascript:void(0)");
+		var spanIcon = this.util.createElement("span");
+		this.util.addStyleClass(spanIcon,"nsNavNonVisibleIcon");
+		spanIcon.innerHTML = this.__config.iconMenuExpanded;
+		if(this.__config.iconPosition == "left")
+		{
+			anchor.insertBefore(spanIcon,anchor.firstChild);
+		}
+		else
+		{
+			this.util.addStyleClass(spanIcon,"nsNavContainerPullRight");
+			anchor.appendChild(spanIcon);
+		}
+		var ul = this.util.createElement("ul",null,"nsNavSubNavContainer");
+		this.util.addStyleClass(ul,"nsNavNonVisibleIcon");
+		li.appendChild(ul);
+		this.__createItems(item[this.__config.childField],ul,level + 1);
+		item[this.__fieldChildContainer] = ul;
+		hasChildren = true;
+	}
+	else
+	{
+		if(item["link"])
+		{
+			anchor.setAttribute("href",item["link"]);
+		}
+		else 
+		{
+			anchor.setAttribute("href","javascript:void(0)");
+		}
+	}
+	this.util.addEvent(anchor,"click",this.__menuClickHandler.bind(this,event,item,li,hasChildren));
+	if(level > 1)
+	{
+		this.util.addStyleClass(li,"nsNavigationChildItem");
+	}
+	if(item["disabled"])
+	{
+		this.util.addStyleClass(li,"nsNavigationItemDisabled");
+	}
+	return li;
+};
+
+NSNavigation.prototype.__menuClickHandler = function(event,item,li,hasChildren)
+{
+	event = this.util.getEvent(event);
+	if(!hasChildren)
+	{
+		this.__handleSelectedMenu(item,li);
+		if(item["click"])
+		{
+			if (typeof item["click"] === "string" || item["click"] instanceof String)
+			{
+				if(this.util.isFunction(item["click"]))
+				{
+					item["click"] = this.__config.context[item["click"]];
+				}
+			}
+			if(item["click"] && this.util.isFunction(item["click"]))
+			{
+				item["click"](event);
 			}
 		}
 	}
@@ -306,22 +333,213 @@ NSNavigation.prototype.__createItem = function(arrItem,parent,level)
 
 NSNavigation.prototype.__toggleIconClickHandler = function(event)
 {
-	this.toggle();
+	this.__destroyDynamicItem();
+	this.toggleNavigation();
 };
 
 NSNavigation.prototype.__parentMenuClickHandler = function(event,item)
 {
-	if(item && item[this.__fieldElementField])
+	if(item && item[this.__fieldElement])
 	{
-		item[this.__isOpenField] ? this.util.removeStyleClass(item[this.__fieldElementField],"active") : this.util.addStyleClass(item[this.__fieldElementField],"active");
-		item[this.__isOpenField] = !item[this.__isOpenField];
-		this.__selectedItem = item;
+		if(item[this.__fieldIsOpen])
+		{
+			this.util.removeStyleClass(item[this.__fieldElement],"nsNavItemOpen");
+			this.util.removeStyleClass(item[this.__fieldElement],"nsNavItemActive");
+			if(item[this.__fieldChildContainer])
+			{
+				item[this.__fieldChildContainer].style.display = "none";
+			}
+		}
+		else
+		{
+			this.util.addStyleClass(item[this.__fieldElement],"nsNavItemOpen");
+			this.util.addStyleClass(item[this.__fieldElement],"nsNavItemActive");
+			if(item[this.__fieldChildContainer])
+			{
+				item[this.__fieldChildContainer].style.display = "block";	
+			}
+		}
+		item[this.__fieldIsOpen] = !item[this.__fieldIsOpen];
+		this.__selectedParentMenuItem = item;
 	}
 	
 };
 
+NSNavigation.prototype.__parentMouseEventHandler = function(event,item,eventType)
+{
+	event = this.util.getEvent(event);
+	//for some reason event.type is coming as load so passing eventType to listener
+	switch(eventType)
+	{
+		case "mouseenter":
+			if(item && item[this.__fieldElement] && !this.__isNavOpen)
+			{
+				this.__createDynamicItem(item);
+			}
+			//this.util.addStyleClass(item[this.__fieldElement],"nsNavParentHover");
+		break;
+		case "mouseleave":
+			this.__destroyDynamicItem();
+			//this.util.removeStyleClass(item[this.__fieldElement],"nsNavParentHover");
+		break;
+	}
+};
 
-</script>
+NSNavigation.prototype.__resizeContentContainer = function()
+{
+	if(this.__config.pageContentContainer)
+	{
+		this.__config.pageContentContainer.style.marginLeft = this.__baseComponent.offsetWidth + "px";	
+	}
+};
 
-</body>
-</html>
+NSNavigation.prototype.__getTopOffset = function()
+{
+	var offset = 0;
+	if(this.__config.elementsBeforeMenu && this.__config.elementsBeforeMenu.length > 0)
+	{
+		var length = this.__config.elementsBeforeMenu.length;
+		for(var count = 0;count < length;count++)
+		{
+			offset += this.__config.offsetHeight;
+		}
+	}
+	if(!this.__isNavOpen)
+	{
+		offset += this.__headerItemHeight;
+	}
+	return offset;
+};
+
+NSNavigation.prototype.__createDynamicItem = function(item)
+{
+	this.__destroyDynamicItem();
+	var self = this;
+	var createChildren = function(arrItems,parent,level)
+	{
+		var ul = self.util.createElement("ul",null,"nsNavDynamicSubMenuCont");
+		for(var count = 0;count < arrItems.length;count++)
+		{
+			var item  = arrItems[count];
+			var li = self.util.createElement("li",null,"nsNavDynamicMenuItem");
+			if(item["cssClass"])
+			{
+				self.util.addStyleClass(li,item["cssClass"]);
+			}
+			var anchor = self.util.createElement("a",null);
+			li.appendChild(anchor);
+			if(item["iconBeforeHtml"])
+			{
+				var spanIcon = self.util.createElement("span");
+				self.util.addStyleClass(spanIcon);
+				spanIcon.innerHTML = item["iconBeforeHtml"];
+				var icon = spanIcon.firstChild;
+				anchor.appendChild(icon);
+				anchor.appendChild(document.createTextNode("\u00A0"));
+			}
+			var spanText = self.util.createElement("span",null,"nsNavDynamicMenuText");
+			spanText.appendChild(document.createTextNode(item[self.__config.titleField]));
+			anchor.appendChild(spanText);
+			if(item["iconAfterHtml"])
+			{
+				var spanIcon = self.util.createElement("span");
+				spanIcon.innerHTML = item["iconAfterHtml"];
+				var icon = spanIcon.firstChild;
+				anchor.appendChild(icon);
+			}
+			var hasChildren = false;
+			if(item[self.__config.childField] && item[self.__config.childField].length > 0)
+			{
+				anchor.setAttribute("href","javascript:void(0)");
+				var spanIcon = self.util.createElement("span");
+				self.util.addStyleClass(spanIcon,"nsNavNonVisibleIcon");
+				spanIcon.innerHTML = self.__config.iconMenuExpanded;
+				if(self.__config.iconPosition == "left")
+				{
+					anchor.insertBefore(spanIcon,anchor.firstChild);
+				}
+				else
+				{
+					self.util.addStyleClass(spanIcon,"nsNavContainerPullRight");
+					anchor.appendChild(spanIcon);
+				}
+				createChildren(item[self.__config.childField],li,level + 1);
+				hasChildren = true;
+			}
+			else
+			{
+				if(item["link"])
+				{
+					anchor.setAttribute("href",item["link"]);
+				}
+				else 
+				{
+					anchor.setAttribute("href","javascript:void(0)");
+				}
+			}
+			self.util.addEvent(anchor,"click",self.__menuClickHandler.bind(self,event,item,li,hasChildren));
+			if(item["disabled"])
+			{
+				self.util.addStyleClass(li,"nsNavigationItemDisabled");
+			}
+			ul.appendChild(li);
+		}
+		parent.appendChild(ul);
+	};
+	
+	this.__dynamicContainer = this.util.createDiv(this.getID() + "DynamicContainer","nsNavDynamicContainer");
+	var spanText = this.util.createElement("span",null,"nsNavDynamicMenuText");
+	spanText.appendChild(document.createTextNode(item[this.__config.titleField]));
+	this.__dynamicContainer.appendChild(spanText);
+	if(item[this.__config.childField] && item[this.__config.childField].length > 0)
+	{
+		createChildren(item[this.__config.childField],this.__dynamicContainer,1);
+	}
+	this.__baseComponent.appendChild(this.__dynamicContainer);
+	var topOffset = this.__getTopOffset();
+	var rect = item[this.__fieldElement].getBoundingClientRect();
+	this.__dynamicContainer.style.top = (rect.top + this.__config.collapseTopOffset - topOffset) + "px"; 
+	this.__dynamicContainer.style.left = (rect.left + this.__navigationContainer.offsetWidth + this.__config.collapseLeftOffset) + "px";
+};
+
+NSNavigation.prototype.__destroyDynamicItem = function()
+{
+	if(this.__dynamicContainer && this.__dynamicContainer.parentNode)
+	{
+		this.__dynamicContainer.parentNode.removeChild(this.__dynamicContainer);
+		this.__dynamicContainer = null;
+	}
+};
+
+NSNavigation.prototype.__handleSelectedMenu = function(item,li)
+{
+	if(!li && item && item[this.__fieldElement])
+	{
+		li = item[this.__fieldElement];
+	}
+	if(this.__selectedMenu)
+	{
+		this.util.removeStyleClass(this.__selectedMenu,"nsNavSelectedMenu");
+		this.util.dispatchEvent(this.__baseComponent,NSNavigation.NAVIGATION_MENU_DESELECTED,item,{item:item,menu:li});
+		this.__selectedMenu = null;
+		this.__selectedMenuItem = null;
+	}
+	this.util.addStyleClass(li,"nsNavSelectedMenu");
+	this.__selectedMenu = li;
+	this.__selectedMenuItem = item;
+	this.util.dispatchEvent(this.__baseComponent,NSNavigation.NAVIGATION_MENU_SELECTED,item,{item:item,menu:li});
+};
+
+NSNavigation.prototype.__resetVariables = function()
+{
+	this.__selectedParentMenuItem = null;
+	this.__selectedMenu = null;
+	this.__selectedMenuItem = null;
+};
+
+NSNavigation.NAVIGATION_OPEN_START = "navigationOpenStart";
+NSNavigation.NAVIGATION_OPEN_END = "navigationOpenEnd";
+NSNavigation.NAVIGATION_CLOSE_START = "navigationCloseStart";
+NSNavigation.NAVIGATION_CLOSE_END = "navigationCloseEnd";
+NSNavigation.NAVIGATION_MENU_SELECTED = "navigationmenuSelected";
+NSNavigation.NAVIGATION_MENU_DESELECTED = "navigationMenuDeselected";
