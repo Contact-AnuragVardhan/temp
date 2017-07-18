@@ -1,248 +1,359 @@
-
-import com.google.javascript.jscomp.CompilationLevel;
-import com.google.javascript.jscomp.Compiler;
-import com.google.javascript.jscomp.CompilerOptions;
-import com.google.javascript.jscomp.CompilerOptions.LanguageMode;
-import com.google.javascript.jscomp.WarningLevel;
-import com.google.javascript.jscomp.SourceFile;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-
-import com.google.javascript.jscomp.*;
-import com.org.FileMerger;
-
-public class JSComplierDemo 
+.nsNavMainContainer 
 {
-	private final String basePath = "C:\\Temp\\Anurag\\Workspace\\JSLib\\src\\main\\webapp\\";
-	private final String extJSURL = basePath + "lib\\com\\ext\\";
-	private final String baseJSURL = basePath + "lib\\com\\org\\";
-	private final String baseCSSURL = basePath + "lib\\css\\com\\org\\";
-	//private final String outputURL = basePath + "generated\\";
-	private final String outputURL = "C:\\Temp\\Anurag\\Workspace\\.metadata\\.plugins\\org.eclipse.wst.server.core\\tmp0\\wtpwebapps\\JSLib\\generated\\";
-	
-	private FileMerger fileMerger = null;
-	
-	private void loadBaseJSFile() throws Exception
-	{
-		Map<String,String> mapJSFiles = new HashMap<String,String>();
-		mapJSFiles.put("nsUtil", baseJSURL + "util\\nsUtil.js");
-		mapJSFiles.put("nsSVG", baseJSURL + "util\\nsSVG.js");
-		mapJSFiles.put("nsPluggins", baseJSURL + "util\\nsPluggins.js");
-		mapJSFiles.put("nsPinTip", baseJSURL + "util\\nsPinTip.js");
-		mapJSFiles.put("nsContainerBase", baseJSURL + "prototype\\base\\nsContainerBase.js");
-		mapJSFiles.put("nsConsole", baseJSURL + "util\\nsConsole.js");
-		
-		for(String key:mapJSFiles.keySet())
-		{
-			String inputFile = mapJSFiles.get(key);
-			String[] arrOutput = inputFile.split("\\\\");
-			String outputFileName = arrOutput[arrOutput.length - 1].replace(".js",".min.js");
-			loadFile(new String[]{inputFile},null,outputURL + outputFileName);
-		}
-	}
-	
-	private void loadJSFile(String component) throws Exception
-	{
-		Map<String,String> mapJSFiles = new HashMap<String,String>();
-		mapJSFiles.put("nsDividerBox", baseJSURL + "containers\\nsDividerBox.js");
-		mapJSFiles.put("nsBanner", baseJSURL + "containers\\nsBanner.js");
-		mapJSFiles.put("nsProgressBar", baseJSURL + "containers\\nsProgressBar.js");
-		mapJSFiles.put("nsGrid", baseJSURL + "prototype\\nsGrid.js");
-		mapJSFiles.put("nsList", baseJSURL + "prototype\\nsList.js");
-		mapJSFiles.put("nsTextBox", baseJSURL + "prototype\\nsTextBox.js");
-		mapJSFiles.put("nsMenu", baseJSURL + "util\\nsMenu.js");
-		mapJSFiles.put("nsPagination", baseJSURL + "util\\nsPagination.js");
-		mapJSFiles.put("nsPanel", baseJSURL + "containers\\nsPanel.js");
-		mapJSFiles.put("nsDragDrop", baseJSURL + "util\\nsDragDrop.js");
-		mapJSFiles.put("nsChart", baseJSURL + "prototype\\nsChart.js");
-		mapJSFiles.put("nsModal", baseJSURL + "containers\\nsModal.js");
-		mapJSFiles.put("nsExport", baseJSURL + "util\\nsExport.js");
-		mapJSFiles.put("nsFilter", baseJSURL + "util\\nsFilter.js");
-		mapJSFiles.put("nsFlatGrid", baseJSURL + "util\\nsFlatGrid.js");
-		mapJSFiles.put("nsHierarchicalGrid", baseJSURL + "util\\nsHierarchicalGrid.js");
-		mapJSFiles.put("nsGroupingGrid", baseJSURL + "util\\nsGroupingGrid.js");
-		mapJSFiles.put("nsGridPluggins", baseJSURL + "util\\nsGridPluggins.js");
-		mapJSFiles.put("nsBarChart", baseJSURL + "util\\nsBarChart.js");
-		mapJSFiles.put("nsPieChart", baseJSURL + "util\\nsPieChart.js");
-		mapJSFiles.put("nsLineChart", baseJSURL + "util\\nsLineChart.js");
-		mapJSFiles.put("nsDonutChart", baseJSURL + "util\\nsDonutChart.js");
-		
-		Map<String,String[]> mapJSDependency = new HashMap<String,String[]>();
-		mapJSDependency.put("nsProgressBar",new String[]{"nsModal"});
-		//mapJSDependency.put("nsGrid",new String[]{"nsMenu","nsPagination","nsExport","nsFilter","nsFlatGrid","nsHierarchicalGrid","nsGroupingGrid","nsGridPluggins"});
-		mapJSDependency.put("nsList",new String[]{"nsDragDrop","nsFilter","nsMenu"});
-		mapJSDependency.put("nsTextBox",new String[]{"nsList"});
-		mapJSDependency.put("nsChart",new String[]{"nsBarChart","nsPieChart","nsLineChart","nsDonutChart"});
-		
-		List<String> lstInput = new ArrayList<String>();
-		if(mapJSDependency.containsKey(component))
-		{
-			String[] arrFile = mapJSDependency.get(component);
-			if(arrFile != null && arrFile.length > 0)
-			{
-				for(String file:arrFile)
-				{
-					lstInput.add(mapJSFiles.get(file));
-				}
-			}
-		}
-		lstInput.add(mapJSFiles.get(component));
-		loadFile(lstInput.toArray(new String[0]),null,outputURL + component + ".min.js");
-	}
-	
-	private void loadBaseCSSFile() throws Exception
-	{
-		/*Map<String,String> mapCSSFiles = new HashMap<String,String>();
-		mapCSSFiles.put("component", baseCSSURL + "/component.css");
-		mapCSSFiles.put("nsPinTip", baseCSSURL + "/nsPinTip.css");
-		
-		for(String key:mapCSSFiles.keySet())
-		{
-			String inputFile = mapCSSFiles.get(key);
-			String[] arrOutput = inputFile.split("\\\\");
-			String outputFileName = arrOutput[arrOutput.length - 1].replace(".css",".min.css");
-			loadFile(new String[]{inputFile},null,outputURL + outputFileName);
-		}*/
-	}
-	
-	private void loadCSSFile(String component) throws Exception
-	{
-		
-		Map<String,String> mapCSSFiles = new HashMap<String,String>();
-	}
-	
-	private void loadFile(String[] arrInputFile,String[] arrExternalFile,String outputFile) throws Exception
-	{
-		if(fileMerger == null)
-		{
-			fileMerger = new FileMerger();
-		}
-		fileMerger.compressFiles(arrInputFile, outputFile);
-		/*if(arrInputFile != null && arrInputFile.length > 0 && outputFile != null)
-		{
-			if(arrExternalFile == null)
-			{
-				arrExternalFile = new String[0];
-			}
-			Compiler compiler = new Compiler();
-		    CompilerOptions options = new CompilerOptions();
-		    options.setLanguageIn(LanguageMode.ECMASCRIPT_2015);
-			options.setLanguageOut(LanguageMode.ECMASCRIPT5_STRICT);
-			options.setAssumeStrictThis(true);
-			 //CompilationLevel.ADVANCED_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
-			CompilationLevel.SIMPLE_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
-			List<SourceFile> lstExternalFile = new ArrayList<SourceFile>();
-		    for (String filename : arrExternalFile)
-		    {
-		    	lstExternalFile.add(SourceFile.fromFile(filename));
-		    }
-		    List<SourceFile> lstInputFile = new ArrayList<SourceFile>();
-		    try 
-		    {
-		    	lstInputFile = CommandLineRunner.getBuiltinExterns(CompilerOptions.Environment.BROWSER);
-			} 
-		    catch (IOException e) 
-		    {
-			    System.out.println("Exception raised");
-			}
-		    for (String filename : arrInputFile)
-		    {
-		    	lstInputFile.add(SourceFile.fromFile(filename));
-		    }
-		    Result result = compiler.compile(lstExternalFile,lstInputFile,options);
-		    String output = compiler.toSource();
-		    for (JSError message : compiler.getWarnings())
-		    {
-		      System.err.println("Warning message: " + message.toString());
-		    }
-		    for (JSError message : compiler.getErrors())
-		    {
-		      System.err.println("Error message: " + message.toString());
-		    }
-		    FileWriter outputFileWriter = new FileWriter(outputFile);
-		    outputFileWriter.write(output);
-		    outputFileWriter.close();
-		}*/
-		
-		
-		
-	}
-	
-	public static void main(String[] args) throws Exception
-	{
-		JSComplierDemo objCompiler = new JSComplierDemo();
-		String[] arrComponent = {"nsProgressBar","nsGrid"};
-		objCompiler.loadBaseJSFile();
-		objCompiler.loadBaseCSSFile();
-		for(String component:arrComponent)
-		{
-			objCompiler.loadJSFile(component);
-			objCompiler.loadCSSFile(component);
-		}
-		// These are external JavaScript files you reference but don't want changed
-	    /*String externalJavascriptResources[] = {
-	        "jquery.js",
-	        "jqueryui.js"
-	    };*/
-		// These are the files you want optimized
-		
-		
-	    /*String primaryJavascriptToCompile[] = { 
-	    		baseJSURL + "prototype\\base\\nsContainerBase.js",
-	    		baseJSURL + "prototype\\nsGrid.js",
-	    };
-	    // This is where the optimized code will end up
-	    String outputFilename = basePath + "generated\\combined.min.js";
-	    Compiler compiler = new Compiler();
-	    CompilerOptions options = new CompilerOptions();
-	    //CompilationLevel.SIMPLE_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
-	    options.setLanguageIn(LanguageMode.ECMASCRIPT_2015);
-		options.setLanguageOut(LanguageMode.ECMASCRIPT5_STRICT);
-		options.setAssumeStrictThis(true);
-	    //WarningLevel.VERBOSE.setOptionsForWarningLevel(options);
-	    //CompilationLevel.ADVANCED_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
-		CompilationLevel.SIMPLE_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
-	    
-	    List<SourceFile> externalJavascriptFiles = new ArrayList<SourceFile>();
-	    List<SourceFile> primaryJavascriptFiles = new ArrayList<SourceFile>();
-	    try 
-	    {
-	    	primaryJavascriptFiles = CommandLineRunner.getBuiltinExterns(CompilerOptions.Environment.BROWSER);
-		} 
-	    catch (IOException e) 
-	    {
-		    System.out.println("Exception raised");
-		}
-	    for (String filename : primaryJavascriptToCompile)
-	    {
-	      primaryJavascriptFiles.add(SourceFile.fromFile(filename));
-	    }
-	    Result result = compiler.compile(externalJavascriptFiles, primaryJavascriptFiles, options);
-	    String output = compiler. toSource();
-	 
-	    for (JSError message : compiler.getWarnings())
-	    {
-	      System.err.println("Warning message: " + message.toString());
-	    }
-	 
-	    for (JSError message : compiler.getErrors())
-	    {
-	      System.err.println("Error message: " + message.toString());
-	    }
-	 
-	    FileWriter outputFile = new FileWriter(outputFilename);
-	    outputFile.write(output);
-	    outputFile.close();*/
+    position: absolute;
+    top: 0;
+    left: 0;
+    min-height: 100%;
+    width: 230px;
+    z-index: 810;
+    -webkit-transition: -webkit-transform .3s ease-in-out,width .3s ease-in-out;
+    -moz-transition: -moz-transform .3s ease-in-out,width .3s ease-in-out;
+    -o-transition: -o-transform .3s ease-in-out,width .3s ease-in-out;
+    transition: transform .3s ease-in-out,width .3s ease-in-out
+}
+@media (max-width: 767px) 
+{
+    .nsNavMainContainer 
+    {
+        -webkit-transform:translate(-230px, 0);
+        -ms-transform: translate(-230px, 0);
+        -o-transform: translate(-230px, 0);
+        transform: translate(-230px, 0)
+    }
+    .nsNavCollapsed .nsNavMainContainer 
+    {
+        -webkit-transform:translate(-230px, 0);
+        -ms-transform: translate(-230px, 0);
+        -o-transform: translate(-230px, 0);
+        transform: translate(-230px, 0)
+    }
+}
+.nsNavContainer 
+{
+    list-style: none;
+    margin: 0;
+    padding: 0
+}
+.nsNavContainer>li 
+{
+    position: relative;
+    margin: 0;
+    padding: 0
+}
+.nsNavContainer>li>a 
+{
+    padding: 12px 5px 12px 15px;
+    display: block
+}
+.nsNavContainer>li>a>span>.fa,.nsNavContainer>li>a>span>.glyphicon,.nsNavContainer>li>a>span>.ion 
+{
+    width: 20px
+}
+.nsNavContainer li.nsNavHeader 
+{
+    padding: 10px 25px 10px 15px;
+    font-size: 12px
+}
+.nsNavContainer li>a>.fa-angle-left,.nsNavContainer li>a>.nsNavContainerPullRight>.fa-angle-left 
+{
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin-right: 10px;
+    -webkit-transition: transform .5s ease;
+    -o-transition: transform .5s ease;
+    transition: transform .5s ease
+}
+.nsNavContainer li>a>.fa-angle-left 
+{
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    margin-top: -8px
+}
+.nsNavContainer .nsNavItemOpen>a>.fa-angle-left,.nsNavContainer .nsNavItemOpen>a>.nsNavContainerPullRight>.fa-angle-left 
+{
+    -webkit-transform: rotate(-90deg);
+    -ms-transform: rotate(-90deg);
+    -o-transform: rotate(-90deg);
+    transform: rotate(-90deg)
+}
+.nsNavContainer .nsNavItemActive>.nsNavSubNavContainer 
+{
+    display: block
+}
+@media (min-width: 768px) 
+{
+    .nsNavCollapsed .nsNavMainContainer {
+        -webkit-transform: translate(0, 0);
+        -ms-transform: translate(0, 0);
+        -o-transform: translate(0, 0);
+        transform: translate(0, 0);
+        width: 50px !important;
+        z-index: 850
+    }
+    .nsNavCollapsed .nsNavContainer>li {
+        position: relative
+    }
+    .nsNavCollapsed .nsNavContainer>li>a {
+        margin-right: 0
+    }
+    .nsNavCollapsed .nsNavContainer>li>a>span {
+        border-top-right-radius: 4px
+    }
+    .nsNavCollapsed .nsNavContainer>li:not(.nsNavItemParent)>a>span {
+        border-bottom-right-radius: 4px
+    }
+    .nsNavCollapsed .nsNavContainer>li>.nsNavSubNavContainer {
+        padding-top: 5px;
+        padding-bottom: 5px;
+        border-bottom-right-radius: 4px
+    }
+}
+.nsNavCollapsed .nsNavParentHover>a>span,
+.nsNavCollapsed .nsNavParentHover .nsNavSubNavContainer 
+{
+    display: block !important;
+    position: absolute;
+    width: 180px;
+    left: 50px
+}
+.nsNavCollapsed .nsNavParentHover span 
+{
+    top: 0;
+    margin-left: -3px;
+    padding: 12px 5px 12px 20px;
+    background-color: inherit;
+}
+.nsNavCollapsed .nsNavParentHover .nsNavContainerPullRight 
+{
+    position: relative !important;
+    float: right;
+    width: auto !important;
+    left: 180px !important;
+    top: -22px !important;
+    z-index: 900
+}
+.nsNavCollapsed .nsNavParentHover .nsNavSubNavContainer
+{
+	top: 44px;
+    margin-left: 0;
+}
+.nsNavContainer,.nsNavMainContainer .user-panel,.nsNavContainer>li.nsNavHeader 
+{
+    white-space: nowrap;
+    overflow: hidden
+}
+.nsNavContainer:hover 
+{
+    overflow: visible
+}
+.nsNavContainer li>a 
+{
+    position: relative
+}
+.nsNavContainer li>a>.nsNavContainerPullRight 
+{
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    margin-top: -7px;
+}
+.nsNavSubNavContainer 
+{
+    display: none;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    padding-left: 5px;
+}
+.nsNavSubNavContainer .nsNavSubNavContainer 
+{
+    padding-left: 20px;
+}
+.nsNavSubNavContainer>li 
+{
+    margin: 0;
+}
+.nsNavSubNavContainer>li>a 
+{
+    padding: 5px 5px 5px 15px;
+    display: block;
+    font-size: 14px;
+}
+.nsNavSubNavContainer>li>a>span>.fa,.nsNavSubNavContainer>li>a>span>.glyphicon,.nsNavSubNavContainer>li>a>span>.ion 
+{
+    width: 20px;
+}
+.nsNavSubNavContainer>li>a>.nsNavContainerPullRight>.fa-angle-left,.nsNavSubNavContainer>li>a>.nsNavContainerPullRight>.fa-angle-down,.nsNavSubNavContainer>li>a>.fa-angle-left,.nsNavSubNavContainer>li>a>.fa-angle-down 
+{
+    width: auto;
+}
+.nsNavCollapsed .nsNavNonVisibleIcon 
+{
+    display: none !important;
+    -webkit-transform: translateZ(0);
+}
+.nsNavDynamicContainer
+{
+	position: absolute;
+    top: 0;
+    left: 0;
+    overflow: hidden; 
+    text-align: center;
+    width:250px;
+    z-index: 900;
+}
+.nsNavDynamicContainer>.nsNavDynamicMenuText
+{
+    padding: 5px 5px 5px 15px;
+    display: block;
+    font-size: 14px;
+    text-decoration: none;
+    text-align: left;
+    padding-left: 80px;
+}
+.nsNavDynamicContainer>.nsNavDynamicSubMenuCont
+{
+	list-style: none;
+    padding: 0;
+    margin: 0;
+    padding-left: 5px;
+    text-align: left;
+}
+.nsNavDynamicSubMenuCont a 
+{
+    padding: 5px 5px 5px 15px;
+    display: block;
+    font-size: 14px;
+}
+.nsNavDynamicSubMenuCont a 
+{
+    position: relative;
+}
+.nsNavSelectedMenu > a 
+{
+    font-weight: bold;
+}
+.nsNavigationItemDisabled
+{
+	pointer-events:none; 
+    opacity:0.4;
+}
+.nsNavigationItemDisabled > a
+{
+	color: #777;
+}
+/*
+.nsNavBodyBlack
+{
+	background-color: #222d32;
+}
+.nsNavBodyBlack .nsNavMainContainer 
+{
+	padding-top: 50px;
+    background-color: #222d32;
+}
+.nsNavBodyBlack .nsNavContainer>li:hover>a, .nsNavBodyBlack .nsNavContainer>li.nsNavItemActive>a, .nsNavBodyBlack .nsNavContainer>li.nsNavItemOpen>a 
+{
+    color: #fff;
+    background: #1e282c;
+}
+.nsNavBodyBlack .nsNavContainer>li.nsNavHeader 
+{
+    color: #fff;
+    background: #1a2226;
+}
+.nsNavDynamicContainer>.nsNavDynamicMenuText
+{
+	color: #fff;
+    background: #1e282c;
+    border-top: 1px solid #D5D5D5;
+    border-right: 1px solid #D5D5D5;
+    border-bottom: 1px solid #D5D5D5;
+}
+.nsNavigationItem>a 
+{
+    color: #fff;
+    background: #1e282c;
+    text-decoration: none;
+}
+.nsNavDynamicSubMenuCont a 
+{
+    color: #fff;
+    background: #1e282c;
+    text-decoration: none;
+}
+.nsNavDynamicContainer
+{
+	background-color:black;
+	color:white;
+}
+.nsNavDynamicContainer>.nsNavDynamicSubMenuCont
+{
+	border-top: 1px solid #D5D5D5;
+    border-right: 1px solid #D5D5D5;
+    border-bottom: 1px solid #D5D5D5;
+}
+.nsNavSelectedMenu > a 
+{
+    color: #CA2420;
+    background: #E5E5E5;
+    border-left-color: #E5E5E5;
+}
+*/
+.nsNavBodyWhite
+{
+	background-color: #F3F3F3
+}
+.nsNavBodyWhite .nsNavMainContainer
+{
+    background-color: #ffffff;
+    color: #333;
+}
+.nsNavBodyWhite .nsNavContainer>li:hover>a, .nsNavBodyWhite .nsNavContainer>li.nsNavItemActive>a, .nsNavBodyWhite .nsNavContainer>li.nsNavItemOpen>a 
+{
+    color: black;
+    background: #ffffff;
+}
 
-	}
-
+.nsNavBodyWhite .nsNavContainer>li.nsNavHeader 
+{
+    color: black;
+    background: #ffffff;
+}
+.nsNavDynamicContainer>.nsNavDynamicMenuText
+{
+	color: #4b646f;
+	border-top: 1px solid #D5D5D5;
+    border-right: 1px solid #D5D5D5;
+    border-bottom: 1px solid #D5D5D5;
+}
+.nsNavigationItem>a 
+{
+    color: #2b444f;
+    background: #ffffff;
+    text-decoration: none;
+}
+.nsNavDynamicSubMenuCont a 
+{
+   color: #2b444f;
+    text-decoration: none;
+}
+.nsNavDynamicContainer
+{
+	background: #ffffff;
+	color: #2b444f;
+}
+.nsNavDynamicContainer>.nsNavDynamicSubMenuCont
+{
+	border-top: 1px solid #D5D5D5;
+    border-right: 1px solid #D5D5D5;
+    border-bottom: 1px solid #D5D5D5;
+}
+.nsNavSelectedMenu > a 
+{
+    color: #CA2420;
+    background: #E5E5E5;
+    border-left-color: #E5E5E5;
 }
