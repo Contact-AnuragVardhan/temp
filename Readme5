@@ -1,72 +1,594 @@
-<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
-    pageEncoding="ISO-8859-1"%>
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<html>
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.1/css/ionicons.css">
-
-<link href="../lib/css/com/org/component.css" rel="stylesheet">
-<link href="../lib/css/com/org/nsNavigation.css" rel="stylesheet">
-<script src="../lib/com/org/util/nsUtil.js"></script>
-<script src="../lib/com/org/prototype/base/nsContainerBase.js"></script>
-<script src="../lib/com/org/prototype/nsDividerBox.js"></script>
-<script src="../lib/com/org/prototype/nsNavigation.js"></script>
-
-<title>Left Navigation demo</title>
- <style>
- 	body,html
+				container: this.__setting["container"] || document.documentElement,
+				excludeElement: this.__setting["excludeElement"] || []
+this.__downActionHandler = function(event)
 	{
-		margin:0px;
-		padding:0px;
-		height:100%;
-		background:#FFFFFF;
-	}
-	
-	
- </style>
-</head>
-<body onload="initialize()">
-	<div class="nmPageContainer" style="min-height: 925px;">
-		<div id="divNav" class="nmPageNavigation">
-				
-		</div>
-	</div>
-	<script>
-		var nsNav = null;
-		function initialize()
+		if(this.__isTargetValid(event.target))
 		{
-			var dataSource = [{menuName:"Basic Elements",link:"#GroupA",iconBeforeHtml:"<i class='fa fa-sitemap'></i>",iconAfterHtml:null,click:"scrollToSection(this)",
-				childMenus:[{menuName:"Buttons",link:"#GroupASub1",iconBeforeHtml:"<i class='fa fa-circle-o'></i>",iconAfterHtml:null,click:"scrollToSection(this)"},
-				            {menuName:"Inputs",link:"#GroupASub2",iconBeforeHtml:"<i class='fa fa-circle-o'></i>",iconAfterHtml:null,click:"scrollToSection(this)"},
-				            {menuName:"Select",link:"#GroupASub3",iconBeforeHtml:"<i class='fa fa-circle-o'></i>",iconAfterHtml:null,click:"scrollToSection(this)"},
-				            {menuName:"Checkboxes",link:"#GroupASub4",iconBeforeHtml:"<i class='fa fa-circle-o'></i>",iconAfterHtml:null,click:"scrollToSection(this)"},
-				            {menuName:"Radio Buttons",link:"#GroupASub5",iconBeforeHtml:"<i class='fa fa-circle-o'></i>",iconAfterHtml:null,click:"scrollToSection(this)"},
-				            {menuName:"Switch",link:"#GroupASub6",iconBeforeHtml:"<i class='fa fa-circle-o'></i>",iconAfterHtml:null,click:"scrollToSection(this)"}]},
-				  {menuName:"Top Navbar",link:"#GroupB",iconBeforeHtml:"<i class='fa fa-sitemap'></i>",iconAfterHtml:null,click:"scrollToSection(this)",
-				  childMenus:[{menuName:"Navbar Version 1",link:"#GroupBSub1",iconBeforeHtml:"<i class='fa fa-circle-o'></i>",iconAfterHtml:null,click:"scrollToSection(this)"},
-				              {menuName:"Navbar Version 2",link:"#GroupBSub2",iconBeforeHtml:"<i class='fa fa-circle-o'></i>",iconAfterHtml:null,click:"scrollToSection(this)",disabled:true},
-				              {menuName:"Navbar Version 3",link:"#GroupBSub3",iconBeforeHtml:"<i class='fa fa-circle-o'></i>",iconAfterHtml:null,click:"scrollToSection(this)"}]},
-	              {menuName:"Left Navbar",link:"#GroupC",iconBeforeHtml:"<i class='fa fa-sitemap'></i>",iconAfterHtml:null,click:"scrollToSection(this)",
-	   			  childMenus:[{menuName:"Left Navbar",link:"#GroupCSub1",iconBeforeHtml:"<i class='fa fa-circle-o'></i>",iconAfterHtml:null,click:"scrollToSection(this)"}]},
-			];
-			var divNav = document.getElementById("divNav");
-			var setting = {header:"NSS2 NAVIGATION",pageHeaderContainer:null,showCollapseIcon:true,iconCollapse:"<i class='fa fa-bars pull-right'></i>",
-					titleField:"menuName",childField:"childMenus",iconPosition:"right",iconMenuExpanded:"<i class='fa fa-angle-left'></i>",
-					iconMenuCollapsed:"<i class='fa fa-angle-left'></i>",collapseTopOffset:50,
-					dataSource:dataSource};
-			
-			nsNav = new NSNavigation(divNav,setting);
-			
+			this.__setResizeVariables(event);
+			var isResizing = this.__isResizeValid();
+			var isDragging = !isResizing && this.__isDragValid();
+			if(isResizing)
+			{
+				this.__startResize(event);
+			}
+			else if(isDragging)
+			{
+				this.__startDrag(event);
+			}
 		}
-	</script>
-</body>
-</html>
+	};
+	this.__isTargetValid = function(target)
+	{
+		if(target && this.__config.excludeElement && this.__config.excludeElement.length > 0)
+		{
+			for(var count = 0;count < this.__config.excludeElement.length;count++)
+			{
+				if(this.__config.excludeElement[count] ==  target)
+				{
+					return false;
+				}
+			}
+		}
+		return true;
+	};
+	
+	.nsNavMainContainerAbsolute
+{
+	position: absolute;
+    top: 0;
+    left: 0;
+}
+.nsNavMainContainer 
+{
+    min-height: 100%;
+    width: 230px;
+    z-index: 810;
+    -webkit-transition: -webkit-transform .3s ease-in-out,width .3s ease-in-out;
+    -moz-transition: -moz-transform .3s ease-in-out,width .3s ease-in-out;
+    -o-transition: -o-transform .3s ease-in-out,width .3s ease-in-out;
+    transition: transform .3s ease-in-out,width .3s ease-in-out
+}
+@media (max-width: 767px) 
+{
+    .nsNavMainContainer 
+    {
+        -webkit-transform:translate(-0px, 0);
+        -ms-transform: translate(-0px, 0);
+        -o-transform: translate(-0px, 0);
+        transform: translate(-0px, 0)
+    }
+    .nsNavCollapsed .nsNavMainContainer 
+    {
+        -webkit-transform:translate(-230px, 0);
+        -ms-transform: translate(-230px, 0);
+        -o-transform: translate(-230px, 0);
+        transform: translate(-230px, 0)
+    }
+}
+.nsNavContainer 
+{
+    list-style: none;
+    margin: 0;
+    padding: 0
+}
+.nsNavContainer>li 
+{
+    position: relative;
+    margin: 0;
+    padding: 0
+}
+.nsNavContainer>li>a 
+{
+    padding: 12px 5px 12px 15px;
+    display: block
+}
+.nsNavContainer>li>a>span>.fa,.nsNavContainer>li>a>span>.glyphicon,.nsNavContainer>li>a>span>.ion 
+{
+    width: 20px
+}
+.nsNavContainer li.nsNavHeader 
+{
+    padding: 10px 25px 10px 15px;
+    font-size: 12px
+}
+.nsNavContainer li>a>.fa-angle-left,.nsNavContainer li>a>.nsNavContainerPullRight>.fa-angle-left 
+{
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin-right: 10px;
+    -webkit-transition: transform .5s ease;
+    -o-transition: transform .5s ease;
+    transition: transform .5s ease
+}
+.nsNavContainer li>a>.fa-angle-left 
+{
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    margin-top: -8px
+}
+.nsNavContainer .nsNavItemOpen>a>.fa-angle-left,.nsNavContainer .nsNavItemOpen>a>.nsNavContainerPullRight>.fa-angle-left 
+{
+    -webkit-transform: rotate(-90deg);
+    -ms-transform: rotate(-90deg);
+    -o-transform: rotate(-90deg);
+    transform: rotate(-90deg)
+}
+.nsNavContainer .nsNavItemActive>.nsNavSubNavContainer 
+{
+    display: block
+}
+@media (min-width: 768px) 
+{
+    .nsNavCollapsed .nsNavMainContainer {
+        -webkit-transform: translate(0, 0);
+        -ms-transform: translate(0, 0);
+        -o-transform: translate(0, 0);
+        transform: translate(0, 0);
+        width: 50px !important;
+        z-index: 850
+    }
+    .nsNavCollapsed .nsNavContainer>li {
+        position: relative
+    }
+    .nsNavCollapsed .nsNavContainer>li>a {
+        margin-right: 0
+    }
+    .nsNavCollapsed .nsNavContainer>li>a>span {
+        border-top-right-radius: 4px
+    }
+    .nsNavCollapsed .nsNavContainer>li:not(.nsNavItemParent)>a>span {
+        border-bottom-right-radius: 4px
+    }
+    .nsNavCollapsed .nsNavContainer>li>.nsNavSubNavContainer {
+        padding-top: 5px;
+        padding-bottom: 5px;
+        border-bottom-right-radius: 4px
+    }
+}
+.nsNavCollapsed .nsNavParentHover>a>span,
+.nsNavCollapsed .nsNavParentHover .nsNavSubNavContainer 
+{
+    display: block !important;
+    position: absolute;
+    width: 180px;
+    left: 50px
+}
+.nsNavCollapsed .nsNavParentHover span 
+{
+    top: 0;
+    margin-left: -3px;
+    padding: 12px 5px 12px 20px;
+    background-color: inherit;
+}
+.nsNavCollapsed .nsNavParentHover .nsNavContainerPullRight 
+{
+    position: relative !important;
+    float: right;
+    width: auto !important;
+    left: 180px !important;
+    top: -22px !important;
+    z-index: 900
+}
+.nsNavCollapsed .nsNavParentHover .nsNavSubNavContainer
+{
+	top: 44px;
+    margin-left: 0;
+}
+.nsNavContainer,.nsNavMainContainer .user-panel,.nsNavContainer>li.nsNavHeader 
+{
+    white-space: nowrap;
+    overflow: hidden
+}
+.nsNavContainer:hover 
+{
+    overflow: visible
+}
+.nsNavContainer li>a 
+{
+    position: relative
+}
+.nsNavContainer li>a>.nsNavContainerPullRight 
+{
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    margin-top: -7px;
+}
+.nsNavSubNavContainer 
+{
+    display: none;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    padding-left: 5px;
+}
+.nsNavSubNavContainerVisible
+{
+	 display: block;
+}
+.nsNavSubNavContainer .nsNavSubNavContainer 
+{
+    padding-left: 20px;
+}
+.nsNavSubNavContainer>li 
+{
+    margin: 0;
+}
+.nsNavSubNavContainer>li>a 
+{
+    padding: 5px 5px 5px 15px;
+    display: block;
+    font-size: 14px;
+}
+.nsNavSubNavContainer>li>a>span>.fa,.nsNavSubNavContainer>li>a>span>.glyphicon,.nsNavSubNavContainer>li>a>span>.ion 
+{
+    width: 20px;
+}
+.nsNavSubNavContainer>li>a>.nsNavContainerPullRight>.fa-angle-left,.nsNavSubNavContainer>li>a>.nsNavContainerPullRight>.fa-angle-down,.nsNavSubNavContainer>li>a>.fa-angle-left,.nsNavSubNavContainer>li>a>.fa-angle-down 
+{
+    width: auto;
+}
+.nsNavCollapsed .nsNavNonVisibleIcon 
+{
+    display: none !important;
+    -webkit-transform: translateZ(0);
+}
+.nsNavDynamicContainer
+{
+	position: absolute;
+    top: 0;
+    left: 0;
+    overflow: hidden; 
+    text-align: center;
+    width:250px;
+    z-index: 900;
+}
+.nsNavDynamicContainer>.nsNavDynamicMenuText
+{
+    padding: 5px 5px 5px 15px;
+    display: block;
+    font-size: 14px;
+    text-decoration: none;
+    text-align: left;
+    padding-left: 80px;
+}
+.nsNavDynamicContainer>.nsNavDynamicSubMenuCont
+{
+	list-style: none;
+    padding: 0;
+    margin: 0;
+    padding-left: 5px;
+    text-align: left;
+}
+.nsNavDynamicSubMenuCont a 
+{
+    padding: 5px 5px 5px 15px;
+    display: block;
+    font-size: 14px;
+}
+.nsNavDynamicSubMenuCont a 
+{
+    position: relative;
+}
+.nsNavSelectedMenu > a 
+{
+    font-weight: bold;
+}
+.nsNavigationItemDisabled
+{
+	pointer-events:none; 
+    opacity:0.4;
+}
+.nsNavigationItemDisabled > a
+{
+	color: #777;
+}
 
-mapJSFiles.put("nsNavigation", baseJSURL + "prototype\\nsNavigation.js");
-mapJSDependency.put("nsGrid",new String[]{"nsMenu","nsPagination","nsExport","nsFilter","nsFlatGrid","nsHierarchicalGrid","nsGroupingGrid","nsGridPluggins"});
-mapCSSFiles.put("nsNavigation", baseCSSURL + "nsNavigation.css");
-mapDependency.put("nsNavigation",new String[]{"nsNavigation"});
-"nsDividerBox","nsNavigation"
+/*************************Themes ******************************************/
+.nsNavMainContainerWhite
+{
+	background-color: #ffffff;
+}
+.nsNavMainContainerWhite .nsNavMainContainer
+{
+    color: #333;
+}
+.nsNavMainContainerWhite .nsNavContainer>li:hover>a, .nsNavMainContainerWhite .nsNavContainer>li.nsNavItemActive>a, .nsNavMainContainerWhite .nsNavContainer>li.nsNavItemOpen>a 
+{
+    color: black;
+    background: #ffffff;
+}
+
+.nsNavMainContainerWhite .nsNavContainer>li.nsNavHeader 
+{
+    color: black;
+    background: #ffffff;
+}
+.nsNavMainContainerWhite .nsNavigationItem>a 
+{
+    color: #2b444f;
+    background: #ffffff;
+    text-decoration: none;
+}
+.nsNavMainContainerWhite .nsNavSelectedMenu > a 
+{
+    color: #CA2420;
+    background: #E5E5E5;
+    border-left-color: #E5E5E5;
+}
+.nsNavMainContainerWhite .nsNavDynamicContainer
+{
+	background: #ffffff;
+	color: #2b444f;
+}
+.nsNavMainContainerWhite .nsNavDynamicSubMenuCont a 
+{
+    color: #2b444f;
+    text-decoration: none;
+}
+.nsNavMainContainerWhite .nsNavDynamicMenuItem.nsNavSelectedMenu>a 
+{
+    color: #CA2420;
+}
+.nsNavMainContainerWhite .nsNavDynamicContainer>.nsNavDynamicMenuText
+{
+	color: #4b646f;
+	border-top: 1px solid #D5D5D5;
+    border-right: 1px solid #D5D5D5;
+    border-bottom: 1px solid #D5D5D5;
+}
+.nsNavMainContainerWhite .nsNavDynamicContainer>.nsNavDynamicSubMenuCont
+{
+	border-top: 1px solid #D5D5D5;
+    border-right: 1px solid #D5D5D5;
+    border-bottom: 1px solid #D5D5D5;
+}
+
+.nsNavMainContainerBlack
+{
+	background-color: #222d32;
+}
+.nsNavMainContainerBlack .nsNavMainContainer 
+{
+    color: #333;
+}
+.nsNavMainContainerBlack .nsNavContainer>li:hover>a, .nsNavMainContainerBlack .nsNavContainer>li.nsNavItemActive>a, .nsNavMainContainerBlack .nsNavContainer>li.nsNavItemOpen>a 
+{
+    color: #fff;
+    background: #1e282c;
+}
+.nsNavMainContainerBlack .nsNavContainer>li.nsNavHeader 
+{
+    color: #fff;
+    background: #1a2226;
+}
+.nsNavMainContainerBlack .nsNavigationItem>a 
+{
+    color: #fff;
+    background: #1e282c;
+    text-decoration: none;
+}
+.nsNavMainContainerBlack .nsNavSelectedMenu > a 
+{
+    color: #CA2420;
+    background: #E5E5E5;
+    border-left-color: #E5E5E5;
+}
+.nsNavMainContainerBlack .nsNavDynamicContainer
+{
+	background-color:black;
+	color:white;
+}
+.nsNavMainContainerBlack .nsNavDynamicSubMenuCont a 
+{
+    color: #fff;
+    background: #1e282c;
+    text-decoration: none;
+}
+.nsNavMainContainerBlack .nsNavDynamicMenuItem.nsNavSelectedMenu>a 
+{
+    color: #CA2420;
+}
+.nsNavMainContainerBlack .nsNavDynamicContainer>.nsNavDynamicMenuText
+{
+	color: #fff;
+    background: #1e282c;
+    border-top: 1px solid #D5D5D5;
+    border-right: 1px solid #D5D5D5;
+    border-bottom: 1px solid #D5D5D5;
+}
+.nsNavMainContainerBlack .nsNavDynamicContainer>.nsNavDynamicSubMenuCont
+{
+	border-top: 1px solid #D5D5D5;
+    border-right: 1px solid #D5D5D5;
+    border-bottom: 1px solid #D5D5D5;
+}
+nsPanel
+.nsPanelModal 
+{
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    padding-top: 100px; /* Location of the box */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+}
+.nsPanel 
+{
+    margin: 0;
+    padding: 0;
+}
+.nsPanel.nsPanelModalContent 
+{
+    position: relative;
+    margin: auto;
+    padding: 0;
+    width: 80%;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+}
+.nsPanel.nsPanelModalContentDrag
+{
+	left: 35%;
+}
+.nsPanel.nsPanelModalAnimation
+{
+	-webkit-animation-name: animatetop;
+    -webkit-animation-duration: 0.3s;
+    animation-name: animatetop;
+    animation-duration: 0.3s
+}
+.nsPanel.nsPanelWidget
+{
+	width: 45%;
+    height: 45%;
+    background: #F6F6F6;
+}
+.nsPanel .nsPanelTitleBar 
+{
+    text-align: left;
+    font-weight: bold;
+    min-height: 20px;
+    box-sizing: border-box;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-orient: horizontal;
+    -webkit-box-direction: normal;
+    -ms-flex-direction: row;
+    flex-direction: row;
+    -ms-flex-wrap: nowrap;
+    flex-wrap: nowrap;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    -ms-grid-row-align: center;
+    align-items: center;
+}
+.nsPanel .nsPanelTitleBarContent 
+{
+    -webkit-box-flex: 1;
+    -ms-flex: 1 1 auto;
+    flex: 1 1 auto;
+    cursor: move;
+    overflow: hidden;
+}
+.nsPanel .nsPanelControlbar 
+{
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    -ms-grid-row-align: center;
+    align-items: center;
+    float:right;
+}
+.nsPanel .nsPanelControlbar .nsPanelControlButton 
+{
+    padding: 0 3px;
+    cursor: pointer;
+}
+/* donot give padding */
+.nsPanel .nsPanelBody 
+{
+    overflow: auto;
+    height: 91%;
+    width:100%;
+}
+.nsPanel .nsPanelExpColIcon
+{
+	width:14px;
+	height:14px;
+}
+.nsPanel .nsPanelMinMaxIcon
+{
+	width:14px;
+	height:14px;
+}
+.nsPanel .nsPanelFullScreenIcon
+{
+	width:14px;
+	height:14px;
+}
+.nsPanel .nsPanelCloseIcon
+{
+	width:14px;
+	height:14px;
+}
+.nsPanelMinimizeContainer 
+{
+    bottom: 0;
+    left: 0;
+    position: fixed;
+    width: 100%;
+    z-index: 9999;
+}
+.nsPanelModalMinimized 
+{
+    /*width: 250px;
+    height: 35px;
+    overflow: hidden !important;
+    padding: 0px !important;
+    margin: 0px;
+    position: static !important;*/
+    height: auto !important;
+    left: auto !important;
+    opacity: 1;
+    top: auto !important;
+    width: auto !important;
+    position: static !important;
+}
+.nsPanelModalMinimized.nsPanelModalMinimizedright
+{
+	float: right;
+}
+.nsPanelModalMinimized.nsPanelModalMinimizedleft
+{
+	float: left;
+}
+/* Add Animation */
+@-webkit-keyframes animatetop {
+    from {top:-300px; opacity:0} 
+    to {top:0; opacity:1}
+}
+
+@keyframes animatetop {
+    from {top:-300px; opacity:0}
+    to {top:0; opacity:1}
+}
+/****************************************White Theme ***************************************/
+.nsPanelModalWhite
+{
+	background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+.nsPanelWhite.nsPanelModalContent 
+{
+    background-color: #fefefe;
+}
+.nsPanelModalWhite .nsPanelTitleBar
+{
+	background-color: #157fcc;
+}
+.nsPanelWhite .nsPanelExpColIcon 
+{
+  fill: #F6F6F6;
+  color: #848484;
+}
+.nsPanelWhite .nsPanelMinMaxIconUse 
+{
+  fill: #F6F6F6;
+  color: #848484;
+}
+.nsPanelWhite .nsPanelCloseIconUse 
+{
+  fill: #848484;
+  color: #F6F6F6;
+}
+/****************************************End of White Theme ***************************************/
+
+
