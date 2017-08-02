@@ -1,164 +1,718 @@
-<!DOCTYPE html>
-<html>
-<head>
-	<meta charset="utf-8">
-	<title>Panel Demo</title>
-	<meta content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' name='viewport'>
-	<style>
-		body,html
+function NSPanel(component,setting) 
+{
+	this.__DEFAULT_ANIMATION_STEPS = 10;
+	this.__DEFAULT_ANIMATION_DELAY = 20;
+	
+	this.DRAG_STARTING = "dragStaring";
+	this.DRAGGING = "dragging";
+	this.DRAG_END = "dragEnd";
+	this.RESIZE_STARTING = "resizeStaring";
+	this.RESIZING = "resizing";
+	this.RESIZE_END = "resizeEnd";
+	this.COLLAPSE_STARTING = "collapseStarting";
+	this.COLLAPSE_END = "collapseEnd";
+	this.EXPANSION_STARTING = "expansionStarting";
+	this.EXPANSION_END = "expansionEnd";
+	this.MINIMIZE_STARTING = "minimizeStarting";
+	this.MINIMIZE_END = "minimizeEnd";
+	this.MAXIMIZE_STARTING = "maximizeStarting";
+	this.MAXIMIZE_END = "maximizeEnd";
+	this.FULLSCREEN_STARTING = "fullScreenStarting";
+	this.FULLSCREEN_END = "fullScreenEnd";
+	this.RESTORE_STARTING = "restoreStarting";
+	this.RESTORE_END = "restoreEnd";
+	
+	this.__OUTER_CONTAINER_ID = "panelContainer";
+	this.__TITLE_CONTAINER_ID = "divTitleBar";
+	this.__BODY_CONTAINER_ID = "divBody";
+	
+	this.__CLASS_OUTER_CONTAINER = "nsPanelContainer";
+	this.__CLASS_TITLEBAR = "nsPanelTitleBar";
+	this.__CLASS_BODY_CONTAINER = "nsPanelBody";
+	
+	this.__setting = setting;
+	
+	this.__header = null;
+	this.__body = null;
+	
+	this.__title = null;
+	this.__templateID = null;
+	this.__templateUrl = null;
+	this.__minWidth = null;
+	this.__minHeight = null;
+	this.__enableModal = false;
+	this.__enableCollapse = false;
+	this.__enableMinimization = false;
+	this.__enableFullScreen = false;
+	this.__enableDrag = false;
+	this.__enableResize = false;
+	this.__enableTitleDblClick = false;
+	this.__enableMoveOnClick = false;
+	this.__enableModalAnimation = true;
+	this.__enableModalBodyClick = false;
+	this.__enableModalKeyboard = false;
+	
+	this.__customClass = {};
+	
+	this.__lastHeight = null;
+	this.__lastBodyHeight = -1;
+	this.__nsDragResizeElements = null;
+	this.__divGhost = null;
+	this.__divModal = null;
+	this.__isCollapsingExpanding = false;
+	this.__isCollapsed = false;
+	this.__isMinimized = false;
+	this.__isFullScreen = false;
+	this.__isInternalRemove = false;
+	this.__divOrignalChildren = null;
+	this.__dragExcludeElement = [];
+	//Minimize Variables
+	this.__divMinFixedContainer = null;
+	this.__minimizedDirection = "left";
+	this.__baseComponentParent = null;
+	
+	this.__windowClickRef = null;
+	this.__documentKeydownRef = null;
+	this.__isComponentNull = false;
+	if(!component)
+	{
+		component = document.createElement("div");
+		component.style.display = "none";
+		document.body.appendChild(component);
+		this.__isComponentNull = true;
+	}
+	this.base.__setBaseComponent.call(this,component);
+};
+
+nsExtendPrototype(NSContainerBase,NSPanel);
+NSPanel.prototype.constructor = NSPanel;
+
+NSPanel.prototype.initializeComponent = function() 
+{
+	this.base.initializeComponent.call(this);
+	this.__setSetting();
+	if(this.__isComponentNull)
+	{
+		this.__baseComponent.setAttribute("id",this.getID() + "Panel");
+	}
+	else
+	{
+		this.__createStructure();
+	}
+};
+
+NSPanel.prototype.setComponentProperties = function() 
+{
+	this.base.setComponentProperties.call(this);
+};
+
+NSPanel.prototype.propertyChange = function(attrName, oldVal, newVal, setProperty)
+{
+	var attributeName = attrName.toLowerCase();
+	this.base.propertyChange.call(this,attrName, oldVal, newVal, setProperty);
+};
+
+NSPanel.prototype.removeComponent = function() 
+{
+	if(!this.__isInternalRemove || this.__isComponentNull)
+	{
+		if(this.__nsDragResizeElements)
 		{
-			margin:0px;
-			padding:0px;
-			height:100%;
-			background:#FFFFFF;
+			this.__nsDragResizeElements.destroy();
+			this.__nsDragResizeElements = null;
 		}
-		.panel
+		if(this.__windowClickRef)
 		{
-			width: 400px;
-		    height: 500px;
-			background: white;
-		   	padding: 0px 0px 0px 0px;
-		    -webkit-border-radius: 4px;
-		    -moz-border-radius: 4px;
-		    -ms-border-radius: 4px;
-		    -o-border-radius: 4px;
-		    border-radius: 4px;
-		    border-width: 5px;
-		    border-style: solid;
-		    border-color: #157fcc;
-		    background-color: white;
+			this.util.removeEvent(window,"click",this.__windowClickRef);
+			this.__windowClickRef = null;
 		}
-		.panelTitleBar {
-		    padding: 5px 2px 5px 5px;
-		    background-color: #157fcc;
-		    font-size: 12px;
-		    text-align: left;
-		    color: #ffffff;
-		    font-weight: bold;
-		    height: 8%;
-		    min-height: 20px;
-		    max-height: 20px;
-		}
-		.container 
+		if(this.__documentKeydownRef)
 		{
-	      	background-color: blue;
+			this.util.removeEvent(document,"keydown",this.__documentKeydownRef);
+			this.__documentKeydownRef = null;
 		}
-        .elem{
-            background-color: green;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -o-user-select: none;
-            -ms-user-select: none;
-            -khtml-user-select: none;     
-            user-select: none;
-        }
-	</style>
-	<link href="../lib/css/com/org/component.css" rel="stylesheet">
-	<link href="../lib/css/com/org/nsPanel.css" rel="stylesheet">
-	<script src="../lib/com/org/util/nsUtil.js"></script>
-	<script src="../lib/com/org/util/nsSVG.js"></script>
-	<script src="../lib/com/org/prototype/base/nsContainerBase.js"></script>
-	<script src="../lib/com/org/prototype/nsPanel.js"></script>
- </head>
-<body onload="init();">
-	<template id="templateDemo">
-		<div>
-		    <p><b>New York</b> is a <a href="/wiki/U.S._state" title="U.S. state">state</a> in the <a href="/wiki/Northeastern_United_States" title="Northeastern United States">Northeastern United States</a> and is the United States' <a href="/wiki/List_of_U.S._states_and_territories_by_area" title="List of U.S. states and territories by area">27th-most extensive</a>, <a href="/wiki/List_of_U.S._states_and_territories_by_population" title="List of U.S. states and territories by population">fourth-most populous</a>, and <a href="/wiki/List_of_U.S._states_by_population_density" title="List of U.S. states by population density">seventh-most densely populated</a> state. New York is bordered by <a href="/wiki/New_Jersey" title="New Jersey">New Jersey</a> and <a href="/wiki/Pennsylvania" title="Pennsylvania">Pennsylvania</a> to the south and <a href="/wiki/Connecticut" title="Connecticut">Connecticut</a>, <a href="/wiki/Massachusetts" title="Massachusetts">Massachusetts</a>, and <a href="/wiki/Vermont" title="Vermont">Vermont</a> to the east. The state has a <a href="/wiki/Maritime_boundary" title="Maritime boundary">maritime border</a> with <a href="/wiki/Rhode_Island" title="Rhode Island">Rhode Island</a> east of <a href="/wiki/Long_Island" title="Long Island">Long Island</a>, as well as an <a href="/wiki/Canada%E2%80%93United_States_border" title="Canada-United States border">international border</a> with the <a href="/wiki/Canadian_provinces" title="Canadian provinces" class="mw-redirect">Canadian provinces</a> of <a href="/wiki/Quebec" title="Quebec">Quebec</a> to the north and <a href="/wiki/Ontario" title="Ontario">Ontario</a> to the west and north. The state of New York is often referred to as <b>New York State</b> to distinguish it from <a href="/wiki/New_York_City" title="New York City">New York City</a>, the state's most populous city and its economic hub.</p>
-		    <p>With an estimated population of nearly 8.5 million in 2014,<sup id="cite_ref-2014NYCest_8-0" class="reference"><a href="#cite_note-2014NYCest-8"><span>[</span>8<span>]</span></a></sup><sup id="cite_ref-NYCest2_9-0" class="reference"><a href="#cite_note-NYCest2-9"><span>[</span>9<span>]</span></a></sup> New York City is the <a href="/wiki/List_of_United_States_cities_by_population" title="List of United States cities by population">most populous city</a> in the United States and the premier gateway for legal <a href="/wiki/Immigration_to_the_United_States" title="Immigration to the United States">immigration to the United States</a>.<sup id="cite_ref-Immigrants2013est_10-0" class="reference"><a href="#cite_note-Immigrants2013est-10"><span>[</span>10<span>]</span></a></sup><sup id="cite_ref-Immigrants2012est_11-0" class="reference"><a href="#cite_note-Immigrants2012est-11"><span>[</span>11<span>]</span></a></sup><sup id="cite_ref-Immigrants2011est_12-0" class="reference"><a href="#cite_note-Immigrants2011est-12"><span>[</span>12<span>]</span></a></sup> The <a href="/wiki/New_York_City_Metropolitan_Area" title="New York City Metropolitan Area" class="mw-redirect">New York City Metropolitan Area</a> is one of the most populous <a href="/wiki/Urban_agglomeration" title="Urban agglomeration">urban agglomerations</a> in the world.<sup id="cite_ref-13" class="reference"><a href="#cite_note-13"><span>[</span>13<span>]</span></a></sup><sup id="cite_ref-14" class="reference"><a href="#cite_note-14"><span>[</span>14<span>]</span></a></sup> New York City is a <a href="/wiki/Global_city" title="Global city">global city</a>,<sup id="cite_ref-15" class="reference"><a href="#cite_note-15"><span>[</span>15<span>]</span></a></sup> exerting a significant impact upon commerce, finance, media, art, fashion, research, technology, education, and entertainment, its fast pace defining the term <i><a href="/wiki/New_York_minute" title="New York minute" class="mw-redirect">New York minute</a></i>.<sup id="cite_ref-FastPaceNYC1_16-0" class="reference"><a href="#cite_note-FastPaceNYC1-16"><span>[</span>16<span>]</span></a></sup> <sup id="cite_ref-NewYorkMinuteDefinition_17-0" class="reference"><a href="#cite_note-NewYorkMinuteDefinition-17"><span>[</span>17<span>]</span></a></sup> The home of the <a href="/wiki/United_Nations_Headquarters" title="United Nations Headquarters" class="mw-redirect">United Nations Headquarters</a>,<sup id="cite_ref-18" class="reference"><a href="#cite_note-18"><span>[</span>18<span>]</span></a></sup> New York City is an important center for international diplomacy<sup id="cite_ref-19" class="reference"><a href="#cite_note-19"><span>[</span>19<span>]</span></a></sup> and has been described as the cultural and financial capital of the world,<sup id="cite_ref-culture1_20-0" class="reference"><a href="#cite_note-culture1-20"><span>[</span>20<span>]</span></a></sup><sup id="cite_ref-culture2_21-0" class="reference"><a href="#cite_note-culture2-21"><span>[</span>21<span>]</span></a></sup><sup id="cite_ref-culture3_22-0" class="reference"><a href="#cite_note-culture3-22"><span>[</span>22<span>]</span></a></sup><sup id="cite_ref-culture4_23-0" class="reference"><a href="#cite_note-culture4-23"><span>[</span>23<span>]</span></a></sup><sup id="cite_ref-WorldEconomicAndFinancialSuperCenter_24-0" class="reference"><a href="#cite_note-WorldEconomicAndFinancialSuperCenter-24"><span>[</span>24<span>]</span></a></sup> as well as the world's most economically powerful city.<sup id="cite_ref-EconomicallyPowerful2015_25-0" class="reference"><a href="#cite_note-EconomicallyPowerful2015-25"><span>[</span>25<span>]</span></a></sup><sup id="cite_ref-WorldEconomicAndFinancialSuperCenter_24-1" class="reference"><a href="#cite_note-WorldEconomicAndFinancialSuperCenter-24"><span>[</span>24<span>]</span></a></sup><sup id="cite_ref-26" class="reference"><a href="#cite_note-26"><span>[</span>26<span>]</span></a></sup> New York City makes up over 40% of the population of New York State. Two-thirds of the state's population lives in the New York City Metropolitan Area, and nearly 40% live on Long Island.<sup id="cite_ref-NYCest2_9-1" class="reference"><a href="#cite_note-NYCest2-9"><span>[</span>9<span>]</span></a></sup> Both the state and New York City were named for the 17th century <a href="/wiki/Duke_of_York" title="Duke of York">Duke of York</a>, future <a href="/wiki/James_II_of_England" title="James II of England">King James II of England</a>. The next four most populous cities in the state are <a href="/wiki/Buffalo,_New_York" title="Buffalo, New York">Buffalo</a>, <a href="/wiki/Rochester,_New_York" title="Rochester, New York">Rochester</a>, <a href="/wiki/Yonkers,_New_York" title="Yonkers, New York">Yonkers</a>, and <a href="/wiki/Syracuse,_New_York" title="Syracuse, New York">Syracuse</a>, while the <a href="/wiki/List_of_U.S._state_capitals" title="List of U.S. state capitals" class="mw-redirect">state capital</a> is <a href="/wiki/Albany,_New_York" title="Albany, New York">Albany</a>.</p>
-		    <p>The earliest Europeans in New York were <a href="/wiki/French_colonization_of_the_Americas" title="French colonization of the Americas">French colonists</a> and <a href="/wiki/Jesuit_missionaries" title="Jesuit missionaries" class="mw-redirect">Jesuit missionaries</a> who arrived southward from settlements at <a href="/wiki/Montreal" title="Montreal">Montreal</a> for trade and proselytizing. New York had been inhabited by tribes of <a href="/wiki/Algonquian_peoples" title="Algonquian peoples">Algonquian</a> and <a href="/wiki/Iroquoian_languages" title="Iroquoian languages">Iroquoian</a>-speaking <a href="/wiki/Indigenous_peoples_of_the_Americas" title="Indigenous peoples of the Americas">Native Americans</a> for several hundred years by the time <a href="/wiki/Dutch_people" title="Dutch people">Dutch</a> settlers moved into the region in the early 17th century. In 1609, the region was first claimed by <a href="/wiki/Henry_Hudson" title="Henry Hudson">Henry Hudson</a> for the Dutch, who built <a href="/wiki/Fort_Nassau_(North_River)" title="Fort Nassau (North River)">Fort Nassau</a> in 1614 at the confluence of the <a href="/wiki/Hudson_River" title="Hudson River">Hudson</a> and <a href="/wiki/Mohawk_River" title="Mohawk River">Mohawk</a> rivers, where the present-day capital of Albany later developed. The Dutch soon also settled <a href="/wiki/New_Amsterdam" title="New Amsterdam">New Amsterdam</a> and parts of the <a href="/wiki/Hudson_Valley" title="Hudson Valley">Hudson Valley</a>, establishing the colony of <a href="/wiki/New_Netherland" title="New Netherland">New Netherland</a>, a multicultural community from its earliest days and a center of trade and immigration. The <a href="/wiki/Kingdom_of_Great_Britain" title="Kingdom of Great Britain">British</a> annexed the colony from the Dutch in 1664. The borders of the British colony, the <a href="/wiki/Province_of_New_York" title="Province of New York">Province of New York</a>, were similar to those of the present-day state.</p>
-		    <p>Many landmarks in New York are well known to both international and domestic visitors, with New York State hosting four of the world's ten most-visited tourist attractions in 2013: <a href="/wiki/Times_Square" title="Times Square">Times Square</a>, <a href="/wiki/Central_Park" title="Central Park">Central Park</a>, <a href="/wiki/Niagara_Falls" title="Niagara Falls">Niagara Falls</a> (shared with Ontario), and <a href="/wiki/Grand_Central_Terminal" title="Grand Central Terminal">Grand Central Terminal</a>.<sup id="cite_ref-Ann_Shields_27-0" class="reference"><a href="#cite_note-Ann_Shields-27"><span>[</span>27<span>]</span></a></sup> New York is home to the <a href="/wiki/Statue_of_Liberty" title="Statue of Liberty">Statue of Liberty</a>, a symbol of the United States and its ideals of freedom, <a href="/wiki/Democracy" title="Democracy">democracy</a>, and opportunity.<sup id="cite_ref-28" class="reference"><a href="#cite_note-28"><span>[</span>28<span>]</span></a></sup> New York's <a href="/wiki/List_of_colleges_and_universities_in_New_York" title="List of colleges and universities in New York">higher education network</a> comprises approximately 200 colleges and universities, including <a href="/wiki/Columbia_University" title="Columbia University">Columbia University</a>, <a href="/wiki/Cornell_University" title="Cornell University">Cornell University</a>, <a href="/wiki/New_York_University" title="New York University">New York University</a>, and <a href="/wiki/Rockefeller_University" title="Rockefeller University">Rockefeller University</a>, which have been ranked among the top 35 in the world.<sup id="cite_ref-29" class="reference"><a href="#cite_note-29"><span>[</span>29<span>]</span></a></sup><sup id="cite_ref-30" class="reference"><a href="#cite_note-30"><span>[</span>30<span>]</span></a></sup></p>
-		
-		</div>
-	</template>
-<!-- 	<div id="divDemo" style="width:400px;height:400px;" class="panel"></div> -->
-	<button id="myBtn">Open Modal</button>
-	<script>
-		function init()
+		this.__dragExcludeElement = [];
+		this.base.removeComponent.call(this);
+	}
+	this.__isInternalRemove = false;
+};
+
+NSPanel.prototype.componentResized = function(event) 
+{
+	this.base.componentResized.call(this,event);
+};
+
+NSPanel.prototype.openModal = function()
+{
+	if(this.__isComponentNull)
+	{
+		this.__createStructure();
+	}
+	if(this.__divModal)
+	{
+		if(this.__enableModalAnimation)
 		{
-			var element = document.getElementById("elem");
-			var container = document.getElementById("container");
-			var btn = document.getElementById("myBtn");
-			var util = new NSUtil();
-			//util.getTemplateFromURL("../demo/demoTemplate.jsp",templateLoadHandler);
-			//,template:"templateDemo"
-			var setting = {nsTitle:"Demo",minWidth:300,minHeight:300,enableModal:true,enableCollapse:true,enableDrag:true, 
-					  		enableResize:true,enableTitleDblClick:true,enableMoveOnClick:true,titleClass:"panelTitleBar",
-					  		templateUrl:"../demo/demoTemplate.jsp"};
-			//var divDemo = document.querySelector("#divDemo");
-			//var nsDemo = new NSPanel(divDemo,setting);
-			var nsDemo = new NSPanel(null,setting);
-			var divDemo = nsDemo.getBaseElement();
-			divDemo.setAttribute("style","width:400px;height:400px;");
-			divDemo.setAttribute("class","panel");
-			util.addEvent(divDemo,nsDemo.DRAG_STARTING,dragStartingHandler);
-			util.addEvent(divDemo,nsDemo.DRAGGING,draggingHandler);
-			util.addEvent(divDemo,nsDemo.DRAG_END,dragEndHandler);
-			util.addEvent(divDemo,nsDemo.RESIZE_STARTING,resizeStartingHandler);
-			util.addEvent(divDemo,nsDemo.RESIZING,resizingHandler);
-			util.addEvent(divDemo,nsDemo.RESIZE_END,resizeEndHandler);
-			util.addEvent(divDemo,nsDemo.MINIMIZE_STARTING,minimizeStartingHandler);
-			util.addEvent(divDemo,nsDemo.MINIMIZE_END,minimizeEndHandler);
-			util.addEvent(divDemo,nsDemo.MAXIMIZE_STARTING,maximizeStartingHandler);
-			util.addEvent(divDemo,nsDemo.MAXIMIZE_END,maximizeEndHandler);
-			btn.onclick = function() {
-				//nsDemo.openModal();
-				nsDemo.createModal();
+			this.util.addStyleClass(this.__baseComponent,"nsPanelModalAnimation");
+			var cssAnimationHelper = new this.util.nsCSSAnimationHelper();
+			cssAnimationHelper.addEndEvent(this.__baseComponent,this.__modalAnimationEndHandler.bind(this));
+		}
+		this.__divModal.style.display = "block";
+	}
+};
+
+NSPanel.prototype.closeModal = function()
+{
+	if(this.__isComponentNull)
+	{
+		this.removeComponent();
+		this.util.removeAllChildren(this.__baseComponent);
+		this.__divModal.parentNode.removeChild(this.__divModal);
+		this.__baseComponent.style.display = "none";
+		document.body.appendChild(this.__baseComponent);
+	}
+	else
+	{
+		if(this.__divModal)
+		{
+			this.__divModal.style.display = "none";
+		}
+	}
+};
+
+NSPanel.prototype.getBaseElement = function()
+{
+	return this.__baseComponent;
+};
+
+NSPanel.prototype.__setSetting = function()
+{
+	var setting = this.__setting;
+	if(setting)
+	{
+		if(setting.hasOwnProperty("nsTitle"))
+		{
+			this.__title = setting["nsTitle"];
+		}
+		if(setting.hasOwnProperty("template"))
+		{
+			this.__templateID = setting["template"];
+		}
+		if(setting.hasOwnProperty("templateUrl"))
+		{
+			this.__templateUrl = setting["templateUrl"];
+		}
+		if(setting.hasOwnProperty("minWidth"))
+		{
+			this.__minWidth = this.util.getNumber(setting["minWidth"]);
+		}
+		if(setting.hasOwnProperty("minHeight"))
+		{
+			this.__minHeight = this.util.getNumber(setting["minHeight"]);
+		}
+		if(setting.hasOwnProperty("enableModal"))
+		{
+			this.__enableModal = Boolean.parse(setting["enableModal"]);
+		}
+		if(setting.hasOwnProperty("enableCollapse"))
+		{
+			this.__enableCollapse = Boolean.parse(setting["enableCollapse"]);
+		}
+		if(setting.hasOwnProperty("enableMinimization"))
+		{
+			this.__enableMinimization = Boolean.parse(setting["enableMinimization"]);
+		}
+		if(setting.hasOwnProperty("enableFullScreen"))
+		{
+			this.__enableFullScreen = Boolean.parse(setting["enableFullScreen"]);
+		}
+		if(setting.hasOwnProperty("enableDrag"))
+		{
+			this.__enableDrag = Boolean.parse(setting["enableDrag"]);
+		}
+		if(setting.hasOwnProperty("enableResize"))
+		{
+			this.__enableResize = Boolean.parse(setting["enableResize"]);
+		}
+		if(setting.hasOwnProperty("enableTitleDblClick"))
+		{
+			this.__enableTitleDblClick = Boolean.parse(setting["enableTitleDblClick"]);
+		}
+		if(setting.hasOwnProperty("enableMoveOnClick"))
+		{
+			if(!this.__enableModal)
+			{
+				this.__enableMoveOnClick = Boolean.parse(setting["enableMoveOnClick"]);
 			}
 		}
-		
-		function templateLoadHandler(content)
+		if(setting.hasOwnProperty("enableModalAnimation"))
 		{
-			console.log(content);
+			this.__enableModalAnimation = Boolean.parse(setting["enableModalAnimation"]);
 		}
-		
-		function dragStartingHandler(event)
+		if(setting.hasOwnProperty("enableModalBodyClick"))
 		{
-			console.log("Drag Starting");
+			if(this.__enableDrag)
+			{
+				this.__enableModalBodyClick = Boolean.parse(setting["enableModalBodyClick"]);
+			}
 		}
-		
-		function draggingHandler(event)
+		if(setting.hasOwnProperty("enableModalKeyboard"))
 		{
-			console.log("Dragging at point:: x=" + event.detail.x + ",y=" + event.detail.y);
+			this.__enableModalKeyboard = Boolean.parse(setting["enableModalKeyboard"]);
 		}
-		
-		function dragEndHandler(event)
+		var customClass = {};
+		if(setting.hasOwnProperty("customClass"))
 		{
-			console.log("Drag Ended");
+			customClass = setting["customClass"];
+			if(!customClass)
+			{
+				customClass = {};
+			}
 		}
-		
-		function resizeStartingHandler(event)
+		this.__customClass = {container:customClass["container"] || null,
+				  titleBar:customClass["titleBar"] || null,
+				  titleBarContent:customClass["titleBarContent"] || null,
+				  iconContainer:customClass["iconContainer"] || null,
+				  icon:customClass["icon"] || null,
+				  body:this.__setting.customClass["body"] || null};
+	}
+};
+
+NSPanel.prototype.__createStructure = function()
+{
+	this.__copyOrignalContent();
+	this.util.addStyleClass(this.__baseComponent,"nsPanel");
+	this.util.addStyleClass(this.__baseComponent,"nsPanelExpanded");
+	this.__applyTheme(this.__baseComponent,"nsPanel");
+	this.__applyTheme(this.__baseComponent,"nsPanelWidget");
+	this.__applyCustomClass(this.__baseComponent,"container");
+	if(this.__enableDrag)
+	{
+		this.util.addStyleClass(this.__baseComponent,"nsPanelModalContentDrag");
+	}
+	if(this.__enableModal)
+	{
+		var parentNode = this.parentNode;
+		if(!parentNode)
 		{
-			console.log("Resize Starting");
+			parentNode = document.body;
 		}
-		
-		function resizingHandler(event)
+		this.__divModal = this.__createModal();
+		this.__isInternalRemove = true;
+		this.__divModal.appendChild(this.__baseComponent);
+		parentNode.appendChild(this.__divModal);
+		this.util.addStyleClass(this.__baseComponent,"nsPanelModalContent");
+		if(this.__enableModalBodyClick)
 		{
-			console.log("Resizing with measurement:: width=" + event.detail.width + ",height=" + event.detail.height);
+			this.__windowClickRef = this.__windowClickHandler.bind(this);
+			this.util.addEvent(window,"click",this.__windowClickRef);
 		}
-		
-		function resizeEndHandler(event)
+		if(this.__enableModalKeyboard)
 		{
-			console.log("Resize Ended");
+			//To detect escape button
+			this.__documentKeydownRef = this.__documentKeydownHandler.bind(this);
+			this.util.addEvent(document,"keydown",this.__documentKeydownRef);
 		}
-		
-		function minimizeStartingHandler(event)
+	}
+	this.__header = this.__createTitleBar(this.__baseComponent);
+	this.__body = this.__createBody(this.__baseComponent);
+	this.__lastHeight = this.util.getStyleValue(this.__baseComponent,"height");
+	var dragResizeSetting = {element:this.__baseComponent,
+			enableDrag:this.__enableDrag,
+			enableResize:this.__enableResize,
+			enableMoveOnClick:this.__enableMoveOnClick,
+			minWidth:this.__minWidth,
+			minHeight:this.__minHeight,
+			createGhostElementCallback:this.__createGhostElement.bind(this),
+			enableDragContainment:true,
+			excludeElement:this.__dragExcludeElement};
+	this.__nsDragResizeElements = new this.util.nsDragResizeElements(dragResizeSetting);
+	this.util.addEvent(this.__baseComponent,this.__nsDragResizeElements.DRAG_STARTING,this.__dragResizeEventHandler.bind(this));
+	this.util.addEvent(this.__baseComponent,this.__nsDragResizeElements.RESIZE_END,this.__dragResizeEventHandler.bind(this));
+};
+
+NSPanel.prototype.__createModal = function()
+{
+	var divModal = this.util.createDiv(this.getID() + "modal","nsPanelModal");
+	this.util.addStyleClass(divModal,"nsPanelModal" + this.__theme);
+	return divModal;
+};
+
+NSPanel.prototype.__createTitleBar = function(parentElement)
+{
+	if(parentElement)
+	{
+		var divTitleBar = this.util.createDiv(this.getID() + this.__TITLE_CONTAINER_ID,"nsPanelTitleBar");
+		this.util.addStyleClass(divTitleBar,this.__CLASS_TITLEBAR);
+		this.__applyCustomClass(divTitleBar,"titleBar");
+		var divTitleBarContent = this.util.createDiv(this.getID() + this.__TITLE_CONTAINER_ID + "Content","nsPanelTitleBarContent");
+		this.__applyCustomClass(divTitleBarContent,"titleBarContent");
+		divTitleBar.appendChild(divTitleBarContent);
+		if(this.__title && this.__title.length > 0)
 		{
-			console.log("Minimize Starting");
+			var titleText = document.createTextNode(this.__title);
+			divTitleBarContent.appendChild(titleText);
 		}
-		
-		function minimizeEndHandler(event)
+		var svgShapes = new NSSvgShapes();
+		var objSVG = new NSSvg();
+		var divIcon = this.util.createDiv(this.getID() + this.__TITLE_CONTAINER_ID + "IconContainer","nsPanelControlbar");
+		this.__applyCustomClass(divIcon,"iconContainer");
+		if(this.__enableCollapse)
 		{
-			console.log("Minimize Ended");
+			svgShapes.addExpandInPage();
+			svgShapes.addCollapseInPage();
+			var expColID = this.getID() + "ExpCol";
+			var headerDoubleClickRef = this.__headerDoubleClickHandler.bind(this);
+			this.__addToolbarIcon(divIcon,objSVG,"nsPanelExpColContainer",expColID,"nsPanelExpColIcon",svgShapes.__EXPAND_ICON_ID,headerDoubleClickRef);
+			if(this.__enableTitleDblClick)
+			{
+				this.util.addEvent(divTitleBar,"dblclick",headerDoubleClickRef);
+			}
 		}
-		
-		function maximizeStartingHandler(event)
+		if(this.__enableMinimization)
 		{
-			console.log("Maximize Starting");
+			svgShapes.addMinimizeInPage();
+			svgShapes.addMaximizeInPage();
+			var minMaxID = this.getID() + "MinMax";
+			this.__addToolbarIcon(divIcon,objSVG,"nsPanelMinMaxContainer",minMaxID,"nsPanelMinMaxIcon",svgShapes.__MINIMIZE_ICON_ID,this.__minimizeIconClickHandler.bind(this));
 		}
-		
-		function maximizeEndHandler(event)
+		if(this.__enableFullScreen)
 		{
-			console.log("Maximize Ended");
+			
 		}
-	</script>
-</body>
+		if(this.__enableModal)
+		{
+			svgShapes.addCloseIcon();
+			var closeID = this.getID() + "Close";
+			this.__addToolbarIcon(divIcon,objSVG,"nsPanelCloseContainer",closeID,"nsPanelCloseIcon",svgShapes.__CLOSE_ICON_ID,this.__closeIconClickHandler.bind(this));
+		}
+		divTitleBar.appendChild(divIcon);
+		parentElement.appendChild(divTitleBar);
+		return divTitleBar;
+	}
+	return null;
+};
+
+NSPanel.prototype.__createBody = function(parentElement)
+{	
+	if(parentElement)
+	{
+		var divBody = this.util.createDiv(this.getID() + this.__BODY_CONTAINER_ID,this.__CLASS_BODY_CONTAINER);
+		this.__applyCustomClass(divBody,"body");
+		if(this.__divOrignalChildren)
+		{
+			divBody.appendChild(this.__divOrignalChildren);
+		}
+		if(this.__templateID && this.__templateID.length > 0)
+		{
+			divBody.appendChild(this.util.getTemplate(this.__templateID));
+		}
+		else if(this.__templateUrl && this.__templateUrl.length > 0)
+		{
+			var self = this;
+			var templateLoadHandler = function(templateText)
+			{
+				if(templateText)
+				{
+					divBody.innerHTML = templateText;
+				}
+				else
+				{
+					console.error(self.__templateUrl + " was not loaded.Please check the URL");
+				}
+			};
+			var templateErrorHandler = function(errorText)
+			{
+				console.error(self.__templateUrl + " was not loaded.Please check the URL");
+			};
+			this.util.getTemplateFromURL(this.__templateUrl,templateLoadHandler,templateErrorHandler);
+		}
+		parentElement.appendChild(divBody);
+		return divBody;
+	}
+	return null;
+};
+
+NSPanel.prototype.__createGhostElement = function(element)
+{
+	this.__divGhost = element.cloneNode(true);
+	var divMinMaxContainer = this.__divGhost.querySelector(".nsPanelMinMaxContainer");
+	if(divMinMaxContainer)
+	{
+		divMinMaxContainer.parentNode.removeChild(divMinMaxContainer);
+	}
+	var divCloseContainer = this.__divGhost.querySelector(".nsPanelCloseContainer");
+	if(divCloseContainer)
+	{
+		divCloseContainer.parentNode.removeChild(divCloseContainer);
+	}
+	var divBody = this.__divGhost.querySelector(".nsPanelBody");
+	if(divBody)
+	{
+		divBody.innerHTML = "";
+	}
+	return this.__divGhost;
+};
+
+NSPanel.prototype.__windowClickHandler = function(event)
+{
+	var target = this.util.getTarget(event);
+	if(target === this.__divModal)
+	{
+		this.closeModal();
+	}
+};
+
+NSPanel.prototype.__documentKeydownHandler = function(event)
+{
+	event = this.util.getEvent(event);
+	if (event.keyCode === this.util.KEYCODE["ESC"]) 
+	{
+		this.closeModal();
+	}
+};
+
+NSPanel.prototype.__copyOrignalContent = function()
+{
+	if(this.__baseComponent && this.__baseComponent.childNodes.length > 0)
+	{
+		this.__divOrignalChildren = this.util.createDiv(this.getID() + "orignalChildren");
+		while (this.__baseComponent.childNodes.length > 0) 
+		{
+			this.__divOrignalChildren.appendChild(this.__baseComponent.childNodes[0]);
+		}
+	}
+};
+
+NSPanel.prototype.__headerDoubleClickHandler = function(event)
+{
+	event = this.util.getEvent(event);
+	this.__initializeExpCol();
+	event.stopPropagation();
+	event.stopImmediatePropagation();
+};
+
+NSPanel.prototype.__minimizeIconClickHandler = function(event)
+{
+	event = this.util.getEvent(event);
+	this.__initializeMinMax();
+	event.stopPropagation();
+	event.stopImmediatePropagation();
+};
+
+NSPanel.prototype.__closeIconClickHandler = function(event)
+{
+	event = this.util.getEvent(event);
+	this.closeModal();
+	event.stopPropagation();
+	event.stopImmediatePropagation();
+};
+
+NSPanel.prototype.__modalAnimationEndHandler = function(event)
+{
+	this.util.removeStyleClass(this.__baseComponent,"nsPanelModalAnimation");
+};
+
+NSPanel.prototype.__dragResizeEventHandler = function(event)
+{
+	if(event.eventName === this.DRAG_STARTING)
+	{
+		var target = event.detail;
+		if(target && (this.util.hasStyleClass(target,"nsPanelMinMaxContainer")))
+		{
+			this.util.preventDefault(event);
+			event.stopImmediatePropagation();
+		}
+	}
+	else if(event.eventName === this.RESIZE_END)
+	{
+		this.__lastHeight = this.util.getStyleValue(this.__baseComponent,"height");
+	}
+};
+NSPanel.prototype.__addToolbarIcon = function(divIcon,objSVG,containerClass,iconID,svgClass,svgShapeIconID,clickHandler)
+{
+	var divButton = this.util.createDiv(null,"nsPanelControlButton");
+	this.util.addStyleClass(divButton,containerClass);
+	this.__applyCustomClass(divButton,"icon");
+	var svg = objSVG.addSVG(divButton,iconID,svgClass,null,null,null,null,null,null,true);
+	objSVG.addUse(svg,iconID + "use",svgClass + "Use","#" + svgShapeIconID);
+	divIcon.appendChild(divButton);
+	this.util.addEvent(divButton,"click",clickHandler);
+	this.__dragExcludeElement.push(divButton);
+	return divButton;
+};
+
+NSPanel.prototype.__applyCustomClass = function(element,type)
+{
+	if(element && type && this.__customClass[type])
+	{
+		this.util.addStyleClass(element,this.__customClass[type]);
+	}
+};
+
+/******************************Start of Expansion Collapse Function *************************************/
+NSPanel.prototype.__initializeExpCol = function()
+{
+	if(this.__body && !this.__isCollapsingExpanding)
+	{
+		var objBrowser = this.util.getBrowser();
+		//for some weird reason browser other than Chrome moves on click and know how to fix it
+		if(objBrowser && objBrowser.code !== "chrome")
+		{
+			this.__nsDragResizeElements.stopMoveOnClick();
+		}
+		this.__isCollapsingExpanding = true;
+		var isCollapsed = this.util.hasStyleClass(this.__baseComponent,"nsPanelCollapsed");
+		this.__animateExpCol(isCollapsed);
+	}
+};
+
+NSPanel.prototype.__animateExpCol = function(isExpanding)
+{
+	var eventType = isExpanding ? this.EXPANSION_STARTING:this.COLLAPSE_STARTING;
+	this.util.dispatchEvent(this.getBaseElement(),eventType,null,null);
+	this.__body.style.display = "block";
+	var contentHeight = this.__body.offsetHeight;
+	if (isExpanding)
+	{
+		this.__body.style.height = "0px";
+		contentHeight = this.__lastBodyHeight;
+	}
+	else
+	{
+		this.__lastBodyHeight = this.__body.offsetHeight;
+	}
+	var stepHeight = contentHeight / this.__DEFAULT_ANIMATION_STEPS;
+	var direction = (isExpanding ? 1 : -1);
+	var self = this;
+	setTimeout(function(){self.__animateExpColStep.bind(self)(1,stepHeight,direction);}, this.__DEFAULT_ANIMATION_DELAY);
+};
+
+NSPanel.prototype.__animateExpColStep = function(iteration, stepHeight, direction)
+{
+	if (iteration < this.__DEFAULT_ANIMATION_STEPS)
+	{
+		this.__body.style.height = Math.round(((direction > 0) ? iteration : 10 - iteration) * stepHeight) +"px";
+		iteration++;
+		var self = this;
+		setTimeout(function(){self.__animateExpColStep.bind(self)(iteration,stepHeight,direction);}, this.__DEFAULT_ANIMATION_DELAY);
+	}
+	else
+	{
+		var divGhostBody = this.__divGhost.querySelector(".nsPanelBody");
+		var eventType = "";
+		if(direction < 0)
+		{
+			this.util.changeStyleClass(this.__baseComponent,"nsPanelExpanded","nsPanelCollapsed");
+			this.__body.style.display = "none";
+			this.__baseComponent.style.height = this.__header.offsetHeight + "px";
+			eventType = this.COLLAPSE_END;
+			this.util.changeStyleClass(this.__divGhost,"nsPanelExpanded","nsPanelCollapsed");
+		}
+		else
+		{
+			this.util.changeStyleClass(this.__baseComponent,"nsPanelCollapsed","nsPanelExpanded");
+			this.__body.style.display = "";
+			this.__baseComponent.style.height = (this.__lastHeight) ? this.__lastHeight : (this.__lastBodyHeight + this.__header.offsetHeight + "px");
+			this.__lastBodyHeight = 0;
+			eventType = this.EXPANSION_END;
+			this.util.changeStyleClass(this.__divGhost,"nsPanelCollapsed","nsPanelExpanded");
+		}
+		divGhostBody.style.display = this.__body.style.display;
+		this.__divGhost.style.height = this.__baseComponent.style.height;
+		this.__body.style.height = "";
+		this.__handleExpColIcon(direction < 0);
+		this.__isCollapsingExpanding = false;
+		this.util.dispatchEvent(this.getBaseElement(),eventType,null,null);
+	}
+};
+
+NSPanel.prototype.__handleExpColIcon = function(isCollapsed)
+{
+	var objSVG = new NSSvg();
+	var useID = this.getID() + "ExpCol" + "use";
+	if(isCollapsed)
+	{
+		objSVG.changeUseHref(useID,"#" + new NSSvgShapes().__EXPAND_ICON_ID);
+	}
+	else
+	{
+		objSVG.changeUseHref(useID,"#" + new NSSvgShapes().__COLLAPSE_ICON_ID);
+	}
+	this.__isCollapsed = !isCollapsed;
+};
+/******************************End of Expansion Collapse Function *************************************/
+
+/******************************Start of Minimize Maximize Function *************************************/
+NSPanel.prototype.__initializeMinMax = function()
+{
+	if(this.__body)
+	{
+		var fixedContainer = this.__getMinFixedContainer();
+		var eventType = "";
+		if(this.__isMinimized)
+		{
+			//maximize
+			this.util.dispatchEvent(this.getBaseElement(),this.MAXIMIZE_STARTING,null,null);
+			this.util.removeStyleClass(this.__baseComponent,"nsPanelModalMinimized");
+			this.util.removeStyleClass(this.__baseComponent,"nsPanelModalMinimized" + this.__minimizedDirection);
+			fixedContainer.removeChild(this.__baseComponent);
+			this.__baseComponentParent.appendChild(this.__baseComponent);
+			this.__body.style.display = "";
+			this.__baseComponent.style.height = (this.__lastHeight) ? this.__lastHeight : (this.__lastBodyHeight + this.__header.offsetHeight + "px");
+			this.__lastBodyHeight = 0;
+			eventType = this.MAXIMIZE_END;
+		}
+		else
+		{
+			//minimize
+			this.util.dispatchEvent(this.getBaseElement(),this.MINIMIZE_STARTING,null,null);
+			this.__lastBodyHeight = this.__body.offsetHeight;
+			this.util.addStyleClass(this.__baseComponent,"nsPanelModalMinimized");
+			this.util.addStyleClass(this.__baseComponent,"nsPanelModalMinimized" + this.__minimizedDirection);
+			this.__baseComponentParent = this.__baseComponent.parentNode;
+			this.__baseComponentParent.removeChild(this.__baseComponent);
+			fixedContainer.appendChild(this.__baseComponent);
+			this.__body.style.display = "none";
+			this.__baseComponent.style.height = this.__header.offsetHeight + "px";
+			this.__body.style.height = "";
+			eventType = this.MINIMIZE_END;
+		}
+		this.__handleMinMaxIcon(!this.__isMinimized);
+		this.__isMinimized = !this.__isMinimized;
+		this.util.dispatchEvent(this.getBaseElement(),eventType,null,null);
+	}
+};
+NSPanel.prototype.__handleMinMaxIcon = function(isMinimized)
+{
+	var objSVG = new NSSvg();
+	var useID = this.getID() + "MinMax" + "use";
+	if(isMinimized)
+	{
+		objSVG.changeUseHref(useID,"#" + new NSSvgShapes().__MAXIMIZE_ICON_ID);
+	}
+	else
+	{
+		objSVG.changeUseHref(useID,"#" + new NSSvgShapes().__MINIMIZE_ICON_ID);
+	}
+};
+NSPanel.prototype.__getMinFixedContainer = function()
+{
+	if(!this.__divMinFixedContainer)
+	{
+		this.__divMinFixedContainer = document.getElementById("nsPanelMinimizeContainer");
+		if(!this.__divMinFixedContainer)
+		{
+			this.__divMinFixedContainer = this.util.createDiv("nsPanelMinimizeContainer","nsPanelMinimizeContainer");
+			document.body.appendChild(this.__divMinFixedContainer);
+		}
+	}
+	return this.__divMinFixedContainer;
+};
+
+
+
+/******************************End of Minimize Maximize Function *************************************/
+
+/******************************Start of FullScreen Function *************************************/
+
+/******************************End of FullScreen Function *************************************/
