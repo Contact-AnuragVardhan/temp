@@ -1,583 +1,691 @@
-function NSPanel(component,setting) 
+function NSNavigation(component,setting) 
 {
-	this.__DEFAULT_ANIMATION_STEPS = 10;
-	this.__DEFAULT_ANIMATION_DELAY = 20;
-	
-	this.DRAG_STARTING = "dragStaring";
-	this.DRAGGING = "dragging";
-	this.DRAG_END = "dragEnd";
-	this.RESIZE_STARTING = "resizeStaring";
-	this.RESIZING = "resizing";
-	this.RESIZE_END = "resizeEnd";
-	this.MINIMIZE_STARTING = "minimizeStarting";
-	this.MINIMIZE_END = "minimizeEnd";
-	this.MAXIMIZE_STARTING = "maximizeStarting";
-	this.MAXIMIZE_END = "maximizeEnd";
-	
-	this.__OUTER_CONTAINER_ID = "panelContainer";
-	this.__TITLE_CONTAINER_ID = "divTitleBar";
-	this.__BODY_CONTAINER_ID = "divBody";
-	
-	this.__CLASS_OUTER_CONTAINER = "nsPanelContainer";
-	this.__CLASS_TITLEBAR = "nsPanelTitleBar";
-	this.__CLASS_BODY_CONTAINER = "nsPanelBody";
-	
 	this.__setting = setting;
 	
-	this.__header = null;
-	this.__body = null;
+	this.__navigationContainerParent = null;
+	this.__navigationContainer = null;
 	
-	this.__title = null;
-	this.__templateID = null;
-	this.__templateUrl = null;
-	this.__minWidth = null;
-	this.__minHeight = null;
-	this.__enableModal = false;
-	this.__enableCollapse = false;
-	this.__enableDrag = false;
-	this.__enableResize = false;
-	this.__enableTitleDblClick = false;
-	this.__enableMoveOnClick = false;
-	this.__enableModalAnimation = true;
-	this.__enableModalBodyClick = false;
-	this.__enableModalKeyboard = false;
+	this.__config = null;
+	this.__selectedParentMenuItem = null;
+	this.__selectedMenu = null;
+	this.__selectedMenuItem = null;
+	this.__isNavOpen = false;
+	this.__dynamicContainer = null;
 	
-	this.__styleClass = null;
-	this.__titleClass = null;
-	this.__bodyClass = null;
+	this.__fieldPrefix = "__ns_nav_field";
+	this.__fieldIsOpen = this.__fieldPrefix + "_open";
+	this.__fieldElement = this.__fieldPrefix + "_element";
+	this.__fieldChildContainer = this.__fieldPrefix + "_childcontainer";
+	this.__fieldParentMenuItem = this.__fieldPrefix + "_parentmenuitem";
 	
-	this.__lastHeight = null;
-	this.__lastBodyHeight = -1;
-	this.__nsDragResizeElements = null;
-	this.__divGhost = null;
-	this.__divModal = null;
-	this.__isMinimizingMaximizing = false;
-	this.__isInternalRemove = false;
-	this.__divOrignalChildren = null; 
+	this.__headerItem = null;
+	this.__headerItemHeight = 0;
 	
-	this.__windowClickRef = null;
-	this.__documentKeydownRef = null;
-	this.__isComponentNull = false;
-	if(!component)
-	{
-		component = document.createElement("div");
-		document.body.appendChild(component);
-		this.__isComponentNull = true;
-	}
 	this.base.__setBaseComponent.call(this,component);
 };
 
-nsExtendPrototype(NSContainerBase,NSPanel);
-NSPanel.prototype.constructor = NSPanel;
+nsExtendPrototype(NSContainerBase,NSNavigation);
+NSNavigation.prototype.constructor = NSNavigation;
 
-NSPanel.prototype.initializeComponent = function() 
+NSNavigation.prototype.initializeComponent = function() 
 {
 	this.base.initializeComponent.call(this);
 	this.__setSetting();
-	this.__createStructure();
 };
 
-NSPanel.prototype.setComponentProperties = function() 
+NSNavigation.prototype.setComponentProperties = function() 
 {
 	this.base.setComponentProperties.call(this);
+	if(this.__config.dataSource)
+	{
+		this.dataSource(this.__config.dataSource);
+	}
 };
 
-NSPanel.prototype.propertyChange = function(attrName, oldVal, newVal, setProperty)
+NSNavigation.prototype.propertyChange = function(attrName, oldVal, newVal, setProperty)
 {
 	var attributeName = attrName.toLowerCase();
 	this.base.propertyChange.call(this,attrName, oldVal, newVal, setProperty);
 };
 
-NSPanel.prototype.removeComponent = function() 
+NSNavigation.prototype.removeComponent = function() 
 {
-	if(!this.__isInternalRemove)
-	{
-		if(this.__nsDragResizeElements)
-		{
-			this.__nsDragResizeElements.destroy();
-		}
-		if(this.__windowClickRef)
-		{
-			this.util.removeEvent(window,"click",this.__windowClickRef);
-			this.__windowClickRef = null;
-		}
-		if(this.__documentKeydownRef)
-		{
-			this.util.removeEvent(document,"keydown",this.__documentKeydownRef);
-			this.__documentKeydownRef = null;
-		}
-		this.base.removeComponent.call(this);
-	}
-	this.__isInternalRemove = false;
+	this.base.removeComponent.call(this);
 };
 
-NSPanel.prototype.componentResized = function(event) 
+NSNavigation.prototype.componentResized = function(event) 
 {
 	this.base.componentResized.call(this,event);
 };
 
-NSPanel.prototype.createModal = function()
+NSNavigation.prototype.isNavOpen = function()
 {
+	return this.__isNavOpen;
+};
+
+NSNavigation.prototype.toggleNavigation = function()
+{
+	if(this.__isNavOpen)
+	{
+		this.closeNavigation();
+	}
+	else
+	{
+		this.openNavigation();
+	}
+};
+
+NSNavigation.prototype.openNavigation = function()
+{
+	this.util.dispatchEvent(this.__baseComponent,NSNavigation.NAVIGATION_OPEN_START);
+	this.util.removeStyleClass(this.__config.containerElement,"nsNavCollapsed");
+	this.__isNavOpen = true;
+	var self = this;
+	var transitionEndCallback = function()
+	{
+		self.__resizeContentContainer();
+		this.util.dispatchEvent(this.__baseComponent,NSNavigation.NAVIGATION_OPEN_END);
+	};
+	var transition = new this.util.transition(this.__baseComponent,transitionEndCallback.bind(this));
+};
+
+NSNavigation.prototype.closeNavigation = function()
+{
+	this.util.dispatchEvent(this.__baseComponent,NSNavigation.NAVIGATION_CLOSE_START);
+	this.util.addStyleClass(this.__config.containerElement,"nsNavCollapsed");
+	this.__isNavOpen = false;
+	var self = this;
+	var transitionEndCallback = function()
+	{
+		self.__resizeContentContainer();
+		this.util.dispatchEvent(this.__baseComponent,NSNavigation.NAVIGATION_CLOSE_END);
+	};
+	var transition = new this.util.transition(this.__baseComponent,transitionEndCallback.bind(this));
+};
+
+NSNavigation.prototype.selectMenu = function(itemOrElement)
+{
+	if(this.util.isElement(itemOrElement))
+	{
+		var item = this.__getItemByElement(itemOrElement);
+		this.__handleSelectedMenu(item);
+	}
+	else
+	{
+		this.__handleSelectedMenu(itemOrElement);
+	}
+};
+
+NSNavigation.prototype.dataSource = function(source)
+{
+	this.__config.dataSource = source;
+	if(this.__navigationContainer)
+	{
+		//this.util.removeAllChildren(this.__navigationContainer);
+		this.__createItems(this.__config.dataSource,this.__navigationContainer,1,null);
+	}
+};
+
+NSNavigation.prototype.__setSetting = function()
+{
+	if(!this.__setting)
+	{
+		this.__setting = {};
+	}
+	if(!this.__setting["customClass"])
+	{
+		this.__setting["customClass"] = {};
+	}
+	this.__config = {
+		containerElement: this.__setting["containerElement"] || document.body,
+		elementsBeforeMenu: this.__setting["elementsBeforeMenu"] || null,
+		pageHeaderContainer: this.__setting["pageHeaderContainer"] || null,
+		pageContentContainer: this.__setting["pageContentContainer"] || null,
+		header: this.__setting["header"] || null,
+		showCollapseIcon: this.util.isUndefinedOrNull(this.__setting["showCollapseIcon"]) ? true : Boolean.parse(this.__setting["showCollapseIcon"]),
+		iconCollapse: this.__setting["iconCollapse"] || "<i class='fa fa-bars pull-right'></i>",
+		dataSource: this.__setting["dataSource"] || null,
+		titleField: this.__setting["titleField"] || "title",
+		childField: this.__setting["childField"] || "children",
+		iconPosition: this.__setting["iconPosition"] || "left",
+		iconMenuExpanded: this.__setting["iconMenuExpanded"] || "<i class='fa fa-angle-left'></i>",
+		iconMenuCollapsed: this.__setting["iconMenuCollapsed"] || "<i class='fa fa-angle-left pull-right'></i>",
+		context: this.__setting["context"] || window,
+		collapseLeftOffset: parseInt(this.__setting["collapseLeftOffset"]) || 0,
+		collapseTopOffset: parseInt(this.__setting["collapseTopOffset"]) || 0,
+		isPositionAbsolute: this.util.isUndefinedOrNull(this.__setting["isPositionAbsolute"]) ? true : Boolean.parse(this.__setting["isPositionAbsolute"]),
+		customClass:{navContainer:this.__setting.customClass["navContainer"] || null,
+				  menuContainer:this.__setting.customClass["menuContainer"] || null,
+				  headerMenu:this.__setting.customClass["headerMenu"] || null,
+				  menu:this.__setting.customClass["menu"] || null,
+				  selectedParentMenu:this.__setting.customClass["selectedParentMenu"] || "nsNavParentSelectedMenu",
+				  selectedMenu:this.__setting.customClass["selectedMenu"] || "nsNavSelectedMenu"}
+	};
 	this.__createStructure();
-	this.openModal();
 };
 
-NSPanel.prototype.destroyModal = function()
+NSNavigation.prototype.__createStructure = function()
 {
-	this.util.removeAllChildren(this.__baseComponent);
-	this.removeComponent();
-};
-
-NSPanel.prototype.openModal = function()
-{
-	if(this.__divModal)
+	if(!this.__navigationContainerParent)
 	{
-		if(this.__enableModalAnimation)
+		this.util.removeAllChildren(this.__navigationContainerParent);
+		this.__navigationContainerParent = null;
+		this.__navigationContainer = null;
+	}
+	this.openNavigation();
+	this.util.addStyleClass(this.__baseComponent,"nsNavMainContainer");
+	this.__applyTheme(this.__baseComponent,"nsNavMainContainer");
+	if(this.__config.isPositionAbsolute)
+	{
+		this.util.addStyleClass(this.__baseComponent,"nsNavMainContainerAbsolute");
+	}
+	this.util.addEvent(this.__baseComponent,"mouseleave",this.__parentMouseEventHandler.bind(this,event,null,"mouseleave"));
+	this.__navigationContainerParent = this.util.createDiv(this.getID() + "ContainerParent","nsNavContainerParent");
+	this.__applyCustomClass(this.__navigationContainerParent,"navContainer");
+	this.__addElementsBeforeMenu();
+	this.__navigationContainer = this.util.createElement("ul",this.getID() + "Container","nsNavContainer");
+	this.__applyCustomClass(this.__navigationContainer,"menuContainer");
+	this.__navigationContainerParent.appendChild(this.__navigationContainer);
+	this.__createHeader(this.__navigationContainer);
+	if(this.__config.pageHeaderContainer)
+	{
+		this.__baseComponent.style.marginTop = this.__config.pageHeaderContainer.offsetHeight + "px";
+	}
+	this.__baseComponent.appendChild(this.__navigationContainerParent);
+	this.__headerItemHeight = this.__headerItem ? this.__headerItem.offsetHeight : 0;
+};
+
+NSNavigation.prototype.__addElementsBeforeMenu = function(parent)
+{
+	if(this.__config.elementsBeforeMenu && this.__config.elementsBeforeMenu.length > 0)
+	{
+		var length = this.__config.elementsBeforeMenu.length;
+		for(var count = 0;count < length;count++)
 		{
-			this.util.addStyleClass(this.__baseComponent,"nsPanelModalAnimation");
-			var cssAnimationHelper = new this.util.nsCSSAnimationHelper();
-			cssAnimationHelper.addEndEvent(this.__baseComponent,this.__modalAnimationEndHandler.bind(this));
+			parent.appendChild(this.__config.elementsBeforeMenu[count]);
 		}
-		this.__divModal.style.display = "block";
 	}
 };
 
-NSPanel.prototype.closeModal = function()
+NSNavigation.prototype.__createHeader = function(parent)
 {
-	if(this.__divModal)
+	this.__headerItem = this.util.createElement("li",null,"nsNavHeader");
+	this.__applyCustomClass(this.__headerItem,"headerMenu");
+	if(this.__config.header)
 	{
-		this.__divModal.style.display = "none";
+		var span = this.util.createElement("span",null,"nsNavHeaderTitle");
+		this.util.addStyleClass(span,"nsNavNonVisibleIcon");
+		span.appendChild(document.createTextNode(this.__config.header));
+		this.__headerItem.appendChild(span);
+	}
+	if(this.__config.showCollapseIcon)
+	{
+		var spanIcon = this.util.createElement("span",null,"nsNavVisibleIcon");
+		spanIcon.innerHTML = this.__config.iconCollapse;
+		this.util.addEvent(spanIcon,"click",this.__toggleIconClickHandler.bind(this));
+		this.__headerItem.appendChild(spanIcon);
+	}
+	parent.appendChild(this.__headerItem);
+};
+
+NSNavigation.prototype.__createItems = function(arrItem,parent,level,parentMenuItem)
+{
+	if(arrItem)
+	{
+		if(!this.util.isArray(arrItem))
+		{
+			arrItem = [arrItem];
+		}
+		var item = {};
+		for(var count = 0;count < arrItem.length;count++)
+		{
+			item = arrItem[count];
+			if(item)
+			{
+				var li = this.__createItem(item,level,parentMenuItem);
+				parent.appendChild(li);
+			}
+		}
 	}
 };
 
-NSPanel.prototype.getBaseElement = function()
+//While Changing this function, see if this change is applicable in __createDynamicItem function
+NSNavigation.prototype.__createItem = function(item,level,parentMenuItem)
 {
-	return this.__baseComponent;
-};
-
-NSPanel.prototype.__setSetting = function()
-{
-	var setting = this.__setting;
-	if(setting)
+	var li = this.util.createElement("li",null,"nsNavigationItem");
+	this.__applyCustomClass(li,"menu");
+	li.setAttribute("ns-Nav-Level",level);
+	if(item["cssClass"])
 	{
-		if(setting.hasOwnProperty("nsTitle"))
+		this.util.addStyleClass(li,item["cssClass"]);
+	}
+	if(level == 1)
+	{
+		this.util.addEvent(li,"mouseenter",this.__parentMouseEventHandler.bind(this,event,item,"mouseenter"));
+		//this.util.addEvent(li,"mouseleave",this.__parentMouseEventHandler.bind(this,event,item,"mouseleave"));
+		//this.util.addEvent(li,"click",this.__parentMouseEventHandler.bind(this,event,item,"mouseenter"));
+	}
+	item[this.__fieldElement] = li;
+	item[this.__fieldIsOpen] = false;
+	if(item["disabled"])
+	{
+		this.util.addStyleClass(li,"nsNavigationItemDisabled");
+	}
+	var anchor = this.util.createElement("a",null);
+	li.appendChild(anchor);
+	if(item["iconBeforeHtml"])
+	{
+		var spanIcon = this.util.createElement("span");
+		this.util.addStyleClass(spanIcon);
+		spanIcon.innerHTML = item["iconBeforeHtml"];
+		var icon = spanIcon.firstChild;
+		anchor.appendChild(icon);
+		anchor.appendChild(document.createTextNode("\u00A0"));
+	}
+	var spanText = this.util.createElement("span",null,"nsNavMenuText");
+	this.util.addStyleClass(spanText,"nsNavNonVisibleIcon");
+	spanText.appendChild(document.createTextNode(item[this.__config.titleField]));
+	anchor.appendChild(spanText);
+	if(item["iconAfterHtml"])
+	{
+		var spanIcon = this.util.createElement("span");
+		spanIcon.innerHTML = item["iconAfterHtml"];
+		var icon = spanIcon.firstChild;
+		anchor.appendChild(icon);
+	}
+	var hasChildren = false;
+	if(item[this.__config.childField] && item[this.__config.childField].length > 0)
+	{
+		this.util.addEvent(anchor,"click",this.__parentMenuClickHandler.bind(this,event,item));
+		this.util.addStyleClass(li,"nsNavItemParent");
+		anchor.setAttribute("href","javascript:void(0)");
+		var spanIcon = this.util.createElement("span");
+		this.util.addStyleClass(spanIcon,"nsNavNonVisibleIcon");
+		spanIcon.innerHTML = this.__config.iconMenuExpanded;
+		if(this.__config.iconPosition == "left")
 		{
-			this.__title = setting["nsTitle"];
-		}
-		if(setting.hasOwnProperty("template"))
-		{
-			this.__templateID = setting["template"];
-		}
-		if(setting.hasOwnProperty("templateUrl"))
-		{
-			this.__templateUrl = setting["templateUrl"];
-		}
-		if(setting.hasOwnProperty("minWidth"))
-		{
-			this.__minWidth = this.util.getNumber(setting["minWidth"]);
-		}
-		if(setting.hasOwnProperty("minHeight"))
-		{
-			this.__minHeight = this.util.getNumber(setting["minHeight"]);
-		}
-		if(setting.hasOwnProperty("enableModal"))
-		{
-			this.__enableModal = Boolean.parse(setting["enableModal"]);
-		}
-		if(setting.hasOwnProperty("enableCollapse"))
-		{
-			this.__enableCollapse = Boolean.parse(setting["enableCollapse"]);
-		}
-		if(setting.hasOwnProperty("enableDrag"))
-		{
-			this.__enableDrag = Boolean.parse(setting["enableDrag"]);
-		}
-		if(setting.hasOwnProperty("enableResize"))
-		{
-			this.__enableResize = Boolean.parse(setting["enableResize"]);
-		}
-		if(setting.hasOwnProperty("enableTitleDblClick"))
-		{
-			this.__enableTitleDblClick = Boolean.parse(setting["enableTitleDblClick"]);
-		}
-		if(setting.hasOwnProperty("enableMoveOnClick"))
-		{
-			if(!this.__enableModal)
-			{
-				this.__enableMoveOnClick = Boolean.parse(setting["enableMoveOnClick"]);
-			}
-		}
-		if(setting.hasOwnProperty("enableModalAnimation"))
-		{
-			this.__enableModalAnimation = Boolean.parse(setting["enableModalAnimation"]);
-		}
-		if(setting.hasOwnProperty("enableModalBodyClick"))
-		{
-			if(this.__enableDrag)
-			{
-				this.__enableModalBodyClick = Boolean.parse(setting["enableModalBodyClick"]);
-			}
-		}
-		if(setting.hasOwnProperty("enableModalKeyboard"))
-		{
-			this.__enableModalKeyboard = Boolean.parse(setting["enableModalKeyboard"]);
-		}
-		if(setting.hasOwnProperty("styleClass"))
-		{
-			this.__styleClass = setting["styleClass"];
+			anchor.insertBefore(spanIcon,anchor.firstChild);
 		}
 		else
 		{
-			this.__styleClass = "nsPanelWidget";
+			this.util.addStyleClass(spanIcon,"nsNavContainerPullRight");
+			anchor.appendChild(spanIcon);
 		}
-		if(setting.hasOwnProperty("titleClass"))
+		var ul = this.util.createElement("ul",null,"nsNavSubNavContainer");
+		this.util.addStyleClass(ul,"nsNavNonVisibleIcon");
+		li.appendChild(ul);
+		item[this.__fieldChildContainer] = ul;
+		this.__createItems(item[this.__config.childField],ul,level + 1,item);
+		hasChildren = true;
+	}
+	else
+	{
+		if(item["link"])
 		{
-			this.__titleClass = setting["titleClass"];
+			anchor.setAttribute("href",item["link"]);
+		}
+		else 
+		{
+			anchor.setAttribute("href","javascript:void(0)");
+		}
+	}
+	this.util.addEvent(anchor,"click",this.__menuClickHandler.bind(this,event,item,li,hasChildren));
+	if(level > 1)
+	{
+		this.util.addStyleClass(li,"nsNavigationChildItem");
+	}
+	if(parentMenuItem)
+	{
+		item[this.__fieldParentMenuItem] = parentMenuItem;
+	}
+	if(item["selected"] && !item["disabled"])
+	{
+		this.__selectMenu(item,li,false);
+	}
+	if(hasChildren && item["expanded"] && !item["disabled"])
+	{
+		this.__selectMenu(item,li,true);
+	}
+	return li;
+};
+
+NSNavigation.prototype.__selectMenu = function(item,li,isExpandOnly)
+{
+	if(!li && item && item[this.__fieldElement])
+	{
+		li = item[this.__fieldElement];
+	}
+	if(item)
+	{
+		var parentMenuItem = item[this.__fieldParentMenuItem];
+		if(isExpandOnly)
+		{
+			parentMenuItem = item;
 		}
 		else
 		{
-			this.__titleClass = this.__CLASS_TITLEBAR;
-		}
-		if(setting.hasOwnProperty("bodyClass"))
-		{
-			this.__bodyClass = setting["bodyClass"];
-		}
-		else
-		{
-			this.__bodyClass = this.__CLASS_BODY_CONTAINER;
-		}
-	}
-};
-
-NSPanel.prototype.__createStructure = function()
-{
-	this.__copyOrignalContent();
-	this.util.addStyleClass(this.__baseComponent,"nsPanel");
-	this.util.addStyleClass(this.__baseComponent,this.__styleClass);
-	if(this.__enableDrag)
-	{
-		this.util.addStyleClass(this.__baseComponent,"nsPanelModalContentDrag");
-	}
-	if(this.__enableModal)
-	{
-		var parentNode = this.parentNode;
-		if(!parentNode)
-		{
-			parentNode = document.body;
-		}
-		this.__divModal = this.__createModal();
-		this.__isInternalRemove = true;
-		this.__divModal.appendChild(this.__baseComponent);
-		parentNode.appendChild(this.__divModal);
-		this.util.addStyleClass(this.__baseComponent,"nsPanelModalContent");
-		if(this.__enableModalBodyClick)
-		{
-			this.__windowClickRef = this.__windowClickHandler.bind(this);
-			this.util.addEvent(window,"click",this.__windowClickRef);
-		}
-		if(this.__enableModalKeyboard)
-		{
-			//To detect escape button
-			this.__documentKeydownRef = this.__documentKeydownHandler.bind(this);
-			this.util.addEvent(document,"keydown",this.__documentKeydownRef);
-		}
-	}
-	this.__header = this.__createTitleBar(this.__baseComponent);
-	this.__body = this.__createBody(this.__baseComponent);
-	this.__lastHeight = this.util.getStyleValue(this.__baseComponent,"height");
-	var dragResizeSetting = {element:this.__baseComponent,
-			enableDrag:this.__enableDrag,
-			enableResize:this.__enableResize,
-			enableMoveOnClick:this.__enableMoveOnClick,
-			minWidth:this.__minWidth,
-			minHeight:this.__minHeight,
-			createGhostElementCallback:this.__createGhostElement.bind(this),
-			enableDragContainment:true};
-	this.__nsDragResizeElements = new this.util.nsDragResizeElements(dragResizeSetting);
-	this.util.addEvent(this.__baseComponent,this.__nsDragResizeElements.DRAG_STARTING,this.__dragResizeEventHandler.bind(this));
-	this.util.addEvent(this.__baseComponent,this.__nsDragResizeElements.RESIZE_END,this.__dragResizeEventHandler.bind(this));
-};
-
-NSPanel.prototype.__createModal = function()
-{
-	var divModal = this.util.createDiv(this.getID() + "modal","nsPanelModal");
-	return divModal;
-};
-
-NSPanel.prototype.__createTitleBar = function(parentElement)
-{
-	if(parentElement)
-	{
-		var divTitleBar = this.util.createDiv(this.getID() + this.__TITLE_CONTAINER_ID,"nsPanelTitleBar");
-		if(this.__titleClass)
-		{
-			this.util.addStyleClass(divTitleBar,this.__titleClass);
-		}
-		if(this.__title && this.__title.length > 0)
-		{
-			var titleText = document.createTextNode(this.__title);
-			divTitleBar.appendChild(titleText);
-		}
-		var svgShapes = new NSSvgShapes();
-		var objSVG = new NSSvg();
-		var divIcon = this.util.createDiv(this.getID() + this.__TITLE_CONTAINER_ID + "IconContainer");
-		divIcon.style.float = "right";
-		//click Handler not working if we remove float=right from icon span in IE
-		//that is the close icon is before minimize icon 
-		if(this.__enableModal)
-		{
-			svgShapes.addCloseIcon();
-			var spanClose = document.createElement("span");
-			this.util.addStyleClass(spanClose,"nsPanelCloseContainer");
-			spanClose.style.cursor = "pointer";
-			spanClose.style.marginLeft = "5px";
-			spanClose.style.float = "right";
-			var closeID = this.getID() + "Close";
-			var svg = objSVG.addSVG(spanClose,closeID,"nsPanelClose",null,null,null,null,null,null,true);
-			objSVG.addUse(svg,closeID + "use","nsPanelCloseUse","#" + svgShapes.__CLOSE_ICON_ID);
-			divIcon.appendChild(spanClose);
-			this.util.addEvent(spanClose,"click",this.__closeIconClickHandler.bind(this));
-		}
-		if(this.__enableCollapse)
-		{
-			svgShapes.addMinimizeInPage();
-			svgShapes.addMaximizeInPage();
-			var spanMinMax = document.createElement("span");
-			this.util.addStyleClass(spanMinMax,"nsPanelMinMaxContainer");
-			spanMinMax.style.cursor = "pointer";
-			spanMinMax.style.float = "right";
-			var minMaxID = this.getID() + "MinMax";
-			var svg = objSVG.addSVG(spanMinMax,minMaxID,"nsPanelMinMax",null,null,null,null,null,null,true);
-			objSVG.addUse(svg,minMaxID + "use","nsPanelMinMaxUse","#" + new NSSvgShapes().__MINIMIZE_ICON_ID);
-			divIcon.appendChild(spanMinMax);
-			var headerDoubleClickRef = this.__headerDoubleClickHandler.bind(this);
-			this.util.addEvent(spanMinMax,"click",headerDoubleClickRef);
-			if(this.__enableTitleDblClick)
+			if(li)
 			{
-				this.util.addEvent(divTitleBar,"dblclick",headerDoubleClickRef);
+				this.__handleSelectedMenu(item,li);
 			}
+			parentMenuItem = item[this.__fieldParentMenuItem];
 		}
-		divTitleBar.appendChild(divIcon);
-		parentElement.appendChild(divTitleBar);
-		return divTitleBar;
-	}
-	return null;
-};
-
-NSPanel.prototype.__createBody = function(parentElement)
-{	
-	if(parentElement)
-	{
-		var divBody = this.util.createDiv(this.getID() + this.__BODY_CONTAINER_ID,this.__bodyClass);
-		if(this.__divOrignalChildren)
+		while (parentMenuItem)
 		{
-			divBody.appendChild(this.__divOrignalChildren);
-		}
-		if(this.__templateID && this.__templateID.length > 0)
-		{
-			divBody.appendChild(this.util.getTemplate(this.__templateID));
-		}
-		else if(this.__templateUrl && this.__templateUrl.length > 0)
-		{
-			var self = this;
-			var templateLoadHandler = function(templateText)
+			if(parentMenuItem[this.__fieldElement])
 			{
-				if(templateText)
+				this.util.addStyleClass(parentMenuItem[this.__fieldElement],"nsNavItemOpen");
+				if(parentMenuItem[this.__fieldChildContainer])
 				{
-					divBody.innerHTML = templateText;
+					this.util.addStyleClass(parentMenuItem[this.__fieldChildContainer],"nsNavSubNavContainerVisible");
+				}
+				parentMenuItem[this.__fieldIsOpen] = true;
+			}
+			parentMenuItem = parentMenuItem[this.__fieldParentMenuItem];
+		}
+	}
+};
+
+NSNavigation.prototype.__menuClickHandler = function(event,item,li,hasChildren)
+{
+	event = this.util.getEvent(event);
+	if(!hasChildren)
+	{
+		this.__handleSelectedMenu(item,li);
+		if(item["click"])
+		{
+			if (typeof item["click"] === "string" || item["click"] instanceof String)
+			{
+				if(this.util.isFunction(item["click"]))
+				{
+					item["click"] = this.__config.context[item["click"]];
+				}
+			}
+			if(item["click"] && this.util.isFunction(item["click"]))
+			{
+				item["click"](event,item,li);
+			}
+		}
+	}
+};
+
+NSNavigation.prototype.__toggleIconClickHandler = function(event)
+{
+	this.__destroyDynamicItem();
+	this.toggleNavigation();
+};
+
+NSNavigation.prototype.__parentMenuClickHandler = function(event,item)
+{
+	if(item && item[this.__fieldElement])
+	{
+		if(item[this.__fieldIsOpen])
+		{
+			this.util.removeStyleClass(item[this.__fieldElement],"nsNavItemOpen");
+			this.util.removeStyleClass(item[this.__fieldElement],"nsNavItemActive");
+			if(item[this.__fieldChildContainer])
+			{
+				this.util.removeStyleClass(item[this.__fieldChildContainer],"nsNavSubNavContainerVisible");
+			}
+		}
+		else
+		{
+			this.util.addStyleClass(item[this.__fieldElement],"nsNavItemOpen");
+			this.util.addStyleClass(item[this.__fieldElement],"nsNavItemActive");
+			if(item[this.__fieldChildContainer])
+			{
+				this.util.addStyleClass(item[this.__fieldChildContainer],"nsNavSubNavContainerVisible");
+			}
+		}
+		item[this.__fieldIsOpen] = !item[this.__fieldIsOpen];
+		this.__selectedParentMenuItem = item;
+	}
+	
+};
+
+NSNavigation.prototype.__parentMouseEventHandler = function(event,item,eventType)
+{
+	event = this.util.getEvent(event);
+	//for some reason event.type is coming as load so passing eventType to listener
+	switch(eventType)
+	{
+		case "mouseenter":
+			if(item && item[this.__fieldElement] && !this.__isNavOpen)
+			{
+				this.__createDynamicItem(item);
+			}
+			//this.util.addStyleClass(item[this.__fieldElement],"nsNavParentHover");
+		break;
+		case "mouseleave":
+			this.__destroyDynamicItem();
+			//this.util.removeStyleClass(item[this.__fieldElement],"nsNavParentHover");
+		break;
+	}
+};
+
+NSNavigation.prototype.__resizeContentContainer = function()
+{
+	if(this.__config.pageContentContainer)
+	{
+		this.__config.pageContentContainer.style.marginLeft = this.__baseComponent.offsetWidth + "px";	
+	}
+};
+
+NSNavigation.prototype.__getTopOffset = function()
+{
+	var offset = 0;
+	if(this.__config.elementsBeforeMenu && this.__config.elementsBeforeMenu.length > 0)
+	{
+		var length = this.__config.elementsBeforeMenu.length;
+		for(var count = 0;count < length;count++)
+		{
+			offset += this.__config.offsetHeight;
+		}
+	}
+	if(!this.__isNavOpen)
+	{
+		offset += this.__headerItemHeight;
+	}
+	return offset;
+};
+
+NSNavigation.prototype.__createDynamicItem = function(item)
+{
+	this.__destroyDynamicItem();
+	var self = this;
+	var createChildren = function(arrItems,parent,level)
+	{
+		var ul = self.util.createElement("ul",null,"nsNavDynamicSubMenuCont");
+		for(var count = 0;count < arrItems.length;count++)
+		{
+			var item  = arrItems[count];
+			var li = self.util.createElement("li",null,"nsNavDynamicMenuItem");
+			if(item["cssClass"])
+			{
+				self.util.addStyleClass(li,item["cssClass"]);
+			}
+			var anchor = self.util.createElement("a",null);
+			li.appendChild(anchor);
+			if(item["iconBeforeHtml"])
+			{
+				var spanIcon = self.util.createElement("span");
+				self.util.addStyleClass(spanIcon);
+				spanIcon.innerHTML = item["iconBeforeHtml"];
+				var icon = spanIcon.firstChild;
+				anchor.appendChild(icon);
+				anchor.appendChild(document.createTextNode("\u00A0"));
+			}
+			var spanText = self.util.createElement("span",null,"nsNavDynamicMenuText");
+			spanText.appendChild(document.createTextNode(item[self.__config.titleField]));
+			anchor.appendChild(spanText);
+			if(item["iconAfterHtml"])
+			{
+				var spanIcon = self.util.createElement("span");
+				spanIcon.innerHTML = item["iconAfterHtml"];
+				var icon = spanIcon.firstChild;
+				anchor.appendChild(icon);
+			}
+			var hasChildren = false;
+			if(item[self.__config.childField] && item[self.__config.childField].length > 0)
+			{
+				anchor.setAttribute("href","javascript:void(0)");
+				var spanIcon = self.util.createElement("span");
+				self.util.addStyleClass(spanIcon,"nsNavNonVisibleIcon");
+				spanIcon.innerHTML = self.__config.iconMenuExpanded;
+				if(self.__config.iconPosition == "left")
+				{
+					anchor.insertBefore(spanIcon,anchor.firstChild);
 				}
 				else
 				{
-					console.error(self.__templateUrl + " was not loaded.Please check the URL")
+					self.util.addStyleClass(spanIcon,"nsNavContainerPullRight");
+					anchor.appendChild(spanIcon);
 				}
-			};
-			var templateErrorHandler = function(errorText)
+				createChildren(item[self.__config.childField],li,level + 1);
+				hasChildren = true;
+			}
+			else
 			{
-				console.error(self.__templateUrl + " was not loaded.Please check the URL")
-			};
-			this.util.getTemplateFromURL(this.__templateUrl,templateLoadHandler,templateErrorHandler);
+				if(item["link"])
+				{
+					anchor.setAttribute("href",item["link"]);
+				}
+				else 
+				{
+					anchor.setAttribute("href","javascript:void(0)");
+				}
+			}
+			self.util.addEvent(anchor,"click",self.__menuClickHandler.bind(self,event,item,li,hasChildren));
+			if(item["disabled"])
+			{
+				self.util.addStyleClass(li,"nsNavigationItemDisabled");
+			}
+			ul.appendChild(li);
 		}
-		parentElement.appendChild(divBody);
-		return divBody;
+		parent.appendChild(ul);
+	};
+	
+	this.__dynamicContainer = this.util.createDiv(this.getID() + "DynamicContainer","nsNavDynamicContainer");
+	var spanText = this.util.createElement("span",null,"nsNavDynamicMenuText");
+	spanText.appendChild(document.createTextNode(item[this.__config.titleField]));
+	this.__dynamicContainer.appendChild(spanText);
+	if(item[this.__config.childField] && item[this.__config.childField].length > 0)
+	{
+		createChildren(item[this.__config.childField],this.__dynamicContainer,1);
+	}
+	this.__baseComponent.appendChild(this.__dynamicContainer);
+	var topOffset = this.__getTopOffset();
+	var rect = item[this.__fieldElement].getBoundingClientRect();
+	this.__dynamicContainer.style.top = (rect.top + this.__config.collapseTopOffset - topOffset) + "px"; 
+	this.__dynamicContainer.style.left = (rect.left + this.__navigationContainer.offsetWidth + this.__config.collapseLeftOffset) + "px";
+};
+
+NSNavigation.prototype.__destroyDynamicItem = function()
+{
+	if(this.__dynamicContainer && this.__dynamicContainer.parentNode)
+	{
+		this.__dynamicContainer.parentNode.removeChild(this.__dynamicContainer);
+		this.__dynamicContainer = null;
+	}
+};
+
+NSNavigation.prototype.__handleSelectedMenu = function(item,li)
+{
+	var self = this;
+	var selectDeselectParent = function(menuItem,isSelect)
+	{
+		if(menuItem)
+		{
+			var parentMenuItem = menuItem[self.__fieldParentMenuItem];
+			var func = isSelect ? self.util.addStyleClass : self.util.removeStyleClass;
+			while (parentMenuItem)
+			{
+				if(parentMenuItem[self.__fieldElement])
+				{
+					func.bind(self.util)(parentMenuItem[self.__fieldElement],self.__config.customClass.selectedParentMenu);
+				}
+				parentMenuItem = parentMenuItem[self.__fieldParentMenuItem];
+			}
+		}
+	};
+	if(!li && item && item[this.__fieldElement])
+	{
+		li = item[this.__fieldElement];
+	}
+	if(this.__selectedMenu)
+	{
+		this.util.removeStyleClass(this.__selectedMenu,this.__config.customClass.selectedMenu);
+		this.util.dispatchEvent(this.__baseComponent,NSNavigation.NAVIGATION_MENU_DESELECTED,this.__selectedMenuItem,{item:this.__selectedMenuItem,menu:this.__selectedMenu});
+		selectDeselectParent(this.__selectedMenuItem,false);
+		this.__selectedMenu = null;
+		this.__selectedMenuItem = null;
+	}
+	this.util.addStyleClass(li,this.__config.customClass.selectedMenu);
+	selectDeselectParent(item,true);
+	this.__selectedMenu = li;
+	this.__selectedMenuItem = item;
+	this.util.dispatchEvent(this.__baseComponent,NSNavigation.NAVIGATION_MENU_SELECTED,item,{item:item,menu:li});
+};
+
+NSNavigation.prototype.__resetVariables = function()
+{
+	this.__selectedParentMenuItem = null;
+	this.__selectedMenu = null;
+	this.__selectedMenuItem = null;
+};
+
+NSNavigation.prototype.__applyCustomClass = function(element,type)
+{
+	if(element && type && this.__config.customClass[type])
+	{
+		this.util.addStyleClass(element,this.__config.customClass[type]);
+	}
+};
+
+NSNavigation.prototype.__getItemByElement = function(li,source)
+{
+	var arrSource = [];
+	if(source)
+	{
+		if(this.util.isArray(source))
+		{
+			arrSource = source;
+		}
+		else
+		{
+			arrSource = [source];
+		}
+	}
+	else
+	{
+		arrSource = this.__config.dataSource;
+	}
+	if(li && arrSource && arrSource.length > 0)
+	{
+		var item = null;
+		for(var count = 0;count < arrSource.length;count++)
+		{
+			item = arrSource[count];
+			if(item[this.__fieldElement] == li)
+			{
+				return item;
+			}
+			if(item[this.__config.childField] && item[this.__config.childField].length > 0)
+			{
+				var retItem = this.__getItemByElement(li,item[this.__config.childField]);
+				if(retItem)
+				{
+					return retItem;
+				}
+			}
+		}
 	}
 	return null;
 };
 
-NSPanel.prototype.__createGhostElement = function(element)
-{
-	this.__divGhost = element.cloneNode(true);
-	var divMinMaxContainer = this.__divGhost.querySelector(".nsPanelMinMaxContainer");
-	if(divMinMaxContainer)
-	{
-		divMinMaxContainer.parentNode.removeChild(divMinMaxContainer);
-	}
-	var divCloseContainer = this.__divGhost.querySelector(".nsPanelCloseContainer");
-	if(divCloseContainer)
-	{
-		divCloseContainer.parentNode.removeChild(divCloseContainer);
-	}
-	var divBody = this.__divGhost.querySelector(".nsPanelBody");
-	if(divBody)
-	{
-		divBody.innerHTML = "";
-	}
-	return this.__divGhost;
-};
-
-NSPanel.prototype.__windowClickHandler = function(event)
-{
-	var target = this.util.getTarget(event);
-	if(target === this.__divModal)
-	{
-		this.closeModal();
-	}
-};
-
-NSPanel.prototype.__documentKeydownHandler = function(event)
-{
-	event = this.util.getEvent(event);
-	if (event.keyCode === this.util.KEYCODE["ESC"]) 
-	{
-		this.closeModal();
-	}
-};
-
-NSPanel.prototype.__copyOrignalContent = function()
-{
-	if(this.__baseComponent && this.__baseComponent.childNodes.length > 0)
-	{
-		this.__divOrignalChildren = this.util.createDiv(this.getID() + "orignalChildren");
-		while (this.__baseComponent.childNodes.length > 0) 
-		{
-			this.__divOrignalChildren.appendChild(this.__baseComponent.childNodes[0]);
-		}
-	}
-};
-
-NSPanel.prototype.__headerDoubleClickHandler = function(event)
-{
-	event = this.util.getEvent(event);
-	this.__initializeMinMax();
-	event.stopPropagation();
-	event.stopImmediatePropagation();
-};
-
-NSPanel.prototype.__closeIconClickHandler = function(event)
-{
-	event = this.util.getEvent(event);
-	this.closeModal();
-	event.stopPropagation();
-	event.stopImmediatePropagation();
-};
-
-NSPanel.prototype.__modalAnimationEndHandler = function(event)
-{
-	this.util.removeStyleClass(this.__baseComponent,"nsPanelModalAnimation");
-};
-
-NSPanel.prototype.__dragResizeEventHandler = function(event)
-{
-	if(event.eventName === this.DRAG_STARTING)
-	{
-		var target = event.detail;
-		if(target && (this.util.hasStyleClass(target,"nsPanelMinMaxContainer")))
-		{
-			this.util.preventDefault(event);
-			event.stopImmediatePropagation();
-		}
-	}
-	else if(event.eventName === this.RESIZE_END)
-	{
-		this.__lastHeight = this.util.getStyleValue(this.__baseComponent,"height");
-	}
-};
-/******************************Start of Minimize Maximize Function *************************************/
-NSPanel.prototype.__initializeMinMax = function()
-{
-	if(this.__body && !this.__isMinimizingMaximizing)
-	{
-		var objBrowser = this.util.getBrowser();
-		//for some weird reason browser other than Chrome moves on click and know how to fix it
-		if(objBrowser && objBrowser.code !== "chrome")
-		{
-			this.__nsDragResizeElements.stopMoveOnClick();
-		}
-		this.__isMinimizingMaximizing = true;
-		var isCollapsed = this.util.hasStyleClass(this.__baseComponent,"nsPanelCollapsed");
-		this.__animateMinMax(isCollapsed);
-	}
-};
-
-NSPanel.prototype.__animateMinMax = function(isExpanding)
-{
-	var eventType = isExpanding ? this.MAXIMIZE_STARTING:this.MINIMIZE_STARTING;
-	this.util.dispatchEvent(this.getBaseElement(),eventType,null,null);
-	this.__body.style.display = "block";
-	var contentHeight = this.__body.offsetHeight;
-	if (isExpanding)
-	{
-		this.__body.style.height = "0px";
-		contentHeight = this.__lastBodyHeight;
-	}
-	else
-	{
-		this.__lastBodyHeight = this.__body.offsetHeight;
-	}
-	var stepHeight = contentHeight / this.__DEFAULT_ANIMATION_STEPS;
-	var direction = (isExpanding ? 1 : -1);
-	var self = this;
-	setTimeout(function(){self.__animateMinMaxStep.bind(self)(1,stepHeight,direction);}, this.__DEFAULT_ANIMATION_DELAY);
-};
-
-NSPanel.prototype.__animateMinMaxStep = function(iteration, stepHeight, direction)
-{
-	if (iteration < this.__DEFAULT_ANIMATION_STEPS)
-	{
-		this.__body.style.height = Math.round(((direction > 0) ? iteration : 10 - iteration) * stepHeight) +"px";
-		iteration++;
-		var self = this;
-		setTimeout(function(){self.__animateMinMaxStep.bind(self)(iteration,stepHeight,direction);}, this.__DEFAULT_ANIMATION_DELAY);
-	}
-	else
-	{
-		var divGhostBody = this.__divGhost.querySelector(".nsPanelBody");
-		var eventType = "";
-		if(direction < 0)
-		{
-			this.util.changeStyleClass(this.__baseComponent,"nsPanel","nsPanelCollapsed");
-			this.__body.style.display = "none";
-			this.__baseComponent.style.height = this.__header.offsetHeight + "px";
-			eventType = this.MINIMIZE_END;
-			this.util.changeStyleClass(this.__divGhost,"nsPanel","nsPanelCollapsed");
-		}
-		else
-		{
-			this.util.changeStyleClass(this.__baseComponent,"nsPanelCollapsed","nsPanel");
-			this.__body.style.display = "";
-			this.__baseComponent.style.height = (this.__lastHeight) ? this.__lastHeight : (this.__lastBodyHeight + this.__header.offsetHeight + "px");
-			this.__lastBodyHeight = 0;
-			eventType = this.MAXIMIZE_END;
-			this.util.changeStyleClass(this.__divGhost,"nsPanelCollapsed","nsPanel");
-		}
-		divGhostBody.style.display = this.__body.style.display;
-		this.__divGhost.style.height = this.__baseComponent.style.height;
-		this.__body.style.height = "";
-		this.__handleMinMaxIcon(direction < 0);
-		this.__isMinimizingMaximizing = false;
-		this.util.dispatchEvent(this.getBaseElement(),eventType,null,null);
-	}
-};
-
-NSPanel.prototype.__handleMinMaxIcon = function(isMinimized)
-{
-	var objSVG = new NSSvg();
-	var useID = this.getID() + "MinMax" + "use";
-	if(isMinimized)
-	{
-		objSVG.changeUseHref(useID,"#" + new NSSvgShapes().__MAXIMIZE_ICON_ID);
-	}
-	else
-	{
-		objSVG.changeUseHref(useID,"#" + new NSSvgShapes().__MINIMIZE_ICON_ID);
-	}
-};
+NSNavigation.NAVIGATION_OPEN_START = "navigationOpenStart";
+NSNavigation.NAVIGATION_OPEN_END = "navigationOpenEnd";
+NSNavigation.NAVIGATION_CLOSE_START = "navigationCloseStart";
+NSNavigation.NAVIGATION_CLOSE_END = "navigationCloseEnd";
+NSNavigation.NAVIGATION_MENU_SELECTED = "navigationmenuSelected";
+NSNavigation.NAVIGATION_MENU_DESELECTED = "navigationMenuDeselected";
