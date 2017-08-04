@@ -90,3 +90,28 @@ NSSvgShapes.prototype.addRestoreInPage = function()
 	group.appendChild(path5);
 	this.__objSVG.addElementInSymbol(this.__RESTORE_ICON_ID,VIEWPORT,group);
 };
+
+
+if(element.tagName !== "BODY" && element.tagName !== "HTML" && isNaN(zIndex)) 
+
+this.__disableDrag = false;
+	this.__disableResize = false;
+	
+	this.disableDrag = function(value)
+	{
+		this.__disableDrag = Boolean.parse(value);
+	};
+	
+	this.disableResize = function(value)
+	{
+		this.__disableResize = Boolean.parse(value);
+	};
+	
+	if(isResizing && !this.__disableResize)
+			{
+				this.__startResize(event);
+			}
+			else if(isDragging && !this.__disableDrag)
+			{
+				this.__startDrag(event);
+			}
