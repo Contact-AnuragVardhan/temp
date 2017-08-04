@@ -40,6 +40,7 @@ function NSPanel(component,setting)
 	this.__templateUrl = null;
 	this.__minWidth = null;
 	this.__minHeight = null;
+	this.__enablePopUp = false;
 	this.__enableModal = false;
 	this.__enableCollapse = false;
 	this.__enableMinimization = false;
@@ -48,12 +49,13 @@ function NSPanel(component,setting)
 	this.__enableResize = false;
 	this.__enableTitleDblClick = false;
 	this.__enableMoveOnClick = false;
-	this.__enableModalAnimation = true;
-	this.__enableModalBodyClick = false;
-	this.__enableModalKeyboard = false;
-	
+	this.__enablePopUpAnimation = true;
+	this.__enablePopUpBodyClick = false;
+	this.__enablePopUpKeyboard = false;
 	this.__customClass = {};
+	this.__toolBarDetails = {};
 	
+	this.__origBaseDimension = {}; 
 	this.__lastHeight = null;
 	this.__lastBodyHeight = -1;
 	this.__nsDragResizeElements = null;
@@ -66,10 +68,14 @@ function NSPanel(component,setting)
 	this.__isInternalRemove = false;
 	this.__divOrignalChildren = null;
 	this.__dragExcludeElement = [];
+	this.__disableCollapse = false;
+	this.__toolBarDivs = {};
 	//Minimize Variables
 	this.__divMinFixedContainer = null;
 	this.__minimizedDirection = "left";
 	this.__baseComponentParent = null;
+	//FullScreen Variables
+	this.__origFullScreenDimension = {baseComponentRect:null,baseComponentStyle:null};
 	
 	this.__windowClickRef = null;
 	this.__documentKeydownRef = null;
@@ -142,7 +148,7 @@ NSPanel.prototype.componentResized = function(event)
 	this.base.componentResized.call(this,event);
 };
 
-NSPanel.prototype.openModal = function()
+NSPanel.prototype.open = function()
 {
 	if(this.__isComponentNull)
 	{
@@ -150,7 +156,7 @@ NSPanel.prototype.openModal = function()
 	}
 	if(this.__divModal)
 	{
-		if(this.__enableModalAnimation)
+		if(this.__enablePopUpAnimation)
 		{
 			this.util.addStyleClass(this.__baseComponent,"nsPanelModalAnimation");
 			var cssAnimationHelper = new this.util.nsCSSAnimationHelper();
@@ -160,13 +166,14 @@ NSPanel.prototype.openModal = function()
 	}
 };
 
-NSPanel.prototype.closeModal = function()
+NSPanel.prototype.close = function()
 {
 	if(this.__isComponentNull)
 	{
 		this.removeComponent();
 		this.util.removeAllChildren(this.__baseComponent);
 		this.__divModal.parentNode.removeChild(this.__divModal);
+		this.__saveRestoreBaseComponentDimension(false);
 		this.__baseComponent.style.display = "none";
 		document.body.appendChild(this.__baseComponent);
 	}
@@ -182,6 +189,90 @@ NSPanel.prototype.closeModal = function()
 NSPanel.prototype.getBaseElement = function()
 {
 	return this.__baseComponent;
+};
+
+NSPanel.prototype.minimize = function()
+{
+	if(!this.isMinimized())
+	{
+		this.__initializeMinMax();
+	}
+};
+
+NSPanel.prototype.maximize = function()
+{
+	if(this.isMinimized())
+	{
+		this.__initializeMinMax();
+	}
+};
+
+NSPanel.prototype.collapse = function()
+{
+	if(!this.isCollapsed())
+	{
+		this.__initializeExpCol();
+	}
+};
+
+NSPanel.prototype.expand = function()
+{
+	if(this.isCollapsed())
+	{
+		this.__initializeExpCol();
+	}
+};
+
+NSPanel.prototype.fullScreen = function()
+{
+	if(!this.isFullScreen())
+	{
+		this.__initializeFullScreen();
+	}
+};
+
+NSPanel.prototype.restore = function()
+{
+	if(this.isFullScreen())
+	{
+		this.__initializeFullScreen();
+	}
+};
+
+NSPanel.prototype.disableResize = function(value)
+{
+	if(this.__nsDragResizeElements)
+	{
+		this.__nsDragResizeElements.disableResize(value);
+	}
+};
+
+NSPanel.prototype.disableDrag = function(value)
+{
+	if(this.__nsDragResizeElements)
+	{
+		this.__nsDragResizeElements.disableDrag(value);
+	}
+};
+
+NSPanel.prototype.disableCollapse = function(value)
+{
+	this.__disableCollapse = value;
+};
+
+NSPanel.prototype.isCollapsed = function()
+{
+	return this.__isCollapsed;
+};
+
+NSPanel.prototype.isMinimized = function()
+{
+	return this.__isMinimized;
+};
+
+NSPanel.prototype.isFullScreen = function()
+{
+	return this.__isFullScreen;
 };
 
 NSPanel.prototype.__setSetting = function()
@@ -208,6 +299,10 @@ NSPanel.prototype.__setSetting = function()
 		if(setting.hasOwnProperty("minHeight"))
 		{
 			this.__minHeight = this.util.getNumber(setting["minHeight"]);
+		}
+		if(setting.hasOwnProperty("enablePopUp"))
+		{
+			this.__enablePopUp = Boolean.parse(setting["enablePopUp"]);
 		}
 		if(setting.hasOwnProperty("enableModal"))
 		{
@@ -239,25 +334,29 @@ NSPanel.prototype.__setSetting = function()
 		}
 		if(setting.hasOwnProperty("enableMoveOnClick"))
 		{
-			if(!this.__enableModal)
+			if(!this.__enablePopUp)
 			{
 				this.__enableMoveOnClick = Boolean.parse(setting["enableMoveOnClick"]);
 			}
 		}
 		if(setting.hasOwnProperty("enableModalAnimation"))
 		{
-			this.__enableModalAnimation = Boolean.parse(setting["enableModalAnimation"]);
+			this.__enablePopUpAnimation = Boolean.parse(setting["enableModalAnimation"]);
 		}
 		if(setting.hasOwnProperty("enableModalBodyClick"))
 		{
 			if(this.__enableDrag)
 			{
-				this.__enableModalBodyClick = Boolean.parse(setting["enableModalBodyClick"]);
+				this.__enablePopUpBodyClick = Boolean.parse(setting["enableModalBodyClick"]);
 			}
 		}
 		if(setting.hasOwnProperty("enableModalKeyboard"))
 		{
-			this.__enableModalKeyboard = Boolean.parse(setting["enableModalKeyboard"]);
+			this.__enablePopUpKeyboard = Boolean.parse(setting["enableModalKeyboard"]);
+		}
+		if(setting.hasOwnProperty("minimizedDirection"))
+		{
+			this.__minimizedDirection = setting["minimizedDirection"];
 		}
 		var customClass = {};
 		if(setting.hasOwnProperty("customClass"))
@@ -274,11 +373,30 @@ NSPanel.prototype.__setSetting = function()
 				  iconContainer:customClass["iconContainer"] || null,
 				  icon:customClass["icon"] || null,
 				  body:this.__setting.customClass["body"] || null};
+		var toolBarDetails = {};
+		if(setting.hasOwnProperty("toolBarDetails"))
+		{
+			toolBarDetails = setting["toolBarDetails"];
+			if(!toolBarDetails)
+			{
+				toolBarDetails = {};
+			}
+		}
+		this.__toolBarDetails = {
+				minimize:toolBarDetails["minimize"] || {iconHTML:null,title:"Minimize"},
+				maximize:toolBarDetails["maximize"] || {iconHTML:null,title:"Maximize"},
+				expand:toolBarDetails["expand"] || {iconHTML:null,title:"Expand"},
+				collapse:toolBarDetails["collapse"] || {iconHTML:null,title:"Collapse"},
+				fullScreen:toolBarDetails["fullScreen"] || {iconHTML:null,title:"FullScreen"},
+				restore:toolBarDetails["restore"] || {iconHTML:null,title:"Restore"},
+				close:toolBarDetails["close"] || {iconHTML:null,title:"Close"}
+		};
 	}
 };
 
 NSPanel.prototype.__createStructure = function()
 {
+	this.__saveRestoreBaseComponentDimension(true);
 	this.__copyOrignalContent();
 	this.util.addStyleClass(this.__baseComponent,"nsPanel");
 	this.util.addStyleClass(this.__baseComponent,"nsPanelExpanded");
@@ -289,7 +407,7 @@ NSPanel.prototype.__createStructure = function()
 	{
 		this.util.addStyleClass(this.__baseComponent,"nsPanelModalContentDrag");
 	}
-	if(this.__enableModal)
+	if(this.__enablePopUp)
 	{
 		var parentNode = this.parentNode;
 		if(!parentNode)
@@ -301,12 +419,12 @@ NSPanel.prototype.__createStructure = function()
 		this.__divModal.appendChild(this.__baseComponent);
 		parentNode.appendChild(this.__divModal);
 		this.util.addStyleClass(this.__baseComponent,"nsPanelModalContent");
-		if(this.__enableModalBodyClick)
+		if(this.__enablePopUpBodyClick)
 		{
 			this.__windowClickRef = this.__windowClickHandler.bind(this);
 			this.util.addEvent(window,"click",this.__windowClickRef);
 		}
-		if(this.__enableModalKeyboard)
+		if(this.__enablePopUpKeyboard)
 		{
 			//To detect escape button
 			this.__documentKeydownRef = this.__documentKeydownHandler.bind(this);
@@ -330,9 +448,46 @@ NSPanel.prototype.__createStructure = function()
 	this.util.addEvent(this.__baseComponent,this.__nsDragResizeElements.RESIZE_END,this.__dragResizeEventHandler.bind(this));
 };
 
+NSPanel.prototype.__saveRestoreBaseComponentDimension = function(isSave)
+{
+	if(this.__baseComponent)
+	{
+		var arrAttributeName = ["class","style"];
+		if(isSave)
+		{
+			this.__origBaseDimension = {};
+			for(var count = 0;count < arrAttributeName.length;count++)
+			{
+				this.__origBaseDimension[arrAttributeName[count]] = this.__baseComponent.getAttribute(arrAttributeName[count]); 
+			}
+			this.__origBaseDimension["children"] = this.__baseComponent.children;
+		}
+		else
+		{
+			for(var count = 0;count < arrAttributeName.length;count++)
+			{
+				this.__baseComponent.setAttribute(arrAttributeName[count],this.__origBaseDimension[arrAttributeName[count]]); 
+			}
+			if(this.__origBaseDimension["children"] && this.__origBaseDimension["children"].length > 0)
+			{
+				this.util.removeAllChildren(this.__baseComponent);
+				for(var count = 0;count < this.__origBaseDimension["children"].length;count++)
+				{
+					this.__baseComponent.appendChild(this.__origBaseDimension["children"][count]); 
+				} 
+			}
+			this.__origBaseDimension = {};
+		}
+	}
+};
+
 NSPanel.prototype.__createModal = function()
 {
 	var divModal = this.util.createDiv(this.getID() + "modal","nsPanelModal");
+	if(this.__enableModal)
+	{
+		this.util.addStyleClass(divModal,"nsPanelModalProp");
+	}
 	this.util.addStyleClass(divModal,"nsPanelModal" + this.__theme);
 	return divModal;
 };
@@ -356,13 +511,15 @@ NSPanel.prototype.__createTitleBar = function(parentElement)
 		var objSVG = new NSSvg();
 		var divIcon = this.util.createDiv(this.getID() + this.__TITLE_CONTAINER_ID + "IconContainer","nsPanelControlbar");
 		this.__applyCustomClass(divIcon,"iconContainer");
+		var divButton = null;
 		if(this.__enableCollapse)
 		{
 			svgShapes.addExpandInPage();
 			svgShapes.addCollapseInPage();
 			var expColID = this.getID() + "ExpCol";
 			var headerDoubleClickRef = this.__headerDoubleClickHandler.bind(this);
-			this.__addToolbarIcon(divIcon,objSVG,"nsPanelExpColContainer",expColID,"nsPanelExpColIcon",svgShapes.__EXPAND_ICON_ID,headerDoubleClickRef);
+			divButton = this.__addToolbarIcon(divIcon,objSVG,"collapse","nsPanelExpColContainer",expColID,"nsPanelExpColIcon",svgShapes.__COLLAPSE_ICON_ID,headerDoubleClickRef);
+			this.__toolBarDivs["expand"] = this.__toolBarDivs["collapse"] = divButton;
 			if(this.__enableTitleDblClick)
 			{
 				this.util.addEvent(divTitleBar,"dblclick",headerDoubleClickRef);
@@ -373,17 +530,23 @@ NSPanel.prototype.__createTitleBar = function(parentElement)
 			svgShapes.addMinimizeInPage();
 			svgShapes.addMaximizeInPage();
 			var minMaxID = this.getID() + "MinMax";
-			this.__addToolbarIcon(divIcon,objSVG,"nsPanelMinMaxContainer",minMaxID,"nsPanelMinMaxIcon",svgShapes.__MINIMIZE_ICON_ID,this.__minimizeIconClickHandler.bind(this));
+			divButton = this.__addToolbarIcon(divIcon,objSVG,"maximize","nsPanelMinMaxContainer",minMaxID,"nsPanelMinMaxIcon",svgShapes.__MINIMIZE_ICON_ID,this.__minimizeIconClickHandler.bind(this));
+			this.__toolBarDivs["maximize"] = this.__toolBarDivs["minimize"] = divButton;
 		}
 		if(this.__enableFullScreen)
 		{
-			
+			svgShapes.addFullScreenInPage();
+			svgShapes.addRestoreInPage();
+			var fullScreenID = this.getID() + "FullScreen";
+			divButton = this.__addToolbarIcon(divIcon,objSVG,"fullScreen","nsPanelFullScreenContainer",fullScreenID,"nsPanelFullScreenIcon",svgShapes.__FULLSCREEN_ICON_ID,this.__fullScreenIconClickHandler.bind(this));
+			this.__toolBarDivs["fullScreen"] = this.__toolBarDivs["restore"] = divButton;
 		}
-		if(this.__enableModal)
+		if(this.__enablePopUp)
 		{
 			svgShapes.addCloseIcon();
 			var closeID = this.getID() + "Close";
-			this.__addToolbarIcon(divIcon,objSVG,"nsPanelCloseContainer",closeID,"nsPanelCloseIcon",svgShapes.__CLOSE_ICON_ID,this.__closeIconClickHandler.bind(this));
+			divButton = this.__addToolbarIcon(divIcon,objSVG,"close","nsPanelCloseContainer",closeID,"nsPanelCloseIcon",svgShapes.__CLOSE_ICON_ID,this.__closeIconClickHandler.bind(this));
+			this.__toolBarDivs["close"] = divButton;
 		}
 		divTitleBar.appendChild(divIcon);
 		parentElement.appendChild(divTitleBar);
@@ -458,7 +621,7 @@ NSPanel.prototype.__windowClickHandler = function(event)
 	var target = this.util.getTarget(event);
 	if(target === this.__divModal)
 	{
-		this.closeModal();
+		this.close();
 	}
 };
 
@@ -467,7 +630,7 @@ NSPanel.prototype.__documentKeydownHandler = function(event)
 	event = this.util.getEvent(event);
 	if (event.keyCode === this.util.KEYCODE["ESC"]) 
 	{
-		this.closeModal();
+		this.close();
 	}
 };
 
@@ -499,10 +662,18 @@ NSPanel.prototype.__minimizeIconClickHandler = function(event)
 	event.stopImmediatePropagation();
 };
 
+NSPanel.prototype.__fullScreenIconClickHandler = function(event)
+{
+	event = this.util.getEvent(event);
+	this.__initializeFullScreen();
+	event.stopPropagation();
+	event.stopImmediatePropagation();
+};
+
 NSPanel.prototype.__closeIconClickHandler = function(event)
 {
 	event = this.util.getEvent(event);
-	this.closeModal();
+	this.close();
 	event.stopPropagation();
 	event.stopImmediatePropagation();
 };
@@ -528,17 +699,45 @@ NSPanel.prototype.__dragResizeEventHandler = function(event)
 		this.__lastHeight = this.util.getStyleValue(this.__baseComponent,"height");
 	}
 };
-NSPanel.prototype.__addToolbarIcon = function(divIcon,objSVG,containerClass,iconID,svgClass,svgShapeIconID,clickHandler)
+NSPanel.prototype.__addToolbarIcon = function(divIcon,objSVG,toolbarKey,containerClass,iconID,svgClass,svgShapeIconID,clickHandler)
 {
 	var divButton = this.util.createDiv(null,"nsPanelControlButton");
 	this.util.addStyleClass(divButton,containerClass);
 	this.__applyCustomClass(divButton,"icon");
-	var svg = objSVG.addSVG(divButton,iconID,svgClass,null,null,null,null,null,null,true);
-	objSVG.addUse(svg,iconID + "use",svgClass + "Use","#" + svgShapeIconID);
+	if(!this.__setToolBarButton(toolbarKey,divButton))
+	{
+		var svg = objSVG.addSVG(divButton,iconID,svgClass,null,null,null,null,null,null,true);
+		objSVG.addUse(svg,iconID + "use",svgClass + "Use","#" + svgShapeIconID);
+	}
 	divIcon.appendChild(divButton);
 	this.util.addEvent(divButton,"click",clickHandler);
 	this.__dragExcludeElement.push(divButton);
 	return divButton;
+};
+NSPanel.prototype.__setToolBarButton = function(toolbarKey,divButton)
+{
+	var isIconFound = false;
+	if(!divButton)
+	{
+		divButton = this.__toolBarDivs[toolbarKey];
+	}
+	if(divButton && this.__toolBarDetails[toolbarKey])
+	{
+		if(this.__toolBarDetails[toolbarKey]["iconHTML"])
+		{
+			divButton.innerHTML = this.__toolBarDetails[toolbarKey]["iconHTML"];
+			for(var count = 0;count < divButton.children.length;count++)
+			{
+				divButton.children[count].style.pointerEvents = "none";
+			}
+			isIconFound = true;
+		}
+		if(this.__toolBarDetails[toolbarKey]["title"])
+		{
+			divButton.setAttribute("title",this.__toolBarDetails[toolbarKey]["title"]);
+		}
+	}
+	return isIconFound;
 };
 
 NSPanel.prototype.__applyCustomClass = function(element,type)
@@ -552,7 +751,7 @@ NSPanel.prototype.__applyCustomClass = function(element,type)
 /******************************Start of Expansion Collapse Function *************************************/
 NSPanel.prototype.__initializeExpCol = function()
 {
-	if(this.__body && !this.__isCollapsingExpanding)
+	if(this.__body && !this.__isCollapsingExpanding && !this.__disableCollapse)
 	{
 		var objBrowser = this.util.getBrowser();
 		//for some weird reason browser other than Chrome moves on click and know how to fix it
@@ -562,6 +761,19 @@ NSPanel.prototype.__initializeExpCol = function()
 		}
 		this.__isCollapsingExpanding = true;
 		var isCollapsed = this.util.hasStyleClass(this.__baseComponent,"nsPanelCollapsed");
+		if(isCollapsed)
+		{
+			// expanding
+			this.disableDrag(true);
+			this.disableResize(true);
+		}
+		else
+		{
+			// collapsing
+			this.disableDrag(false);
+			this.disableResize(false);
+		}
+		
 		this.__animateExpCol(isCollapsed);
 	}
 };
@@ -628,17 +840,25 @@ NSPanel.prototype.__animateExpColStep = function(iteration, stepHeight, directio
 
 NSPanel.prototype.__handleExpColIcon = function(isCollapsed)
 {
-	var objSVG = new NSSvg();
-	var useID = this.getID() + "ExpCol" + "use";
+	var svgID = "";
+	var toolBarKey = "";
 	if(isCollapsed)
 	{
-		objSVG.changeUseHref(useID,"#" + new NSSvgShapes().__EXPAND_ICON_ID);
+		toolBarKey = "expand";
+		svgID = new NSSvgShapes().__EXPAND_ICON_ID;
 	}
 	else
 	{
-		objSVG.changeUseHref(useID,"#" + new NSSvgShapes().__COLLAPSE_ICON_ID);
+		toolBarKey = "collapse";
+		svgID = new NSSvgShapes().__COLLAPSE_ICON_ID;
 	}
-	this.__isCollapsed = !isCollapsed;
+	if(!this.__setToolBarButton(toolBarKey))
+	{
+		var objSVG = new NSSvg();
+		var useID = this.getID() + "ExpCol" + "use";
+		objSVG.changeUseHref(useID,"#" + svgID);
+	}
+	this.__isCollapsed = isCollapsed;
 };
 /******************************End of Expansion Collapse Function *************************************/
 
@@ -653,6 +873,9 @@ NSPanel.prototype.__initializeMinMax = function()
 		{
 			//maximize
 			this.util.dispatchEvent(this.getBaseElement(),this.MAXIMIZE_STARTING,null,null);
+			this.disableDrag(false);
+			this.disableResize(false);
+			this.disableCollapse(false);
 			this.util.removeStyleClass(this.__baseComponent,"nsPanelModalMinimized");
 			this.util.removeStyleClass(this.__baseComponent,"nsPanelModalMinimized" + this.__minimizedDirection);
 			fixedContainer.removeChild(this.__baseComponent);
@@ -666,6 +889,9 @@ NSPanel.prototype.__initializeMinMax = function()
 		{
 			//minimize
 			this.util.dispatchEvent(this.getBaseElement(),this.MINIMIZE_STARTING,null,null);
+			this.disableDrag(true);
+			this.disableResize(true);
+			this.disableCollapse(true);
 			this.__lastBodyHeight = this.__body.offsetHeight;
 			this.util.addStyleClass(this.__baseComponent,"nsPanelModalMinimized");
 			this.util.addStyleClass(this.__baseComponent,"nsPanelModalMinimized" + this.__minimizedDirection);
@@ -684,15 +910,23 @@ NSPanel.prototype.__initializeMinMax = function()
 };
 NSPanel.prototype.__handleMinMaxIcon = function(isMinimized)
 {
-	var objSVG = new NSSvg();
-	var useID = this.getID() + "MinMax" + "use";
+	var svgID = "";
+	var toolBarKey = "";
 	if(isMinimized)
 	{
-		objSVG.changeUseHref(useID,"#" + new NSSvgShapes().__MAXIMIZE_ICON_ID);
+		toolBarKey = "maximize";
+		svgID = new NSSvgShapes().__MAXIMIZE_ICON_ID;
 	}
 	else
 	{
-		objSVG.changeUseHref(useID,"#" + new NSSvgShapes().__MINIMIZE_ICON_ID);
+		toolBarKey = "minimize";
+		svgID = new NSSvgShapes().__MINIMIZE_ICON_ID;
+	}
+	if(!this.__setToolBarButton(toolBarKey))
+	{
+		var objSVG = new NSSvg();
+		var useID = this.getID() + "MinMax" + "use";
+		objSVG.changeUseHref(useID,"#" + svgID);
 	}
 };
 NSPanel.prototype.__getMinFixedContainer = function()
@@ -708,11 +942,111 @@ NSPanel.prototype.__getMinFixedContainer = function()
 	}
 	return this.__divMinFixedContainer;
 };
-
-
-
 /******************************End of Minimize Maximize Function *************************************/
 
 /******************************Start of FullScreen Function *************************************/
+NSPanel.prototype.__initializeFullScreen = function()
+{
+	if(this.__body)
+	{
+		var self = this;
+		var getValue = function(element,property)
+		{
+			var styleProp = self.util.getStyleValue(element,property);
+			if(styleProp == "auto")
+			{
+				var rect = element.getBoundingClientRect();
+				styleProp = rect[property];
+			}
+			else
+			{
+				styleProp = parseInt(styleProp.substring(0,styleProp.length - 2));
+			}
+			return styleProp;
+		};
+		var windowHeight = function() 
+		{
+			var docElemProp = window.document.documentElement.clientHeight;
+			var body = window.document.body;
+			return window.document.compatMode === "CSS1Compat" && docElemProp || body && body.clientHeight || docElemProp;
+		};
+		var eventType = "";
+		if(this.__isFullScreen)
+		{
+			//restore
+			this.util.dispatchEvent(this.getBaseElement(),this.RESTORE_STARTING,null,null);
+			this.disableDrag(false);
+			this.disableResize(false);
+			this.disableCollapse(false);
+			this.util.removeStyleClass(this.__baseComponent,"nsPanelModalFullScreen");
+			this.__baseComponent.setAttribute("style",this.__origFullScreenDimension.baseComponentStyle);
+			this.__origFullScreenDimension.baseComponentStyle = null;
+			this.__origFullScreenDimension.baseComponentRect = null;
+			
+			eventType = this.RESTORE_END;
+		}
+		else
+		{
+			//fullscreen
+			this.util.dispatchEvent(this.getBaseElement(),this.FULLSCREEN_STARTING,null,null);
+			this.disableDrag(true);
+			this.disableResize(true);
+			this.disableCollapse(true);
+			this.util.addStyleClass(this.__baseComponent,"nsPanelModalFullScreen");
+			var rect = this.__baseComponent.getBoundingClientRect();
+			this.__origFullScreenDimension.baseComponentRect = rect;
+			this.__origFullScreenDimension.baseComponentStyle = this.__baseComponent.getAttribute("style");
+			var zIndex = this.__getZIndex();
+			var offsetWidthDialog = this.util.getOuterWidth(this.__baseComponent) - getValue(this.__baseComponent,"width");
+			this.__baseComponent.style.width = (window.outerWidth - offsetWidthDialog) + "px";
+			this.__baseComponent.style.height = windowHeight() + "px";
+			this.__baseComponent.style.top = 0;
+			this.__baseComponent.style.left = 0;
+			this.__baseComponent.style.zIndex = zIndex;
+			
+			eventType = this.FULLSCREEN_END;
+		}
+		this.__handleFullScreenIcon(!this.__isFullScreen);
+		this.__isFullScreen = !this.__isFullScreen;
+		this.util.dispatchEvent(this.getBaseElement(),eventType,null,null);
+	}
+};
+
+NSPanel.prototype.__handleFullScreenIcon = function(isFullScreen)
+{
+	var svgID = "";
+	var toolBarKey = "";
+	if(isFullScreen)
+	{
+		toolBarKey = "restore";
+		svgID = new NSSvgShapes().__RESTORE_ICON_ID;
+	}
+	else
+	{
+		toolBarKey = "fullScreen";
+		svgID = new NSSvgShapes().__FULLSCREEN_ICON_ID;
+	}
+	if(!this.__setToolBarButton(toolBarKey))
+	{
+		var objSVG = new NSSvg();
+		var useID = this.getID() + "FullScreen" + "use";
+		objSVG.changeUseHref(useID,"#" + svgID);
+	}
+};
+
+NSPanel.prototype.__getZIndex = function()
+{
+	var zIndex = this.util.getZIndex(this.__baseComponent);
+	var arrElement = document.querySelectorAll(".nsPanelModalFullScreen");
+	for(var count = 0;count < arrElement.length;count++)
+	{
+		var eleZIndex = this.util.getZIndex(arrElement[count]);
+		if (eleZIndex > zIndex) 
+		{
+            zIndex = $zIndex + 1;
+        }
+	}
+	return zIndex;
+};
 
 /******************************End of FullScreen Function *************************************/
