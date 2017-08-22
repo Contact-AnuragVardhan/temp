@@ -1,13 +1,80 @@
-<br/>
-	<div id="page-content">
-		<h1>Hello, world!</h1>
-		<p>Lorem ipsum dolor sit amet, <H1>consectetur adipiscing elit. Donec vehicula bibendum lacinia.</H1> Pellentesque placerat interdum nisl non semper. Integer ornare, nunc non varius mattis, nulla neque venenatis nibh, vitae cursus risus quam ut nulla. Aliquam erat volutpat. Aliquam erat volutpat. Etiam eu auctor risus, condimentum sodales nisi. Curabitur aliquam, lorem accumsan aliquam mattis, sem ipsum vulputate quam, at interdum nisl turpis pharetra odio. Vivamus diam eros, mattis eu dui nec, blandit pulvinar felis.</p>
-		<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec vehicula bibendum lacinia. Pellentesque placerat interdum nisl non semper. Integer ornare, nunc non varius mattis, nulla neque venenatis nibh, vitae cursus risus quam ut nulla. Aliquam erat volutpat. Aliquam erat volutpat. Etiam eu auctor risus, condimentum sodales nisi. Curabitur aliquam, lorem accumsan aliquam mattis, sem ipsum vulputate quam, at interdum nisl turpis pharetra odio. Vivamus diam eros, mattis eu dui nec, blandit pulvinar felis.</p>
+var arrPanels =  nsDashboard.getAllPanel();
+			for(var count = 0;count < arrPanels.length;count++)
+			{
+				var nsPanel = arrPanels[count];
+				util.addEvent(nsPanel.getBaseElement(),NSDashboard.PANEL_DRAG_START,panelEventHandler);
+				util.addEvent(nsPanel.getBaseElement(),NSDashboard.PANEL_DRAG_ENTER,panelEventHandler);
+				util.addEvent(nsPanel.getBaseElement(),NSDashboard.PANEL_DRAG_OVER,panelEventHandler);
+				util.addEvent(nsPanel.getBaseElement(),NSDashboard.PANEL_DRAG_LEAVE,panelEventHandler);
+				util.addEvent(nsPanel.getBaseElement(),NSDashboard.PANEL_DROP,panelEventHandler);
+				util.addEvent(nsPanel.getBaseElement(),NSDashboard.PANEL_DRAG_END,panelEventHandler);
+			}
+		
+		}
+		function panelEventHandler(event)
+		{
+			console.log("Event is " + event.type + " and element is " + event.detail.element.id);
+		}
+		
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Insert title here</title>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.1/css/ionicons.css">
+
+<link href="lib/css/com/org/component.css" rel="stylesheet">
+<link href="lib/css/com/org/nsNavigation.css" rel="stylesheet">
+<script src="lib/com/org/util/nsUtil.js"></script>
+<script src="lib/com/org/prototype/base/nsContainerBase.js"></script>
+<script src="lib/com/org/prototype/nsNavigation.js"></script>
+<style>
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: 'Source Sans Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-weight: 400;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+</style>
+</head>
+<body class="nsNavBodyWhite" onload="init();">
+	<nav id="divMenu">
+		
+	</nav>
+	<div class="content-wrapper" style="min-height: 901px;">
 	</div>
-	<br/>
-	<button type="button" onclick="exportDivAsDOCX(event);">Export Div As DOCX </button>
-	function exportDivAsDOCX(event)
+	
+<script>
+	function init()
 	{
-		var nsExport = new NSExport(null,"Demo");
-		nsExport.word("docx",event,"portrait",document.querySelector("#page-content"));
+		var dataSource = [{menuName:"Hierarchies",link:null,iconBeforeHtml:"<i class='fa fa-sitemap'></i>",iconAfterHtml:null,click:null,
+							childMenus:[{menuName:"Manage Hierarchies",link:"#hm",iconBeforeHtml:"<i class='fa fa-circle-o'></i>",iconAfterHtml:null,click:null}]},
+						  {menuName:"Tasks",link:null,iconBeforeHtml:"<i class='fa fa-tasks'></i>",iconAfterHtml:null,click:null,
+							  childMenus:[{menuName:"Pending Tasks / Reviews",link:"#pendingTask",iconBeforeHtml:"<i class='fa fa-circle-o'></i>",iconAfterHtml:null,click:null},
+							              {menuName:"Historical Reviews",link:"#historicalReview",iconBeforeHtml:"<i class='fa fa-circle-o'></i>",iconAfterHtml:null,click:null},
+							  			  {menuName:"Outstanding Tasks",link:"#outstandingTask",iconBeforeHtml:"<i class='fa fa-circle-o'></i>",iconAfterHtml:null,click:null}]},
+						  {menuName:"Contacts",link:"#about",iconBeforeHtml:"<i class='fa fa-home'></i>",iconAfterHtml:null,click:null}
+						];
+		var setting = {header:"NSS2 NAVIGATION",showCollapseIcon:true,iconCollapse:"<i class='fa fa-bars pull-right'></i>",
+						titleField:"menuName",childField:"childMenus",iconPosition:"right",iconMenuExpanded:"<i class='fa fa-angle-left'></i>",
+						iconMenuCollapsed:"<i class='fa fa-angle-left'></i>",
+						dataSource:dataSource};
+		
+		var divMenu = document.getElementById("divMenu");
+		var nsNav = new NSNavigation(divMenu,setting);
+		
 	}
+</script>
+
+<script>
+
+
+
+
+</script>
+
+</body>
+</html>
