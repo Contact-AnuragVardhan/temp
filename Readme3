@@ -1,101 +1,323 @@
- [draggable] {
-  -moz-user-select: none;
-  -khtml-user-select: none;
-  -webkit-user-select: none;
-  user-select: none;
-  /* Required to make elements draggable in old WebKit */
-  -khtml-user-drag: element;
-  -webkit-user-drag: element;
-}
-.over {
-  border: 2px dashed #000;
-}
-var divDashboard = document.getElementById("divDashboard");
-			for(var count = 0;count < divDashboard.children.length;count++)
+	this.__disableMinMax = false;
+	this.__disableFullScreen = false;
+NSPanel.prototype.disableMinMax = function(value)
+{
+	this.__disableMinMax = value;
+};
+
+NSPanel.prototype.disableFullScreen = function(value)
+{
+	this.__disableFullScreen = value;
+};
+if(this.__body && !this.__disableMinMax)
+this.disableFullScreen(false);
+
+if(this.__body && !this.__disableFullScreen)
+this.disableMinMax(false);
+
+"use strict"; 
+function NSDashboard(setting) 
+{
+	var util = new NSUtil();
+	var config = null;
+	
+	var id = null;
+	var arrPanel = [];
+	var dragElement = null;
+	var self = this;
+	
+	this.getAllPanel = function()
+	{
+		if(arrPanel && arrPanel.length > 0)
+		{
+			var arrReturn = [];
+			for(var count = 0;count < arrPanel.length;count++)
 			{
-				var div = divDashboard.children[count];
-				div.setAttribute("draggable",true);
-				div.addEventListener('dragstart', handleDragStart, false);
-				div.addEventListener('dragenter', handleDragEnter, false);
-				div.addEventListener('dragover', handleDragOver, false);
-				div.addEventListener('dragleave', handleDragLeave, false);
-				div.addEventListener('drop', handleDrop, false);
-				div.addEventListener('dragend', handleDragEnd, false);
-				
+				arrReturn.push(arrPanel[count].panel);
 			}
-			
-var dragSrcEl = null;
-		function handleDragStart(e) {
-			  this.style.opacity = '0.4';  // this / e.target is the source node.
-			  dragSrcEl = this;
-
-			  e.dataTransfer.effectAllowed = 'move';
-			  e.dataTransfer.setData('text/html', this.innerHTML);
+			return arrReturn;
+		}
+		return null;
+	};
+	
+	this.getPanel = function(item)
+	{
+		if(!this.util.isUndefinedOrNull(item))
+		{
+			var index = -1;
+			if(this.util.isElement(item))
+			{
+				index = parseInt(item.getAttribute("nsDashboardOrgIndex"));
 			}
-
-			function handleDragOver(e) {
-			  if (e.preventDefault) {
-			    e.preventDefault(); // Necessary. Allows us to drop.
-			  }
-
-			  e.dataTransfer.dropEffect = 'move';  // See the section on the DataTransfer object.
-
-			  return false;
+			else if(this.util.isNumber(item))
+			{
+				index = parseInt(item);
 			}
-
-			function handleDragEnter(e) {
-			  // this / e.target is the current hover target.
-			  this.classList.add('over');
+			if(index > -1 && arrPanel.length > index)
+			{
+				return arrPanel[index].panel;
 			}
-
-			function handleDragLeave(e) {
-			  this.classList.remove('over');  // this / e.target is previous target element.
+		}
+		return null;
+	};
+	var initialize = function()
+	{
+		if(setting)
+		{
+			config = {
+					container: setting["container"] || null,
+					panelClass: setting["panelClass"] || null,
+					panelDragClass: setting["panelDragClass"] || null,
+					panelHoverClass: setting["panelHoverClass"] || null,
+					panelCount: parseInt(setting["panelCount"]),
+					panelPerRow: util.isUndefinedOrNull(setting["panelPerRow"]) ? parseInt(setting["panelPerRow"]) : 3,
+					arrPanelSetting: setting["arrPanelSetting"] || []
+			};
+			if(!config.container)
+			{
+				util.throwException(2001,"NSDashboard","Container property is invalid");
+				return;
 			}
-			function handleDrop(e) {
-				  // this / e.target is current target element.
+			if(!config.panelCount)
+			{
+				util.throwException(2002,"NSDashboard","Enter a valid value for PanelCount property");
+				return;
+			}
+			if(config.panelPerRow == 0)
+			{
+				util.throwException(2002,"NSDashboard","PanelPerRow property has an invalid value");
+				return;
+			}
+			if(!config.arrPanelSetting)
+			{
+				util.throwException(2002,"NSDashboard","arrPanelSetting property has an invalid value");
+				return;
+			}
+			if(12 % config.panelPerRow !== 0)
+			{
+				util.throwException(2001,"NSDashboard","PanelPerRow property should have a value which is divisible by 12");
+				return;
+			}
+			if(config.arrPanelSetting.length != config.panelCount)
+			{
+				util.throwException(2001,"NSDashboard","arrPanelSetting property should have same length as PanelCount property");
+				return;
+			}
+			createElement();	
+		}
+	};
+	var createElement = function() 
+	{
+		var classNum = 12 / config.panelPerRow;
+		util.addStyleClass(config.container,"container-fluid");
+		util.removeAllChildren(config.container);
+		for(var count = 0;count < config.panelCount;count++)
+		{
+			createPanel(config.arrPanelSetting[count],classNum,count);
+		}
+	};
+	var createPanel = function(setting,classNum,index) 
+	{
+		var divPanel = util.createDiv(getID() + "NSDashboardPanel" + index,"nsDashboardPanel");
+		util.addStyleClass(divPanel,"col-sm-" + classNum);
+		if(config.panelClass)
+		{
+			util.addStyleClass(divPanel,config.panelClass);
+		}
+		divPanel.setAttribute("draggable",true);
+		divPanel.setAttribute("nsDashboardOrgIndex",index);
+		divPanel.setAttribute("nsDashboardCurIndex",index);
+		util.addEvent(divPanel,"dragstart",dragStartHandler);
+		util.addEvent(divPanel,"dragenter",dragEnterHandler);
+		util.addEvent(divPanel,"dragover",dragOverHandler);
+		util.addEvent(divPanel,"dragleave",dragLeaveHandler);
+		util.addEvent(divPanel,"drop",dropHandler);
+		util.addEvent(divPanel,"dragend",dragEndHandler);
+		config.container.appendChild(divPanel);
+		setting["enablePopUp"] = false;
+		setting["enableModal"] = false;
+		setting["enableDrag"] = false;
+		setting["enableTitleDblClick"] = false;
+		setting["enableMoveOnClick"] = false;
+		//Resize behaving weirdly so disabling it
+		setting["enableResize"] = false;
+		setting["minimizeAddRemoveElementCallback"] = minimizeAddRemoveElement;
+		var nsPanel = new NSPanel(divPanel,setting);
+		util.addEvent(divPanel,nsPanel.MINIMIZE_END,nsPanelEventHandler);
+		util.addEvent(divPanel,nsPanel.MAXIMIZE_END,nsPanelEventHandler);
+		util.addEvent(divPanel,nsPanel.FULLSCREEN_END,nsPanelEventHandler);
+		util.addEvent(divPanel,nsPanel.RESTORE_END,nsPanelEventHandler);
+		util.addEvent(divPanel,nsPanel.RESIZE_STARTING,nsPanelEventHandler);
+		util.addEvent(divPanel,nsPanel.RESIZE_END,nsPanelEventHandler);
+		arrPanel.push({panel:nsPanel,draggable:true});
+	};
+	
+	var nsPanelEventHandler = function(event)
+	{
+		event = util.getEvent(event);
+		var item = arrPanel[parseInt(this.getAttribute("nsDashboardOrgIndex"))];
+		if(item)
+		{
+			var nsPanel = item.panel;
+			switch(event.type)
+			{
+				case nsPanel.MINIMIZE_END:
+					item.draggable = false;
+				break;
+				case nsPanel.MAXIMIZE_END:
+					item.draggable = true;
+				break;
+				case nsPanel.FULLSCREEN_END:
+					item.draggable = false;
+				break;
+				case nsPanel.RESTORE_END:
+					item.draggable = true;
+				break;
+				case nsPanel.RESIZE_STARTING:
+					item.draggable = false;
+				break;
+				case nsPanel.RESIZE_END:
+					item.draggable = true;
+				break;
+			}
+		}
+	};
+	
+	var dragStartHandler = function(event) 
+	{
+		if(arrPanel[parseInt(this.getAttribute("nsDashboardOrgIndex"))].draggable)
+		{
+			event = util.getEvent(event);
+			dragElement = this;
+			if(config.panelDragClass)
+			{
+				util.addStyleClass(dragElement,config.panelDragClass);	
+			}
+			util.dispatchEvent(dragElement,NSDashboard.PANEL_DRAG_START,{element:dragElement,index:dragElement.getAttribute("nsDashboardCurIndex")},{index:dragElement.getAttribute("nsDashboardCurIndex")});
+			event.dataTransfer.effectAllowed = "move";
+			event.dataTransfer.setData("text",dragElement.getAttribute("nsDashboardCurIndex"));
+		}
+	};
+	var dragOverHandler = function(event) 
+	{
+		if(dragElement)
+		{
+			event = util.getEvent(event);
+			if (event.preventDefault) 
+			{
+				event.preventDefault();
+			}
+			event.dataTransfer.dropEffect = "move";  
+			var index = this.getAttribute("nsDashboardCurIndex");
+			util.dispatchEvent(this,NSDashboard.PANEL_DRAG_OVER,{element:this,index:index},{index:index});
+		}
+		return false;
+	};
+	var dragEnterHandler = function(event) 
+	{
+		if(dragElement && config.panelHoverClass)
+		{
+			util.addStyleClass(this,config.panelHoverClass);
+			var index = this.getAttribute("nsDashboardCurIndex");
+			util.dispatchEvent(this,NSDashboard.PANEL_DRAG_ENTER,{element:this,index:index},{index:index});
+		}
+	};
+	var dragLeaveHandler = function(event)
+	{
+		if(dragElement && config.panelHoverClass)
+		{
+			util.removeStyleClass(this,config.panelHoverClass);	
+			var index = this.getAttribute("nsDashboardCurIndex");
+			util.dispatchEvent(this,NSDashboard.PANEL_DRAG_LEAVE,{element:this,index:index},{index:index});
+		}
+	};
+	var dropHandler = function(event)
+	{
+		if(dragElement)
+		{
+			event = util.getEvent(event);
+			if (event.stopPropagation) 
+			{
+				event.stopPropagation(); 
+			}
+			if (dragElement != this) 
+			{
+			  	util.swapElements(dragElement,this);
+			  	var currIndex = dragElement.getAttribute("nsDashboardCurIndex");
+			  	dragElement.setAttribute("nsDashboardCurIndex",this.getAttribute("nsDashboardCurIndex"));
+			  	this.setAttribute("nsDashboardCurIndex",currIndex);
+			  	var nsPanel = arrPanel[parseInt(this.getAttribute("nsDashboardOrgIndex"))].panel; 
+			  	if(nsPanel)
+			  	{
+			  		nsPanel.__refreshToolbarIcon();
+			  	}
+			  	var index = this.getAttribute("nsDashboardCurIndex");
+				util.dispatchEvent(this,NSDashboard.PANEL_DROP,{element:this,index:index},{index:index});
+			}
+			if(config.panelDragClass)
+			{
+				util.removeStyleClass(dragElement,config.panelDragClass);	
+			}
+			var nsPanel = arrPanel[parseInt(dragElement.getAttribute("nsDashboardOrgIndex"))].panel; 
+		  	if(nsPanel)
+		  	{
+		  		nsPanel.__refreshToolbarIcon();
+		  	}
+			dragElement = null;
+		}
+	  	return false;
+	};
+	var dragEndHandler = function(event)
+	{
+		if(config.panelHoverClass)
+		{
+			for(var count = 0;count < arrPanel.length;count++)
+			{
+				var divPanel = arrPanel[count].panel.getBaseElement();
+				util.removeStyleClass(divPanel,config.panelHoverClass);
+			}
+		}
+		var index = this.getAttribute("nsDashboardCurIndex");
+		util.dispatchEvent(this,NSDashboard.PANEL_DRAG_END,{element:this,index:index},{index:index});
+	};
+	var minimizeAddRemoveElement = function(element,parent,isAdd)
+	{
+		if(isAdd)
+		{
+			var index = parseInt(element.getAttribute("nsDashboardCurIndex"));
+			util.insertElementAtIndex(parent,element,index);
+		}
+		else
+		{
+			parent.removeChild(element);
+		}
+	};
+	var getID = function()
+	{
+		if(!id)
+		{
+			if(config.container.hasAttribute("id"))
+			{
+				id = config.container.getAttribute("id");
+			}
+			else if(config.container.hasAttribute("name"))
+			{
+				id = config.container.getAttribute("name");
+			}
+			else
+			{
+				id = "comp" + util.getUniqueId();
+			}
+		}
+		return id;
+	};
+	
+	initialize();
+};
 
-				  if (e.stopPropagation) {
-				    e.stopPropagation(); // stops the browser from redirecting.
-				  }
-				  if (dragSrcEl != this) {
-					    // Set the source column's HTML to the HTML of the column we dropped on.
-					  swapElements(dragSrcEl,this);
-					  dragSrcEl.style.opacity = "";
-					  }
-				  
-				  // See the section on the DataTransfer object.
-					dragSrcEl = null;
-				  return false;
-				}
-
-				function handleDragEnd(e) {
-				  // this/e.target is the source node.
-					var divDashboard = document.getElementById("divDashboard");
-					for(var count = 0;count < divDashboard.children.length;count++)
-					{
-						var div = divDashboard.children[count];
-						div.classList.remove('over');
-					}
-				}
-				function swapElements(obj1, obj2) {
-				    // save the location of obj2
-				    var parent2 = obj2.parentNode;
-				    var next2 = obj2.nextSibling;
-				    // special case for obj1 is the next sibling of obj2
-				    if (next2 === obj1) {
-				        // just put obj1 before obj2
-				        parent2.insertBefore(obj1, obj2);
-				    } else {
-				        // insert obj2 right before obj1
-				        obj1.parentNode.insertBefore(obj2, obj1);
-
-				        // now insert obj1 where obj2 was
-				        if (next2) {
-				            // if there was an element after obj2, then insert obj1 right before that
-				            parent2.insertBefore(obj1, next2);
-				        } else {
-				            // otherwise, just append as last child
-				            parent2.appendChild(obj1);
-				        }
-				    }
-				}
+NSDashboard.PANEL_DRAG_START = "panelDragStart";
+NSDashboard.PANEL_DRAG_ENTER = "panelDragenter";
+NSDashboard.PANEL_DRAG_OVER = "panelDragover";
+NSDashboard.PANEL_DRAG_LEAVE = "panelDragleave";
+NSDashboard.PANEL_DROP = "panelDrop";
+NSDashboard.PANEL_DRAG_END = "panelDragend";
