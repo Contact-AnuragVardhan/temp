@@ -1,118 +1,21 @@
-function exportInExcel(event)
+extraAttribute: this.__setting["extraAttribute"],// to set link for Angular 2 or other framework attributes
+this.__setLink(anchor,item["link"]);
+
+NSNavigation.prototype.__setLink = function(anchor,link)
+{
+	if(link)
 	{
-		var nsExport = new NSExport(table,"Demo");
-		var setting = {type:"xls",event:event,sheetName:"Demo Sheet",element:null};
-		nsExport.excel(setting);
-	}
-	function exportInCsv(event)
-	{
-		var nsExport = new NSExport(table,"Demo");
-		nsExport.csv(event);
-	}
-	
-	function exportInWord(event)
-	{
-		var nsExport = new NSExport(table,"Demo");
-		var setting = {type:"doc",event:event,orientation:null,element:null,pageBreakTag:null};
-		nsExport.word(setting);
-	}
-	
-	function exportInPPT(event)
-	{
-		var nsExport = new NSExport(table,"Demo");
-		var setting = {event:event,element:null};
-		nsExport.powerpoint(setting);
-	}
-	
-	function exportInText(event)
-	{
-		var nsExport = new NSExport(table,"Demo");
-		nsExport.text(event);
-	}
-	
-	function exportInXML(event)
-	{
-		var nsExport = new NSExport(table,"Demo");
-		nsExport.xml(event);
-	}
-	
-	function exportInJSON(event)
-	{
-		var nsExport = new NSExport(table,"Demo");
-		nsExport.json(event);
-	}
-	
-	function exportInPDF(event)
-	{
-		var nsExport = new NSExport(table,"Demo");
-		nsExport.pdf(event);
-	}
-	
-	function exportAsImage(event)
-	{
-		var nsExport = new NSExport(table,"Demo");
-		var setting = {type:null,event:event};
-		nsExport.image(setting);
-	}
-	function exportAsXSLX(event)
-	{
-		var nsExport = new NSExport(table,"Demo");
-		var setting = {type:"xlsx",event:event,sheetName:"Demo Sheet",element:null};
-		nsExport.excel(setting);
-	}
-	function exportAsDOCX(event)
-	{
-		var nsExport = new NSExport(table,"Demo");
-		var setting = {type:"docx",event:event,orientation:"portrait",element:null,pageBreakTag:null};
-		nsExport.word(setting);
-	}
-	function exportDivAsDOCX(event)
-	{
-		var nsExport = new NSExport(null,"Demo");
-		var setting = {type:"docx",event:event,orientation:"portrait",element:document.querySelector("#page-content"),pageBreakTag:"<pagebreak></pagebreak>"};
-		nsExport.word(setting);
-	}
-	function exportDivAsDOC(event)
-	{
-		var nsExport = new NSExport(null,"Demo");
-		var setting = {type:"doc",event:event,orientation:"portrait",element:document.querySelector("#page-content"),pageBreakTag:"<pagebreak></pagebreak>"};
-		nsExport.word(setting);
-	}
-	
-	switch (item.id) 
+		anchor.setAttribute("href",link);
+		if(this.__config["extraAttribute"])
 		{
-		    case 0:
-		    	var setting = {type:"xls",event:null,sheetName:this.__exportFileName,element:null};
-		    	nsExport.excel(setting);
-		        break;
-		    case 1:
-		    	nsExport.csv();
-		        break;
-		    case 2:
-		    	var setting = {type:"doc",event:null,orientation:null,element:null};
-		    	nsExport.word(setting);
-		        break;
-		    case 3:
-		    	nsExport.text();
-		        break;
-		    case 4:
-		    	nsExport.xml();
-		        break;
-		    case 5:
-		    	nsExport.json();
-		        break;
-		    case 6:
-		    	nsExport.pdf();
-		        break;
-		    case 7:
-		    	nsExport.image();
-		        break;
-		    case 8:
-		    	var setting = {type:"xlsx",event:null,sheetName:this.__exportFileName,element:null};
-		    	nsExport.excel(setting);
-		        break;
-		    case 9:
-		    	var setting = {type:"doc",event:null,orientation:null,element:null};
-		    	nsExport.word(setting);
-		        break;
+			anchor.setAttribute(this.__config["extraAttribute"],link);
 		}
+	}
+	else 
+	{
+		anchor.setAttribute("href","javascript:void(0)");
+	}
+};
+,this.__nsGrid.__divTableWrapper
+,tillElement
+ && (!tillElement || (tillElement != prevElement))
