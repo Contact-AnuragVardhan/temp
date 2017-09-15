@@ -1,18 +1,194 @@
-		<input type="text" id="txtHierarchyText"  class="nsFilter nsSearchInlineTextBox" placeholder="Enter Hierarchy For Filter"
-		  style="width: 279px;" onkeyup="filterHierarchy(event);">
-function filterHierarchy(event)
+<!-- https://github.com/darylrowland/angucomplete -->
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+    pageEncoding="ISO-8859-1"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>NS TextBox Demo</title>
+
+ <meta name='viewport' content='width=device-width,initial-scale=1'>
+ 
+ <link href="/JSLib/lib/css/com/org/component.css" rel="stylesheet">
+ <link href="/JSLib/lib/css/com/org/nsList.css" rel="stylesheet">
+ <link href="/JSLib/lib/css/com/org/nsTextBox.css" rel="stylesheet">
+ 
+ <script src="/JSLib/lib/com/org/util/nsUtil.js"></script>
+ <script src="/JSLib/lib/com/org/prototype/base/nsContainerBase.js"></script>
+ <script src="/JSLib/lib/com/org/prototype/nsList.js"></script>
+ <script src="/JSLib/lib/com/org/prototype/nsTextBox.js"></script>
+ 
+ <style>
+ 	
+ </style>
+ <style>
+  	.hbox 
+	{
+	  overflow-x:hidden;
+	  overflow-y:hidden;
+	}
+	
+	.hbox > * 
+	{
+	  display: inline-block;
+	   vertical-align: middle;
+	  
+	}
+	.header 
+	{
+		position: relative;
+	    font-weight: bold;
+	    background: #808080;
+	    color: white;
+	    text-transform: uppercase;
+	    padding-left: 10px;
+	}
+	.header > * 
+	{
+  	  position: absolute;
+  	  top: 0; left: 0; bottom: 0; right: 0;
+	}
+	
+</style>
+</head>
+<body onload="loadHandler();">
+	<template id="templateDemo">
+			<div accessor-name="rendererBody" class="hbox" style="height:20px;">
+				<label accessor-name="label1"></label>
+				<label accessor-name="label2"></label>
+			</div>
+	</template>
+	<section>
+	  <h1>Autocomplete</h1>
+	  <label>
+	  	<span class="labelSpan">Single Selection:</span>
+	  	<div id="divSingleSelection" style="display:inline-block;"></div>
+	  </label> 
+	  <label>
+	  	<span class="labelSpan">Multi Selection:</span>
+	  	<div id="divMultiSelection" style="display:inline-block;"></div>
+	  </label>
+	</section>
+	<section>
+	  <h1>Regex Supportive</h1>
+	  <div id="divRegex"></div> 
+	</section>
+	<section>
+	  <h1>Min Character and Max Charater Support</h1>
+	  <span>
+	  	<form action="">
+			<div id="divMinMaxCharacter" style="display: inline-block;"></div>
+			<input type="submit" value="Submit" >
+		</form>
+		<label>
+			<span class="labelSpan">Min Chacater:</span>
+			<input id="txtMinCharacter" type="number" step="1" value="3">
+		</label>
+		<label>
+			<span class="labelSpan">Max Chacater:</span>
+			<input id="txtMaxCharacter" type="number" step="1" value="10">
+		</label>
+		<button id="btnMinMaxCharacter" onclick="applyMinMaxCharacter();">Apply</button>
+	  </span>
+	</section>
+	<section>
+	  <h1>Password</h1>
+	  <div id="divPassword"></div> 
+	</section>
+	
+	
+	<script>
+	var nsTextBoxRegex = null;
+	var nsTextBoxMinMaxCharacter = null;
+	var nsTextBoxPassword = null;
+	var nsTextBoxSingleSelection = null;
+	var nsTextBoxMultiSelection = null;
+	
+	function loadHandler()
+	{
+		var divRegex = document.getElementById("divRegex");
+		var settingRegex = {placeholder:"Please Enter Character Only",type:"text",styleClass:"nsTextBox",restrict:"^(([1-9]*)|(([1-9]*)\.([0-9]*)))$"};	
+		nsTextBoxRegex = new NSTextBox(divRegex,settingRegex);
+		
+		var divMinMaxCharacter = document.getElementById("divMinMaxCharacter");
+		var settingMinMaxCharacter = {placeholder:"Please Enter Character",type:"text",styleClass:"nsTextBox",minChars:3,maxChars:10,required:true,showCustomValidation:true};	
+		nsTextBoxMinMaxCharacter = new NSTextBox(divMinMaxCharacter,settingMinMaxCharacter);
+		
+		var divPassword = document.getElementById("divPassword");
+		var settingPassword = {placeholder:"Password",styleClass:"nsTextBox",displayAsPassword:true};	
+		nsTextBoxPassword = new NSTextBox(divPassword,settingPassword);
+		
+		var divSingleSelection = document.getElementById("divSingleSelection");
+		var settingAutoComplete = {placeholder:"Search Countries",type:"autocomplete",listWidth:300,required:true,labelField:"name", 
+									enableMultipleSelection:false,enableKeyboardNavigation:true,customScrollerRequired:false,showCustomValidation:false,
+									stopHoveringField:"stopOver",dataSource:countries};
+		nsTextBoxSingleSelection = new NSTextBox(divSingleSelection,settingAutoComplete);
+		
+		var divMultiSelection = document.getElementById("divMultiSelection");
+		var settingMultiAutoComplete = {placeholder:"Search Countries",type:"autocomplete",listWidth:300,required:true,labelField:"name", 
+									enableMultipleSelection:true,enableKeyboardNavigation:true,customScrollerRequired:false,showCustomValidation:false,
+									stopHoveringField:"stopOver",dataSource:countries};
+		nsTextBoxMultiSelection = new NSTextBox(divMultiSelection,settingMultiAutoComplete);
+		
+	}
+	
+	function applyMinMaxCharacter()
+	{
+		var minChar =  document.querySelector("#txtMinCharacter").value;
+		var maxChar =  document.querySelector("#txtMaxCharacter").value;
+		nsTextBoxMinMaxCharacter.changeProperty("minChars",minChar);
+		nsTextBoxMinMaxCharacter.changeProperty("maxChars",maxChar);
+	}
+	
+	
+	function setData(renderer,item,labelField,searchString)
+	{
+		if(renderer)
+		{
+			if(item && item[labelField])
+			{
+				var txtAutoComplete = document.querySelector("#txtAutoComplete");
+				var htmlText = item[labelField];
+				if(htmlText != txtAutoComplete.getNoMessage())
 				{
-					if(nsListHierarchical)
+					if (searchString) 
 					{
-						var txtHierarchyText = document.getElementById("txtHierarchyText"); 
-						var text = txtHierarchyText.value;
-						if(text === "")
-						{
-							nsListHierarchical.resetFilter();
-						}
-						else
-						{
-							nsListHierarchical.filter(text);
-						}
+					      var words = '(' +
+					      		searchString.split(/\ /).join(' |').split(/\(/).join('\\(').split(/\)/).join('\\)') + '|' +
+					      		searchString.split(/\ /).join('|').split(/\(/).join('\\(').split(/\)/).join('\\)') +
+					          ')',
+					          exp = new RegExp(words, 'gi');
+					      if (words.length) 
+					      {
+					    	  htmlText = htmlText.replace(exp, "<span class=\"nsTextHighlight\">$1</span>");
+					      }
 					}
+					renderer.rendererBody.label2.innerHTML = "(" + item["code"] + ")";
 				}
+				renderer.rendererBody.label1.innerHTML = htmlText;
+			}
+			else
+			{
+				clearData(renderer);
+			}
+		}
+	}
+	
+	function clearData(renderer)
+	{
+		if(renderer)
+		{
+			var txtAutoComplete = document.querySelector("#txtAutoComplete");
+			renderer.rendererBody.label2.style.display = "none";
+			renderer.rendererBody.label1.innerHTML = "";
+			renderer.rendererBody.label2.innerHTML = "";
+			txtAutoComplete.util.removeStyleClass(renderer.rendererBody,"header");
+			txtAutoComplete.util.addStyleClass(renderer.rendererBody,"hbox");
+		}
+	}
+	</script>
+	
+</body>
+
+
+</html>
