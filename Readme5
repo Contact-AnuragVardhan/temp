@@ -1,11 +1,1022 @@
-.nsPanelWhite .nsPanelExpColIconUse 
+var NSTextBox = (function() 
 {
-  fill: #848484;
-  color: #F6F6F6;
-}
+	function NSTextBox(component,setting) 
+	{
+		this.__setting = setting;
+		this.__outerContainer = null;
+		this.__textBox = null;
+		this.__list = null;
+		this.__nsList = null;
+		this.__renderer =  null;
+		this.__itemRenderer = null;
+		
+		this.__dataSource = null;
+		this.__type = "text";
+		this.__enableAutoComplete = false;
+		this.__matchStartsWith = false;
+		this.__minChars = -1;
+		this.__maxChars = -1;
+		this.__minSearchStartChars = 1;
+		this.__caseSensitive = true;
+		this.__required = false;
+		this.__placeholder = null;
+		this.__displayAsPassword = false;
+		this.__delay = 150;
+		this.__listWidth = -1;
+		this.__maxListHeight = 300;
+		this.__noRecordsFoundMessage = "No Records Found";
+		//can be [a-zA-Z0-9,-]
+		this.__restrict = null;
+		this.__pattern = null;
+		this.__styleClass = null;
+		
+		this.__labelField = "label";
+		this.__stopHoveringField = "stopHover";
+		this.__labelFunction = null;
+		this.__templateID = null;
+		this.__setDataCallBack = null;
+		this.__enableKeyboardNavigation = false;
+		this.__enableMultipleSelection = false;
+		this.__multiSelectionSeparator = ";";
+		this.__customScrollerRequired = false;
+		
+		this.__selectedItem = null;
+		this.__selectedItems = [];	
+		this.__timerInstance = null;
+		this.__componentMeasurement = {};
+		this.__isFromItemSelected = false;
+		
+		this.__keyPressedRef = null;
+		this.__pasteRef = null;
+		this.__documentClickRef = null;
+		this.__documentKeyUpRef = null;
+		this.__documentKeyDownRef = null;
+		
+		this.base.__setBaseComponent.call(this,component);
+	};
+	nsExtendPrototype(NSContainerBase,NSTextBox);
+	NSTextBox.prototype.constructor = NSTextBox;
+	
+	NSTextBox.prototype.initializeComponent = function() 
+	{
+		this.base.initializeComponent.call(this);
+		this.__setSetting();
+	};
+	
+	NSTextBox.prototype.setComponentProperties = function() 
+	{
+		this.base.setComponentProperties.call(this);
+		this.__createComponents();
+		this.__setTextBoxProperty();
+		if(this.__dataSource)
+		{
+			this.dataSource(this.__dataSource);
+		}
+	};
+	
+	NSTextBox.prototype.propertyChange = function(attrName, oldVal, newVal, setProperty)
+	{
+		var attributeName = attrName.toLowerCase();
+		var callTextProperty = false;
+		if(attributeName === "matchstartswith")
+		{
+			this.__matchStartsWith =  Boolean.parse(newVal);
+		}
+		if(attributeName === "maxchars")
+		{
+			this.__maxChars =  parseInt(newVal);
+			callTextProperty = true;
+		}
+		if(attributeName === "minchars")
+		{
+			this.__minChars =  parseInt(newVal);
+		}
+		if(attributeName === "minsearchstartchars")
+		{
+			this.__minSearchStartChars =  parseInt(newVal);
+		}
+		if(attributeName === "casesensitive")
+		{
+			this.__caseSensitive = Boolean.parse(newVal);
+		}
+		if(attributeName === "required")
+		{
+			this.__required = Boolean.parse(newVal);
+			callTextProperty = true;
+		}
+		if(attributeName === "placeholder")
+		{
+			this.__placeholder = newVal;
+			callTextProperty = true;
+		}
+		if(attributeName === "delay")
+		{
+			this.__delay =  parseInt(newVal);
+		}
+		if(attributeName === "maxlistheight")
+		{
+			this.__maxListHeight =  parseInt(newVal);
+		}
+		if(attributeName === "listwidth")
+		{
+			this.__listWidth =  parseInt(newVal);
+		}
+		if(attributeName === "labelfield")
+		{
+			this.__labelField = newVal;
+		}
+		if(attributeName === "labelfunction")
+		{
+			this.__labelFunction = newVal;
+		}
+		if(attributeName === "enablemultipleselection")
+		{
+			this.__enableMultipleSelection =  Boolean.parse(newVal);
+		}
+		if(attributeName === "enablekeyboardnavigation")
+		{
+			this.__enableKeyboardNavigation =  Boolean.parse(newVal);
+		}
+		if(attributeName === "norecordsfoundmessage")
+		{
+			this.__noRecordsFoundMessage = newVal;
+		}
+		if(attributeName === "multiselectionseparator")
+		{
+			this.__multiSelectionSeparator = newVal;
+		}
+		if(attributeName === "pattern")
+		{
+			this.__pattern = newVal;
+			callTextProperty = true;
+		}
+		if(attributeName === "restrict")
+		{
+			this.__restrict = newVal;
+			if(this.util.isValueNull(this.__restrict))
+			{
+				this.__restrict = null;
+			}
+			else
+			{
+				this.__restrict = "[" + this.__restrict + "]";
+			}
+			callTextProperty = true;
+		}
+		if(attributeName === "styleclass")
+		{
+			this.__styleClass = newVal;
+			callTextProperty = true;
+		}
+		if(callTextProperty)
+		{
+			this.__setTextBoxProperty();
+		}
+		this.base.propertyChange.call(this,attrName, oldVal, newVal, setProperty);
+	};
+	
+	NSTextBox.prototype.dataSource = function(dataSource)
+	{
+		this.__dataSource = dataSource;
+		if(this.__enableAutoComplete && this.__dataSource && this.__dataSource.length > 0)
+		{
+			this.__updateComponentMeasurement();
+			if(this.__enableAutoComplete)
+			{
+				if(!this.__documentClickRef)
+				{
+					this.__documentClickRef = this.__documentClickHandler.bind(this);
+					this.util.addEvent(document,"click",this.__documentClickRef);
+				}
+				if(this.__enableMultipleSelection)
+				{
+					if(!this.__documentKeyUpRef)
+					{
+						this.__documentKeyUpRef = this.__documentKeyUpHandler.bind(this);
+						this.util.addEvent(document.body,"keyup",this.__documentKeyUpRef);
+					}
+					if(!this.__documentKeyDownRef)
+					{
+						this.__documentKeyDownRef = this.__documentKeyDownHandler.bind(this);
+						this.util.addEvent(document.body,"keydown",this.__documentKeyDownRef);
+					}
+				}
+			}
+		}
+	};
+	
+	NSTextBox.prototype.componentResized = function(event) 
+	{
+		this.__updateComponentMeasurement();
+		if(this.__list)
+		{
+			this.__list.style.top = this.__componentMeasurement.top + "px";
+			this.__list.style.left = this.__componentMeasurement.left + "px";
+		}
+		this.base.componentResized(event);
+	};
+	
+	NSTextBox.prototype.removeComponent = function() 
+	{
+		if(this.__documentClickRef)
+		{
+			this.util.removeEvent(document,"click",this.__documentClickRef);
+			this.__documentClickRef = null;
+		}
+		if(this.__documentKeyUpRef)
+		{
+			this.util.removeEvent(document.body,"keyup",this.__documentKeyUpRef);
+			this.__documentKeyUpRef = null;
+		}
+		if(this.__keyDownRef)
+		{
+			this.util.removeEvent(document.body,"keydown",this.__documentKeyDownRef);
+			this.__documentKeyDownRef = null;
+		}
+		this.base.removeComponent.call(this);
+	};
+	
+	NSTextBox.prototype.getTextBox = function(text)
+	{
+		return this.__textBox;
+	};
+	
+	NSTextBox.prototype.setText = function(text)
+	{
+		if(this.__textBox)
+		{
+			if(this.__maxChars > -1 && text.length > this.__maxChars)
+			{
+				text = text.substring(0, this.__maxChars);
+			}
+			this.__textBox.value = text;
+		}
+	};
+	
+	NSTextBox.prototype.getText = function()
+	{
+		if(this.__textBox)
+		{
+			return this.__textBox.value;
+		}
+		return null;
+	};
+	
+	//IMPORTANT:: not exposing getSelectedIndex and getSelectedIndexes as it will be relative to filtered dataSource
+	NSTextBox.prototype.getSelectedItem = function()
+	{
+		return this.__selectedItem;
+	};
+	
+	NSTextBox.prototype.getSelectedItems = function()
+	{
+		if(this.__nsList)
+		{
+			return this.__nsList.getSelectedItems();
+		}
+		return this.__selectedItems;
+	};
+	
+	NSTextBox.prototype.__setSetting = function()
+	{
+		var setting = this.__setting;
+		if(setting)
+		{
+			if(setting.hasOwnProperty("type"))
+			{
+				this.__type = setting["type"];
+			}
+			if(setting.hasOwnProperty("matchStartsWith"))
+			{
+				this.__matchStartsWith = Boolean.parse(setting["matchStartsWith"]);
+			}
+			if(setting.hasOwnProperty("maxChars"))
+			{
+				this.__maxChars = parseInt(setting["maxChars"]);
+			}
+			if(setting.hasOwnProperty("minChars"))
+			{
+				this.__minChars = parseInt(setting["minChars"]);
+			}
+			if(setting.hasOwnProperty("minSearchStartChars"))
+			{
+				this.__minSearchStartChars = parseInt(setting["minSearchStartChars"]);
+			}
+			if(setting.hasOwnProperty("caseSensitive"))
+			{
+				this.__caseSensitive = Boolean.parse(setting["caseSensitive"]);
+			}
+			if(setting.hasOwnProperty("required"))
+			{
+				this.__required = Boolean.parse(setting["required"]);
+			}
+			if(setting.hasOwnProperty("placeholder"))
+			{
+				this.__placeholder = setting["placeholder"];
+			}
+			if(setting.hasOwnProperty("displayAsPassword"))
+			{
+				this.__displayAsPassword = Boolean.parse(setting["displayAsPassword"]);
+			}
+			if(setting.hasOwnProperty("delay"))
+			{
+				this.__delay =  parseInt(setting["delay"]);
+			}
+			if(setting.hasOwnProperty("maxListHeight"))
+			{
+				this.__maxListHeight =  parseInt(setting["maxListHeight"]);
+			}
+			if(setting.hasOwnProperty("listWidth"))
+			{
+				this.__listWidth =  parseInt(setting["listWidth"]);
+			}
+			if(setting.hasOwnProperty("labelField"))
+			{
+				this.__labelField = setting["labelField"];
+			}
+			if(setting.hasOwnProperty("stopHoveringField"))
+			{
+				this.__stopHoveringField = setting["stopHoveringField"];
+			}
+			if(setting.hasOwnProperty("labelFunction"))
+			{
+				this.__labelFunction = setting["labelFunction"];
+			}
+			if(setting.hasOwnProperty("template"))
+			{
+				this.__templateID = setting["template"];
+			}
+			if(setting.hasOwnProperty("setDataCallBack"))
+			{
+				this.__setDataCallBack = setting["setDataCallBack"];
+			}
+			if(setting.hasOwnProperty("itemRenderer"))
+			{
+				this.__itemRenderer = setting["itemRenderer"];
+				if (typeof this.__itemRenderer === "string" || this.__itemRenderer instanceof String)
+				{
+					if(this.util.isFunction(this.__itemRenderer))
+					{
+						this.__itemRenderer = window[this.__itemRenderer];
+					}
+				}
+			}
+			if(setting.hasOwnProperty("enableMultipleSelection"))
+			{
+				this.__enableMultipleSelection =  Boolean.parse(setting["enableMultipleSelection"]);
+			}
+			if(setting.hasOwnProperty("customScrollerRequired"))
+			{
+				this.__customScrollerRequired =  Boolean.parse(setting["customScrollerRequired"]);
+			}
+			if(setting.hasOwnProperty("enableKeyboardNavigation"))
+			{
+				this.__enableKeyboardNavigation =  Boolean.parse(setting["enableKeyboardNavigation"]);
+			}
+			if(setting.hasOwnProperty("noRecordsFoundMessage"))
+			{
+				this.__noRecordsFoundMessage =  setting["noRecordsFoundMessage"];
+			}
+			if(setting.hasOwnProperty("multiSelectionSeparator"))
+			{
+				this.__multiSelectionSeparator =  setting["multiSelectionSeparator"];
+			}
+			if(setting.hasOwnProperty("pattern"))
+			{
+				this.__pattern =  setting["pattern"];
+			}
+			if(setting.hasOwnProperty("restrict"))
+			{
+				this.__restrict =  setting["restrict"];
+				if(this.__restrict)
+				{
+					this.__restrict = "[" + this.__restrict + "]";
+				}
+			}
+			if(setting.hasOwnProperty("dataSource"))
+			{
+				this.__dataSource = setting["dataSource"];
+			}
+			if(setting.hasOwnProperty("styleClass"))
+			{
+				this.__styleClass = setting["styleClass"];
+			}
+		}
+	};
+	
+	NSTextBox.prototype.__createComponents = function() 
+	{
+		if(!this.__outerContainer)
+		{
+			this.__applyTipToCoreComp = true;
+			this.__outerContainer = this.util.createDiv(this.getID() + "#container","nsTextBoxContainer");
+			this.addChild(this.__outerContainer);
+			this.__textBox = document.createElement("INPUT");
+			/*var rectComponent = this.__baseComponent.getBoundingClientRect();
+			var preferredWidth = rectComponent.width;
+			if(preferredWidth > 0)
+			{
+				this.__outerContainer.style.width = preferredWidth + "px";
+			}*/
+			this.__textBox.setAttribute("type", this.__getType());
+			this.util.addEvent(this.__textBox,"blur",this.__textBoxFocusOutHandler.bind(this));
+			this.util.addEvent(this.__textBox,"focusin",this.__focusInHandler.bind(this));
+			if(this.__enableAutoComplete)
+			{
+				if(this.__enableMultipleSelection)
+				{
+					this.util.addEvent(this.__textBox,"keyup",this.__keyUpMultiSelectionHandler.bind(this));
+					this.util.addStyleClass(this.__outerContainer,"nsTextBoxMultiSelectContainer");
+					this.util.addStyleClass(this.__textBox,"nsTextBoxMultiSelect");
+				}
+				else
+				{
+					this.util.addEvent(this.__textBox,"keyup",this.__keyUpHandler.bind(this));
+				}
+			}
+			
+			this.__outerContainer.appendChild(this.__textBox);
+		}
+	};
+	
+	NSTextBox.prototype.__getType = function()
+	{
+		var textBoxType = "text";
+		if(this.__type)
+		{
+			if(this.__type ===  NSTextBox.TYPE_AUTOCOMPLETE)
+			{
+				textBoxType = "text";
+				this.__enableAutoComplete = true;
+			}
+			else if(this.__displayAsPassword)
+			{
+				textBoxType = "password";
+			}
+			else if(this.__type ===  NSTextBox.TYPE_AUTOTEXT || this.__type ===  NSTextBox.TYPE_EMAIL || this.__type ===  NSTextBox.TYPE_NUMBER || this.__type ===  NSTextBox.TYPE_PASSWORD || this.__type ===  NSTextBox.TYPE_URL)
+			{
+				textBoxType = this.__type;
+			}
+		}
+		return textBoxType;
+	};
+	
+	
+	NSTextBox.prototype.__setTextBoxProperty = function() 
+	{
+		if(this.__textBox)
+		{
+			if(this.__required)
+			{
+				this.__textBox.setAttribute("required", "");
+			}
+			else
+			{
+				this.__textBox.removeAttribute("required");   
+			}
+			if(this.__placeholder && this.__placeholder.length > 0 && !this.__enableMultipleSelection)
+			{
+				this.__textBox.setAttribute("placeholder", this.__placeholder);
+			}
+			else
+			{
+				this.__textBox.removeAttribute("placeholder");
+			}
+			if(this.__maxChars > -1)
+			{
+				this.__textBox.setAttribute("maxLength", this.__maxChars);
+			}
+			if(this.__pattern)
+			{
+				this.__textBox.setAttribute("pattern", this.__pattern);
+			}
+			else
+			{
+				this.__textBox.removeAttribute("pattern");
+			}
+			if(this.__styleClass)
+			{
+				this.__setStyleClass(this.__styleClass);
+			}
+			if(this.__restrict)
+			{
+				if(!this.__keyPressedRef)
+				{
+					this.__keyPressedRef = this.__keyPressHandler.bind(this);
+					this.util.addEvent(this.__textBox,"keypress",this.__keyPressedRef);
+				}
+				if(!this.__pasteRef)
+				{
+					this.__pasteRef = this.__pasteHandler.bind(this);
+					this.util.addEvent(this.__textBox,"paste",this.__pasteRef);
+				}
+			}
+			else
+			{
+				if(this.__keyPressedRef)
+				{
+					this.util.removeEvent(this.__textBox,"keypress",this.__keyPressedRef);
+					this.__keyPressedRef = null;
+				}
+				if(this.__pasteRef)
+				{
+					this.util.removeEvent(this.__textBox,"paste",this.__pasteRef);
+					this.__pasteRef = null;
+				}
+			}
+		}
+	};
+	
+	NSTextBox.prototype.__setStyleClass = function(cssClass)
+	{
+		if(cssClass && cssClass.length > 0)
+		{
+			this.__textBox.setAttribute("class","");
+			var arrClass = cssClass.split(" ");
+			for(var count = 0;count < arrClass.length;count++)
+			{
+				this.util.addStyleClass(this.__textBox,arrClass[count]);
+			}
+		}
+	};
+	
+	NSTextBox.prototype.__documentKeyUpHandler = function(event)
+	{
+		event = this.util.getEvent(event);
+		var keyCode = this.util.getKeyUnicode(event);
+		if(this.__enableMultipleSelection && (keyCode == this.util.KEYCODE.SHIFT || keyCode == this.util.KEYCODE.CTRL))
+		{
+			this.__multiSelectHandler();
+			this.__removeListControl();
+		}
+	};
+	
+	NSTextBox.prototype.__documentKeyDownHandler = function(event)
+	{
+		event = this.util.getEvent(event);
+		var keyCode = this.util.getKeyUnicode(event);
+		if(this.__enableMultipleSelection && (keyCode == this.util.KEYCODE.BACKSPACE))
+		{
+			 var arrSelectedItems = (this.__nsList) ? this.__nsList.getSelectedItems() : this.__selectedItems;
+			 if(arrSelectedItems && arrSelectedItems.length > 0) 
+			 {
+				 arrSelectedItems.pop();
+				 if(this.__nsList)
+				 {
+					 this.__nsList.setSelectedItems(arrSelectedItems);
+				 }
+				 this.__selectedItems = arrSelectedItems;
+				 this.__refreshMultiSelectTags();
+	         }
+		}
+	};
+	
+	NSTextBox.prototype.__keyUpHandler = function(event)
+	{
+		event = this.util.getEvent(event);
+		var keyCode = this.util.getKeyUnicode(event);
+		if (keyCode == this.util.KEYCODE.ESC) 
+		{
+			this.__removeListControl();
+		}
+		else if (!(keyCode == this.util.KEYCODE.UP || keyCode == this.util.KEYCODE.DOWN || keyCode == this.util.KEYCODE.ENTER || keyCode == this.util.KEYCODE.SHIFT || keyCode == this.util.KEYCODE.CTRL)) 
+		{
+			if(!this.__textBox.value || this.__textBox.value == "" || this.__textBox.value.length < this.__minSearchStartChars)
+			{
+				this.__removeListControl();
+			}
+			else
+			{
+				if(this.__timerInstance)
+				{
+					clearTimeout(this.__timerInstance);
+				}
+				var compRef = this;
+				this.__timerInstance = setTimeout(
+				function()
+				{ 
+					compRef.__searchText(compRef.__textBox.value);
+				},this.__delay);
+			}
+		}
+		else
+		{
+			event.preventDefault();
+		}
+	};
+	
+	NSTextBox.prototype.__keyUpMultiSelectionHandler = function(event)
+	{
+		event = this.util.getEvent(event);
+		var keyCode = this.util.getKeyUnicode(event);
+		//if backspace is pressed then return
+		if(keyCode == this.util.KEYCODE.BACKSPACE)
+		{
+			return;
+		}
+		if (keyCode == this.util.KEYCODE.ESC) 
+		{
+			this.__removeListControl();
+		}
+		else if(this.__enableMultipleSelection && (keyCode == this.util.KEYCODE.SHIFT || keyCode == this.util.KEYCODE.CTRL))
+		{
+			this.__multiSelectHandler();
+			this.__removeListControl();
+		}
+		
+		//key Up
+		/*if(keyCode === this.util.KEYCODE.UP && isShiftCtrlPressed && this.__enableMultipleSelection)
+		{
+		}
+		//key down
+		else if(keyCode === this.util.KEYCODE.DOWN && isShiftCtrlPressed && this.__enableMultipleSelection)
+		{
+		}*/
+		else if (!(keyCode == this.util.KEYCODE.UP || keyCode == this.util.KEYCODE.DOWN || keyCode == this.util.KEYCODE.ENTER || keyCode == this.util.KEYCODE.SHIFT || keyCode == this.util.KEYCODE.CTRL)) 
+		{
+			if(!this.__textBox.value || this.__textBox.value == "" || this.__textBox.value.length < this.__minSearchStartChars)
+			{
+				this.__removeListControl();
+			}
+			else
+			{
+				if(this.__timerInstance)
+				{
+					clearTimeout(this.__timerInstance);
+				}
+				var compRef = this;
+				this.__timerInstance = setTimeout(
+				function()
+				{ 
+					compRef.__searchText(compRef.__textBox.value);
+				},this.__delay);
+			}
+		}
+		else
+		{
+			event.preventDefault();
+		}
+	};
+	
+	
+	
+	NSTextBox.prototype.__keyPressHandler = function(event)
+	{
+		event = this.util.getEvent(event);
+		var keyCode = this.util.getKeyUnicode(event);
+		var keyPressed = String.fromCharCode(keyCode);
+		if(!this.util.checkRegexValue(this.__restrict,keyPressed))
+		{
+			event.preventDefault();
+		}
+	};
+	
+	NSTextBox.prototype.__documentClickHandler = function(event)
+	{
+		var closeList = true;
+		var target = this.util.getTarget(event);
+		if(target && target === this.__textBox)
+		{
+			closeList = false;
+		}
+		else
+		{
+			var targetList = this.util.findParentBySelector(target,".nsTextBoxList");
+			if(targetList)
+			{
+				closeList = false;
+			}
+		}
+		if(closeList)
+		{
+			this.__removeListControl();
+		}
+	};
+	
+	NSTextBox.prototype.__pasteHandler = function(event)
+	{
+		event = this.util.getEvent(event);
+		var pastedText = undefined;
+		var text = "";
+		if (window.clipboardData && window.clipboardData.getData) 
+		{ // IE
+		    pastedText = window.clipboardData.getData("Text");
+		} 
+		else if (event.clipboardData && event.clipboardData.getData) 
+		{
+		    pastedText = event.clipboardData.getData("text/plain");
+		}
+		var pastedTextLength = pastedText.length;
+		for (var count = 0; count < pastedTextLength; count++) 
+		{
+			var char = pastedText.charAt(count);
+	        if(this.util.checkRegexValue(this.__restrict,char))
+	    	{
+	        	text += char;
+	    	}
+	    }
+		this.__textBox.value += text;
+		event.preventDefault();
+	};
+	
+	NSTextBox.prototype.__focusInHandler = function(event)
+	{
+		if(this.nsTip)
+		{
+			this.nsTip.remove();
+		}
+		if(this.__enableAutoComplete)
+		{
+			if(!this.__list && this.__dataSource && this.__dataSource.length > 0 && !this.__isFromItemSelected)
+			{
+				this.__createListControl("");
+				this.__nsList.dataSource(this.__dataSource);
+			}
+			this.__isFromItemSelected = false;
+		}
+	};
+	
+	NSTextBox.prototype.__textBoxFocusOutHandler = function(event)
+	{
+		if(this.__minChars > -1 && this.__textBox.value && this.__textBox.value.length < this.__minChars)
+		{
+			this.__textBox.setCustomValidity("Please enter atleast " + this.__minChars  + " characters.");
+		}
+		else 
+		{
+			this.__textBox.setCustomValidity("");
+		}
+	};
+	
+	NSTextBox.prototype.__searchText = function(searchString)
+	{
+		this.__removeListControl();
+		this.__createListControl(searchString);
+		var compRef = this;
+		var dataSource = this.__dataSource.filter(
+		function (item)
+		{
+			var compareString = searchString;
+			if(item)
+			{
+				if(!compRef.__isMouseHoverAllowed(item))
+				{
+					return true;
+				}
+				if(compRef.__matchStartsWith)
+				{
+					return compRef.util.startsWith(item[compRef.__labelField],compareString,compRef.__caseSensitive);
+				}
+				else
+				{
+					return compRef.util.contains(item[compRef.__labelField],compareString,0,compRef.__caseSensitive);
+				}
+			}
+			return false;
+		});
+		if(dataSource.length === 0)
+		{
+			var item = {};
+			item[compRef.__labelField] = compRef.__noRecordsFoundMessage;
+			dataSource[0] = item;
+		}
+		compRef.__nsList.dataSource(dataSource);
+		var suggestedHeight = (dataSource.length * compRef.__nsList.__listItemHeight) + 5;
+		suggestedHeight = (compRef.__maxListHeight > suggestedHeight) ? suggestedHeight:compRef.__maxListHeight;
+		compRef.__list.style.height = suggestedHeight + "px";
+	};
+	
+	NSTextBox.prototype.__createListControl = function(searchString)
+	{
+		if(!this.__list)
+		{
+			var self = this;
+			var creationCompleteHandler = function(event)
+			{
+				if(self.__selectedItems && self.__selectedItems.length > 0 && self.__nsList)
+				{
+					var length = self.__selectedItems.length;
+					var item = null;
+					//marking field as unselected
+					for(var count = 0;count < length;count++)
+					{
+						item = self.__selectedItems[count];
+						item[self.__nsList.__fieldSelected] = false;
+					}
+					self.__nsList.setSelectedItems(self.__selectedItems);
+				}
+			};
+			this.__list = this.util.createDiv(this.getID() + "list","nsTextBoxList");
+			this.__list.style.top = this.__componentMeasurement.top + "px";
+			this.__list.style.left = this.__componentMeasurement.left + "px";
+			if(this.__listWidth > 0)
+			{
+				this.__list.style.width = this.__listWidth + "px";
+			}
+			else
+			{
+				this.__list.style.width =this.__componentMeasurement.width + "px";
+			}
+			this.__list.style.height = this.__maxListHeight + "px";
+			var setting = {labelField:this.__labelField,enableVirtualScroll:false,enableDragDrop:false,enableDragByHandle:false,
+					   	   enableMultipleSelection:this.__enableMultipleSelection,enableKeyboardNavigation:this.__enableKeyboardNavigation,
+					   	   customScrollerRequired:this.__customScrollerRequired,enableMouseHover:true,enableMouseHoverAnimation:false,
+					   	   disableHoverField:this.__stopHoveringField};
+			if(this.__templateID)
+			{
+				setting["template"] = this.__templateID;
+				setting["setData"] = this.__setDataCallBack;
+			}
+			else
+			{
+				setting["itemRenderer"] = this.__itemRenderer;
+			}
+			this.__nsList = new NSList(this.__list,setting);
+			if(this.__enableMultipleSelection)
+			{
+				this.util.addEvent(this.__list,this.__nsList.CREATION_COMPLETE,creationCompleteHandler);
+			}
+			this.__outerContainer.appendChild(this.__list);
+			this.util.addEvent(this.__list,this.__nsList.ITEM_NAVIGATED,this.__itemNavigationHandler.bind(this));
+			this.util.addEvent(this.__list,this.__nsList.ITEM_SELECTED,this.__itemSelectHandler.bind(this));
+			this.util.addEvent(this.__list,this.__nsList.ITEM_UNSELECTED,this.__itemUnSelectHandler.bind(this));
+		}
+	};
+	
+	NSTextBox.prototype.__removeListControl = function()
+	{
+		if(this.__list)
+		{
+			this.__selectedItems = this.__nsList.getSelectedItems();
+			this.__outerContainer.removeChild(this.__list);
+			this.__list = null;
+			this.__nsList = null;
+		}
+	};
+	
+	NSTextBox.prototype.__itemNavigationHandler = function(event)
+	{
+		if(event && event.detail)
+		{
+			var navigatedItem = event.detail;
+			if(!this.__enableMultipleSelection)
+			{
+				this.__textBox.value = navigatedItem[this.__labelField];
+			}
+		}
+	};
+	
+	NSTextBox.prototype.__itemSelectHandler = function(event)
+	{
+		if(event && event.detail)
+		{
+			console.log(this.__nsList.getSelectedItems());
+			this.__selectedItem = event.detail;
+			if(this.__enableMultipleSelection)
+			{
+				this.__refreshMultiSelectTags();
+			}
+			else
+			{
+				this.__textBox.value = this.__selectedItem[this.__labelField];
+				this.__isFromItemSelected = true;
+				this.__removeListControl();
+			}
+			event.stopPropagation();
+			this.util.dispatchEvent(this.__baseComponent,NSTextBox.ITEM_SELECTED,event.detail,{index:event.index});
+		}
+	};
+	
+	NSTextBox.prototype.__itemUnSelectHandler = function(event)
+	{
+		if(this.__enableMultipleSelection)
+		{
+			this.__refreshMultiSelectTags();
+		}
+		if(event)
+		{
+			event.stopPropagation();
+			this.util.dispatchEvent(this.__baseComponent,NSTextBox.ITEM_UNSELECTED,event.detail,{index:event.index});
+		}
+	};
+	
+	NSTextBox.prototype.__multiSelectHandler = function()
+	{
+		if(this.__nsList && this.__nsList.getSelectedItems() && this.__nsList.getSelectedItems().length > 0)
+		{
+			this.__selectedItems = this.__nsList.getSelectedItems();
+			this.__refreshMultiSelectTags();
+			/*var setText = "";
+			for(var count = 0;count < this.__selectedItems.length;count++)
+			{
+				setText += this.__multiSelectionSeparator + this.__selectedItems[count][this.__labelField];
+			}
+			if(setText && setText.length > 0)
+			{
+				this.__textBox.value = setText.substring(1,setText.length);
+			}*/
+		}
+	};
+	
+	NSTextBox.prototype.__updateComponentMeasurement = function()
+	{
+		var offset = this.util.getOffSet(this.__textBox);
+		this.__componentMeasurement.top = offset.top + this.__textBox.offsetHeight + 5;
+		this.__componentMeasurement.left = offset.left;
+		this.__componentMeasurement.width = this.__textBox.offsetWidth;
+	};
+	
+	NSTextBox.prototype.__refreshMultiSelectTags = function() 
+	{
+	    var arrTags = this.__getAllMultiSelectTags();
+	    var length = arrTags.length;
+	    var tag = null;
+	    var count = 0;
+	    for(count = length - 1;count > -1;count--)
+	    {
+	    	tag = arrTags[count];
+	    	tag.parentNode.removeChild(tag);
+	    }
+	    var arrSelectedItems = (this.__nsList) ? this.__nsList.getSelectedItems() : this.__selectedItems;
+	    if(arrSelectedItems && arrSelectedItems.length > 0) 
+	    {
+	    	length = arrSelectedItems.length;
+	    	for(count = 0; count < length; count++) 
+	    	{
+	    		tag = this.__createMultiSelectTag(arrSelectedItems[count]);
+	    		this.__outerContainer.insertBefore(tag,this.__textBox);
+	        }
+	    }
+	    this.__textBox.value = "";
+	};
+	
+	NSTextBox.prototype.__createMultiSelectTag = function(item) 
+	{
+		var tag = this.util.createDiv(null,"nsTextBoxMultiSelectTag");
+	    var content = this.util.createDiv(null,"nsTextBoxMultiSelectTagText");
+	    content.textContent = item[this.__labelField];
+	    tag.appendChild(content);
+	    var btnRemove = this.util.createDiv(null,"nsTextBoxMultiSelectTagClose");
+	    this.util.addEvent(btnRemove,"click",this.__removeMultiSelectTag.bind(this,tag,item));
+	    tag.appendChild(btnRemove);
+	    return tag;
+	};
+	
+	NSTextBox.prototype.__removeMultiSelectTag = function(tag,item,event) 
+	{
+		var index = this.__selectedItems.indexOf(item);
+		if(index > -1) 
+		{
+			item["ns_field_selected"] = false;
+			this.__selectedItems.splice(index,1);
+		}
+		this.__refreshMultiSelectTags();
+		event = this.util.getEvent(event);
+		if(event)
+		{
+			event.stopPropagation();
+		}
+	};
+	
+	NSTextBox.prototype.__getAllMultiSelectTags = function() 
+	{
+		return this.__outerContainer.querySelectorAll(".nsTextBoxMultiSelectTag");
+	};
+	
+	NSTextBox.prototype.__isMouseHoverAllowed = function(item)
+	{
+		if(item && Boolean.parse(item[this.__stopHoveringField]))
+		{
+			return false;
+		}
+		return true;
+	};
+	
+	NSTextBox.ITEM_SELECTED = "itemSelected";
+	NSTextBox.ITEM_UNSELECTED = "itemUnselected";
+	NSTextBox.TYPE_AUTOTEXT = "text";
+	NSTextBox.TYPE_AUTOCOMPLETE = "autocomplete";
+	NSTextBox.TYPE_EMAIL = "email";
+	NSTextBox.TYPE_NUMBER = "number";
+	NSTextBox.TYPE_PASSWORD = "password";
+	NSTextBox.TYPE_URL = "url";
+	
+	return NSTextBox;
+}());
 
-.nsPanelWhite .nsPanelFullScreenIcon
+.nsTextBoxMultiSelect
 {
-  fill: #848484;
-  color: #F6F6F6;
+	width: 25px!important;
+	border: none;
+    /* color: #525252; */
+    margin-bottom: 16px;
+    margin-right: 6px;
+    margin-top: 2px;
+    outline: 0 none;
+    padding: 5px 0px 5px 5px;
+    width: 70%;
+    /* border-radius: 2px; */
+    /* -webkit-border-radius: 2px; */
+    -moz-border-radius: 2px;
+    -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
 }
