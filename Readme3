@@ -1,237 +1,91 @@
-NSContainerBase.prototype.setStyle = function(styleProp,value) 
-{
-	if(this.__baseComponent && styleProp && !this.util.isUndefinedOrNull(value))
+this.__scrollToRow = function(row,direction)
 	{
-		this.__baseComponent.style[styleProp] = value;
-	}
-};
-
-NSGrid.prototype.__updateVisibleIndexByRow = function(source,arrAllItems)
-	{
-		if(source)
+		if(row)
 		{
-			var arrItems = arrAllItems;
-			if(!arrItems)
+			var scrollParent = this.__nsGrid.__divCenterTableBodyContainer;
+			var rowRect = row.getBoundingClientRect();
+			var currentScroll = scrollParent.scrollTop;
+			scrollParent.scrollTop = (direction === this.__nsGrid.NAVIGATION_UP) ? (currentScroll - rowRect.height) : (currentScroll + rowRect.height);
+		}
+		/*if(row)
+		{
+			var scrollParent = this.__nsGrid.__divCenterTableBodyContainer;
+			var rowRect = row.getBoundingClientRect();
+			var rowTop = rowRect.top;
+			var rowBottom = rowTop + rowRect.height;
+			var scrollParentHeight = scrollParent.getBoundingClientRect().height;
+			var currentScroll = scrollParent.scrollTop;
+			// scroll up
+			if (rowTop < 0)// && 
 			{
-				arrItems = this.__getAllItems();
+				scrollParent.scrollTop = currentScroll + rowTop;
+				return;
 			}
-			var length = source.length;
-			var item = null;
-			var objVisibleIndex = {};
-			for(var count = 0; count < length; count++)
-			{
-				item = source[count];
-				if(item)
-				{
-					var index = item[this.__fieldIndex];
-					objVisibleIndex[index] = "NSGrid";
-				}
-			}
-			if(arrItems && arrItems.length > 0)
-			{
-				length = arrItems.length;
-				item = null;
-				var visibleRowIndex = 1;
-				for(var count = 0; count < length; count++)
-				{
-					item = arrItems[count];
-					var index = item[this.__fieldIndex];
-					if(this.util.isUndefinedOrNull(objVisibleIndex[index]))
-					{
-						item[this.__fieldVisibleIndex] = -1;
-						item[this.__fieldRowVisible] = false;
-					}
-					else
-					{
-						item[this.__fieldVisibleIndex] = visibleRowIndex;
-						item[this.__fieldRowVisible] = true;
-						visibleRowIndex++;
-					}
-				}
-			}
-			
+			// scroll down
+			//else if (direction === this.__nsGrid.NAVIGATION_UP)//rowBottom  > scrollParentHeight
+			//{
+				var scrollAmount = rowBottom - scrollParentHeight;
+				console.log(rowBottom + "-" + scrollParentHeight + " = " + scrollAmount)
+				scrollParent.scrollTop = currentScroll + scrollAmount;
+			//}
+		}*/
+	};
+	
+	this.__handleFiltering = function(filter,setting,enableHighlighting,recordLimit)
+	{
+		if(this.__nsGrid.__enableFilter)
+		{
+			var eventParam = {filter:filter,setting:setting,recordLimit:recordLimit};
+			this.__nsGrid.__dispatchEvent(NSGrid.FILTER_CHANGING,eventParam,eventParam);
+			this.__filteredColumn = [];
+			if(filter)
+		    {
+				 if(this.util.isUndefinedOrNull(enableHighlighting))
+				 {
+					enableHighlighting = true;
+				 }
+				 var isHierarchical = false;
+				 var source = this.__nsGrid.__arrWrapper;
+				 if(this.__nsGrid.__enableHierarchical || this.__nsGrid.__enableGrouping)
+				 {
+					 isHierarchical = true;
+				 }
+			   	 var nsFilter = new NSFilter(source,filter,setting,recordLimit,isHierarchical,this.__nsGrid.__childField,this.__nsGrid.__filterFunction,this.__nsGrid.__hierarchyFilterChildrenFunction);
+			   	 this.__nsGrid.__arrInternalSource = nsFilter.execute();
+			   	 this.__nsGrid.__arrFilteredGroupedSource =  this.__nsGrid.__arrInternalSource.slice(0);
+			   	 if(enableHighlighting)
+			   	 {
+				   	 if(filter instanceof Array) 
+			  	     {
+				   		 for (var count = 0; count < filter.length; count++) 
+				         {
+				 	   		var item = filter[count];
+				 	   		var key = Object.keys(item)[0];
+				 	   		var colItem = this.__nsGrid.__getColumnObjectByDataField(key);
+				 	   		this.__filteredColumn.push({field:key,text:item[key],item:colItem});
+				         }
+			  	     }
+			  		 else if(typeof(filter) === "object") 
+			  	     {
+			  	        for(var key in filter) 
+			  	        {
+			  	        	var colItem = this.__nsGrid.__getColumnObjectByDataField(key);
+			  	        	this.__filteredColumn.push({field:key,text:filter[key],item:colItem});
+			  	        }
+			  	     }
+			   	 }
+			   	 if(isHierarchical)
+			   	 {
+			   		this.__nsGrid.__objGrid.__setWrapperSource(this.__nsGrid.__arrInternalSource,0,-1,0,false);
+			   		this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrFlatHierarchicalSource.slice(0); 
+			   	 }
+			   	 this.__nsGrid.__updateTotalRecords();
+			   	 this.__nsGrid.__renderBody(false);
+			   	 this.__nsGrid.__updateVisibleIndexByRow(this.__nsGrid.__arrInternalSource);
+			   	 this.isFiltered = true;
+			   	 this.__nsGrid.__dispatchEvent(NSGrid.FILTER_CHANGED,eventParam,eventParam);
+		    }
 		}
 	};
 	
-	this.util.removeAllChildren(this.__navigationContainer);
-			this.__createHeader(this.__navigationContainer);
-			
-NSNavigation.prototype.__addElementsBeforeMenu = function(parent)
-	{
-		if(parent && this.__config.elementsBeforeMenu && this.__config.elementsBeforeMenu.length > 0)
-		{
-			var length = this.__config.elementsBeforeMenu.length;
-			for(var count = 0;count < length;count++)
-			{
-				var element = this.__config.elementsBeforeMenu[count];
-				if(element)
-				{
-					parent.appendChild(element);
-				}
-			}
-		}
-	};
-.nsTextBoxContainer
-{
-	position: relative;
-}
-.nsTextBox 
-{
-    outline: 0;
-    border-color: #ECECEC;
-    border-style: solid;
-    border-width: 1px;
-    background-color: #ffffff;
-    padding-top: 5px;
-    padding-bottom: 5px;
-    border-radius: 2px;
-    /*margin-bottom: 5px;*/
-    width: 100%;
-}	
-
-/*.nsTextBoxList {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    min-width: 160px;
-    z-index: 1000;
-    float: left;
-    min-width: 160px;
-    padding: 5px 0;
-    margin: 2px 0 0;
-    font-size: 14px;
-    text-align: left;
-    list-style: none;
-    background-color: #fff;
-    -webkit-background-clip: padding-box;
-    background-clip: padding-box;
-    border: 1px solid #ccc;
-    border: 1px solid rgba(0, 0, 0, .15);
-    border-radius: 4px;
-    -webkit-box-shadow: 0 6px 12px rgba(0, 0, 0, .175);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, .175);
-}*/
-
-.nsTextBoxList
-{
-	position: absolute;
-    top: 100%;
-    left: 0;
-    min-width: 160px;
-    border-color: #ececec;
-    border-width: 1px;
-    border-style: solid;
-    border-radius: 2px;
-    padding: 6px;
-    cursor: pointer;
-    z-index: 9999;
-    margin-top: -6px;
-    background-color: #ffffff;
-    border-size:1px;
-	border-style:solid;
-}
-
-<label>
-	  	<span class="labelSpan">Server Side Selection:</span>
-	  	<div id="divSingleServerSideSelectionGrid" style="display:inline-block;"></div>
-	  </label> 
-	  <br/>
-	  <label>
-	  	<span class="labelSpan">Server Side Selection With Smart Filtering:</span>
-	  	<div id="divSingleServerSideSmartGrid" style="display:inline-block;"></div>
-	  </label> 
-	  var nsTextBoxSeverSelectionGrid = null;
-	var nsTextBoxSeverSmartSelectionGrid = null;
-	
-	var divSingleSelectionGrid = document.getElementById("divSingleSelectionGrid");
-		var column = [{headerText:"Name",dataField:"name",width:"200px"},
-     			      {headerText:"Code",dataField:"code",width:"100px"}
-     			     ];
-		var dropDownSetting = {columns:column,enableVirtualScroll:true,enableFilter:true,enableAdvancedFilter:true,enablePagination:false};
-		var filterSetting = {caseSensitive:false,multiline:false,matchType:new NSFilter().CONTAINS};
-		var settingAutoCompleteGrid = {placeholder:"Search Countries",type:"autocomplete",dropDownType:NSTextBox.DROPDOWN_TYPE_GRID,listWidth:300,required:true,labelField:"name",minSearchStartChars:1,
-									enableMultipleSelection:false,enableKeyboardNavigation:true,showCustomValidation:false,
-									stopHoveringField:"stopOver",dropDownSetting:dropDownSetting,filterSetting:filterSetting,enableHighlighting:true,
-									arrGridSearchField:["name","code"],
-									dataSource:countries};
-		nsTextBoxSingleSelectionGrid = new NSTextBox(divSingleSelectionGrid,settingAutoCompleteGrid);
-		
-		var divSingleServerSideSelectionGrid =  document.getElementById("divSingleServerSideSelectionGrid");
-		var serverColumn = [{headerText:"Name",dataField:"name",width:"200px"},
-	     			      	{headerText:"Code",dataField:"alpha3Code",width:"100px"},
-	     			      	{headerText:"Capital",dataField:"capital",width:"200px"}
-	     			       ];
-		var dropDownSetting = {columns:serverColumn,enableVirtualScroll:true,enableFilter:true,enableAdvancedFilter:false,enablePagination:false};
-		var filterSetting = {caseSensitive:false,multiline:false,matchType:new NSFilter().STARTS_WITH};
-		var settingServerAutoCompleteGrid = {enableServerSide:true,placeholder:"Search Countries",type:"autocomplete",dropDownType:NSTextBox.DROPDOWN_TYPE_GRID,
-											listWidth:500,required:true,labelField:"name",minSearchStartChars:2,
-											enableMultipleSelection:false,enableKeyboardNavigation:true,showCustomValidation:false,
-											stopHoveringField:"stopOver",dropDownSetting:dropDownSetting,filterSetting:filterSetting,enableHighlighting:true,
-											isGridOrFilter:true,arrGridSearchField:["name","alpha3Code"],
-											serverSearchCallback:serverGridSearchCallback,textBoxRendererCallback:textBoxRendererServerCallback};
-		nsTextBoxSeverSelectionGrid = new NSTextBox(divSingleServerSideSelectionGrid,settingServerAutoCompleteGrid);
-		
-		var divSingleServerSideSmartGrid =  document.getElementById("divSingleServerSideSmartGrid");
-		var serverColumn = [{headerText:"Name",dataField:"name",width:"200px"},
-	     			      	{headerText:"Code",dataField:"alpha3Code",width:"100px"},
-	     			      	{headerText:"Capital",dataField:"capital",width:"200px"}
-	     			       ];
-		var dropDownSetting = {columns:serverColumn,enableVirtualScroll:true,enableFilter:true,enableAdvancedFilter:false,enablePagination:false};
-		var filterSetting = {caseSensitive:false,multiline:false,matchType:new NSFilter().CONTAINS};
-		var settingServerSmartAutoCompleteGrid = {enableServerWithSmartSearch:true,placeholder:"Search Countries",type:"autocomplete",dropDownType:NSTextBox.DROPDOWN_TYPE_GRID,
-											listWidth:500,required:true,labelField:"name",minSearchStartChars:2,
-											enableMultipleSelection:false,enableKeyboardNavigation:true,showCustomValidation:false,
-											stopHoveringField:"stopOver",dropDownSetting:dropDownSetting,filterSetting:filterSetting,enableHighlighting:true,
-											isGridOrFilter:true,arrGridSearchField:["name","alpha3Code"],
-											serverSearchCallback:serverGridSmartSearchCallback,textBoxRendererCallback:textBoxRendererServerCallback};
-		nsTextBoxSeverSmartSelectionGrid = new NSTextBox(divSingleServerSideSmartGrid,settingServerSmartAutoCompleteGrid);
-		
-			function serverGridSearchCallback(searchString,filterSetting,enableHighlighting,searchRecordLimit)
-	{
-		if(searchString && searchString.length > 1)
-		{
-			var util= new NSUtil();
-			var setting =  {
-				method: "GET",
-				//url: "http://api.flickr.com/services/feeds/photos_public.gne",
-				url: "https://restcountries.eu/rest/v2/name/" + searchString,
-				dataType: "json",
-				successHandler: function(response){
-					var source = JSON.parse(response);
-					console.log(source);
-					nsTextBoxSeverSelectionGrid.dataSource(source);
-				}
-			};
-			var ajax = new util.ajax(setting);
-		}
-	}
-	
-
-	function serverGridSmartSearchCallback(searchString,filterSetting,enableHighlighting,searchRecordLimit)
-	{
-		if(searchString && searchString.length > 1)
-		{
-			var util= new NSUtil();
-			var setting =  {
-				method: "GET",
-				//url: "http://api.flickr.com/services/feeds/photos_public.gne",
-				url: "https://restcountries.eu/rest/v2/name/" + searchString,
-				dataType: "json",
-				successHandler: function(response){
-					var source = JSON.parse(response);
-					console.log("Setting Smart Source");
-					nsTextBoxSeverSmartSelectionGrid.dataSource(source);
-				}
-			};
-			var ajax = new util.ajax(setting);
-		}
-	}
-	
-	function textBoxRendererServerCallback(item,labelField)
-	{
-		if(item)
-		{
-			return (item[labelField] + " (Capital : " + item["capital"] + " )");
-		}
-		return ""; 
-	}
+	this.__nsGrid.__updateVisibleIndexByRow(this.__nsGrid.__arrInternalSource);
