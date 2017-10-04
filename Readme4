@@ -24,6 +24,7 @@ var NSTextBox = (function()
 		this.__placeholder = null;
 		this.__displayAsPassword = false;
 		this.__enableServerSide = false;
+		this.__enableServerWithSmartSearch = false;
 		this.__delay = 150;
 		this.__listWidth = -1;
 		this.__maxListHeight = 300;
@@ -34,6 +35,10 @@ var NSTextBox = (function()
 		this.__styleClass = null;
 		this.__dropDownSetting = null;
 		this.__serverSearchCallback = null;
+		this.__textBoxRendererCallback = null;
+		/* arrGridSearchField used when type = "autocomplete" and dropDownType = NSTextBox.DROPDOWN_TYPE_GRID */
+		this.__arrGridSearchField = null;
+		this.__isGridOrFilter = false;
 		
 		this.__labelField = "label";
 		this.__stopHoveringField = "stopHover";
@@ -54,6 +59,7 @@ var NSTextBox = (function()
 		this.__isFromCloseIcon = false;
 		this.__isFromSearchTextSever = false;
 		this.__lastNavigatedItem = {};
+		this.__lastSearchParam = "";
 		
 		this.__keyPressedRef = null;
 		this.__pasteRef = null;
@@ -201,6 +207,7 @@ var NSTextBox = (function()
 			if(this.__isFromSearchTextSever)
 			{
 				this.__isFromSearchTextSever = false;
+				this.__searchText(this.__textBox.value,true);
 				this.__showHideList(true);
 			}
 			if(!this.__documentClickRef)
@@ -340,6 +347,10 @@ var NSTextBox = (function()
 			{
 				this.__enableServerSide = Boolean.parse(setting["enableServerSide"]);
 			}
+			if(setting.hasOwnProperty("enableServerWithSmartSearch"))
+			{
+				this.__enableServerWithSmartSearch = Boolean.parse(setting["enableServerWithSmartSearch"]);
+			}
 			if(setting.hasOwnProperty("serverSearchCallback"))
 			{
 				this.__serverSearchCallback = setting["serverSearchCallback"];
@@ -348,6 +359,17 @@ var NSTextBox = (function()
 					if(this.util.isFunction(this.__serverSearchCallback))
 					{
 						this.__serverSearchCallback = this.__context[this.__serverSearchCallback];
+					}
+				}
+			}
+			if(setting.hasOwnProperty("textBoxRendererCallback"))
+			{
+				this.__textBoxRendererCallback = setting["textBoxRendererCallback"];
+				if (typeof this.__textBoxRendererCallback === "string" || this.__textBoxRendererCallback instanceof String)
+				{
+					if(this.util.isFunction(this.__textBoxRendererCallback))
+					{
+						this.__textBoxRendererCallback = this.__context[this.__textBoxRendererCallback];
 					}
 				}
 			}
@@ -366,6 +388,14 @@ var NSTextBox = (function()
 			if(setting.hasOwnProperty("labelField"))
 			{
 				this.__labelField = setting["labelField"];
+			}
+			if(setting.hasOwnProperty("arrGridSearchField"))
+			{
+				this.__arrGridSearchField = setting["arrGridSearchField"];
+			}
+			if(setting.hasOwnProperty("isGridOrFilter"))
+			{
+				this.__isGridOrFilter = setting["isGridOrFilter"];
 			}
 			if(setting.hasOwnProperty("stopHoveringField"))
 			{
@@ -841,21 +871,27 @@ var NSTextBox = (function()
 		}
 	};
 	
-	NSTextBox.prototype.__searchText = function(searchString)
+	NSTextBox.prototype.__searchText = function(searchString,callClientSearch)
 	{
-		if(this.__enableServerSide)
+		if(!callClientSearch && this.__isServerSideCall(searchString))
 		{
 			if(this.__serverSearchCallback && this.util.isFunction(this.__serverSearchCallback))
 			{
 				this.__isFromSearchTextSever = true;
-				this.__serverSearchCallback(searchString,this.__filterSetting,this.__enableHighlighting,this.__searchRecordLimit);
+				var sendString = searchString;
+				if(this.__enableServerWithSmartSearch)
+				{
+					this.__lastSearchParam = searchString.substr(0,this.__minSearchStartChars);
+					sendString = this.__lastSearchParam;
+				}
+				this.__serverSearchCallback(sendString,this.__filterSetting,this.__enableHighlighting,this.__searchRecordLimit);
 			}
 			else
 			{
 				this.util.throwNSError("NSTextBox","ServerSearchCallback attribute doesnot have a valid value");
 			}
 		}
-		else
+		else if(this.__dataSource && this.__dataSource.length > 0)
 		{
 			if(searchString === "")
 			{
@@ -863,10 +899,65 @@ var NSTextBox = (function()
 			}
 			else
 			{
-				this.__getNSControl().filter(searchString,this.__filterSetting,this.__enableHighlighting,this.__searchRecordLimit);
+				var control = this.__getNSControl();
+				if(this.__isAutoCompleteTypeList())
+				{
+					control.filter(searchString,this.__filterSetting,this.__enableHighlighting,this.__searchRecordLimit);
+				}
+				else
+				{
+					var arrFilterField = this.__arrGridSearchField;
+					if(!arrFilterField || arrFilterField.length === 0)
+					{
+						arrFilterField = [this.__labelField];
+					}
+					if(this.__isGridOrFilter)
+					{
+						 var filter = [];
+						 var setting = {};
+						 for(var count = 0;count < arrFilterField.length;count++)
+						 {
+							 var field = arrFilterField[count];
+							 if(field)
+							 {
+								 var item = {};
+								 item[field] = searchString;
+								 setting[field] = this.__filterSetting;
+								 filter.push(item);
+							 }
+						 }
+					}
+					else
+					{
+						var filter = {};
+						var setting = {};
+						for(var count = 0;count < arrFilterField.length;count++)
+						{
+							var field = arrFilterField[count];
+							if(field)
+							{
+								filter[field] = searchString;
+								setting[field] = this.__filterSetting;
+							}
+						}
+					}
+					control.filter(filter,setting,this.__enableHighlighting,this.__searchRecordLimit);
+				}
 			}
 			this.__showHideList(true);
 		}
+	};
+	
+	NSTextBox.prototype.__isServerSideCall = function(searchString)
+	{
+		if(this.__enableServerWithSmartSearch)
+		{
+			var isSearchLength = ((searchString.length === this.__minSearchStartChars) || (searchString.length > this.__minSearchStartChars));
+			var isContainsTempSearch = (this.__lastSearchParam.toLowerCase() !== searchString.substr(0,this.__minSearchStartChars).toLowerCase());
+			return (isSearchLength && isContainsTempSearch);
+		}
+		return this.__enableServerSide;
+		
 	};
 	
 	NSTextBox.prototype.__createList = function()
@@ -916,7 +1007,7 @@ var NSTextBox = (function()
 					{
 						this.__dropDownSetting = {};
 					}
-					var overrideSetting = {type:"",enableMouseHover:true,enableFilter:false,enableAdvancedFilter:false,enablePagination:false, 
+					var overrideSetting = {type:"",enableMouseHover:true,enableFilter:true,enableAdvancedFilter:false,enablePagination:false, 
 					          				columnResizable:false,columnDraggable:false,leftFixedColumn:0,rightFixedColumn:0,
 					          				enableRowMove:false,enableContextMenu:false,enableExport:false,enableResponsive:false,
 					          				theme:"White",enableCellSelection:false,enableRowSelection:true,enableDragDrop:false,
@@ -935,6 +1026,11 @@ var NSTextBox = (function()
 					for(var key in overrideSetting)
 					{
 						setting[key] = overrideSetting[key];
+					}
+					for(var count = 0;count < setting["columns"].length;count++)
+					{
+						var column = setting["columns"][count];
+						column["enableFilter"] = false;
 					}
 					this.__nsGrid = new NSGrid(this.__list,setting);
 					this.__nsGrid.setColumn(setting["columns"]);
@@ -961,10 +1057,10 @@ var NSTextBox = (function()
 	{
 		if(this.__list)
 		{
-			var offset = {left:0,top:1};
+			/*var offset = {left:0,top:1};
             var rect = this.__outerContainer.getBoundingClientRect();
             this.__list.style.left = Math.round(rect.left + (window.pageXOffset || document.documentElement.scrollLeft) + offset.left) + 'px';
-            this.__list.style.top = Math.round(rect.bottom + (window.pageYOffset || document.documentElement.scrollTop) + offset.top) + 'px';
+            this.__list.style.top = Math.round(rect.bottom + (window.pageYOffset || document.documentElement.scrollTop) + offset.top) + 'px';*/
             if(this.__listWidth > 0)
 			{
 				this.__list.style.width = this.__listWidth + "px";
@@ -978,7 +1074,7 @@ var NSTextBox = (function()
 	
 	NSTextBox.prototype.__hideList = function()
 	{
-		//this.__showHideList(false);
+		this.__showHideList(false);
 	};
 	
 	NSTextBox.prototype.__showHideList = function(isShow)
@@ -1026,18 +1122,13 @@ var NSTextBox = (function()
 		{
 			//console.log(this.__nsList.getSelectedItems());
 			this.__selectedItem = selectedItem;
-			var isNoRecord = false;
-			if(this.__selectedItem["__ns__index"] === -1)
-			{
-				isNoRecord = true;
-			}
 			if(this.__enableMultipleSelection)
 			{
 				this.__refreshMultiSelectTags();
 			}
 			else
 			{
-				this.__textBox.value = isNoRecord ? "" : this.__selectedItem[this.__labelField];
+				this.__textBox.value = this.__getItemText(this.__selectedItem);
 				this.__isFromItemSelected = true;
 				this.__hideList();
 			}
@@ -1107,7 +1198,7 @@ var NSTextBox = (function()
 	{
 		var tag = this.util.createDiv(null,"nsTextBoxMultiSelectTag");
 	    var content = this.util.createDiv(null,"nsTextBoxMultiSelectTagText");
-	    content.textContent = item[this.__labelField];
+	    content.textContent = this.__getItemText(item);
 	    tag.appendChild(content);
 	    var btnRemove = this.util.createDiv(null,"nsTextBoxMultiSelectTagClose");
 	    this.util.addEvent(btnRemove,"click",this.__removeMultiSelectTag.bind(this,tag,item));
@@ -1135,6 +1226,31 @@ var NSTextBox = (function()
 	NSTextBox.prototype.__getAllMultiSelectTags = function() 
 	{
 		return this.__outerContainer.querySelectorAll(".nsTextBoxMultiSelectTag");
+	};
+	
+	NSTextBox.prototype.__getItemText = function(item)
+	{
+		var retValue = "";
+		if(item)
+		{
+			var isNoRecord = false;
+			if(this.__selectedItem["__ns__index"] === -1)
+			{
+				isNoRecord = true;
+			}
+			if(!isNoRecord)
+			{
+				if(this.__textBoxRendererCallback)
+				{
+					retValue = this.__textBoxRendererCallback(item,this.__labelField);
+				}
+				else
+				{
+					retValue = item[this.__labelField];
+				}
+			}
+		}
+		return retValue;
 	};
 	
 	NSTextBox.prototype.__isMouseHoverAllowed = function(item)
