@@ -1,477 +1,86 @@
-NSUtil.prototype.addStyleClass = function (element,styleClass)
+-webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    background-color: rgba(0,0,0,.4);
+    transition: opacity .3s;
+    
+    
+.nsMessageBoxHeader 
 {
-    if(element && styleClass && styleClass.length > 0)
-    {
-    	var arrStyleClass = styleClass.split(" ");
-        if(element.classList)
-        {
-        	for(var count = 0;count < arrStyleClass.length;count++)
-        	{
-        		if(!this.hasStyleClass(element,arrStyleClass[count]))
-                {
-                	element.classList.add(arrStyleClass[count]);
-                }
-        	}
-        }
-        else
-        {
-        	for(var count = 0;count < arrStyleClass.length;count++)
-        	{
-	            if(!this.hasStyleClass(element,arrStyleClass[count]))
-	            {
-	            	if(element.className instanceof SVGAnimatedString)
-	    			{
-	            		if(element.getAttribute("class"))
-	            		{
-	            			element.setAttribute("class", element.getAttribute("class") + " " + arrStyleClass[count]);
-	            		}
-	            		else
-	            		{
-	            			element.setAttribute("class",arrStyleClass[count]);
-	            		}
-	    			}
-	            	else
-	            	{
-	            		element.className += " " + arrStyleClass[count];
-	            	}
-	            }
-        	}
-        }
-    }
-};
-
-//returns true if a Style class is present in element's styles list
-NSUtil.prototype.hasStyleClass = function (element,styleClass)
+    padding: 15px;
+    border-bottom: 1px solid #e5e5e5;
+}
+.nsMessageBoxTitle 
 {
-    if(element && styleClass && styleClass.length > 0)
-    {
-    	try
-    	{
-    		if(!element.classList)
-            {
-    			if(element.className instanceof SVGAnimatedString)
-    			{
-    				return new RegExp('(\\s|^)' + styleClass + '(\\s|$)').test(element.getAttribute('class'));
-    			}
-    			else
-    			{
-    				return (element.className.indexOf(" " + styleClass) > -1);
-    			}
-            }
-            else if(element.classList.contains)
-            {
-            	return element.classList.contains(styleClass);
-            }
-    	}
-    	catch(error)
-    	{
-    		
-    	}
-        
-    }
-    return false;
-};
-
-//removes Style class from an element's styles list
-NSUtil.prototype.removeStyleClass = function(element,styleClass)
+    margin: 0;
+    line-height: 1.42857143;
+}
+.nsMessageBoxContainer
 {
-    if(element && styleClass && styleClass.length > 0)
-    {
-    	var arrStyleClass = styleClass.split(" ");
-    	if(element.classList)
-        {
-	    	for(var count = 0;count < arrStyleClass.length;count++)
-	    	{
-	        	element.classList.remove(arrStyleClass[count]);
-	        }
-    	}
-        else if(element.className)
-        {
-        	for(var count = 0;count < arrStyleClass.length;count++)
-        	{
-	        	if(element.className instanceof SVGAnimatedString)
-				{
-	        		var removedClass = element.getAttribute('class').replace(new RegExp('(\\s|^)' + arrStyleClass[count] + '(\\s|$)', 'g'), '$2');
-	        		if (this.hasStyleClass(arrStyleClass[count])) 
-	        		{
-	        		   this.setAttribute('class', removedClass);
-	        		}
-				}
-	        	else
-	        	{
-	        		element.className = element.className.replace(arrStyleClass[count],"");
-	        	}
-        	}
-        }
-    }
-};
-
-
-"use strict";
-var NSMessageBox = (function()
+	height:95%;
+}
+.nsMessageBoxBody 
 {
-	function NSMessageBox(setting) 
-	{
-		this.__setting = setting;
-		
-		this.util = null;
-		this.__baseComponent = null;
-		this.__nsPanel = null;
-		this.__divContainer = null; 
-		this.__divBody = null;
-		this.__divFooter = null;
-		
-		this.__context = window;
-		this.__customClass = {};
-		
-		this.__initializeComponent();
-	};
-		
-	NSMessageBox.prototype.__initializeComponent = function() 
-	{
-		this.util = new NSUtil();
-		this.__id = "comp" + this.util.getUniqueId();
-		this.__setSetting(this.__setting);
-		this.__createStructure();
-	};	
-	
-	NSMessageBox.prototype.alert = function()
-	{
-		if(arguments && arguments.length > 0)
-		{
-			if(this.util.isString(arguments[0]))
-			{
-				var title = null;
-				if(arguments.length > 1)
-				{
-					title = arguments[1];
-				}
-				var callback = null;
-				if(arguments.length > 2)
-				{
-					callback = arguments[2];
-				}
-				var setting = {
-					bodyContent:arguments[0],
-					title:title,
-					callback:callback
-				};
-				this.__alert(setting);
-			}
-			else
-			{
-				this.__alert(arguments[0]);
-			}
-		}
-	};
-	
-	NSMessageBox.prototype.confirm = function()
-	{
-		if(arguments && arguments.length > 0)
-		{
-			if(this.util.isString(arguments[0]))
-			{
-				var title = null;
-				if(arguments.length > 1)
-				{
-					title = arguments[1];
-				}
-				var confirmCallback = null;
-				if(arguments.length > 2)
-				{
-					confirmCallback = arguments[2];
-				}
-				var cancelCallback = null;
-				if(arguments.length > 3)
-				{
-					cancelCallback = arguments[3];
-				}
-				var setting = {
-						bodyContent:arguments[0],
-						title: title,
-						confirm:{callback:confirmCallback},
-						cancel:{callback:cancelCallback}
-				};
-				this.__confirm(setting);
-			}
-			else
-			{
-				this.__confirm(arguments[0]);
-			}
-		}
-	};
-	
-	NSMessageBox.prototype.close = function()
-	{
-		if(this.__nsPanel)
-		{
-			this.__nsPanel.close();
-			this.__nsPanel.removeComponent();
-			this.__baseComponent = null;
-			this.__nsPanel = null;
-		}
-	};
-	
-	NSMessageBox.prototype.getPanel = function()
-	{
-		return this.__nsPanel;
-	};
-	
-	NSMessageBox.prototype.__setSetting = function(setting)
-	{
-		if(setting)
-		{
-			if(setting.hasOwnProperty("context"))
-			{
-				this.__context = setting["context"];
-			}
-			if(setting.hasOwnProperty("theme"))
-			{
-				this.__theme = "MessageBox" + setting["theme"];
-			}
-			var customClass = {};
-			if(setting.hasOwnProperty("customClass"))
-			{
-				customClass = setting["customClass"];
-				if(!customClass)
-				{
-					customClass = {};
-				}
-			}
-			this.__customClass = {messageBody:customClass["messageBody"] || null,
-								  messageFooter:customClass["messageFooter"] || null};
-		}
-	};
-	
-	NSMessageBox.prototype.__createStructure = function()
-	{
-		this.__createBody();
-	};
-	
-	NSMessageBox.prototype.__createBody = function()
-	{
-		this.__divContainer = this.util.createDiv(this.__id + "MessageBoxContainer","nsMessageBoxContainer");
-		this.__divBody = this.util.createDiv(this.__id + "messageBody","nsMessageBoxBody");
-		this.__divFooter = this.util.createDiv(this.__id + "messageFooter","nsMessageBoxFooter");
-		this.__divContainer.appendChild(this.__divBody);
-		this.__divContainer.appendChild(this.__divFooter);
-	};
-	
-	NSMessageBox.prototype.__createNSPanel = function(setting)
-	{
-		if(!setting["customClass"])
-		{
-			setting["customClass"] = {};
-		}
-		setting["customClass"]["titleBar"] = setting["customClass"]["titleBar"] ? setting["customClass"]["titleBar"] : "nsMessageBoxHeader";
-		setting["customClass"]["titleBarContent"] = setting["customClass"]["titleBarContent"] ? setting["customClass"]["titleBarContent"] : "nsMessageBoxTitle";
-		if(!setting["toolBarDetails"])
-		{
-			setting["toolBarDetails"] = {};
-		}
-		setting["toolBarDetails"]["close"] = setting["toolBarDetails"]["close"] ? setting["toolBarDetails"]["close"] : {iconHTML:'<button type="button" class="nsMessageBoxClose">&times;</button>',title:"Close"};
-		setting["content"] = this.__divContainer;
-		setting["template"] = null;
-		setting["templateUrl"] = null;
-		setting["enablePopUp"] = true;
-		setting["enableModal"] = true;
-		this.__nsPanel = new NSPanel(null,setting);
-		this.__baseComponent =  this.__nsPanel.getBaseElement();
-		this.util.addEvent(this.__baseComponent,NSPanel.CLOSED,this.__panelClosedHandled.bind(this));
-		this.util.addStyleClass(this.__baseComponent,"nsMessageBox");
-		//this.__applyTheme(this.__baseComponent,"nsMessageBox");
-	};
-	
-	NSMessageBox.prototype.__panelClosedHandled = function(event)
-	{
-		if(this.__baseComponent && this.__baseComponent.parentNode)
-		{
-			this.__baseComponent.parentNode.removeChild(this.__baseComponent);
-		}
-	};
-	
-	NSMessageBox.prototype.__setBodyContent = function(content,templateID,templateUrl)
-	{
-		if(this.__divBody)
-		{
-			this.__divBody.innerHTML = "";
-			this.__applyCustomClass(this.__divBody,"messageBody");
-			if(content)
-			{
-				if(this.util.isString(content))
-				{
-					var compSpan = document.createElement("span");
-					compSpan.innerHTML = content;
-					this.__divBody.appendChild(compSpan);
-				}
-				else
-				{
-					this.__divBody.appendChild(content);
-				}
-			}
-			else if(templateID && templateID.length > 0)
-			{
-				this.__divBody.appendChild(this.util.getTemplate(templateID));
-			}
-			else if(templateUrl && templateUrl.length > 0)
-			{
-				var self = this;
-				var templateLoadHandler = function(templateText)
-				{
-					if(templateText)
-					{
-						self.__divBody.innerHTML = templateText;
-					}
-					else
-					{
-						console.error(templateUrl + " was not loaded.Please check the URL");
-					}
-				};
-				var templateErrorHandler = function(errorText)
-				{
-					console.error(templateUrl + " was not loaded.Please check the URL");
-				};
-				this.util.getTemplateFromURL(templateUrl,templateLoadHandler,templateErrorHandler);
-			}
-		}
-	};
-	
-	NSMessageBox.prototype.__setFooterContent = function(arrButtons)
-	{
-		if(this.__divFooter)
-		{
-			this.__divFooter.innerHTML = "";
-			this.__applyCustomClass(this.__divFooter,"messageFooter");
-			var item = null;
-			for(var index in arrButtons)
-			{
-				item = arrButtons[index];
-				var divButton = this.util.createDiv(null,"nsMessageBoxButtonContainer");
-				var button = this.util.createElement("button");
-				button.innerHTML = item["label"];
-				if(item["cssClass"])
-				{
-					button.setAttribute("class",item["cssClass"]);
-				}
-				if(item["callback"])
-				{
-					this.util.addEvent(button,"click",item["callback"]);
-				}
-				divButton.appendChild(button);
-				this.__divFooter.appendChild(divButton);
-			}
-		}
-	};
-	
-	NSMessageBox.prototype.__applyCustomClass = function(element,type)
-	{
-		if(element && type && this.__customClass[type])
-		{
-			this.util.addStyleClass(element,this.__customClass[type]);
-		}
-	};
-	
-	NSMessageBox.prototype.__createMessageBox = function(setting)
-	{
-		if(this.__setting)
-		{
-			var arrKeys = Object.keys(this.__setting);
-			for(var index in arrKeys)
-			{
-				if(this.util.isUndefinedOrNull(setting[arrKeys[index]]))
-				{
-					setting[arrKeys[index]] = this.__setting[arrKeys[index]];
-				}
-			}
-		}
-		if(!setting.hasOwnProperty("theme"))
-		{
-			setting["theme"] = "White";
-		}
-		setting["theme"] = "MessageBox" + setting["theme"];
-		this.__setSetting(setting);
-		this.__createNSPanel(setting);
-		this.__setBodyContent(setting["bodyContent"],setting["bodyTemplate"],setting["bodyTemplateUrl"]);
-		this.__setFooterContent(setting["buttons"]);
-		this.__nsPanel.open();
-	};
-	
-	NSMessageBox.prototype.__alert = function(config)
-	{
-		var self = this;
-		var okHandler = function(event)
-		{
-			event = self.util.getEvent(event);
-			event.stopImmediatePropagation();
-			self.close();
-			if(config["callback"])
-			{
-				config["callback"](event);
-			}
-		};
-		if(!config)
-		{
-			config = {};
-		}
-		config.buttons = [{label:config["buttonLabel"] || "OK",cssClass:config["buttonClass"],callback:okHandler.bind(this)}];
-		this.__createMessageBox(config);
-	};
-	
-	NSMessageBox.prototype.__confirm = function(config)
-	{
-		var self = this;
-		var confirmHandler = function(event)
-		{
-			event = self.util.getEvent(event);
-			event.stopImmediatePropagation();
-			self.close();
-			if(config["confirm"]["callback"])
-			{
-				config["confirm"]["callback"](event);
-			}
-		};
-		var cancelHandler = function(event)
-		{
-			event = self.util.getEvent(event);
-			event.stopImmediatePropagation();
-			self.close();
-			if(config["cancel"]["callback"])
-			{
-				config["cancel"]["callback"](event);
-			}
-		};
-		if(!config)
-		{
-			config = {};
-		}
-		if(!config["confirm"])
-		{
-			config["confirm"] = {};
-		}
-		if(!config["cancel"])
-		{
-			config["cancel"] = {};
-		}
-		config.buttons = [{label:config["confirm"]["label"] || "OK",cssClass:config["confirm"]["cssClass"] || "",callback:confirmHandler.bind(this)},
-                		  {label:config["cancel"]["label"] || "Cancel",cssClass:config["cancel"]["cssClass"] || "",callback:cancelHandler.bind(this)}
-						 ];
-		this.__createMessageBox(config);
-	};
-	
-	return NSMessageBox;
-})();
-(function(root,name,prototype)
+    position: relative;
+    padding: 15px;
+    height: 80%;
+}
+.nsMessageBoxFooter 
 {
-   if (typeof define === "function" && define.amd)
-   {
-   	define(name, function () {return prototype;});
-   }
-   else if (typeof module !== 'undefined' && module.exports)
-   {
-   	module.exports = prototype;
-   }
-   else
-   {
-   	root[name] = prototype;
-   }
-})(this,"NSMessageBox",NSMessageBox);
+    padding: 15px;
+    text-align: right;
+    border-top: 1px solid #e5e5e5;
+    height: 20%;
+}
+.nsMessageBoxClose 
+{
+	-webkit-appearance: none;
+	padding: 0;
+    cursor: pointer;
+    background: transparent;
+    border: 0;
+    font-size: 21px;
+    font-weight: bold;
+    line-height: 1;
+    color: #000;
+    text-shadow: 0 1px 0 #fff;
+    filter: alpha(opacity=20);
+    opacity: .2;
+}
+.nsMessageBoxButtonContainer
+{
+	margin: 5px;
+	display: inline-block;
+	position: relative;
+}
+.nsPanelMessageBoxWhite
+{
+	background-color: #fefefe;
+}
+.nsPanelMessageBoxWhite .nsPanelTitleBar
+{
+	background-color: #ffffff;
+}
+.nsPanelMessageBoxWhite .nsPanelTitleBarContent
+{
+	color: #333;
+}
+.nsPanelMessageBoxWhite .nsPanelExpColIconUse 
+{
+  fill: #848484;
+  color: #F6F6F6;
+}
+.nsPanelMessageBoxWhite .nsPanelMinMaxIconUse 
+{
+  fill: #F6F6F6;
+  color: #848484;
+}
+/*.nsPanelMessageBoxWhite .nsPanelCloseIconUse 
+{
+  fill: #848484;
+  color: #F6F6F6;
+}*/
+.nsPanelMessageBoxWhite .nsPanelFullScreenIcon
+{
+  fill: #848484;
+  color: #F6F6F6;
+}
