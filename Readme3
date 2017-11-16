@@ -1,338 +1,146 @@
-"use strict"; 
-/*  Taken from http://www.JavascriptToolbox.com but has been modified */
-function NSDateUtil() 
+.nsCalendar
 {
-	this.monthNames = new Array('January','February','March','April','May','June','July','August','September','October','November','December');
-	// Month abbreviations. Change this for local month names
-	this.monthAbbreviations = new Array('Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec');
-	// Full day names. Change this for local month names
-	this.dayNames = new Array('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday');
-	// Day abbreviations. Change this for local month names
-	this.dayAbbreviations = new Array('Sun','Mon','Tue','Wed','Thu','Fri','Sat');
-	
-	this.parseString = function(value,format)
-	{
-		if (typeof(format)=="undefined" || format==null || format=="") 
-		{
-			var generalFormats = new Array('y-M-d','MMM d, y','MMM d,y','y-MMM-d','d-MMM-y','MMM d','MMM-d','d-MMM');
-			var monthFirst = new Array('M/d/y','M-d-y','M.d.y','M/d','M-d');
-			var dateFirst = new Array('d/M/y','d-M-y','d.M.y','d/M','d-M');
-			var checkList= new Array(generalFormats,monthFirst,dateFirst);
-			for (var i=0; i < checkList.length; i++) 
-			{
-				var l = checkList[i];
-				for (var j=0; j<l.length; j++) 
-				{
-					var d = this.parseString(value,l[j]);
-					if (d!=null) 
-					{ 
-						return d; 
-					}
-				}
-			}
-			return null;
-		};
-		value = value+"";
-		format = format+"";
-		var i_value = 0;
-		var i_format = 0;
-		var c = "";
-		var token = "";
-		var token2 = "";
-		var x,y;
-		var year = new Date().getFullYear();
-		var month = 1;
-		var date = 1;
-		var hh = 0;
-		var mm = 0;
-		var ss = 0;
-		var ampm="";
-		while (i_format < format.length) 
-		{
-			// Get next token from format string
-			c=format.charAt(i_format);
-			token="";
-			while ((format.charAt(i_format)==c) && (i_format < format.length)) {
-				token += format.charAt(i_format++);
-			}
-			// Extract contents of value based on format token
-			if (token=="yyyy" || token=="yy" || token=="y") {
-				if (token=="yyyy") { 
-					x=4;y=4; 
-				}
-				if (token=="yy") { 
-					x=2;y=2; 
-				}
-				if (token=="y") { 
-					x=2;y=4; 
-				}
-				year=this.getInt(value,i_value,x,y);
-				if (year==null) { 
-					return null; 
-				}
-				i_value += year.length;
-				if (year.length==2) {
-					if (year > 70) { 
-						year=1900+(year-0); 
-					}
-					else { 
-						year=2000+(year-0); 
-					}
-				}
-			}
-			else if (token=="MMM" || token=="NNN"){
-				month=0;
-				var names = (token=="MMM"?(this.monthNames.concat(this.monthAbbreviations)):this.monthAbbreviations);
-				for (var i=0; i<names.length; i++) {
-					var month_name=names[i];
-					if (value.substring(i_value,i_value+month_name.length).toLowerCase()==month_name.toLowerCase()) {
-						month=(i%12)+1;
-						i_value += month_name.length;
-						break;
-					}
-				}
-				if ((month < 1)||(month>12)){
-					return null;
-				}
-			}
-			else if (token=="EE"||token=="E"){
-				var names = (token=="EE"?this.dayNames:this.dayAbbreviations);
-				for (var i=0; i<names.length; i++) {
-					var day_name=names[i];
-					if (value.substring(i_value,i_value+day_name.length).toLowerCase()==day_name.toLowerCase()) {
-						i_value += day_name.length;
-						break;
-					}
-				}
-			}
-			else if (token=="MM"||token=="M") {
-				month=this.getInt(value,i_value,token.length,2);
-				if(month==null||(month<1)||(month>12)){
-					return null;
-				}
-				i_value+=month.length;
-			}
-			else if (token=="dd"||token=="d") {
-				date=this.getInt(value,i_value,token.length,2);
-				if(date==null||(date<1)||(date>31)){
-					return null;
-				}
-				i_value+=date.length;
-			}
-			else if (token=="hh"||token=="h") {
-				hh=this.getInt(value,i_value,token.length,2);
-				if(hh==null||(hh<1)||(hh>12)){
-					return null;
-				}
-				i_value+=hh.length;
-			}
-			else if (token=="HH"||token=="H") {
-				hh=this.getInt(value,i_value,token.length,2);
-				if(hh==null||(hh<0)||(hh>23)){
-					return null;
-				}
-				i_value+=hh.length;
-			}
-			else if (token=="KK"||token=="K") {
-				hh=this.getInt(value,i_value,token.length,2);
-				if(hh==null||(hh<0)||(hh>11)){
-					return null;
-				}
-				i_value+=hh.length;
-				hh++;
-			}
-			else if (token=="kk"||token=="k") {
-				hh=this.getInt(value,i_value,token.length,2);
-				if(hh==null||(hh<1)||(hh>24)){
-					return null;
-				}
-				i_value+=hh.length;
-				hh--;
-			}
-			else if (token=="mm"||token=="m") {
-				mm=this.getInt(value,i_value,token.length,2);
-				if(mm==null||(mm<0)||(mm>59)){
-					return null;
-				}
-				i_value+=mm.length;
-			}
-			else if (token=="ss"||token=="s") {
-				ss=this.getInt(value,i_value,token.length,2);
-				if(ss==null||(ss<0)||(ss>59)){
-					return null;
-				}
-				i_value+=ss.length;
-			}
-			else if (token=="a") {
-				if (value.substring(i_value,i_value+2).toLowerCase()=="am") {
-					ampm="AM";
-				}
-				else if (value.substring(i_value,i_value+2).toLowerCase()=="pm") {
-					ampm="PM";
-				}
-				else {
-					return null;
-				}
-				i_value+=2;
-			}
-			else {
-				if (value.substring(i_value,i_value+token.length)!=token) {
-					return null;
-				}
-				else {
-					i_value+=token.length;
-				}
-			}
-		}
-		// If there are any trailing characters left in the value, it doesn't match
-		if (i_value != value.length) { 
-			return null; 
-		}
-		// Is date valueid for month?
-		if (month==2) {
-			// Check for leap year
-			if ( ( (year%4==0)&&(year%100 != 0) ) || (year%400==0) ) { // leap year
-				if (date > 29){ 
-					return null; 
-				}
-			}
-			else { 
-				if (date > 28) { 
-					return null; 
-				} 
-			}
-		}
-		if ((month==4)||(month==6)||(month==9)||(month==11)) {
-			if (date > 30) { 
-				return null; 
-			}
-		}
-		// Correct hours value
-		if (hh<12 && ampm=="PM") {
-			hh=hh-0+12; 
-		}
-		else if (hh>11 && ampm=="AM") { 
-			hh-=12; 
-		}
-		return new Date(year,month-1,date,hh,mm,ss);
-	};
-	
-	this.format = function(date,format) 
-	{
-		format=format+"";
-		var result="";
-		var i_format=0;
-		var c="";
-		var token="";
-		var y=date.getYear()+"";
-		var M=date.getMonth()+1;
-		var d=date.getDate();
-		var E=date.getDay();
-		var H=date.getHours();
-		var m=date.getMinutes();
-		var s=date.getSeconds();
-		var yyyy,yy,MMM,MM,dd,hh,h,mm,ss,ampm,HH,H,KK,K,kk,k;
-		// Convert real date parts into formatted versions
-		var value=new Object();
-		if (y.length < 4) {
-			y=""+(+y+1900);
-		}
-		value["y"]=""+y;
-		value["yyyy"]=y;
-		value["yy"]=y.substring(2,4);
-		value["M"]=M;
-		value["MM"]=this.appendZero(M);
-		value["MMM"]=this.monthNames[M-1];
-		value["NNN"]=this.monthAbbreviations[M-1];
-		value["d"]=d;
-		value["dd"]=this.appendZero(d);
-		value["E"]=this.dayAbbreviations[E];
-		value["EE"]=this.dayNames[E];
-		value["H"]=H;
-		value["HH"]=this.appendZero(H);
-		if (H==0){
-			value["h"]=12;
-		}
-		else if (H>12){
-			value["h"]=H-12;
-		}
-		else {
-			value["h"]=H;
-		}
-		value["hh"]=this.appendZero(value["h"]);
-		value["K"]=value["h"]-1;
-		value["k"]=value["H"]+1;
-		value["KK"]=this.appendZero(value["K"]);
-		value["kk"]=this.appendZero(value["k"]);
-		if (H > 11) { 
-			value["a"]="PM"; 
-		}
-		else { 
-			value["a"]="AM"; 
-		}
-		value["m"]=m;
-		value["mm"]=this.appendZero(m);
-		value["s"]=s;
-		value["ss"]=this.appendZero(s);
-		while (i_format < format.length) {
-			c=format.charAt(i_format);
-			token="";
-			while ((format.charAt(i_format)==c) && (i_format < format.length)) {
-				token += format.charAt(i_format++);
-			}
-			if (typeof(value[token])!="undefined") { 
-				result=result + value[token]; 
-			}
-			else { 
-				result=result + token; 
-			}
-		}
-		return result;
-	};
-	
-	this.clearTime = function(date)
-	{
-		if(date)
-		{
-			date.setHours(0); 
-			date.setMinutes(0);
-			date.setSeconds(0); 
-			date.setMilliseconds(0);
-		}
-		return date;
-	};
-	
-	this.isInteger = function(value) 
-	{
-		for (var i=0; i < value.length; i++) 
-		{
-			if ("1234567890".indexOf(value.charAt(i))==-1) 
-			{ 
-				return false; 
-			}
-		}
-		return true;
-	};
-	
-	this.getInt = function(str,i,minlength,maxlength) 
-	{
-		for (var x=maxlength; x>=minlength; x--) 
-		{
-			var token=str.substring(i,i+x);
-			if (token.length < minlength) 
-			{ 
-				return null; 
-			}
-			if (this.isInteger(token)) 
-			{ 
-				return token; 
-			}
-		}
-		return null;
-	};
-	
-	this.appendZero = function(value) 
-	{
-		return(value < 0||value > 9?"":"0") + value;
-	};
-};
+	width: 240px;
+    border-radius: 3px;
+    overflow: hidden;
+}
+.nsCalendar .nsCalendarContainer
+{
+}
+.nsCalendar .nsCalendarHeader
+{
+	display: flex;
+    height: 32px;
+    line-height: 30px;
+}
+.nsCalendar .nsCalendarButton
+{
+	background: none;
+    border: 0;
+    outline: none;
+    color: inherit;
+    font: inherit;
+    line-height: normal;
+    overflow: visible;
+    padding: 0;
+    -webkit-appearance: button;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    cursor: pointer;
+}
+.nsCalendar .nsCalendarHeaderNav
+{
+	width: 100%;
+    text-align: center;
+}
+.nsCalendar .nsCalendarSelect
+{
+    line-height: 1.25;
+    height: inherit;
+    width: 49%;
+    display: inline-block;
+    max-width: 100%;
+}
+.nsCalendar .nsCalendarWeekContainer
+{
+	display: flex;
+    flex-wrap: wrap;
+}
+.nsCalendar .nsCalendarWeek
+{
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    text-align: center;
+}
+.nsCalendar .nsCalendarDayContainer
+{
+	display: flex!important;
+	padding-bottom: 4px!important;
+	padding-left: 4px!important;
+	padding-right: 4px!important;
+}
+.nsCalendar .nsCalendarDayContainerBody 
+{	
+}
+.nsCalendarDayContainerRow 
+{
+	display: flex!important;
+}
+.nsCalendar .nsCalendarDayContainerCell
+{
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    border-radius: 4px;
+    text-align: center;
+    cursor: pointer;
+}
+.nsCalendar .nsCalendarDayDisabled
+{
+	opacity: 0.35;
+    background-image: none;
+    border-style: initial;
+    border-color: initial;
+    border-image: initial;
+    pointer-events: none;
+    cursor: default;
+}
+.nsCalendarWhite
+{
+	background-color: #fff;
+	box-shadow: 0 4px 22px 0 rgba(0, 0, 0, 0.05);
+    border: solid 1px #e7e9ed;
+}
+.nsCalendarWhite .nsCalendarHeaderButtonSvg 
+{
+    fill: #0A9297;
+}
+.nsCalendarWhite .nsCalendarSelect
+{
+	color: #495057;
+	background: #fff;
+	border: 1px solid rgba(0,0,0,.15);
+	vertical-align: middle;
+    background-size: 8px 10px;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 14px;
+}
+.nsCalendarWhite .nsCalendarWeekContainer
+{
+	background-color: #E7E9ED;
+}
+.nsCalendarWhite .nsCalendarWeek
+{
+	background-color: #E7E9ED;
+	color: #17a2b8;
+    font-style: italic;
+    font-size: 80%;
+    font-weight: 400;
+}
+.nsCalendarWhite .nsCalendarWeek
+{
+	background: transparent;
+    color: #111;
+    border-color: #f8f9fa;
+}
+.nsCalendarWhite .nsCalendarOtherMonth
+{
+	background-color: #e2e6ea;
+    background-image: none;
+    border-color: #dae0e5;
+    color: #868e96!important;
+    opacity: 0.5;
+    border-radius: 0;
+}
+.nsCalendarWhite .nsCalendarToday
+{
+    background: #fffa90;
+    color: #777620;
+}
+.nsCalendarWhite .nsCalendarSelected
+{
+	background-color: #007bff;
+	color: #fff;
+}
