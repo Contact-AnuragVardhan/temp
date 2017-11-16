@@ -1,240 +1,338 @@
-var NSDatePicker = (function()
+"use strict"; 
+/*  Taken from http://www.JavascriptToolbox.com but has been modified */
+function NSDateUtil() 
 {
-	function NSDatePicker(component,setting) 
-	{
-		this.__setting = setting;
-		
-		this.__context = window;
-		this.__inputFormat = "mm/dd/yyyy";
-		this.__placeHolder = null;
-		this.__buttonHtml = null;
-		this.__customClass = {container:null,textInput:null,button:null,calContainer:null,calHeaderContainer:null,calPrevButton:null,calNextButton:null,calMonthDropdown:null,calYearDropdown:null,calWeekContainer:null,calWeek:null,calDayContainer:null,calDay:null,calFooterContainer:null};
-		
-		this.__divContainer = null;
-		this.__txtBox = null;
-		this.__btnActivate = null;
-		this.__divCalContainer = null;
-		
-		this.__nsCalendar = null;
-		
-		this.base.__setBaseComponent.call(this,component);
-	};
-	nsExtendPrototype(NSContainerBase,NSDatePicker);
-	NSDatePicker.prototype.constructor = NSDatePicker;
+	this.monthNames = new Array('January','February','March','April','May','June','July','August','September','October','November','December');
+	// Month abbreviations. Change this for local month names
+	this.monthAbbreviations = new Array('Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec');
+	// Full day names. Change this for local month names
+	this.dayNames = new Array('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday');
+	// Day abbreviations. Change this for local month names
+	this.dayAbbreviations = new Array('Sun','Mon','Tue','Wed','Thu','Fri','Sat');
 	
-	NSDatePicker.prototype.initializeComponent = function() 
+	this.parseString = function(value,format)
 	{
-		this.base.initializeComponent.call(this);
-		this.__setSetting();
-		this.__initDefault();
-		this.__createComponent();
-	};
-	
-	NSDatePicker.prototype.setComponentProperties = function() 
-	{
-		this.base.setComponentProperties.call(this);
-	};
-	
-	NSDatePicker.prototype.propertyChange = function(attrName, oldVal, newVal, setProperty)
-	{
-		var attributeName = attrName.toLowerCase();
-		this.base.propertyChange.call(this,attrName, oldVal, newVal, setProperty);
-	};
-	
-	NSDatePicker.prototype.removeComponent = function() 
-	{
-		this.base.removeComponent.call(this);
-	};
-	
-	NSDatePicker.prototype.componentResized = function(event) 
-	{
-		this.base.componentResized.call(this,event);
-	};
-	
-	NSDatePicker.prototype.getSelectedDate = function() 
-	{
-		return this.__selectedDate;
-	};
-	
-	NSDatePicker.prototype.getSelectedDateAsString = function(format) 
-	{
-		if(this.__selectedDate)
+		if (typeof(format)=="undefined" || format==null || format=="") 
 		{
-			var nsDateUtil = new NSDateUtil();
-			return nsDateUtil.format(this.__selectedDate,format);
+			var generalFormats = new Array('y-M-d','MMM d, y','MMM d,y','y-MMM-d','d-MMM-y','MMM d','MMM-d','d-MMM');
+			var monthFirst = new Array('M/d/y','M-d-y','M.d.y','M/d','M-d');
+			var dateFirst = new Array('d/M/y','d-M-y','d.M.y','d/M','d-M');
+			var checkList= new Array(generalFormats,monthFirst,dateFirst);
+			for (var i=0; i < checkList.length; i++) 
+			{
+				var l = checkList[i];
+				for (var j=0; j<l.length; j++) 
+				{
+					var d = this.parseString(value,l[j]);
+					if (d!=null) 
+					{ 
+						return d; 
+					}
+				}
+			}
+			return null;
+		};
+		value = value+"";
+		format = format+"";
+		var i_value = 0;
+		var i_format = 0;
+		var c = "";
+		var token = "";
+		var token2 = "";
+		var x,y;
+		var year = new Date().getFullYear();
+		var month = 1;
+		var date = 1;
+		var hh = 0;
+		var mm = 0;
+		var ss = 0;
+		var ampm="";
+		while (i_format < format.length) 
+		{
+			// Get next token from format string
+			c=format.charAt(i_format);
+			token="";
+			while ((format.charAt(i_format)==c) && (i_format < format.length)) {
+				token += format.charAt(i_format++);
+			}
+			// Extract contents of value based on format token
+			if (token=="yyyy" || token=="yy" || token=="y") {
+				if (token=="yyyy") { 
+					x=4;y=4; 
+				}
+				if (token=="yy") { 
+					x=2;y=2; 
+				}
+				if (token=="y") { 
+					x=2;y=4; 
+				}
+				year=this.getInt(value,i_value,x,y);
+				if (year==null) { 
+					return null; 
+				}
+				i_value += year.length;
+				if (year.length==2) {
+					if (year > 70) { 
+						year=1900+(year-0); 
+					}
+					else { 
+						year=2000+(year-0); 
+					}
+				}
+			}
+			else if (token=="MMM" || token=="NNN"){
+				month=0;
+				var names = (token=="MMM"?(this.monthNames.concat(this.monthAbbreviations)):this.monthAbbreviations);
+				for (var i=0; i<names.length; i++) {
+					var month_name=names[i];
+					if (value.substring(i_value,i_value+month_name.length).toLowerCase()==month_name.toLowerCase()) {
+						month=(i%12)+1;
+						i_value += month_name.length;
+						break;
+					}
+				}
+				if ((month < 1)||(month>12)){
+					return null;
+				}
+			}
+			else if (token=="EE"||token=="E"){
+				var names = (token=="EE"?this.dayNames:this.dayAbbreviations);
+				for (var i=0; i<names.length; i++) {
+					var day_name=names[i];
+					if (value.substring(i_value,i_value+day_name.length).toLowerCase()==day_name.toLowerCase()) {
+						i_value += day_name.length;
+						break;
+					}
+				}
+			}
+			else if (token=="MM"||token=="M") {
+				month=this.getInt(value,i_value,token.length,2);
+				if(month==null||(month<1)||(month>12)){
+					return null;
+				}
+				i_value+=month.length;
+			}
+			else if (token=="dd"||token=="d") {
+				date=this.getInt(value,i_value,token.length,2);
+				if(date==null||(date<1)||(date>31)){
+					return null;
+				}
+				i_value+=date.length;
+			}
+			else if (token=="hh"||token=="h") {
+				hh=this.getInt(value,i_value,token.length,2);
+				if(hh==null||(hh<1)||(hh>12)){
+					return null;
+				}
+				i_value+=hh.length;
+			}
+			else if (token=="HH"||token=="H") {
+				hh=this.getInt(value,i_value,token.length,2);
+				if(hh==null||(hh<0)||(hh>23)){
+					return null;
+				}
+				i_value+=hh.length;
+			}
+			else if (token=="KK"||token=="K") {
+				hh=this.getInt(value,i_value,token.length,2);
+				if(hh==null||(hh<0)||(hh>11)){
+					return null;
+				}
+				i_value+=hh.length;
+				hh++;
+			}
+			else if (token=="kk"||token=="k") {
+				hh=this.getInt(value,i_value,token.length,2);
+				if(hh==null||(hh<1)||(hh>24)){
+					return null;
+				}
+				i_value+=hh.length;
+				hh--;
+			}
+			else if (token=="mm"||token=="m") {
+				mm=this.getInt(value,i_value,token.length,2);
+				if(mm==null||(mm<0)||(mm>59)){
+					return null;
+				}
+				i_value+=mm.length;
+			}
+			else if (token=="ss"||token=="s") {
+				ss=this.getInt(value,i_value,token.length,2);
+				if(ss==null||(ss<0)||(ss>59)){
+					return null;
+				}
+				i_value+=ss.length;
+			}
+			else if (token=="a") {
+				if (value.substring(i_value,i_value+2).toLowerCase()=="am") {
+					ampm="AM";
+				}
+				else if (value.substring(i_value,i_value+2).toLowerCase()=="pm") {
+					ampm="PM";
+				}
+				else {
+					return null;
+				}
+				i_value+=2;
+			}
+			else {
+				if (value.substring(i_value,i_value+token.length)!=token) {
+					return null;
+				}
+				else {
+					i_value+=token.length;
+				}
+			}
+		}
+		// If there are any trailing characters left in the value, it doesn't match
+		if (i_value != value.length) { 
+			return null; 
+		}
+		// Is date valueid for month?
+		if (month==2) {
+			// Check for leap year
+			if ( ( (year%4==0)&&(year%100 != 0) ) || (year%400==0) ) { // leap year
+				if (date > 29){ 
+					return null; 
+				}
+			}
+			else { 
+				if (date > 28) { 
+					return null; 
+				} 
+			}
+		}
+		if ((month==4)||(month==6)||(month==9)||(month==11)) {
+			if (date > 30) { 
+				return null; 
+			}
+		}
+		// Correct hours value
+		if (hh<12 && ampm=="PM") {
+			hh=hh-0+12; 
+		}
+		else if (hh>11 && ampm=="AM") { 
+			hh-=12; 
+		}
+		return new Date(year,month-1,date,hh,mm,ss);
+	};
+	
+	this.format = function(date,format) 
+	{
+		format=format+"";
+		var result="";
+		var i_format=0;
+		var c="";
+		var token="";
+		var y=date.getYear()+"";
+		var M=date.getMonth()+1;
+		var d=date.getDate();
+		var E=date.getDay();
+		var H=date.getHours();
+		var m=date.getMinutes();
+		var s=date.getSeconds();
+		var yyyy,yy,MMM,MM,dd,hh,h,mm,ss,ampm,HH,H,KK,K,kk,k;
+		// Convert real date parts into formatted versions
+		var value=new Object();
+		if (y.length < 4) {
+			y=""+(+y+1900);
+		}
+		value["y"]=""+y;
+		value["yyyy"]=y;
+		value["yy"]=y.substring(2,4);
+		value["M"]=M;
+		value["MM"]=this.appendZero(M);
+		value["MMM"]=this.monthNames[M-1];
+		value["NNN"]=this.monthAbbreviations[M-1];
+		value["d"]=d;
+		value["dd"]=this.appendZero(d);
+		value["E"]=this.dayAbbreviations[E];
+		value["EE"]=this.dayNames[E];
+		value["H"]=H;
+		value["HH"]=this.appendZero(H);
+		if (H==0){
+			value["h"]=12;
+		}
+		else if (H>12){
+			value["h"]=H-12;
+		}
+		else {
+			value["h"]=H;
+		}
+		value["hh"]=this.appendZero(value["h"]);
+		value["K"]=value["h"]-1;
+		value["k"]=value["H"]+1;
+		value["KK"]=this.appendZero(value["K"]);
+		value["kk"]=this.appendZero(value["k"]);
+		if (H > 11) { 
+			value["a"]="PM"; 
+		}
+		else { 
+			value["a"]="AM"; 
+		}
+		value["m"]=m;
+		value["mm"]=this.appendZero(m);
+		value["s"]=s;
+		value["ss"]=this.appendZero(s);
+		while (i_format < format.length) {
+			c=format.charAt(i_format);
+			token="";
+			while ((format.charAt(i_format)==c) && (i_format < format.length)) {
+				token += format.charAt(i_format++);
+			}
+			if (typeof(value[token])!="undefined") { 
+				result=result + value[token]; 
+			}
+			else { 
+				result=result + token; 
+			}
+		}
+		return result;
+	};
+	
+	this.clearTime = function(date)
+	{
+		if(date)
+		{
+			date.setHours(0); 
+			date.setMinutes(0);
+			date.setSeconds(0); 
+			date.setMilliseconds(0);
+		}
+		return date;
+	};
+	
+	this.isInteger = function(value) 
+	{
+		for (var i=0; i < value.length; i++) 
+		{
+			if ("1234567890".indexOf(value.charAt(i))==-1) 
+			{ 
+				return false; 
+			}
+		}
+		return true;
+	};
+	
+	this.getInt = function(str,i,minlength,maxlength) 
+	{
+		for (var x=maxlength; x>=minlength; x--) 
+		{
+			var token=str.substring(i,i+x);
+			if (token.length < minlength) 
+			{ 
+				return null; 
+			}
+			if (this.isInteger(token)) 
+			{ 
+				return token; 
+			}
 		}
 		return null;
 	};
 	
-	NSDatePicker.prototype.setSelectedDate = function(date,format) 
+	this.appendZero = function(value) 
 	{
-		this.__selectedDate = this.__formatInputDate(date,format);
-		this.__updateDays(this.__selectedDate);
+		return(value < 0||value > 9?"":"0") + value;
 	};
-	
-	NSDatePicker.prototype.setYear = function(year) 
-	{
-		this.__cmbYear.selectedIndex = this.__cmbYear.querySelector('option[value="'+ year +'"]').index;
-		this.__dropDownChangeHandler();
-		this.__cmbMonth.selectedIndex = monthDate.getMonth();
-	};
-	
-	NSDatePicker.prototype.setMonth = function(month) 
-	{
-		this.__cmbMonth.selectedIndex = month;
-		this.__dropDownChangeHandler();
-	};
-	
-	NSDatePicker.prototype.__setSetting = function()
-	{
-		if(!this.__setting)
-		{
-			this.__setting = {};
-		}
-		var setting = this.__setting;
-		if(setting)
-		{
-			if(setting.hasOwnProperty("context"))
-			{
-				this.__context = setting["context"];
-			}
-			if(setting.hasOwnProperty("inputFormat"))
-			{
-				this.__inputFormat = setting["inputFormat"];
-			}
-			if(setting.hasOwnProperty("placeHolder"))
-			{
-				this.__placeHolder = setting["placeHolder"];
-			}
-			if(setting.hasOwnProperty("buttonHtml"))
-			{
-				this.__buttonHtml = setting["buttonHtml"];
-			}
-			if(setting.hasOwnProperty("theme"))
-			{
-				this.__theme = setting["theme"];
-			}
-			var customClass = {};
-			if(setting.hasOwnProperty("customClass"))
-			{
-				customClass = setting["customClass"];
-			}
-			if(!customClass)
-			{
-				customClass = {};
-			}
-			for(var prop in this.__customClass)
-			{
-				this.__customClass[prop] = (customClass[prop] || null);
-			}
-		}
-	};
-	
-	NSDatePicker.prototype.__initDefault = function()
-	{
-		if(!this.__buttonHtml)
-		{
-			this.__buttonHtml = "<svg version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" \r\n" + 
-								"	 width=\"16px\" height=\"16px\" viewBox=\"0 0 36.447 36.447\" >\r\n" + 
-								"<g>\r\n" + 
-								"	<g>\r\n" + 
-								"		<path d=\"M30.224,3.948h-1.098V2.75c0-1.517-1.197-2.75-2.67-2.75c-1.474,0-2.67,1.233-2.67,2.75v1.197h-2.74V2.75\r\n" + 
-								"			c0-1.517-1.197-2.75-2.67-2.75c-1.473,0-2.67,1.233-2.67,2.75v1.197h-2.74V2.75c0-1.517-1.197-2.75-2.67-2.75\r\n" + 
-								"			c-1.473,0-2.67,1.233-2.67,2.75v1.197H6.224c-2.343,0-4.25,1.907-4.25,4.25v24c0,2.343,1.907,4.25,4.25,4.25h24\r\n" + 
-								"			c2.344,0,4.25-1.907,4.25-4.25v-24C34.474,5.855,32.567,3.948,30.224,3.948z M25.286,2.75c0-0.689,0.525-1.25,1.17-1.25\r\n" + 
-								"			c0.646,0,1.17,0.561,1.17,1.25v4.896c0,0.689-0.524,1.25-1.17,1.25c-0.645,0-1.17-0.561-1.17-1.25V2.75z M17.206,2.75\r\n" + 
-								"			c0-0.689,0.525-1.25,1.17-1.25s1.17,0.561,1.17,1.25v4.896c0,0.689-0.525,1.25-1.17,1.25s-1.17-0.561-1.17-1.25V2.75z M9.125,2.75\r\n" + 
-								"			c0-0.689,0.525-1.25,1.17-1.25s1.17,0.561,1.17,1.25v4.896c0,0.689-0.525,1.25-1.17,1.25s-1.17-0.561-1.17-1.25V2.75z\r\n" + 
-								"			 M31.974,32.198c0,0.965-0.785,1.75-1.75,1.75h-24c-0.965,0-1.75-0.785-1.75-1.75v-22h27.5V32.198z\"/>\r\n" + 
-								"		<rect x=\"6.724\" y=\"14.626\" width=\"4.595\" height=\"4.089\"/>\r\n" + 
-								"		<rect x=\"12.857\" y=\"14.626\" width=\"4.596\" height=\"4.089\"/>\r\n" + 
-								"		<rect x=\"18.995\" y=\"14.626\" width=\"4.595\" height=\"4.089\"/>\r\n" + 
-								"		<rect x=\"25.128\" y=\"14.626\" width=\"4.596\" height=\"4.089\"/>\r\n" + 
-								"		<rect x=\"6.724\" y=\"20.084\" width=\"4.595\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"12.857\" y=\"20.084\" width=\"4.596\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"18.995\" y=\"20.084\" width=\"4.595\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"25.128\" y=\"20.084\" width=\"4.596\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"6.724\" y=\"25.54\" width=\"4.595\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"12.857\" y=\"25.54\" width=\"4.596\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"18.995\" y=\"25.54\" width=\"4.595\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"25.128\" y=\"25.54\" width=\"4.596\" height=\"4.086\"/>\r\n" + 
-								"	</g>\r\n" + 
-								"</g>\r\n" + 
-								"</svg>";
-		}
-	};
-	
-	NSDatePicker.prototype.__createComponent = function()
-	{
-		this.util.addStyleClass(this.__baseComponent,"nsDatePicker");
-		this.__applyTheme(this.__baseComponent,"nsDatePicker");
-		this.__divContainer = this.util.createDiv(this.getID() + "container","nsDatePickerContainer");
-		this.__applyCustomClass(this.__divContainer,"container");
-		this.__baseComponent.appendChild(this.__divContainer);
-		this.__txtBox = this.util.createElement("input",this.getID() + "input","nsDatePickerTextBox");
-		this.__applyCustomClass(this.__txtBox,"textInput");
-		if(this.__placeHolder)
-		{
-			this.__txtBox.setAttribute("placeholder",this.__placeHolder);
-		}
-		this.__divContainer.appendChild(this.__txtBox);
-		this.__divCalContainer = this.util.createDiv(this.getID() + "calContainer","nsDatePickerCalContainer");
-		this.__divContainer.appendChild(this.__divCalContainer);
-		//this.__createCalendar(this.__divContainer);
-		this.__btnActivate = this.util.createElement("button",this.getID() + "button","nsDatePickerButton");
-		this.__applyCustomClass(this.__txtBox,"button");
-		this.__btnActivate.innerHtml = this.__buttonHtml;
-		this.util.addEvent(this.__btnActivate,"click",this.__btnActivateClickHandler.bind(this));
-		this.__divContainer.appendChild(this.__btnActivate);
-	};
-	
-	NSDatePicker.prototype.__createCalendar = function(parent)
-	{
-		if(!this.__nsCalendar)
-		{
-			var setting =  this.util.cloneObject(this.__setting,true);
-			setting.customClass = {};
-			for(var prop in this.__customClass)
-			{
-				if(prop.startsWith("cal"))
-				{
-					var tempProp = prop.substring(3);
-					tempProp = tempProp.charAt(0).toLowerCase() + tempProp.slice(1);
-					setting.customClass[tempProp] = this.__customClass[prop];
-				}
-			}
-			this.__nsCalendar = new NSCalendar(parent,setting);
-		}
-	};
-	
-	NSDatePicker.prototype.__btnActivateClickHandler = function(event)
-	{
-	};
-	
-	NSDatePicker.prototype.__applyCustomClass = function(element,type)
-	{
-		if(element && type && this.__customClass[type])
-		{
-			this.util.addStyleClass(element,this.__customClass[type]);
-		}
-	};
-	
-	NSDatePicker.DATE_SELECTED = "dateSelected";
-	
-	return NSDatePicker;
-})();
-(function(root,name,prototype)
-{
-   if (typeof define === "function" && define.amd)
-   {
-   	define(name, function () {return prototype;});
-   }
-   else if (typeof module !== 'undefined' && module.exports)
-   {
-   	module.exports = prototype;
-   }
-   else
-   {
-   	root[name] = prototype;
-   }
-})(this,"NSDatePicker",NSDatePicker);
+};
