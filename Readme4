@@ -1,405 +1,221 @@
-var NSDatePicker = (function()
-{
-	function NSDatePicker(component,setting) 
-	{
-		this.__setting = setting;
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Date Picker Demo</title>
+	<meta content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' name='viewport'>
+	<style>
+		body,html
+		{
+			margin:0px;
+			padding:0px;
+			height:100%;
+			background:#FFFFFF;
+		}
+		.container
+		{
+			width:100%;
+			height:40%;
+			flex: 1 1 auto;
+    		padding-left: 25px;
+    		padding-top: 50px;
+		}
+		.calFooter
+		{
+			
+		}
+	</style>
+	
+	<link href="../lib/css/com/org/component.css" rel="stylesheet">
+	<link href="../lib/css/com/org/nsCalendar.css" rel="stylesheet">
+	<link href="../lib/css/com/org/nsDatePicker.css" rel="stylesheet">
+	<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.css" rel="stylesheet">
+	<link href="http://fontawesome.io/3.2.1/assets/font-awesome/css/font-awesome.css" rel="stylesheet">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.css">
+	<script src="../lib/com/org/util/nsUtil.js"></script>
+	<script src="../lib/com/org/util/nsDateUtil.js"></script>
+	<script src="../lib/com/org/util/nsSVG.js"></script>
+	<script src="../lib/com/org/prototype/base/nsContainerBase.js"></script>
+	<script src="../lib/com/org/prototype/nsCalendar.js"></script>
+	<script src="../lib/com/org/prototype/nsDatePicker.js"></script>
+ </head>
+ 
+<body onload="initialize()">
+	<div class="container">
+		<div style="display: inline-block;width:33%;">
+			<p> Basic Date Picker</p>
+			<div id="divSimple">
+			</div>
+			<div id="divSimpleSelectedDate" style="height:30px;">
+			</div>
+		</div>
+		<div style="display: inline-block;width:33%;">
+			<p>Date Picker with Min Max date</p>
+			<div id="divMinMax">
+			</div>
+			<div id="divMinMaxSelectedDate" style="height:30px;">
+			</div>
+		</div>
+		<div style="display: inline-block;width:33%;">
+			<p>Calendar with Disabled Date (date less than today is disabled)</p>
+			<div id="divCalDisabled">
+			</div>
+			<div id="divCalDisabledSelectedDate" style="height:30px;">
+			</div>
+		</div>
+	</div>
+	<div class="container">
+		<div style="display: inline-block;width:33%;">
+			<p>Date Picker with Disabled Textbox</p>
+			<div id="divDisabledTextBox">
+			</div>
+			<div id="divDisabledTextBoxSelectedDate" style="height:30px;">
+			</div>
+		</div>
+		<div style="display: inline-block;width:33%;">
+			<p>Date Picker with Custom Button</p>
+			<div id="divCustomButton">
+			</div>
+			<div id="divCustomButtonSelectedDate" style="height:30px;">
+			</div>
+		</div>
+		<div style="display: inline-block;width:33%;">
+			<p>Date Picker With Footer</p>
+			<div id="divFooterCal">
+			</div>
+			<div id="divFooterCalSelectedDate" style="height:30px;">
+			</div>
+		</div>
+	</div>
+	
+	
+	<script>
+		var util = null;
+		function initialize()
+		{
+			util = new NSUtil();
+			initailizeSimpleCal();
+			initailizeMinMaxCal();
+			initailizeDisabledCal();
+			initailizeDisabledTextBox();
+			initailizeCustomButton();
+			initailizeFooterCal();
+		}
 		
-		this.__context = window;
-		this.__dateOutputFormat = "MM/dd/yyyy";
-		this.__placeHolder = null;
-		this.__buttonHtml = null;
-		this.__enableTextBoxDisabled = false;
-		this.__customClass = {container:null,textInput:null,button:null,calContainer:null,calHeaderContainer:null,calPrevButton:null,calNextButton:null,calMonthDropdown:null,calYearDropdown:null,calWeekContainer:null,calWeek:null,calDayContainer:null,calDay:null,calFooterContainer:null};
+		function initailizeSimpleCal()
+		{
+			var divSimple = document.querySelector("#divSimple");
+			var nsDatePicker = new NSDatePicker(divSimple);
+			util.addEvent(divSimple,NSDatePicker.DATE_SELECTED,function(event)
+					{
+						console.log(event.detail);
+						var divSimpleCalSelectedDate = document.querySelector("#divSimpleSelectedDate");
+						divSimpleCalSelectedDate.innerHTML = event.detail;
+					});
+		}
 		
-		this.__divContainer = null;
-		this.__txtBox = null;
-		this.__btnActivate = null;
-		this.__divCalContainer = null;
+		function initailizeMinMaxCal()
+		{
+			var divMinMax = document.querySelector("#divMinMax");
+			var minDate = "02/10/2007";
+			var maxDate = "11/10/2020";
+			var inputDateFormat = "MM/dd/yyyy";
+			var setting = {inputDateFormat:inputDateFormat,minDate:minDate,maxDate:maxDate};
+			var nsDatePicker = new NSDatePicker(divMinMax,setting);
+			util.addEvent(divMinMax,NSDatePicker.DATE_SELECTED,function(event)
+					{
+						console.log(event.detail);
+						var divMinMaxSelectedDate = document.querySelector("#divMinMaxSelectedDate");
+						divMinMaxSelectedDate.innerHTML = event.detail;
+					});
+		}
 		
-		this.__nsCalendar = null;
-		
-		this.__documentMouseDownRef = null;
-		
-		this.base.__setBaseComponent.call(this,component);
-	};
-	nsExtendPrototype(NSContainerBase,NSDatePicker);
-	NSDatePicker.prototype.constructor = NSDatePicker;
-	
-	NSDatePicker.prototype.initializeComponent = function() 
-	{
-		this.base.initializeComponent.call(this);
-		this.__setSetting();
-		this.__initDefault();
-		this.__createComponent();
-	};
-	
-	NSDatePicker.prototype.setComponentProperties = function() 
-	{
-		this.base.setComponentProperties.call(this);
-	};
-	
-	NSDatePicker.prototype.propertyChange = function(attrName, oldVal, newVal, setProperty)
-	{
-		var attributeName = attrName.toLowerCase();
-		this.base.propertyChange.call(this,attrName, oldVal, newVal, setProperty);
-	};
-	
-	NSDatePicker.prototype.removeComponent = function() 
-	{
-		this.__removeDocumentMosueHandler();
-		this.base.removeComponent.call(this);
-	};
-	
-	NSDatePicker.prototype.componentResized = function(event) 
-	{
-		this.__hideCalendar();
-		this.base.componentResized.call(this,event);
-	};
-	
-	NSDatePicker.prototype.getSelectedDate = function() 
-	{
-		if(this.__nsCalendar)
+		function initailizeDisabledCal()
 		{
-			return this.__nsCalendar.getSelectedDate();
-		}
-		return null;
-	};
-	
-	NSDatePicker.prototype.getSelectedDateAsString = function(format) 
-	{
-		if(this.__nsCalendar)
-		{
-			return this.__nsCalendar.getSelectedDateAsString(format);
-		}
-		return null;
-	};
-	
-	NSDatePicker.prototype.setSelectedDate = function(date,format) 
-	{
-		if(this.__nsCalendar)
-		{
-			this.__nsCalendar.setSelectedDate(date,format);
-		}
-	};
-	
-	NSDatePicker.prototype.setYear = function(year) 
-	{
-		if(this.__nsCalendar)
-		{
-			this.__nsCalendar.setYear(year);
-		}
-	};
-	
-	NSDatePicker.prototype.setMonth = function(month) 
-	{
-		if(this.__nsCalendar)
-		{
-			this.__nsCalendar.setMonth(month);
-		}
-	};
-	
-	NSDatePicker.prototype.reset = function() 
-	{
-		if(this.__nsCalendar)
-		{
-			this.__nsCalendar.reset();
-		}
-		this.__setTextInput();
-	};
-	
-	NSDatePicker.prototype.setTodayDate = function() 
-	{
-		if(this.__nsCalendar)
-		{
-			this.__nsCalendar.setTodayDate();
-		}
-		this.__setTextInput(new Date());
-	};
-	
-	NSDatePicker.prototype.showCalendar = function() 
-	{
-		this.__showCalendar();
-	};
-	
-	NSDatePicker.prototype.closeCalendar = function() 
-	{
-		this.__hideCalendar();
-	};
-	
-	NSDatePicker.prototype.toggleCalendarVisibility = function() 
-	{
-		this.__toggleCalendarVisibility();
-	};
-	
-	NSDatePicker.prototype.getCalendar = function() 
-	{
-		return this.__nsCalendar;
-	};
-	
-	NSDatePicker.prototype.getTextBox = function() 
-	{
-		return this.__txtBox;
-	};
-	
-	NSDatePicker.prototype.__setSetting = function()
-	{
-		if(!this.__setting)
-		{
-			this.__setting = {};
-		}
-		var setting = this.__setting;
-		if(setting)
-		{
-			if(setting.hasOwnProperty("context"))
-			{
-				this.__context = setting["context"];
-			}
-			if(setting.hasOwnProperty("dateOutputFormat"))
-			{
-				this.__dateOutputFormat = setting["dateOutputFormat"];
-			}
-			if(setting.hasOwnProperty("placeHolder"))
-			{
-				this.__placeHolder = setting["placeHolder"];
-			}
-			if(setting.hasOwnProperty("buttonHtml"))
-			{
-				this.__buttonHtml = setting["buttonHtml"];
-			}
-			if(setting.hasOwnProperty("enableTextBoxDisabled"))
-			{
-				this.__enableTextBoxDisabled = Boolean.parse(setting["enableTextBoxDisabled"]);
-			}
-			if(setting.hasOwnProperty("theme"))
-			{
-				this.__theme = setting["theme"];
-			}
-			var customClass = {};
-			if(setting.hasOwnProperty("customClass"))
-			{
-				customClass = setting["customClass"];
-			}
-			if(!customClass)
-			{
-				customClass = {};
-			}
-			for(var prop in this.__customClass)
-			{
-				this.__customClass[prop] = (customClass[prop] || null);
-			}
-		}
-	};
-	
-	NSDatePicker.prototype.__initDefault = function()
-	{
-		if(!this.__buttonHtml)
-		{
-			this.__buttonHtml = "<svg version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" \r\n" + 
-								"	 width=\"16px\" height=\"16px\" viewBox=\"0 0 36.447 36.447\" >\r\n" + 
-								"<g>\r\n" + 
-								"	<g>\r\n" + 
-								"		<path d=\"M30.224,3.948h-1.098V2.75c0-1.517-1.197-2.75-2.67-2.75c-1.474,0-2.67,1.233-2.67,2.75v1.197h-2.74V2.75\r\n" + 
-								"			c0-1.517-1.197-2.75-2.67-2.75c-1.473,0-2.67,1.233-2.67,2.75v1.197h-2.74V2.75c0-1.517-1.197-2.75-2.67-2.75\r\n" + 
-								"			c-1.473,0-2.67,1.233-2.67,2.75v1.197H6.224c-2.343,0-4.25,1.907-4.25,4.25v24c0,2.343,1.907,4.25,4.25,4.25h24\r\n" + 
-								"			c2.344,0,4.25-1.907,4.25-4.25v-24C34.474,5.855,32.567,3.948,30.224,3.948z M25.286,2.75c0-0.689,0.525-1.25,1.17-1.25\r\n" + 
-								"			c0.646,0,1.17,0.561,1.17,1.25v4.896c0,0.689-0.524,1.25-1.17,1.25c-0.645,0-1.17-0.561-1.17-1.25V2.75z M17.206,2.75\r\n" + 
-								"			c0-0.689,0.525-1.25,1.17-1.25s1.17,0.561,1.17,1.25v4.896c0,0.689-0.525,1.25-1.17,1.25s-1.17-0.561-1.17-1.25V2.75z M9.125,2.75\r\n" + 
-								"			c0-0.689,0.525-1.25,1.17-1.25s1.17,0.561,1.17,1.25v4.896c0,0.689-0.525,1.25-1.17,1.25s-1.17-0.561-1.17-1.25V2.75z\r\n" + 
-								"			 M31.974,32.198c0,0.965-0.785,1.75-1.75,1.75h-24c-0.965,0-1.75-0.785-1.75-1.75v-22h27.5V32.198z\"/>\r\n" + 
-								"		<rect x=\"6.724\" y=\"14.626\" width=\"4.595\" height=\"4.089\"/>\r\n" + 
-								"		<rect x=\"12.857\" y=\"14.626\" width=\"4.596\" height=\"4.089\"/>\r\n" + 
-								"		<rect x=\"18.995\" y=\"14.626\" width=\"4.595\" height=\"4.089\"/>\r\n" + 
-								"		<rect x=\"25.128\" y=\"14.626\" width=\"4.596\" height=\"4.089\"/>\r\n" + 
-								"		<rect x=\"6.724\" y=\"20.084\" width=\"4.595\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"12.857\" y=\"20.084\" width=\"4.596\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"18.995\" y=\"20.084\" width=\"4.595\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"25.128\" y=\"20.084\" width=\"4.596\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"6.724\" y=\"25.54\" width=\"4.595\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"12.857\" y=\"25.54\" width=\"4.596\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"18.995\" y=\"25.54\" width=\"4.595\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"25.128\" y=\"25.54\" width=\"4.596\" height=\"4.086\"/>\r\n" + 
-								"	</g>\r\n" + 
-								"</g>\r\n" + 
-								"</svg>";
-		}
-	};
-	
-	NSDatePicker.prototype.__createComponent = function()
-	{
-		this.util.addStyleClass(this.__baseComponent,"nsDatePicker");
-		this.__applyTheme(this.__baseComponent,"nsDatePicker");
-		this.__divContainer = this.util.createDiv(this.getID() + "container","nsDatePickerContainer");
-		this.__applyCustomClass(this.__divContainer,"container");
-		this.__baseComponent.appendChild(this.__divContainer);
-		this.__txtBox = this.util.createElement("input",this.getID() + "input","nsDatePickerTextBox");
-		this.__applyCustomClass(this.__txtBox,"textInput");
-		if(this.__placeHolder)
-		{
-			this.__txtBox.setAttribute("placeholder",this.__placeHolder);
-		}
-		if(this.__enableTextBoxDisabled)
-		{
-			this.__txtBox.setAttribute("readOnly",true);
-			this.util.addStyleClass(this.__txtBox,"nsDatePickerTextBoxDisabled");
-		}
-		else
-		{
-			this.util.addEvent(this.__txtBox,"keyup",this.__txtBoxKeyHandler.bind(this));
-		}
-		this.__divContainer.appendChild(this.__txtBox);
-		this.__divCalContainer = this.util.createDiv(this.getID() + "calContainer","nsDatePickerCalContainer");
-		this.__divContainer.appendChild(this.__divCalContainer);
-		this.__createCalendar(this.__divCalContainer);
-		this.__btnActivate = this.util.createElement("button",this.getID() + "button","nsDatePickerButton");
-		this.__applyCustomClass(this.__txtBox,"button");
-		this.__btnActivate.innerHTML = this.__buttonHtml;
-		this.util.addEvent(this.__btnActivate,"click",this.__btnActivateClickHandler.bind(this));
-		this.__divContainer.appendChild(this.__btnActivate);
-	};
-	
-	NSDatePicker.prototype.__createCalendar = function(parent)
-	{
-		if(!this.__nsCalendar)
-		{
-			var setting =  this.util.cloneObject(this.__setting);
-			setting.customClass = {};
-			for(var prop in this.__customClass)
-			{
-				if(prop.startsWith("cal"))
+			var divCalDisabled = document.querySelector("#divCalDisabled");
+			var setting = {markDayDisabled:function(date){
+				var todayDate = new Date();
+				if(date < todayDate)
 				{
-					var tempProp = prop.substring(3);
-					tempProp = tempProp.charAt(0).toLowerCase() + tempProp.slice(1);
-					setting.customClass[tempProp] = this.__customClass[prop];
+					return false;
 				}
-			}
-			this.__nsCalendar = new NSCalendar(parent,setting);
-			this.util.addEvent(parent,NSCalendar.DATE_SELECTED,this.__dateSelectedHandler.bind(this));
+				return true;
+			}};
+			var nsDatePicker = new NSDatePicker(divCalDisabled,setting);
+			util.addEvent(divCalDisabled,NSDatePicker.DATE_SELECTED,function(event)
+					{
+						console.log(event.detail);
+						var divMinMaxSelectedDate = document.querySelector("#divMinMaxSelectedDate");
+						divCalDisabledSelectedDate.innerHTML = event.detail;
+					});
 		}
-	};
-	
-	NSDatePicker.prototype.__btnActivateClickHandler = function(event)
-	{
-		this.__toggleCalendarVisibility();
-	};
-	
-	NSDatePicker.prototype.__txtBoxKeyHandler = function(event)
-	{
-		var strDate = this.__txtBox.value;
-		var nsDateUtil = new NSDateUtil(); 
-		var date = nsDateUtil.parseString(strDate,this.__dateOutputFormat);
-		if(date)
+		
+		function initailizeDisabledTextBox()
 		{
-			this.__nsCalendar.setSelectedDate(date);
+			var divDisabledTextBox = document.querySelector("#divDisabledTextBox");
+			var setting = {enableTextBoxDisabled:true};
+			var nsDatePicker = new NSDatePicker(divDisabledTextBox,setting);
+			util.addEvent(divDisabledTextBox,NSDatePicker.DATE_SELECTED,function(event)
+					{
+						console.log(event.detail);
+						var divDisabledTextBoxSelectedDate = document.querySelector("#divDisabledTextBoxSelectedDate");
+						divDisabledTextBoxSelectedDate.innerHTML = event.detail;
+					});
 		}
-	};
-	
-	NSDatePicker.prototype.__documentMouseDownHandler = function(event)
-	{
-		var target = this.util.getTarget(event);
-		var parent = this.util.findParentBySelector(target,".nsDatePickerContainer");
-		if(!parent)
+		
+		function initailizeCustomButton()
 		{
-			this.__hideCalendar();
+			var divCustomButton = document.querySelector("#divCustomButton");
+			var setting = {buttonHtml:"<i class='glyphicon glyphicon-calendar'></i>",placeHolder:"yyyy-mm-dd",dateOutputFormat:"yyyy-mm-dd"};
+			var nsDatePicker = new NSDatePicker(divCustomButton,setting);
+			util.addEvent(divCustomButton,NSDatePicker.DATE_SELECTED,function(event)
+					{
+						console.log(event.detail);
+						var divCustomButtonSelectedDate = document.querySelector("#divCustomButtonSelectedDate");
+						divCustomButtonSelectedDate.innerHTML = event.detail;
+					});
 		}
-	};
-	
-	NSDatePicker.prototype.__dateSelectedHandler = function(event)
-	{
-		var selectedDate = event.detail;
-		this.__setTextInput(selectedDate);
-		this.__hideCalendar();
-		this.util.dispatchEvent(this.__baseComponent,NSDatePicker.DATE_SELECTED,selectedDate,{date:selectedDate});
-	};
-	
-	NSDatePicker.prototype.__setTextInput = function(date)
-	{
-		if(date)
+		
+		function initailizeFooterCal()
 		{
-			var nsDateUtil = new NSDateUtil(); 
-			this.__txtBox.value = nsDateUtil.format(date,this.__dateOutputFormat);
+			var divFooterCal = document.querySelector("#divFooterCal");
+			var divFooter = document.createElement("div");
+			util.addStyleClass(divFooter,"calFooter");
+			var span = document.createElement("span");
+			util.addStyleClass(span,"btn-group pull-left");
+			var btnToday = document.createElement("button");
+			util.addStyleClass(btnToday,"btn btn-sm btn-info");
+			btnToday.onclick = function(){
+				nsDatePicker.setTodayDate();
+			};
+			/*btnToday.addEventListener("click",function(){
+				nsDatePicker.setTodayDate();
+			});*/
+			btnToday.innerHTML = "Today";
+			span.appendChild(btnToday);
+			var btnClear = document.createElement("button");
+			util.addStyleClass(btnClear,"btn btn-sm btn-danger");
+			btnClear.addEventListener("click",function(){
+				nsDatePicker.reset();
+			});
+			btnClear.innerHTML = "Clear";
+			span.appendChild(btnClear);
+			var btnClose = document.createElement("button");
+			util.addStyleClass(btnClose,"btn btn-sm btn-success pull-right");
+			btnClose.addEventListener("click",function(){
+				nsDatePicker.closeCalendar();
+			});
+			btnClose.innerHTML = "Close";
+			divFooter.appendChild(span);
+			divFooter.appendChild(btnClose);
+			var setting = {showFooter:true,footerContent:divFooter};
+			var nsDatePicker = new NSDatePicker(divFooterCal,setting);
+			util.addEvent(divFooterCal,NSDatePicker.DATE_SELECTED,function(event)
+					{
+						console.log(event.detail);
+						var divFooterCalSelectedDate = document.querySelector("#divFooterCalSelectedDate");
+						divFooterCalSelectedDate.innerHTML = event.detail;
+					});
 		}
-		else
-		{
-			this.__txtBox.value = "";
-		}
-	};
-	
-	NSDatePicker.prototype.__toggleCalendarVisibility = function()
-	{
-		if(this.__isCalendarVisible())
-		{
-			this.__hideCalendar();
-		}
-		else
-		{
-			this.__showCalendar();
-		}
-	};
-	
-	NSDatePicker.prototype.__showCalendar = function()
-	{
-		this.__nsCalendar.__clearCellSelectionExceptSelected();
-		this.util.addStyleClass(this.__divCalContainer,"nsDatePickerCalContainerVisible");
-		this.__addDocumentMosueHandler();
-		this.util.dispatchEvent(this.__baseComponent,NSDatePicker.CALENDAR_OPENED);
-	};
-	
-	NSDatePicker.prototype.__hideCalendar = function()
-	{
-		this.util.removeStyleClass(this.__divCalContainer,"nsDatePickerCalContainerVisible");
-		this.__removeDocumentMosueHandler();
-		this.util.dispatchEvent(this.__baseComponent,NSDatePicker.CALENDAR_CLOSED);
-	};
-	
-	NSDatePicker.prototype.__addDocumentMosueHandler = function()
-	{
-		if(!this.__documentMouseDownRef)
-		{
-			this.__documentMouseDownRef = this.__documentMouseDownHandler.bind(this);
-			this.util.addEvent(document,"mousedown",this.__documentMouseDownRef);
-		}
-	};
-	
-	NSDatePicker.prototype.__removeDocumentMosueHandler = function()
-	{
-		if(this.__documentMouseDownRef)
-		{
-			this.util.removeEvent(document,"mousedown",this.__documentMouseDownRef);
-			this.__documentMouseDownRef = null;
-		}
-	};
-	
-	NSDatePicker.prototype.__isCalendarVisible = function()
-	{
-		return this.util.hasStyleClass(this.__divCalContainer,"nsDatePickerCalContainerVisible");
-	};
-	
-	NSDatePicker.prototype.__applyCustomClass = function(element,type)
-	{
-		if(element && type && this.__customClass[type])
-		{
-			this.util.addStyleClass(element,this.__customClass[type]);
-		}
-	};
-	
-	NSDatePicker.CALENDAR_OPENED = "calendarOpened";
-	NSDatePicker.CALENDAR_CLOSED = "calendarClosed";
-	NSDatePicker.DATE_SELECTED = "dateSelected";
-	
-	return NSDatePicker;
-})();
-(function(root,name,prototype)
-{
-   if (typeof define === "function" && define.amd)
-   {
-   	define(name, function () {return prototype;});
-   }
-   else if (typeof module !== 'undefined' && module.exports)
-   {
-   	module.exports = prototype;
-   }
-   else
-   {
-   	root[name] = prototype;
-   }
-})(this,"NSDatePicker",NSDatePicker);
+	</script>
+</body>
