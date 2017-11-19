@@ -1,64 +1,44 @@
-this.__showFooter = false;
-		this.__footerContent = null;
-		
-		NSCalendar.prototype.reset = function() 
+NSGrid.prototype.__setColumnVisibility = function(index,isVisible,item)
 	{
-		this.__selectedDate = null;
-		this.__updateDays(new Date());
-	};
-	
-	NSCalendar.prototype.setTodayDate = function() 
-	{
-		this.__selectedDate = new Date();
-		this.__updateDays(this.__selectedDate);
-	};
-	if(setting.hasOwnProperty("showFooter"))
-			{
-				this.__showFooter = Boolean.parse(setting["showFooter"]);
-			}
-			if(setting.hasOwnProperty("footerContent"))
-			{
-				this.__footerContent = setting["footerContent"];
-			}
-			if(this.__showFooter)
+		var headerColGroupID = null;
+		var bodyColGroupID = null;
+		var objColumn = null;
+		if(item)
 		{
-			this.__createFooter();
-			this.__baseComponent.appendChild(this.__divFooterContainer);
+			if(this.util.isString(item))
+			{
+				objColumn = this.__getColumnObjectByDataField(item);
+			}
+			else if(this.util.isNumber(item))
+			{
+				objColumn = this.__getColumnObject(item);
+			}
+			else
+			{
+				objColumn = item;
+			}
+			if(objColumn)
+			{
+				headerColGroupID = this.getID() + "HeaderColGroup" + objColumn.dataField;
+				bodyColGroupID = this.getID() + "BodyColGroup" + objColumn.dataField;
+			}
 		}
-		
-		NSCalendar.prototype.__createFooter = function()
-	{
-		if(!this.__divFooterContainer)
+		if(isVisible)
 		{
-			this.__divFooterContainer = this.util.createDiv(this.getID() + "footer","nsCalendarFooterContainer");
-			this.__applyCustomClass(this.__divFooterContainer,"footerContainer");
-			if(this.__footerContent)
+			
+			this.util.removeCSSClassInDOM(["#" + this.getID() + " :nth-child(" + (index + 1) +").nsGridCell"]);
+			if(objColumn)
 			{
-				if(this.util.isString(this.__footerContent))
-				{
-					var compSpan = document.createElement("span");
-					compSpan.innerHTML = this.__footerContent;
-					this.__divFooterContainer.appendChild(compSpan);
-				}
-				else
-				{
-					this.__divFooterContainer.appendChild(this.__footerContent);
-				}
+				this.util.removeCSSClassInDOM(["#" + headerColGroupID + ", #" + bodyColGroupID]);
 			}
 			
 		}
-	};
-	NSCalendar.prototype.__clearCellSelectionExceptSelected = function() 
-	{
-		if(this.__arrDayCells && this.__arrDayCells.length > 0)
+		else
 		{
-			for(var count = 0;count < this.__arrDayCells.length;count++)
+			this.util.addCSSClassInDOM(["#" + this.getID() + " :nth-child(" + (index + 1) +").nsGridCell"],["display:none;"]);
+			if(objColumn)
 			{
-				item = this.__arrDayCells[count];
-				if(this.__lastSelectedCell != item.cell)
-				{
-					this.util.removeStyleClass(item.cell,"nsCalendarSelected");
-				}
+				this.util.addCSSClassInDOM(["#" + headerColGroupID + ", #" + bodyColGroupID],["display:none;"]);
 			}
 		}
 	};
