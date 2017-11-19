@@ -1,196 +1,374 @@
- <link href="/JSLib/lib/css/com/org/nsGrid.css" rel="stylesheet" type="text/css" />
- 
- <script src="/JSLib/lib/com/org/util/nsUtil.js"></script>
- <script src="/JSLib/lib/com/org/prototype/base/nsContainerBase.js"></script>
-  <script src="/JSLib/lib/com/org/util/nsFilter.js"></script>
- <script src="/JSLib/lib/com/org/prototype/nsList.js"></script>
- <script src="/JSLib/lib/com/org/prototype/nsTextBox.js"></script>
- 
-<script src="/JSLib/lib/com/org/util/nsPluggins.js"></script>
-<script src="/JSLib/lib/com/org/util/nsSVG.js"></script>
-<script src="/JSLib/lib/com/org/util/nsFlatGrid.js"></script>
-<script src="/JSLib/lib/com/org/util/nsGroupingGrid.js"></script>
-<script src="/JSLib/lib/com/org/util/nsHierarchicalGrid.js"></script>
-<script src="/JSLib/lib/com/org/util/nsGridPluggins.js"></script>
-<script src="/JSLib/lib/com/org/prototype/nsGrid.js"></script>
- 
- <style>
- 	
- </style>
- <style>
-  	.hbox 
-	{
-	  overflow-x:hidden;
-	  overflow-y:hidden;
-	}
+"use strict"; 
+/*  Taken from http://www.JavascriptToolbox.com but has been modified */
+function NSDateUtil() 
+{
+	this.__monthNames = new Array('January','February','March','April','May','June','July','August','September','October','November','December');
+	this.__monthNamesShort = new Array('Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec');
+	this.__dayNames = new Array('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday');
+	this.__dayNamesShort = new Array('Sun','Mon','Tue','Wed','Thu','Fri','Sat');
+	this.__dayNamesMini = new Array('Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa');
+	this.__dateFormat = "mm/dd/yyyy";
 	
-	.hbox > * 
-	{
-	  display: inline-block;
-	   vertical-align: middle;
-	  
-	}
-	.header 
-	{
-		position: relative;
-	    font-weight: bold;
-	    background: #808080;
-	    color: white;
-	    text-transform: uppercase;
-	    padding-left: 10px;
-	}
-	.header > * 
-	{
-  	  position: absolute;
-  	  top: 0; left: 0; bottom: 0; right: 0;
-	}
+	var self = this;
 	
-</style>
-</head>
-<body onload="loadHandler();">
-	<template id="templateDemo">
-			<div accessor-name="rendererBody" class="hbox" style="height:20px;">
-				<label accessor-name="label1"></label>
-				<label accessor-name="label2"></label>
-			</div>
-	</template>
-	<section>
-	  <h1>Autocomplete With List</h1>
-	  <label>
-	  	<span class="labelSpan">Single Selection:</span>
-	  	<div id="divSingleSelection" style="display:inline-block;"></div>
-	  </label> 
-	  <br/>
-	  <label>
-	  	<span class="labelSpan">Server Side Selection:</span>
-	  	<div id="divSingleServerSideSelection" style="display:inline-block;"></div>
-	  </label> 
-	  <br/>
-	  <label>
-	  	<span class="labelSpan">Multi Selection:</span>
-	  	<div id="divMultiSelection" style="display:inline-block;width:400px;"></div>
-	  </label>
-	</section>
-	<section>
-	  <h1>Autocomplete With Grid</h1>
-	  <label>
-	  	<span class="labelSpan">Single Selection:</span>
-	  	<div id="divSingleSelectionGrid" style="display:inline-block;"></div>
-	  </label> 
-	  <br/>
-	</section>
-	<section>
-	  <h1>Regex Supportive</h1>
-	  <div id="divRegex" style="display: inline-block;"></div> 
-	  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-	  <div id="divRegexChar" style="display: inline-block;width: 200px;"></div> 
-	</section>
-	<section>
-	  <h1>Min Character and Max Charater Support</h1>
-	  <span>
-	  	<form action="">
-			<div id="divMinMaxCharacter" style="display: inline-block;width: 200px;"></div>
-			<input type="submit" value="Submit" >
-		</form>
-		<label>
-			<span class="labelSpan">Min Chacater:</span>
-			<input id="txtMinCharacter" type="number" step="1" value="3">
-		</label>
-		<label>
-			<span class="labelSpan">Max Chacater:</span>
-			<input id="txtMaxCharacter" type="number" step="1" value="10">
-		</label>
-		<button id="btnMinMaxCharacter" onclick="applyMinMaxCharacter();">Apply</button>
-	  </span>
-	</section>
-	<section>
-	  <h1>Password</h1>
-	  <div id="divPassword" style="width: 200px;"></div> 
-	</section>
-	
-	
-	<script>
-	var nsTextBoxRegex = null;
-	var nsTextBoxCharRegex = null;
-	var nsTextBoxMinMaxCharacter = null;
-	var nsTextBoxPassword = null;
-	var nsTextBoxSingleSelection = null;
-	var nsTextBoxServerSideSingleSelection = null;
-	var nsTextBoxMultiSelection = null;
-	var nsTextBoxSingleSelectionGrid = null;
-	
-	function loadHandler()
+	this.format = function(date,format,settings)
 	{
-		/*var divRegex = document.getElementById("divRegex");
-		var settingRegex = {placeholder:"Please Enter Numbers Only",type:"text",styleClass:"nsTextBox",restrict:"^[0-9]+$"};	
-		nsTextBoxRegex = new NSTextBox(divRegex,settingRegex);
-		
-		var divRegexChar = document.getElementById("divRegexChar");
-		var settingCharRegex = {placeholder:"Please Enter Characters Only",type:"text",styleClass:"nsTextBox",restrict:"^[a-zA-Z]+$"};	
-		nsTextBoxCharRegex = new NSTextBox(divRegexChar,settingCharRegex);
-		
-		var divMinMaxCharacter = document.getElementById("divMinMaxCharacter");
-		var settingMinMaxCharacter = {placeholder:"Please Enter Character",type:"text",styleClass:"nsTextBox",minChars:3,maxChars:10,required:true,showCustomValidation:true};	
-		nsTextBoxMinMaxCharacter = new NSTextBox(divMinMaxCharacter,settingMinMaxCharacter);
-		
-		var divPassword = document.getElementById("divPassword");
-		var settingPassword = {placeholder:"Password",styleClass:"nsTextBox",displayAsPassword:true};	
-		nsTextBoxPassword = new NSTextBox(divPassword,settingPassword);
-		
-		var divSingleSelection = document.getElementById("divSingleSelection");
-		var dropDownSetting = {enableVirtualScroll:true,customScrollerRequired:false,enableMouseHoverAnimation:true};
-		var filterSetting = {caseSensitive:false,multiline:false,matchType:new NSFilter().STARTS_WITH};
-		var settingAutoComplete = {placeholder:"Search Countries",type:"autocomplete",listWidth:300,required:true,labelField:"name",minSearchStartChars:1,
-									enableMultipleSelection:false,enableKeyboardNavigation:true,showCustomValidation:false,
-									stopHoveringField:"stopOver",dropDownSetting:dropDownSetting,filterSetting:filterSetting,enableHighlighting:true,
-									dataSource:countries};
-		nsTextBoxSingleSelection = new NSTextBox(divSingleSelection,settingAutoComplete);
-		
-		var divMultiSelection = document.getElementById("divMultiSelection");
-		var settingMultiAutoComplete = {placeholder:"Search Countries",type:"autocomplete",listWidth:300,required:true,labelField:"name", 
-									enableMultipleSelection:true,enableKeyboardNavigation:true,customScrollerRequired:false,showCustomValidation:false,
-									stopHoveringField:"stopOver",dataSource:countries};
-		nsTextBoxMultiSelection = new NSTextBox(divMultiSelection,settingMultiAutoComplete);
-		
-		var divSingleServerSideSelection = document.getElementById("divSingleServerSideSelection");
-		var dropDownSetting = {enableVirtualScroll:false,customScrollerRequired:false,enableMouseHoverAnimation:true};
-		var filterSetting = {caseSensitive:false,multiline:false,matchType:new NSFilter().STARTS_WITH};
-		var settingServerAutoComplete = {enableServerSide:true,placeholder:"Search Countries",type:"autocomplete",listWidth:300,required:true,labelField:"name",minSearchStartChars:2,
-									enableMultipleSelection:false,enableKeyboardNavigation:true,showCustomValidation:false,
-									stopHoveringField:"stopOver",dropDownSetting:dropDownSetting,filterSetting:filterSetting,enableHighlighting:true,
-									serverSearchCallback:serverSearchCallback};
-		nsTextBoxServerSideSingleSelection = new NSTextBox(divSingleServerSideSelection,settingServerAutoComplete);*/
-		
-		var divSingleSelectionGrid = document.getElementById("divSingleSelectionGrid");
-		var column = [{headerText:"Name",dataField:"name",width:"200px"},
-     			      {headerText:"Code",dataField:"code",width:"100px"}
-     			     ];
-		var dropDownSetting = {columns:column,enableVirtualScroll:false,enableFilter:true,enableAdvancedFilter:true,enablePagination:false};
-		var filterSetting = {caseSensitive:false,multiline:false,matchType:new NSFilter().STARTS_WITH};
-		var settingAutoCompleteGrid = {placeholder:"Search Countries",type:"autocomplete",dropDownType:NSTextBox.DROPDOWN_TYPE_GRID,listWidth:300,required:true,labelField:"name",minSearchStartChars:1,
-									enableMultipleSelection:false,enableKeyboardNavigation:true,showCustomValidation:false,
-									stopHoveringField:"stopOver",dropDownSetting:dropDownSetting,filterSetting:filterSetting,enableHighlighting:true,
-									dataSource:countries};
-		nsTextBoxSingleSelectionGrid = new NSTextBox(divSingleSelectionGrid,settingAutoCompleteGrid);
-		
-	}
-	
-	function serverSearchCallback(searchString,filterSetting,enableHighlighting,searchRecordLimit)
-	{
-		if(searchString && searchString.length > 1)
+		var retValue = "";
+		if(date) 
 		{
-			var util= new NSUtil();
-			var setting =  {
-				method: "GET",
-				//url: "http://api.flickr.com/services/feeds/photos_public.gne",
-				url: "https://restcountries.eu/rest/v2/name/" + searchString,
-				dataType: "json",
-				successHandler: function(response){
-					var source = JSON.parse(response);
-					console.log(source);
-					nsTextBoxServerSideSingleSelection.dataSource(source);
+			format = format || self.__dateFormat;
+			settings = settings || {};
+			var monthNames = settings.monthNames || self.__monthNames;
+			var monthNamesShort = settings.monthNamesShort || self.__monthNamesShort;
+			var dayNames = settings.dayNames || self.__dayNames;
+			var dayNamesShort = settings.dayNamesShort || self.__dayNamesShort;
+			var objChar = getDateInFormat(date,monthNames,monthNamesShort,dayNames,dayNamesShort);
+			var index = 0;
+			var char = "";
+			var repeatedChar = "";
+			while (index < format.length) 
+			{
+				char = format.charAt(index);
+				repeatedChar = "";
+				while ((format.charAt(index) === char) && (index < format.length)) 
+				{
+					repeatedChar += format.charAt(index);
+					index++;
 				}
-			};
-			var ajax = new util.ajax(setting);
+				if (typeof(objChar[repeatedChar]) != "undefined") 
+				{ 
+					retValue = retValue + objChar[repeatedChar]; 
+				}
+				else 
+				{ 
+					retValue = retValue + repeatedChar; 
+				}
+			}
 		}
-	}
+		return retValue;
+	};
+	
+	this.parseString = function(value,format,settings)
+	{
+		format = format || this.__dateFormat;
+		settings = settings || {};
+		var monthNames = settings.monthNames || self.__monthNames;
+		var monthNamesShort = settings.monthNamesShort || self.__monthNamesShort;
+		var dayNames = settings.dayNames || self.__dayNames;
+		var dayNamesShort = settings.dayNamesShort || self.__dayNamesShort;
+		
+		var index = 0;
+		var indexValue = 0;
+		var char = "";
+		var repeatedChar = "";
+		var x,y;
+		var year = new Date().getFullYear();
+		var month = 1;
+		var date = 1;
+		var hh = 0;
+		var mm = 0;
+		var ss = 0;
+		var ampm="";
+		while (index < format.length) 
+		{
+			char = format.charAt(index);
+			repeatedChar = "";
+			while ((format.charAt(index) === char) && (index < format.length)) 
+			{
+				repeatedChar += format.charAt(index);
+				index++;
+			}
+			if (repeatedChar === "yyyy" || repeatedChar === "yy" || repeatedChar === "y") 
+			{
+				if (repeatedChar === "yyyy") 
+				{ 
+					x=4;
+					y=4; 
+				}
+				if (repeatedChar === "yy") 
+				{ 
+					x=2;
+					y=2; 
+				}
+				if (repeatedChar === "y") 
+				{ 
+					x=2;
+					y=4; 
+				}
+				year= getInt(value,indexValue,x,y);
+				if (year == null) 
+				{ 
+					return null; 
+				}
+				indexValue += year.length;
+				if (year.length==2) 
+				{
+					if (year > 70) 
+					{ 
+						year = 1900 + (year - 0); 
+					}
+					else 
+					{ 
+						year = 2000 + (year - 0); 
+					}
+				}
+			}
+			else if (repeatedChar=="MMM" || repeatedChar=="NNN")
+			{
+				month = 0;
+				var names = (repeatedChar == "MMM" ? (monthNames.concat(monthNamesShort)) : monthNamesShort);
+				for (var i=0; i < names.length; i++) 
+				{
+					var month_name = names[i];
+					if (value.substring(indexValue,indexValue + month_name.length).toLowerCase() == month_name.toLowerCase()) 
+					{
+						month=(i % 12) + 1;
+						indexValue += month_name.length;
+						break;
+					}
+				}
+				if ((month < 1) || (month>12))
+				{
+					return null;
+				}
+			}
+			else if (repeatedChar == "EE" || repeatedChar == "E")
+			{
+				var names = (repeatedChar == "EE" ? dayNames : dayNamesShort);
+				for (var i=0; i< names.length; i++) 
+				{
+					var day_name=names[i];
+					if (value.substring(indexValue,indexValue + day_name.length).toLowerCase() == day_name.toLowerCase()) 
+					{
+						indexValue += day_name.length;
+						break;
+					}
+				}
+			}
+			else if (repeatedChar == "MM" || repeatedChar == "M") 
+			{
+				month=getInt(value,indexValue,repeatedChar.length,2);
+				if(month == null || (month<1) || (month>12))
+				{
+					return null;
+				}
+				indexValue += month.length;
+			}
+			else if (repeatedChar == "dd" || repeatedChar == "d") 
+			{
+				date=getInt(value,indexValue,repeatedChar.length,2);
+				if(date == null || (date < 1)||(date > 31))
+				{
+					return null;
+				}
+				indexValue += date.length;
+			}
+			else if (repeatedChar == "hh" || repeatedChar == "h") 
+			{
+				hh = getInt(value,indexValue,repeatedChar.length,2);
+				if(hh == null||(hh < 1)||(hh > 12))
+				{
+					return null;
+				}
+				indexValue += hh.length;
+			}
+			else if (repeatedChar == "HH" || repeatedChar == "H") 
+			{
+				hh = getInt(value,indexValue,repeatedChar.length,2);
+				if(hh == null || (hh < 0) || (hh > 23))
+				{
+					return null;
+				}
+				indexValue += hh.length;
+			}
+			else if (repeatedChar == "KK"|| repeatedChar == "K") 
+			{
+				hh = getInt(value,indexValue,repeatedChar.length,2);
+				if(hh == null||(hh < 0)||(hh > 11))
+				{
+					return null;
+				}
+				indexValue += hh.length;
+				hh++;
+			}
+			else if (repeatedChar == "kk" || repeatedChar == "k") 
+			{
+				hh = getInt(value,indexValue,repeatedChar.length,2);
+				if(hh == null||(hh < 1)||(hh > 24))
+				{
+					return null;
+				}
+				indexValue += hh.length;
+				hh--;
+			}
+			else if (repeatedChar == "mm" || repeatedChar == "m") 
+			{
+				mm = getInt(value,indexValue,repeatedChar.length,2);
+				if(mm == null || (mm < 0) || (mm > 59))
+				{
+					return null;
+				}
+				indexValue += mm.length;
+			}
+			else if (repeatedChar == "ss" || repeatedChar == "s") 
+			{
+				ss = getInt(value,indexValue,repeatedChar.length,2);
+				if(ss == null || (ss < 0) || (ss > 59))
+				{
+					return null;
+				}
+				indexValue += ss.length;
+			}
+			else if (repeatedChar == "a") 
+			{
+				if (value.substring(indexValue,indexValue + 2).toLowerCase() == "am") 
+				{
+					ampm="AM";
+				}
+				else if (value.substring(indexValue,indexValue + 2).toLowerCase() == "pm") 
+				{
+					ampm="PM";
+				}
+				else 
+				{
+					return null;
+				}
+				indexValue += 2;
+			}
+			else 
+			{
+				if (value.substring(indexValue,indexValue + repeatedChar.length) != repeatedChar) 
+				{
+					return null;
+				}
+				else 
+				{
+					indexValue += repeatedChar.length;
+				}
+			}
+		}
+		if (indexValue != value.length) 
+		{ 
+			return null; 
+		}
+		if (month == 2) 
+		{
+			// Check for leap year
+			if (this.isLeapYear(year)) 
+			{
+				if (date > 29)
+				{ 
+					return null; 
+				}
+			}
+			else 
+			{ 
+				if (date > 28) 
+				{ 
+					return null; 
+				} 
+			}
+		}
+		if ((month == 4) ||(month == 6) ||(month == 9) || (month == 11)) 
+		{
+			if (date > 30) 
+			{ 
+				return null; 
+			}
+		}
+		// Correct hours value
+		if (hh < 12 && ampm == "PM") 
+		{
+			hh += 12; 
+		}
+		else if (hh > 11 && ampm == "AM") 
+		{ 
+			hh -= 12; 
+		}
+		return new Date(year,month-1,date,hh,mm,ss);
+	};
+	
+	var getDateInFormat = function(date,monthNames,monthNamesShort,dayNames,dayNamesShort)
+	{
+		var retValue = {};
+		var year = "" + date.getFullYear();
+		var month = date.getMonth() + 1;
+		var day = date.getDate();
+		var dayOfWeek = date.getDay();
+		var hour = date.getHours();
+		var hourIn12Format = ((hour === 0) ? 12 : ((hour > 12) ? (hour - 12) : hour));
+		var amorpm = (hour > 11) ? "PM" : "AM";
+		var minutes = date.getMinutes();
+		var seconds = date.getSeconds();
+		
+		retValue["y"]="" + year;
+		retValue["yyyy"]= retValue["y"];
+		retValue["yy"]= retValue["y"].substring(2,4);
+		retValue["M"]= month;
+		retValue["MM"]= appendZero(retValue["M"]);
+		retValue["MMM"]= monthNames[retValue["M"] - 1];
+		retValue["NNN"]= monthNamesShort[retValue["M"] - 1];
+		retValue["d"]= day;
+		retValue["dd"]= appendZero(retValue["d"]);
+		retValue["E"]= dayNamesShort[dayOfWeek];
+		retValue["EE"]= dayNames[retValue["E"]];
+		retValue["H"]= hour;
+		retValue["HH"]= appendZero(retValue["H"]);
+		retValue["h"] = hourIn12Format;
+		retValue["hh"]= appendZero(retValue["h"]);
+		retValue["K"]= retValue["h"] - 1;
+		retValue["k"]= retValue["H"] + 1;
+		retValue["KK"]= appendZero(retValue["K"]);
+		retValue["kk"]= appendZero(retValue["k"]);
+		retValue["a"] = amorpm;
+		retValue["m"]= minutes;
+		retValue["mm"]= appendZero(retValue["m"]);
+		retValue["s"]= seconds;
+		retValue["ss"]= appendZero(retValue["s"]);
+		
+		return retValue;
+	};
+	
+	this.isLeapYear = function(year) 
+	{
+		if(year % 4 === 0 || (year % 100 === 0 && year % 400 === 0)) 
+		{
+			return true;
+		}
+		return false;
+	};
+	
+	var getInt = function(value,index,fromLength,toLength)
+	{
+		for (var count = toLength; count >= fromLength; count--) 
+		{
+			var repeatedChar = value.substring(index,index + count);
+			if (repeatedChar.length < fromLength) 
+			{ 
+				return null; 
+			}
+			if (isInteger(repeatedChar)) 
+			{ 
+				return repeatedChar; 
+			}
+		}
+		return null;
+	};
+	
+	var appendZero = function(value) 
+	{
+		return (value < 0 || value > 9 ? "":"0") + value;
+	};
+	
+	var isInteger = function(value) 
+	{
+		for (var i=0; i < value.length; i++) 
+		{
+			if ("1234567890".indexOf(value.charAt(i))==-1) 
+			{ 
+				return false; 
+			}
+		}
+		return true;
+	};
+};
