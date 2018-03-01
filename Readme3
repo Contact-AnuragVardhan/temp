@@ -1,637 +1,319 @@
-item.date = this.__cloneDateObject(date);
-if (this.__dateCompare(dateToSet,todayDate) === 0) 
-			    {
-			    	this.util.addStyleClass(cell,"nsCalendarToday");
-			    }
-				if (this.__dateCompare(dateToSet,this.__selectedDate) === 0) 
-			    {
-					this.__setCellSelection(dateToSet,cell);
-			    }
-          NSCalendar.prototype.__selectCellForIndex = function(index)
-	{
-		this.__selectedDate = null;
-		var item = this.__getItemByIndex(index);
-		if(item)
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Editor Demo</title>
+	<meta content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' name='viewport'>
+	<style>
+		body,html
 		{
-			this.__setCellSelection(item.date,item.cell);
+			margin:0px;
+			padding:0px;
+			height:100%;
+			width:100%;
+			background:#FFFFFF;
 		}
-	};
+		
+		
+	</style>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.4.0/css/font-awesome.css">
+	<link href="../lib/css/com/org/component.css" rel="stylesheet">
+	<link href="../lib/css/com/org/nsEditor.css" rel="stylesheet">
+	<script src="../lib/com/org/util/nsUtil.js"></script>
+	<script src="../lib/com/org/prototype/base/nsContainerBase.js"></script>
+	<script src="../lib/com/org/prototype/nsEditor.js"></script>
+ </head>
+ 
+<body onload="initialize()">
+	<div>
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		<textarea id="txtDemo" rows="10" cols="100" placeholder="Enter a Text"></textarea>
+		
+		
+	</div>
 	
-	NSCalendar.prototype.__setCellSelection = function(date,cell)
-	{
-		if(this.__isDateSelectable(date))
-		{
-			this.__selectedDate = this.__cloneDateObject(date);
-			this.util.dispatchEvent(this.__baseComponent,NSCalendar.DATE_SELECTED,this.__selectedDate,{date:this.__selectedDate});
-			if(cell)
-			{
-				this.util.addStyleClass(cell,"nsCalendarSelected");
-				this.__lastSelectedCell = cell;
-			}
-		}
-	};
-  NSCalendar.prototype.__dateCompare = function(date1,date2)
-	{
-		if(!date1 && !date2)
-		{
-			return 0;
-		}
-		if(!date1)
-		{
-			return -1;
-		}
-		if(!date2)
-		{
-			return 1;
-		}
-		if (date1.getDate() == date2.getDate() && date1.getMonth() == date2.getMonth() && date1.getFullYear() == date2.getFullYear())
-		{
-			return 0;
-		}
-		var tempDate1 = this.__dateWithoutTime(this.__cloneDateObject(date1));
-		var tempDate2 = this.__dateWithoutTime(this.__cloneDateObject(date2));
-		return (tempDate1.getTime() > tempDate2.getTime());
-	};
 	
-	NSCalendar.prototype.__cloneDateObject = function(date)
-	{
-		return this.__getDateObject(date.getFullYear(),date.getMonth(),date.getDate());
-	};
-  
-  
-  if(this.getSelectedDate())
+	<script>
+		var util = null;
+		function initialize()
 		{
-			this.__setTextInput(this.getSelectedDate());
+			util = new NSUtil();
+			initailizeSimpleDemo();
+			
 		}
-    
-    this.__nsGridFilter.setFiltersInControls(filter);
-    
-    if(highlightedPanelParent != currentPanelParent)
+		
+		function initailizeSimpleDemo()
 		{
-			this.util.insertAfterElement(highlightedPanelParent,currentPanelParent);
+			var txtDemo = document.querySelector("#txtDemo");
+			var setting = {enableToolBar: true,
+							toolBarButton: ['fullscreen', 'bold', 'italic', 'underline', 'strikeThrough','justifyCenter','justifyLeft','justifyRight','justifyFull', 'subscript', 'superscript', 'fontFamily', 'fontSize', '|', 'color', 'emoticons', 'inlineStyle', 'paragraphStyle', '|', 'paragraphFormat', 'align', 'formatOL', 'formatUL', 'outdent', 'indent', '-', 'insertLink', 'insertImage', 'insertVideo', 'insertFile', 'insertTable', '|', 'quote', 'insertHR', 'undo', 'redo', 'clearFormatting', 'selectAll', 'html'],
+							enableLineNumber: true,enableAutoSuggest: true,mode:NSEditor.MODE_IFRAME,
+							autoSuggestTriggers:[{keyCode: 190}, // dot key
+							                     {keyCode: 32, ctrlKey: true, preventDefault: true}] //ctrl+space key
+						  };
+			var nsEditor = new NSEditor(txtDemo,setting);
+			
 		}
-		this.__refreshToolbarIcon();
-		if(highlightedPanel)
-		{
-			this.util.dispatchEvent(highlightedPanel,NSPanel.__ELEMENT_FOCUS_OUT,null,null);
-		}
-    
-    selectedItem = this.__getNSControl().getOrignalItem(selectedItem);
-    
-    this.setFiltersInControls = function(filter)
-	{
-		if(this.__nsGrid.__enableFilter && this.__objControl && filter)
-		{
-			 for(var field in this.__objControl)
-			 {
-				 if(filter[field])
-			     {
-					 var control = this.__objControl[field];
-					 if(control)
-					 {
-						 control.value = filter[field];
-					 }
-			     }
-			 }
-		}
-	};
-  
-  NSMessageBox.prototype.custom = function()
-	{
-		if(arguments && arguments.length > 0)
-		{
-			this.__createMessageBox(arguments[0]);
-		}
-	};
-  
-  NSUtil.prototype.getBrowser = function ()
+		
+		
+	</script>
+</body>
+
+.nsEditor.nsEditorOuterContainer 
 {
-	var objBrowser = {code:null,name:null,version:null,appName:null,appCodeName:null,platform:null,
-					  isChrome:false,isFirefox:false,isOpera:false,isIE:false,isMSIE:false,isSafari:false,};
-	var userAgent = window.navigator.userAgent;
-	if(userAgent.indexOf("Chrome") != -1) 
-	{
-		objBrowser.code = "chrome";
-		objBrowser.name = "Google Chrome";
-		objBrowser.isChrome = true;
-	} 
-	else if(userAgent.indexOf("Firefox") != -1) 
-	{
-		objBrowser.code = "firefox";
-		objBrowser.name = "Mozilla Firefox";
-		objBrowser.isFirefox = true;
-	} 
-	else if(userAgent.indexOf("Opera")!=-1) 
-	{
-		objBrowser.code = "opera";
-		objBrowser.name = "Opera";
-		objBrowser.isOpera = true;
-	}
-	//for IE version 6 to 11
-	else if(userAgent.indexOf('MSIE')!==-1 || navigator.appVersion.indexOf('Trident/') > 0)
-	{
-		objBrowser.code = "ie";
-		objBrowser.name = "Internet Explorer";
-		objBrowser.isIE = true;
-		objBrowser.isMSIE = true;
-	}
-	//for IE 12
-	else if(/x64|x32/ig.test(userAgent))
-	{
-		objBrowser.code = "ie";
-		objBrowser.name = "Internet Explorer 12";
-		objBrowser.isIE = true;
-		objBrowser.isMSIE = false;
-	}
-	else if (userAgent.indexOf("Safari")!=-1) 
-	{
-		objBrowser.code = "safari";
-		objBrowser.name = "Safari";
-		objBrowser.isSafari = true;
-	} 
-	else 
-	{
-		objBrowser.code = "-1";
-		objBrowser.name = "Unknown Browser";
-	}
-	objBrowser.version = navigator.appVersion;
-	objBrowser.appName = navigator.appName;
-	objBrowser.appCodeName = navigator.appCodeName;
-	objBrowser.platform = navigator.platform;
-	
-	return objBrowser;
-};
+	border: 1px solid #c0c0c0;
+	overflow: hidden;
+}
+
+.nsEditor .nsEditorToolBarContainer
+{
+	position: relative;
+	width: 100%;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    color: #222222;
+    background: #ffffff;
+    z-index: 4;
+    font-family: Arial, Helvetica, sans-serif;
+    box-sizing: border-box;
+    padding: 0 2px;
+    border: 0px;
+}
+
+.nsEditor .nsEditorToolBarButton
+{
+	background: transparent;
+    color: #222222;
+    outline: 0;
+    border: 0;
+    line-height: 1;
+    cursor: pointer;
+    text-align: left;
+    margin: 0px 2px;
+    transition: background 0.2s ease 0s;
+    border-radius: 0;
+    background-clip: padding-box;
+    z-index: 2;
+    position: relative;
+    box-sizing: border-box;
+    text-decoration: none;
+    user-select: none;
+    float: left;
+    padding: 0;
+    width: 37px;
+    height: 38px;
+}
+
+.nsEditor .nsEditorToolBarButton:hover, .nsEditor .nsEditorToolBarButton:focus
+{
+	background: #d6d6d6 !important;
+    color: #222222 !important
+}
 
 
+.nsEditor .nsEditorToolBarButtonDropdown::after
+{	
+	position: absolute;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 4px solid #222222;
+    right: 16px;
+    top: 17px;
+    content: "";
+}
 
-.nsDataGridContainerRed
+.nsEditor .nsEditorToolBarButtonDisabled
 {
-	background-color: Red;
+	color: #bdbdbd;
+    cursor: default
 }
-.nsDataGridContainerRed .nsDataGridTitleBarTheme
+
+.nsEditor .nsEditorToolBarDropdown
 {
-   background: Red; 
-   color: #ffffff;
-   font-size: 12px; 
-   padding: .3em .2em .2em .3em; 
-   font-weight: bold;
-   border-top-left-radius: 5px;
-   border-top-right-radius: 5px;
-   border: 1px solid #848484; 
-   /*-moz-border-radius-topleft: 5px; 
-   -webkit-border-top-left-radius: 5px; 
-   -khtml-border-top-left-radius: 5px; 
-   border-top-left-radius: 5px;
-   -moz-border-radius-topright: 5px; 
-   -webkit-border-top-right-radius: 5px; -khtml-border-top-right-radius: 5px; border-top-right-radius: 5px;*/
+	display: none;
+    position: absolute;
+    overflow: auto;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 200;
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
 }
-.nsDataGridContainerRed .nsDataGridTableTheme
-{  
-	background-color:Red; 
-    color: #FF00FF;
-    font-size: 16px; 
-    font-weight: bold;
-    font-family: "Segoe UI",Tahoma,Geneva,Verdana,sans-serif;
-    border-color: #565656;
-}
-.nsDataGridContainerRed .nsDataGridHeaderTheme
+
+.nsEditor .nsEditorToolBarDropdownItem
 {
-  border-top : 1px solid #565656;
-  border-right : 1px solid #565656;
-  background-color: #565656;
-  color: White;
+	color: inherit;
+    padding: 0 24px;
+    text-decoration: none;
+    display: block;
+    font-size: 15px;
+    cursor: pointer;
+    white-space: nowrap;
 }
-.nsDataGridHeaderDrag
+
+.nsEditor .nsEditorToolBarDropdownItem:hover
 {
-  border-top : 1px solid #D4C7C7;
-  border-right : 1px solid #D4C7C7;
-  background-color: #EEEEEE;
-  color: Red;
+	background-color: #ddd
 }
-.nsDataGridContainerRed .nsDataGridHeaderTheme:hover
+
+.nsEditor .nsEditorToolBarDropdownShow
 {
-	background-color: #EA610D!important;	
+	display:block;
 }
-.nsDataGridContainerRed .nsDataGridHeaderRendererTheme
+
+.nsEditor .nsEditorTooltip 
 {
-	background-color: #282828;
-	border-top : 1px solid #565656;
-  	border-right : 1px solid #565656;
+    position: relative;
+    display: inline-block;
 }
-.nsHeaderTextTheme
+
+.nsEditor .nsEditorTooltip .nsEditorTooltipText 
 {
-	font-weight: bold;
-	font-size: 13.5px;
+    visibility: hidden;
+    width: 120px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    position: absolute;
+    z-index: 100;
+    top: 100%;
+    left: 50%;
+    margin-left: -65px;
 }
-/*.nsHeaderTextTheme:hover
+
+.nsEditor .nsEditorTooltip .nsEditorTooltipText::after 
+{
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent transparent black transparent;
+}
+
+.nsEditor .nsEditorTooltip:hover .nsEditorTooltipText 
+{
+    visibility: visible;
+}
+
+.nsEditor .nsEditorTabContainer
+{
+	width: 100%;
+	padding: 0;
+	background-color: #CCC9A8;
+    border-top: 1px solid #888;
+    text-align: left;
+    margin: 0;
+}
+.nsEditor .nsEditorBodyContainer
+{
+	/*z-index: 4;*/
+    overflow-x: auto;
+    border-top: solid #888 1px;
+    border-bottom: solid #888 1px;
+    position: relative;
+    clear: both;
+}
+
+.nsEditor .nsEditorFooterContainer
+{
+	width: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #ECE9D8;
+    text-align: center;
+}
+
+.nsEditor .nsEditorTextAreaContainer 
+{
+	padding: 0px;
+	margin: 0px;
+}
+
+.nsEditor .nsEditorTextAreaContainer .nsEditorTextArea, .nsEditorOuterContainer .nsEditorLineNumberWrapper .nsEditorLineNumber 
+{
+	font-family: monospace;
+	line-height: 15px !important;
+}
+
+.nsEditor .nsEditorTextAreaContainer .nsEditorTextArea 
+{
+	overflow: auto;
+	padding-right:5px;
+	padding-top:5px;
+	border: 0;
+}
+
+.nsEditor .nsEditorTextAreaContainer .nsEditorTextArea:focus
+{
+	outline: none;
+}
+
+.nsEditor .nsEditorTextAreaContainer .nsEditorTextArea:empty:not(:focus):before 
+{
+  content: attr(data-placeholder)
+}
+
+.nsEditor .nsEditorLineNumberContainer 
+{
+	margin-top: 0px;
+	width: 50px;
+	float: left;
+	overflow: hidden;
+	border-right: 1px solid #c0c0c0;
+	margin-right: 10px;
+}
+
+.nsEditor .nsEditorLineNumberWrapper 
+{
+	padding-top: 5px;
+	background: #f0f0f0;
+    color: #333;
+}
+
+.nsEditor .nsEditorLineNumberWrapper .nsEditorLineNumber 
+{
+	padding-right: 8px;
+	padding-top: 0px;
+	text-align: right;
+	white-space: nowrap;
+	font-size: 12px;
+}
+
+.nsEditor .nsEditorComponentHidden
+{
+	display: none !important;
+}
+
+.nsEditor .nsEditorLineNumberWrapper .nsEditorLineNumberSelected 
 {
 	color: red;
-}*/
-.nsDataGridContainerRed .nsDataGridOddRow
-{
-    background-color:Red;
-	color: white;
-}
-.nsDataGridContainerRed .nsDataGridEvenRow 
-{
-    background-color: #282828;
-	color: white; 
-}
-.nsDataGridContainerRed .nsMenuUse
-{
-	fill:Red;
-}
-.nsDataGridContainerRed .nsMenuUse:hover
-{
-	fill: red;
-}
-.nsMenuArrow
-{
-	fill:white;
-}
-.nsDataGridContainerRed .nsBodyDataGridCellTheme
-{
-    border-top : 1px solid #565656;
-    border-right : 1px solid #565656;
-    font-weight:normal;
-    vertical-align:middle;
-    color:white;
-}
-.nsDataGridContainerRed .nsDataGridSelection > td
-{
-    background-color: #38210B!important;
-}
-.nsDataGridContainerRed .nsGridCellHover 
-{ 
-	background-color: #464646!important; 
-}
-.nsDataGridContainerRed .nsCellFocus
-{
-	/*box-shadow: inset 0 0 3px #000;*/
-	background: #FAFAFF;
-    border: 1px solid #4285F4;
-}
-.nsDataGridContainerRed .nsDottedCell
-{
-    border: 2px dotted red!important;
-}
-.nsResizeHandleRed
-{
-	border-right: 1px dashed #EA610D;
-}
-.nsDataGridContainerRed .nsGridArrowFillTheme 
-{
-    fill:#000000;
-}
-.nsGridGroupIconTheme
-{
-	stroke:#000000;
-}
-.nsDataGridContainerRed .nsExportIconTheme
-{
-	fill:#FFFFFF;
-}
-.nsDataGridContainerRed .nsExportIconTheme:hover
-{
-	fill:red;
-}
-.nsMoveIconTheme:hover
-{
-	fill:red;
-}
-.nsDataGridContainerRed .nsFilterButtonDivTheme
-{
-  	border-top: 1px solid #565656;
-}
-.nsDataGridContainerRed .nsFilterLineContainerTheme
-{
-    border-bottom: 1px solid #d3d3d3;
-}
-.nsDataGridContainerBlue
-{
-	background-color: Blue;
-}
-.nsDataGridContainerBlue .nsDataGridTitleBarTheme
-{
-   background: Blue; 
-   color: #ffffff;
-   font-size: 12px; 
-   padding: .3em .2em .2em .3em; 
-   font-weight: bold;
-   border-top-left-radius: 5px;
-   border-top-right-radius: 5px;
-   border: 1px solid #848484; 
-   /*-moz-border-radius-topleft: 5px; 
-   -webkit-border-top-left-radius: 5px; 
-   -khtml-border-top-left-radius: 5px; 
-   border-top-left-radius: 5px;
-   -moz-border-radius-topright: 5px; 
-   -webkit-border-top-right-radius: 5px; -khtml-border-top-right-radius: 5px; border-top-right-radius: 5px;*/
-}
-.nsDataGridContainerBlue .nsDataGridTableTheme
-{  
-	background-color:Blue; 
-    color: #FF00FF;
-    font-size: 16px; 
-    font-weight: bold;
-    font-family: "Segoe UI",Tahoma,Geneva,Verdana,sans-serif;
-    border-color: #565656;
-}
-.nsDataGridContainerBlue .nsDataGridHeaderTheme
-{
-  border-top : 1px solid #565656;
-  border-right : 1px solid #565656;
-  background-color: #565656;
-  color: White;
-}
-.nsDataGridHeaderDrag
-{
-  border-top : 1px solid #D4C7C7;
-  border-right : 1px solid #D4C7C7;
-  background-color: #EEEEEE;
-  color: Blue;
-}
-.nsDataGridContainerBlue .nsDataGridHeaderTheme:hover
-{
-	background-color: #EA610D!important;	
-}
-.nsDataGridContainerBlue .nsDataGridHeaderRendererTheme
-{
-	background-color: #282828;
-	border-top : 1px solid #565656;
-  	border-right : 1px solid #565656;
-}
-.nsHeaderTextTheme
-{
-	font-weight: bold;
-	font-size: 13.5px;
-}
-/*.nsHeaderTextTheme:hover
-{
-	color: Blue;
-}*/
-.nsDataGridContainerBlue .nsDataGridOddRow
-{
-    background-color:Blue;
-	color: white;
-}
-.nsDataGridContainerBlue .nsDataGridEvenRow 
-{
-    background-color: #282828;
-	color: white; 
-}
-.nsDataGridContainerBlue .nsMenuUse
-{
-	fill:Blue;
-}
-.nsDataGridContainerBlue .nsMenuUse:hover
-{
-	fill: Blue;
-}
-.nsMenuArrow
-{
-	fill:white;
-}
-.nsDataGridContainerBlue .nsBodyDataGridCellTheme
-{
-    border-top : 1px solid #565656;
-    border-right : 1px solid #565656;
-    font-weight:normal;
-    vertical-align:middle;
-    color:white;
-}
-.nsDataGridContainerBlue .nsDataGridSelection > td
-{
-    background-color: #38210B!important;
-}
-.nsDataGridContainerBlue .nsGridCellHover 
-{ 
-	background-color: #464646!important; 
-}
-.nsDataGridContainerBlue .nsCellFocus
-{
-	/*box-shadow: inset 0 0 3px #000;*/
-	background: #FAFAFF;
-    border: 1px solid #4285F4;
-}
-.nsDataGridContainerBlue .nsDottedCell
-{
-    border: 2px dotted Blue!important;
-}
-.nsResizeHandleBlue
-{
-	border-right: 1px dashed #EA610D;
-}
-.nsDataGridContainerBlue .nsGridArrowFillTheme 
-{
-    fill:#000000;
-}
-.nsGridGroupIconTheme
-{
-	stroke:#000000;
-}
-.nsDataGridContainerBlue .nsExportIconTheme
-{
-	fill:#FFFFFF;
-}
-.nsDataGridContainerBlue .nsExportIconTheme:hover
-{
-	fill:Blue;
-}
-.nsMoveIconTheme:hover
-{
-	fill:Blue;
-}
-.nsDataGridContainerBlue .nsFilterButtonDivTheme
-{
-  	border-top: 1px solid #565656;
-}
-.nsDataGridContainerBlue .nsFilterLineContainerTheme
-{
-    border-bottom: 1px solid #d3d3d3;
 }
 
-package com.org;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import com.org.util.FileMerger;
-
-
-public class JSComplierDemo 
+.nsEditor .nsEditorTextAreaContainer .nsEditorTextAreaIFrame
 {
-	private final String basePath = "C:\\Temp\\Anurag\\Workspace\\JSLib\\src\\main\\webapp\\";
-	private final String baseJSURL = basePath + "lib\\com\\org\\";
-	private final String baseCSSURL = basePath + "lib\\css\\com\\org\\";
-	//private final String outputURL = "C:\\Temp\\Anurag\\Workspace\\NSGridDemo\\src\\main\\webapp\\generated\\";
-	//private final String outputURL = "C:\\Temp\\Anurag\\Workspace\\Nomurabootstrap\\src\\main\\webapp\\lib\\";
-	private final String outputURL = basePath + "generated\\";
-	private final String outputJSURL = outputURL + "js\\";
-	private final String outputCSSURL = outputURL + "css\\";
-	//private final String outputURL = "C:\\Temp\\Anurag\\Workspace\\.metadata\\.plugins\\org.eclipse.wst.server.core\\tmp0\\wtpwebapps\\JSLib\\generated\\";
-	//private final String outputURL = "C:\\Temp\\Anurag\\Workspace\\Nomurabootstrap\\src\\main\\webapp\\lib\\";
-
-	
-	private FileMerger fileMerger = null;
-	
-	private void loadBaseJSFile() throws Exception
-	{
-		Map<String,String> mapJSFiles = new HashMap<String,String>();
-		mapJSFiles.put("nsUtil", baseJSURL + "util\\nsUtil.js");
-		mapJSFiles.put("nsSVG", baseJSURL + "util\\nsSVG.js");
-		mapJSFiles.put("nsPluggins", baseJSURL + "util\\nsPluggins.js");
-		mapJSFiles.put("nsPinTip", baseJSURL + "util\\nsPinTip.js");
-		mapJSFiles.put("nsContainerBase", baseJSURL + "prototype\\base\\nsContainerBase.js");
-		mapJSFiles.put("nsConsole", baseJSURL + "util\\nsConsole.js");
-		mapJSFiles.put("nsDateUtil", baseJSURL + "util\\nsDateUtil.js");
-		
-		for(String key:mapJSFiles.keySet())
-		{
-			String inputFile = mapJSFiles.get(key);
-			String[] arrOutput = inputFile.split("\\\\");
-			String outputFileName = arrOutput[arrOutput.length - 1].replace(".js",".min.js");
-			loadFile(new String[]{inputFile},null,outputJSURL + outputFileName);
-		}
-	}
-	
-	private void loadJSFile(String component) throws Exception
-	{
-		Map<String,String> mapJSFiles = new HashMap<String,String>();
-		mapJSFiles.put("nsDividerBox", baseJSURL + "containers\\nsDividerBox.js");
-		mapJSFiles.put("nsBanner", baseJSURL + "containers\\nsBanner.js");
-		mapJSFiles.put("nsProgressBar", baseJSURL + "containers\\nsProgressBar.js");
-		mapJSFiles.put("nsGrid", baseJSURL + "prototype\\nsGrid.js");
-		mapJSFiles.put("nsList", baseJSURL + "prototype\\nsList.js");
-		mapJSFiles.put("nsTextBox", baseJSURL + "prototype\\nsTextBox.js");
-		mapJSFiles.put("nsMenu", baseJSURL + "util\\nsMenu.js");
-		mapJSFiles.put("nsPagination", baseJSURL + "util\\nsPagination.js");
-		mapJSFiles.put("nsPanel", baseJSURL + "containers\\nsPanel.js");
-		mapJSFiles.put("nsDragDrop", baseJSURL + "util\\nsDragDrop.js");
-		mapJSFiles.put("nsChart", baseJSURL + "prototype\\nsChart.js");
-		mapJSFiles.put("nsModal", baseJSURL + "containers\\nsModal.js");
-		mapJSFiles.put("nsExport", baseJSURL + "util\\nsExport.js");
-		mapJSFiles.put("nsFilter", baseJSURL + "util\\nsFilter.js");
-		mapJSFiles.put("nsFlatGrid", baseJSURL + "util\\nsFlatGrid.js");
-		mapJSFiles.put("nsHierarchicalGrid", baseJSURL + "util\\nsHierarchicalGrid.js");
-		mapJSFiles.put("nsGroupingGrid", baseJSURL + "util\\nsGroupingGrid.js");
-		mapJSFiles.put("nsGridPluggins", baseJSURL + "util\\nsGridPluggins.js");
-		mapJSFiles.put("nsBarChart", baseJSURL + "util\\nsBarChart.js");
-		mapJSFiles.put("nsPieChart", baseJSURL + "util\\nsPieChart.js");
-		mapJSFiles.put("nsLineChart", baseJSURL + "util\\nsLineChart.js");
-		mapJSFiles.put("nsDonutChart", baseJSURL + "util\\nsDonutChart.js");
-		mapJSFiles.put("nsNavigation", baseJSURL + "prototype\\nsNavigation.js");
-		mapJSFiles.put("nsRouter", baseJSURL + "util\\nsRouter.js");
-		mapJSFiles.put("nsMessageBox", baseJSURL + "util\\nsMessageBox.js");
-		mapJSFiles.put("nsCalendar", baseJSURL + "prototype\\nsCalendar.js");
-		mapJSFiles.put("nsDatePicker", baseJSURL + "prototype\\nsDatePicker.js");
-		
-		Map<String,String[]> mapJSDependency = new HashMap<String,String[]>();
-		mapJSDependency.put("nsProgressBar",new String[]{"nsModal"});
-		mapJSDependency.put("nsGrid",new String[]{"nsMenu","nsPagination","nsExport","nsFilter","nsFlatGrid","nsHierarchicalGrid","nsGroupingGrid","nsGridPluggins","nsList"});
-		mapJSDependency.put("nsList",new String[]{"nsDragDrop","nsFilter","nsMenu"});
-		mapJSDependency.put("nsTextBox",new String[]{"nsList"});
-		mapJSDependency.put("nsChart",new String[]{"nsBarChart","nsPieChart","nsLineChart","nsDonutChart"});
-		mapJSDependency.put("nsMessageBox",new String[]{"nsPanel"});
-		mapJSDependency.put("nsDatePicker",new String[]{"nsCalendar"});
-		
-		List<String> lstInput = new ArrayList<String>();
-		if(mapJSDependency.containsKey(component))
-		{
-			String[] arrFile = mapJSDependency.get(component);
-			if(arrFile != null && arrFile.length > 0)
-			{
-				for(String file:arrFile)
-				{
-					lstInput.add(mapJSFiles.get(file));
-				}
-			}
-		}
-		lstInput.add(mapJSFiles.get(component));
-		loadFile(lstInput.toArray(new String[0]),null,outputJSURL + component + ".min.js");
-	}
-	
-	private void loadBaseCSSFile() throws Exception
-	{
-		Map<String,String> mapCSSFiles = new HashMap<String,String>();
-		mapCSSFiles.put("component", baseCSSURL + "component.css");
-		mapCSSFiles.put("nsPinTip", baseCSSURL + "nsPinTip.css");
-		
-		for(String key:mapCSSFiles.keySet())
-		{
-			String inputFile = mapCSSFiles.get(key);
-			String[] arrOutput = inputFile.split("\\\\");
-			String outputFileName = arrOutput[arrOutput.length - 1].replace(".css",".min.css");
-			loadFile(new String[]{inputFile},null,outputCSSURL + outputFileName);
-		}
-	}
-	
-	private void loadCSSFile(String component) throws Exception
-	{
-		Map<String,String> mapCSSFiles = new HashMap<String,String>();
-		mapCSSFiles.put("nsMenu", baseCSSURL + "nsMenu.css");
-		mapCSSFiles.put("nsPagination", baseCSSURL + "nsPagination.css");
-		mapCSSFiles.put("nsModal", baseCSSURL + "nsModal.css");
-		mapCSSFiles.put("nsProgressBar", baseCSSURL + "nsProgressBar.css");
-		mapCSSFiles.put("nsProgressBar", baseCSSURL + "nsProgressBar.css");
-		mapCSSFiles.put("nsGrid", baseCSSURL + "nsGrid.css");
-		mapCSSFiles.put("nsList", baseCSSURL + "nsList.css");
-		mapCSSFiles.put("nsTextBox", baseCSSURL + "nsTextBox.css");
-		mapCSSFiles.put("nsPanel", baseCSSURL + "nsPanel.css");
-		mapCSSFiles.put("nsNavigation", baseCSSURL + "nsNavigation.css");
-		mapCSSFiles.put("nsMessageBox", baseCSSURL + "nsMessageBox.css");
-		mapCSSFiles.put("nsCalendar", baseCSSURL + "nsCalendar.css");
-		mapCSSFiles.put("nsDatePicker", baseCSSURL + "nsDatePicker.css");
-		
-		Map<String,String[]> mapDependency = new HashMap<String,String[]>();
-		mapDependency.put("nsProgressBar",new String[]{"nsModal","nsProgressBar"});
-		mapDependency.put("nsGrid",new String[]{"nsGrid","nsMenu","nsPagination","nsList"});
-		mapDependency.put("nsList",new String[]{"nsList","nsMenu"});
-		mapDependency.put("nsTextBox",new String[]{"nsList","nsTextBox"});
-		mapDependency.put("nsMenu",new String[]{"nsMenu"});
-		mapDependency.put("nsPanel",new String[]{"nsPanel"});
-		mapDependency.put("nsNavigation",new String[]{"nsNavigation"});
-		mapDependency.put("nsPagination",new String[]{"nsPagination"});
-		mapDependency.put("nsMessageBox",new String[]{"nsPanel","nsMessageBox"});
-		mapDependency.put("nsCalendar",new String[]{"nsCalendar"});
-		mapDependency.put("nsDatePicker",new String[]{"nsCalendar","nsDatePicker"});
-		
-		List<String> lstInput = new ArrayList<String>();
-		if(mapDependency.containsKey(component))
-		{
-			String[] arrFile = mapDependency.get(component);
-			if(arrFile != null && arrFile.length > 0)
-			{
-				for(String file:arrFile)
-				{
-					lstInput.add(mapCSSFiles.get(file));
-				}
-			}
-		}
-		loadFile(lstInput.toArray(new String[0]),null,outputCSSURL + component + ".min.css");
-	}
-	
-	private void loadFile(String[] arrInputFile,String[] arrExternalFile,String outputFile) throws Exception
-	{
-		if(fileMerger == null)
-		{
-			fileMerger = new FileMerger();
-		}
-		fileMerger.compressFiles(arrInputFile, outputFile);
-	}
-	
-	public static void main(String[] args) throws Exception
-	{
-		JSComplierDemo objCompiler = new JSComplierDemo();
-		String[] arrComponent = {"nsProgressBar","nsGrid","nsList","nsDividerBox","nsNavigation","nsPagination","nsExport","nsRouter","nsMessageBox","nsDatePicker","nsTextBox"};
-		objCompiler.loadBaseJSFile();
-		objCompiler.loadBaseCSSFile();
-		for(String component:arrComponent)
-		{
-			objCompiler.loadJSFile(component);
-			objCompiler.loadCSSFile(component);
-		}
-	}
+	width: 100%;
+    position: relative;
+    display: block;
+    z-index: 2;
+    box-sizing: border-box;
+    border-width: initial;
+    border-style: none;
+    border-color: initial;
+    border-image: initial;
 }
+
+
+
+.nsEditorTextAreaHidden
+{
+	display: none !important;
+}
+
