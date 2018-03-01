@@ -1,53 +1,637 @@
-/**
- * System configuration for Angular samples
- * Adjust as necessary for your application needs.
- */
-(function (global) {
-  System.config({
-    paths: {
-      // paths serve as alias
-      'npm:': 'node_modules/'
-    },
-    // map tells the System loader where to look for things
-    map: {
-      // our app is within the app folder
-      'app': 'app',
+item.date = this.__cloneDateObject(date);
+if (this.__dateCompare(dateToSet,todayDate) === 0) 
+			    {
+			    	this.util.addStyleClass(cell,"nsCalendarToday");
+			    }
+				if (this.__dateCompare(dateToSet,this.__selectedDate) === 0) 
+			    {
+					this.__setCellSelection(dateToSet,cell);
+			    }
+          NSCalendar.prototype.__selectCellForIndex = function(index)
+	{
+		this.__selectedDate = null;
+		var item = this.__getItemByIndex(index);
+		if(item)
+		{
+			this.__setCellSelection(item.date,item.cell);
+		}
+	};
+	
+	NSCalendar.prototype.__setCellSelection = function(date,cell)
+	{
+		if(this.__isDateSelectable(date))
+		{
+			this.__selectedDate = this.__cloneDateObject(date);
+			this.util.dispatchEvent(this.__baseComponent,NSCalendar.DATE_SELECTED,this.__selectedDate,{date:this.__selectedDate});
+			if(cell)
+			{
+				this.util.addStyleClass(cell,"nsCalendarSelected");
+				this.__lastSelectedCell = cell;
+			}
+		}
+	};
+  NSCalendar.prototype.__dateCompare = function(date1,date2)
+	{
+		if(!date1 && !date2)
+		{
+			return 0;
+		}
+		if(!date1)
+		{
+			return -1;
+		}
+		if(!date2)
+		{
+			return 1;
+		}
+		if (date1.getDate() == date2.getDate() && date1.getMonth() == date2.getMonth() && date1.getFullYear() == date2.getFullYear())
+		{
+			return 0;
+		}
+		var tempDate1 = this.__dateWithoutTime(this.__cloneDateObject(date1));
+		var tempDate2 = this.__dateWithoutTime(this.__cloneDateObject(date2));
+		return (tempDate1.getTime() > tempDate2.getTime());
+	};
+	
+	NSCalendar.prototype.__cloneDateObject = function(date)
+	{
+		return this.__getDateObject(date.getFullYear(),date.getMonth(),date.getDate());
+	};
+  
+  
+  if(this.getSelectedDate())
+		{
+			this.__setTextInput(this.getSelectedDate());
+		}
+    
+    this.__nsGridFilter.setFiltersInControls(filter);
+    
+    if(highlightedPanelParent != currentPanelParent)
+		{
+			this.util.insertAfterElement(highlightedPanelParent,currentPanelParent);
+		}
+		this.__refreshToolbarIcon();
+		if(highlightedPanel)
+		{
+			this.util.dispatchEvent(highlightedPanel,NSPanel.__ELEMENT_FOCUS_OUT,null,null);
+		}
+    
+    selectedItem = this.__getNSControl().getOrignalItem(selectedItem);
+    
+    this.setFiltersInControls = function(filter)
+	{
+		if(this.__nsGrid.__enableFilter && this.__objControl && filter)
+		{
+			 for(var field in this.__objControl)
+			 {
+				 if(filter[field])
+			     {
+					 var control = this.__objControl[field];
+					 if(control)
+					 {
+						 control.value = filter[field];
+					 }
+			     }
+			 }
+		}
+	};
+  
+  NSMessageBox.prototype.custom = function()
+	{
+		if(arguments && arguments.length > 0)
+		{
+			this.__createMessageBox(arguments[0]);
+		}
+	};
+  
+  NSUtil.prototype.getBrowser = function ()
+{
+	var objBrowser = {code:null,name:null,version:null,appName:null,appCodeName:null,platform:null,
+					  isChrome:false,isFirefox:false,isOpera:false,isIE:false,isMSIE:false,isSafari:false,};
+	var userAgent = window.navigator.userAgent;
+	if(userAgent.indexOf("Chrome") != -1) 
+	{
+		objBrowser.code = "chrome";
+		objBrowser.name = "Google Chrome";
+		objBrowser.isChrome = true;
+	} 
+	else if(userAgent.indexOf("Firefox") != -1) 
+	{
+		objBrowser.code = "firefox";
+		objBrowser.name = "Mozilla Firefox";
+		objBrowser.isFirefox = true;
+	} 
+	else if(userAgent.indexOf("Opera")!=-1) 
+	{
+		objBrowser.code = "opera";
+		objBrowser.name = "Opera";
+		objBrowser.isOpera = true;
+	}
+	//for IE version 6 to 11
+	else if(userAgent.indexOf('MSIE')!==-1 || navigator.appVersion.indexOf('Trident/') > 0)
+	{
+		objBrowser.code = "ie";
+		objBrowser.name = "Internet Explorer";
+		objBrowser.isIE = true;
+		objBrowser.isMSIE = true;
+	}
+	//for IE 12
+	else if(/x64|x32/ig.test(userAgent))
+	{
+		objBrowser.code = "ie";
+		objBrowser.name = "Internet Explorer 12";
+		objBrowser.isIE = true;
+		objBrowser.isMSIE = false;
+	}
+	else if (userAgent.indexOf("Safari")!=-1) 
+	{
+		objBrowser.code = "safari";
+		objBrowser.name = "Safari";
+		objBrowser.isSafari = true;
+	} 
+	else 
+	{
+		objBrowser.code = "-1";
+		objBrowser.name = "Unknown Browser";
+	}
+	objBrowser.version = navigator.appVersion;
+	objBrowser.appName = navigator.appName;
+	objBrowser.appCodeName = navigator.appCodeName;
+	objBrowser.platform = navigator.platform;
+	
+	return objBrowser;
+};
 
-      // angular bundles
-      '@angular/animations': 'npm:@angular/animations/bundles/animations.umd.js',
-      '@angular/animations/browser': 'npm:@angular/animations/bundles/animations-browser.umd.js',
-      '@angular/core': 'npm:@angular/core/bundles/core.umd.js',
-      '@angular/common': 'npm:@angular/common/bundles/common.umd.js',
-      '@angular/compiler': 'npm:@angular/compiler/bundles/compiler.umd.js',
-      '@angular/platform-browser': 'npm:@angular/platform-browser/bundles/platform-browser.umd.js',
-      '@angular/platform-browser/animations': 'npm:@angular/platform-browser/bundles/platform-browser-animations.umd.js',
-      '@angular/platform-browser-dynamic': 'npm:@angular/platform-browser-dynamic/bundles/platform-browser-dynamic.umd.js',
-      '@angular/http': 'npm:@angular/http/bundles/http.umd.js',
-      '@angular/router': 'npm:@angular/router/bundles/router.umd.js',
-      '@angular/router/upgrade': 'npm:@angular/router/bundles/router-upgrade.umd.js',
-      '@angular/forms': 'npm:@angular/forms/bundles/forms.umd.js',
-      '@angular/upgrade': 'npm:@angular/upgrade/bundles/upgrade.umd.js',
-      '@angular/upgrade/static': 'npm:@angular/upgrade/bundles/upgrade-static.umd.js',
-      '@angular/common/http': 'npm:@angular/common/bundles/common-http.umd.js',
-      'tslib': 'npm:tslib/tslib.js',
-      // other libraries
-      'rxjs':                      'npm:rxjs',
-      'angular-in-memory-web-api': 'npm:angular-in-memory-web-api/bundles/in-memory-web-api.umd.js'
-    },
-    // packages tells the System loader how to load when no filename and/or no extension
-    packages: {
-      app: {
-        main: './main.js',
-        defaultExtension: 'js',
-        meta: {
-          './*.js': {
-            loader: 'systemjs-angular-loader.js'
-          }
-        }
-      },
-      rxjs: {
-        defaultExtension: 'js'
-      }
-    }
-  });
-})(this);
+
+
+.nsDataGridContainerRed
+{
+	background-color: Red;
+}
+.nsDataGridContainerRed .nsDataGridTitleBarTheme
+{
+   background: Red; 
+   color: #ffffff;
+   font-size: 12px; 
+   padding: .3em .2em .2em .3em; 
+   font-weight: bold;
+   border-top-left-radius: 5px;
+   border-top-right-radius: 5px;
+   border: 1px solid #848484; 
+   /*-moz-border-radius-topleft: 5px; 
+   -webkit-border-top-left-radius: 5px; 
+   -khtml-border-top-left-radius: 5px; 
+   border-top-left-radius: 5px;
+   -moz-border-radius-topright: 5px; 
+   -webkit-border-top-right-radius: 5px; -khtml-border-top-right-radius: 5px; border-top-right-radius: 5px;*/
+}
+.nsDataGridContainerRed .nsDataGridTableTheme
+{  
+	background-color:Red; 
+    color: #FF00FF;
+    font-size: 16px; 
+    font-weight: bold;
+    font-family: "Segoe UI",Tahoma,Geneva,Verdana,sans-serif;
+    border-color: #565656;
+}
+.nsDataGridContainerRed .nsDataGridHeaderTheme
+{
+  border-top : 1px solid #565656;
+  border-right : 1px solid #565656;
+  background-color: #565656;
+  color: White;
+}
+.nsDataGridHeaderDrag
+{
+  border-top : 1px solid #D4C7C7;
+  border-right : 1px solid #D4C7C7;
+  background-color: #EEEEEE;
+  color: Red;
+}
+.nsDataGridContainerRed .nsDataGridHeaderTheme:hover
+{
+	background-color: #EA610D!important;	
+}
+.nsDataGridContainerRed .nsDataGridHeaderRendererTheme
+{
+	background-color: #282828;
+	border-top : 1px solid #565656;
+  	border-right : 1px solid #565656;
+}
+.nsHeaderTextTheme
+{
+	font-weight: bold;
+	font-size: 13.5px;
+}
+/*.nsHeaderTextTheme:hover
+{
+	color: red;
+}*/
+.nsDataGridContainerRed .nsDataGridOddRow
+{
+    background-color:Red;
+	color: white;
+}
+.nsDataGridContainerRed .nsDataGridEvenRow 
+{
+    background-color: #282828;
+	color: white; 
+}
+.nsDataGridContainerRed .nsMenuUse
+{
+	fill:Red;
+}
+.nsDataGridContainerRed .nsMenuUse:hover
+{
+	fill: red;
+}
+.nsMenuArrow
+{
+	fill:white;
+}
+.nsDataGridContainerRed .nsBodyDataGridCellTheme
+{
+    border-top : 1px solid #565656;
+    border-right : 1px solid #565656;
+    font-weight:normal;
+    vertical-align:middle;
+    color:white;
+}
+.nsDataGridContainerRed .nsDataGridSelection > td
+{
+    background-color: #38210B!important;
+}
+.nsDataGridContainerRed .nsGridCellHover 
+{ 
+	background-color: #464646!important; 
+}
+.nsDataGridContainerRed .nsCellFocus
+{
+	/*box-shadow: inset 0 0 3px #000;*/
+	background: #FAFAFF;
+    border: 1px solid #4285F4;
+}
+.nsDataGridContainerRed .nsDottedCell
+{
+    border: 2px dotted red!important;
+}
+.nsResizeHandleRed
+{
+	border-right: 1px dashed #EA610D;
+}
+.nsDataGridContainerRed .nsGridArrowFillTheme 
+{
+    fill:#000000;
+}
+.nsGridGroupIconTheme
+{
+	stroke:#000000;
+}
+.nsDataGridContainerRed .nsExportIconTheme
+{
+	fill:#FFFFFF;
+}
+.nsDataGridContainerRed .nsExportIconTheme:hover
+{
+	fill:red;
+}
+.nsMoveIconTheme:hover
+{
+	fill:red;
+}
+.nsDataGridContainerRed .nsFilterButtonDivTheme
+{
+  	border-top: 1px solid #565656;
+}
+.nsDataGridContainerRed .nsFilterLineContainerTheme
+{
+    border-bottom: 1px solid #d3d3d3;
+}
+.nsDataGridContainerBlue
+{
+	background-color: Blue;
+}
+.nsDataGridContainerBlue .nsDataGridTitleBarTheme
+{
+   background: Blue; 
+   color: #ffffff;
+   font-size: 12px; 
+   padding: .3em .2em .2em .3em; 
+   font-weight: bold;
+   border-top-left-radius: 5px;
+   border-top-right-radius: 5px;
+   border: 1px solid #848484; 
+   /*-moz-border-radius-topleft: 5px; 
+   -webkit-border-top-left-radius: 5px; 
+   -khtml-border-top-left-radius: 5px; 
+   border-top-left-radius: 5px;
+   -moz-border-radius-topright: 5px; 
+   -webkit-border-top-right-radius: 5px; -khtml-border-top-right-radius: 5px; border-top-right-radius: 5px;*/
+}
+.nsDataGridContainerBlue .nsDataGridTableTheme
+{  
+	background-color:Blue; 
+    color: #FF00FF;
+    font-size: 16px; 
+    font-weight: bold;
+    font-family: "Segoe UI",Tahoma,Geneva,Verdana,sans-serif;
+    border-color: #565656;
+}
+.nsDataGridContainerBlue .nsDataGridHeaderTheme
+{
+  border-top : 1px solid #565656;
+  border-right : 1px solid #565656;
+  background-color: #565656;
+  color: White;
+}
+.nsDataGridHeaderDrag
+{
+  border-top : 1px solid #D4C7C7;
+  border-right : 1px solid #D4C7C7;
+  background-color: #EEEEEE;
+  color: Blue;
+}
+.nsDataGridContainerBlue .nsDataGridHeaderTheme:hover
+{
+	background-color: #EA610D!important;	
+}
+.nsDataGridContainerBlue .nsDataGridHeaderRendererTheme
+{
+	background-color: #282828;
+	border-top : 1px solid #565656;
+  	border-right : 1px solid #565656;
+}
+.nsHeaderTextTheme
+{
+	font-weight: bold;
+	font-size: 13.5px;
+}
+/*.nsHeaderTextTheme:hover
+{
+	color: Blue;
+}*/
+.nsDataGridContainerBlue .nsDataGridOddRow
+{
+    background-color:Blue;
+	color: white;
+}
+.nsDataGridContainerBlue .nsDataGridEvenRow 
+{
+    background-color: #282828;
+	color: white; 
+}
+.nsDataGridContainerBlue .nsMenuUse
+{
+	fill:Blue;
+}
+.nsDataGridContainerBlue .nsMenuUse:hover
+{
+	fill: Blue;
+}
+.nsMenuArrow
+{
+	fill:white;
+}
+.nsDataGridContainerBlue .nsBodyDataGridCellTheme
+{
+    border-top : 1px solid #565656;
+    border-right : 1px solid #565656;
+    font-weight:normal;
+    vertical-align:middle;
+    color:white;
+}
+.nsDataGridContainerBlue .nsDataGridSelection > td
+{
+    background-color: #38210B!important;
+}
+.nsDataGridContainerBlue .nsGridCellHover 
+{ 
+	background-color: #464646!important; 
+}
+.nsDataGridContainerBlue .nsCellFocus
+{
+	/*box-shadow: inset 0 0 3px #000;*/
+	background: #FAFAFF;
+    border: 1px solid #4285F4;
+}
+.nsDataGridContainerBlue .nsDottedCell
+{
+    border: 2px dotted Blue!important;
+}
+.nsResizeHandleBlue
+{
+	border-right: 1px dashed #EA610D;
+}
+.nsDataGridContainerBlue .nsGridArrowFillTheme 
+{
+    fill:#000000;
+}
+.nsGridGroupIconTheme
+{
+	stroke:#000000;
+}
+.nsDataGridContainerBlue .nsExportIconTheme
+{
+	fill:#FFFFFF;
+}
+.nsDataGridContainerBlue .nsExportIconTheme:hover
+{
+	fill:Blue;
+}
+.nsMoveIconTheme:hover
+{
+	fill:Blue;
+}
+.nsDataGridContainerBlue .nsFilterButtonDivTheme
+{
+  	border-top: 1px solid #565656;
+}
+.nsDataGridContainerBlue .nsFilterLineContainerTheme
+{
+    border-bottom: 1px solid #d3d3d3;
+}
+
+package com.org;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.org.util.FileMerger;
+
+
+public class JSComplierDemo 
+{
+	private final String basePath = "C:\\Temp\\Anurag\\Workspace\\JSLib\\src\\main\\webapp\\";
+	private final String baseJSURL = basePath + "lib\\com\\org\\";
+	private final String baseCSSURL = basePath + "lib\\css\\com\\org\\";
+	//private final String outputURL = "C:\\Temp\\Anurag\\Workspace\\NSGridDemo\\src\\main\\webapp\\generated\\";
+	//private final String outputURL = "C:\\Temp\\Anurag\\Workspace\\Nomurabootstrap\\src\\main\\webapp\\lib\\";
+	private final String outputURL = basePath + "generated\\";
+	private final String outputJSURL = outputURL + "js\\";
+	private final String outputCSSURL = outputURL + "css\\";
+	//private final String outputURL = "C:\\Temp\\Anurag\\Workspace\\.metadata\\.plugins\\org.eclipse.wst.server.core\\tmp0\\wtpwebapps\\JSLib\\generated\\";
+	//private final String outputURL = "C:\\Temp\\Anurag\\Workspace\\Nomurabootstrap\\src\\main\\webapp\\lib\\";
+
+	
+	private FileMerger fileMerger = null;
+	
+	private void loadBaseJSFile() throws Exception
+	{
+		Map<String,String> mapJSFiles = new HashMap<String,String>();
+		mapJSFiles.put("nsUtil", baseJSURL + "util\\nsUtil.js");
+		mapJSFiles.put("nsSVG", baseJSURL + "util\\nsSVG.js");
+		mapJSFiles.put("nsPluggins", baseJSURL + "util\\nsPluggins.js");
+		mapJSFiles.put("nsPinTip", baseJSURL + "util\\nsPinTip.js");
+		mapJSFiles.put("nsContainerBase", baseJSURL + "prototype\\base\\nsContainerBase.js");
+		mapJSFiles.put("nsConsole", baseJSURL + "util\\nsConsole.js");
+		mapJSFiles.put("nsDateUtil", baseJSURL + "util\\nsDateUtil.js");
+		
+		for(String key:mapJSFiles.keySet())
+		{
+			String inputFile = mapJSFiles.get(key);
+			String[] arrOutput = inputFile.split("\\\\");
+			String outputFileName = arrOutput[arrOutput.length - 1].replace(".js",".min.js");
+			loadFile(new String[]{inputFile},null,outputJSURL + outputFileName);
+		}
+	}
+	
+	private void loadJSFile(String component) throws Exception
+	{
+		Map<String,String> mapJSFiles = new HashMap<String,String>();
+		mapJSFiles.put("nsDividerBox", baseJSURL + "containers\\nsDividerBox.js");
+		mapJSFiles.put("nsBanner", baseJSURL + "containers\\nsBanner.js");
+		mapJSFiles.put("nsProgressBar", baseJSURL + "containers\\nsProgressBar.js");
+		mapJSFiles.put("nsGrid", baseJSURL + "prototype\\nsGrid.js");
+		mapJSFiles.put("nsList", baseJSURL + "prototype\\nsList.js");
+		mapJSFiles.put("nsTextBox", baseJSURL + "prototype\\nsTextBox.js");
+		mapJSFiles.put("nsMenu", baseJSURL + "util\\nsMenu.js");
+		mapJSFiles.put("nsPagination", baseJSURL + "util\\nsPagination.js");
+		mapJSFiles.put("nsPanel", baseJSURL + "containers\\nsPanel.js");
+		mapJSFiles.put("nsDragDrop", baseJSURL + "util\\nsDragDrop.js");
+		mapJSFiles.put("nsChart", baseJSURL + "prototype\\nsChart.js");
+		mapJSFiles.put("nsModal", baseJSURL + "containers\\nsModal.js");
+		mapJSFiles.put("nsExport", baseJSURL + "util\\nsExport.js");
+		mapJSFiles.put("nsFilter", baseJSURL + "util\\nsFilter.js");
+		mapJSFiles.put("nsFlatGrid", baseJSURL + "util\\nsFlatGrid.js");
+		mapJSFiles.put("nsHierarchicalGrid", baseJSURL + "util\\nsHierarchicalGrid.js");
+		mapJSFiles.put("nsGroupingGrid", baseJSURL + "util\\nsGroupingGrid.js");
+		mapJSFiles.put("nsGridPluggins", baseJSURL + "util\\nsGridPluggins.js");
+		mapJSFiles.put("nsBarChart", baseJSURL + "util\\nsBarChart.js");
+		mapJSFiles.put("nsPieChart", baseJSURL + "util\\nsPieChart.js");
+		mapJSFiles.put("nsLineChart", baseJSURL + "util\\nsLineChart.js");
+		mapJSFiles.put("nsDonutChart", baseJSURL + "util\\nsDonutChart.js");
+		mapJSFiles.put("nsNavigation", baseJSURL + "prototype\\nsNavigation.js");
+		mapJSFiles.put("nsRouter", baseJSURL + "util\\nsRouter.js");
+		mapJSFiles.put("nsMessageBox", baseJSURL + "util\\nsMessageBox.js");
+		mapJSFiles.put("nsCalendar", baseJSURL + "prototype\\nsCalendar.js");
+		mapJSFiles.put("nsDatePicker", baseJSURL + "prototype\\nsDatePicker.js");
+		
+		Map<String,String[]> mapJSDependency = new HashMap<String,String[]>();
+		mapJSDependency.put("nsProgressBar",new String[]{"nsModal"});
+		mapJSDependency.put("nsGrid",new String[]{"nsMenu","nsPagination","nsExport","nsFilter","nsFlatGrid","nsHierarchicalGrid","nsGroupingGrid","nsGridPluggins","nsList"});
+		mapJSDependency.put("nsList",new String[]{"nsDragDrop","nsFilter","nsMenu"});
+		mapJSDependency.put("nsTextBox",new String[]{"nsList"});
+		mapJSDependency.put("nsChart",new String[]{"nsBarChart","nsPieChart","nsLineChart","nsDonutChart"});
+		mapJSDependency.put("nsMessageBox",new String[]{"nsPanel"});
+		mapJSDependency.put("nsDatePicker",new String[]{"nsCalendar"});
+		
+		List<String> lstInput = new ArrayList<String>();
+		if(mapJSDependency.containsKey(component))
+		{
+			String[] arrFile = mapJSDependency.get(component);
+			if(arrFile != null && arrFile.length > 0)
+			{
+				for(String file:arrFile)
+				{
+					lstInput.add(mapJSFiles.get(file));
+				}
+			}
+		}
+		lstInput.add(mapJSFiles.get(component));
+		loadFile(lstInput.toArray(new String[0]),null,outputJSURL + component + ".min.js");
+	}
+	
+	private void loadBaseCSSFile() throws Exception
+	{
+		Map<String,String> mapCSSFiles = new HashMap<String,String>();
+		mapCSSFiles.put("component", baseCSSURL + "component.css");
+		mapCSSFiles.put("nsPinTip", baseCSSURL + "nsPinTip.css");
+		
+		for(String key:mapCSSFiles.keySet())
+		{
+			String inputFile = mapCSSFiles.get(key);
+			String[] arrOutput = inputFile.split("\\\\");
+			String outputFileName = arrOutput[arrOutput.length - 1].replace(".css",".min.css");
+			loadFile(new String[]{inputFile},null,outputCSSURL + outputFileName);
+		}
+	}
+	
+	private void loadCSSFile(String component) throws Exception
+	{
+		Map<String,String> mapCSSFiles = new HashMap<String,String>();
+		mapCSSFiles.put("nsMenu", baseCSSURL + "nsMenu.css");
+		mapCSSFiles.put("nsPagination", baseCSSURL + "nsPagination.css");
+		mapCSSFiles.put("nsModal", baseCSSURL + "nsModal.css");
+		mapCSSFiles.put("nsProgressBar", baseCSSURL + "nsProgressBar.css");
+		mapCSSFiles.put("nsProgressBar", baseCSSURL + "nsProgressBar.css");
+		mapCSSFiles.put("nsGrid", baseCSSURL + "nsGrid.css");
+		mapCSSFiles.put("nsList", baseCSSURL + "nsList.css");
+		mapCSSFiles.put("nsTextBox", baseCSSURL + "nsTextBox.css");
+		mapCSSFiles.put("nsPanel", baseCSSURL + "nsPanel.css");
+		mapCSSFiles.put("nsNavigation", baseCSSURL + "nsNavigation.css");
+		mapCSSFiles.put("nsMessageBox", baseCSSURL + "nsMessageBox.css");
+		mapCSSFiles.put("nsCalendar", baseCSSURL + "nsCalendar.css");
+		mapCSSFiles.put("nsDatePicker", baseCSSURL + "nsDatePicker.css");
+		
+		Map<String,String[]> mapDependency = new HashMap<String,String[]>();
+		mapDependency.put("nsProgressBar",new String[]{"nsModal","nsProgressBar"});
+		mapDependency.put("nsGrid",new String[]{"nsGrid","nsMenu","nsPagination","nsList"});
+		mapDependency.put("nsList",new String[]{"nsList","nsMenu"});
+		mapDependency.put("nsTextBox",new String[]{"nsList","nsTextBox"});
+		mapDependency.put("nsMenu",new String[]{"nsMenu"});
+		mapDependency.put("nsPanel",new String[]{"nsPanel"});
+		mapDependency.put("nsNavigation",new String[]{"nsNavigation"});
+		mapDependency.put("nsPagination",new String[]{"nsPagination"});
+		mapDependency.put("nsMessageBox",new String[]{"nsPanel","nsMessageBox"});
+		mapDependency.put("nsCalendar",new String[]{"nsCalendar"});
+		mapDependency.put("nsDatePicker",new String[]{"nsCalendar","nsDatePicker"});
+		
+		List<String> lstInput = new ArrayList<String>();
+		if(mapDependency.containsKey(component))
+		{
+			String[] arrFile = mapDependency.get(component);
+			if(arrFile != null && arrFile.length > 0)
+			{
+				for(String file:arrFile)
+				{
+					lstInput.add(mapCSSFiles.get(file));
+				}
+			}
+		}
+		loadFile(lstInput.toArray(new String[0]),null,outputCSSURL + component + ".min.css");
+	}
+	
+	private void loadFile(String[] arrInputFile,String[] arrExternalFile,String outputFile) throws Exception
+	{
+		if(fileMerger == null)
+		{
+			fileMerger = new FileMerger();
+		}
+		fileMerger.compressFiles(arrInputFile, outputFile);
+	}
+	
+	public static void main(String[] args) throws Exception
+	{
+		JSComplierDemo objCompiler = new JSComplierDemo();
+		String[] arrComponent = {"nsProgressBar","nsGrid","nsList","nsDividerBox","nsNavigation","nsPagination","nsExport","nsRouter","nsMessageBox","nsDatePicker","nsTextBox"};
+		objCompiler.loadBaseJSFile();
+		objCompiler.loadBaseCSSFile();
+		for(String component:arrComponent)
+		{
+			objCompiler.loadJSFile(component);
+			objCompiler.loadCSSFile(component);
+		}
+	}
+}
