@@ -40,6 +40,7 @@ var NSEditor = (function()
 		this.__selectedRange = null;
 		
 		this.__windowClickRef = null;
+		this.__copyPasteRef = null;
 		
 		this.__init();
 		
@@ -52,7 +53,6 @@ var NSEditor = (function()
 	{
 		this.base.initializeComponent.call(this);
 		this.__browserDetail = this.util.getBrowser();
-		console.log(this.__browserDetail.isMSIE  + " , " + this.__browserDetail.isSafari);
 		this.__toolBarButton = {"fullScreen":{html:"<i class='fa fa-expand' aria-hidden='true'></i>",tooltip:"Full Screen",click:fullScreenHandler.bind(this)},
 				   "bold":{html:"<i class='fa fa-bold' aria-hidden='true'></i>",tooltip:"Bold",tags: ["b", "strong"],css: {fontWeight: "bold"},hotkey: {"ctrl": 1, "key": 66},command:"bold"},
 				   "italic":{html:"<i class='fa fa-italic' aria-hidden='true'></i>",tooltip:"Italic",tags: ["i", "em"],css: {fontStyle: "italic"},hotkey: {"ctrl": 1, "key": 66},command:"italic"},
@@ -79,18 +79,31 @@ var NSEditor = (function()
 				   "header4":{html:"<h4>Heading 4</h4>",tooltip:"Header 4",
 					   		  command: "FormatBlock",
 			   		  		 "arguments": "<h4>",tags: ["h4"]},
-				   "orderedList":{html:"<i class='fa fa-list-ol' aria-hidden='true'></i>",tooltip:"Ordered List",click:orderedListHandler.bind(this)},
-				   "unorderedList":{html:"<i class='fa fa-list-ul' aria-hidden='true'></i>",tooltip:"Unordered List",click:unorderedListHandler.bind(this)},
+				   "orderedList":{html:"<i class='fa fa-list-ol' aria-hidden='true'></i>",tooltip:"Ordered List",command:"insertorderedlist"},
+				   "unorderedList":{html:"<i class='fa fa-list-ul' aria-hidden='true'></i>",tooltip:"Unordered List",command:"insertunorderedlist"},
 				   "undo":{html:"<i class='fa fa-rotate-left' aria-hidden='true'></i>",tooltip:"Undo",command:"undo"},
 				   "redo":{html:"<i class='fa fa-rotate-right' aria-hidden='true'></i>",tooltip:"Redo",command:"redo"},
-				   "fontFamily":{html:"<i class='fa fa-font' aria-hidden='true'></i>",tooltip:"Font Family",click:fontFamilyHandler.bind(this),
+				   "outdent":{html:"<i class='fa fa-outdent' aria-hidden='true'></i>",tooltip:"Decrease Indent",command:"outdent"},
+				   "indent":{html:"<i class='fa fa-indent' aria-hidden='true'></i>",tooltip:"Increase Indent",command:"indent"},
+				   "fontFamily":{html:"<i class='fa fa-font' aria-hidden='true'></i>",tooltip:"Font Family",
 			   			isDropdown:true,
-			   			dataSource:[{value:"Arial",html:"<span style=\"font-family: Arial,Helvetica,sans-serif\">Arial</span>",tooltip:"Arial",command:"Arial,Helvetica,sans-serif"},
-			   			         {value:"Georgia",html:"<span style=\"font-family: Georgia,serif\">Georgia</span>",tooltip:"Georgia",command:"Georgia,serif"},
-			   			         {value:"Impact",html:"<span style=\"font-family: Impact,Charcoal,sans-serif\">Impact</span>",tooltip:"Impact",command:"Impact,Charcoal,sans-serif"},
-			   			         {value:"Tahoma",html:"<span style=\"font-family: Tahoma,Geneva,sans-serif\">Tahoma</span>",tooltip:"Tahoma",command:"Tahoma,Geneva,sans-serif"},
-			   			         {value:"Times New Roman",html:"<span style=\"font-family: Times New Roman,Times,serif,-webkit-standard\">Times New Roman</span>",tooltip:"Times New Roman",command:"Times New Roman,Times,serif,-webkit-standard"},]},
-				   "fontSize":{html:"<i class='fa fa-text-height' aria-hidden='true'></i>",tooltip:"Font Size",click:fontSizeHandler.bind(this),
+			   			dataSource:[{value:"Arial",html:"<span style=\"font-family: Arial\">Arial</span>",tooltip:"Arial",command:"fontName","arguments":"Arial"},
+			   			            {value:"Arial Black",html:"<span style=\"font-family: Arial Black\">Arial Black</span>",tooltip:"Arial Black",command:"fontName","arguments":"Arial Black"},
+			   			            {value:"Courier",html:"<span style=\"font-family: Courier\">Courier</span>",tooltip:"Courier",command:"fontName","arguments":"Courier"},
+			   			            {value:"Courier New",html:"<span style=\"font-family: Courier New\">Courier New</span>",tooltip:"Courier New",command:"fontName","arguments":"Courier New"},
+			   			            {value:"Comic Sans MS",html:"<span style=\"font-family: Comic Sans MS\">Comic Sans MS</span>",tooltip:"Comic Sans MS",command:"fontName","arguments":"Comic Sans MS"},
+			   			            {value:"Courier",html:"<span style=\"font-family: Courier\">Courier</span>",tooltip:"Courier",command:"fontName","arguments":"Courier"},
+			   			            {value:"Georgia",html:"<span style=\"font-family: Georgia\">Georgia</span>",tooltip:"Georgia",command:"fontName","arguments":"Georgia"},
+			   			            {value:"Impact",html:"<span style=\"font-family: Impact\">Impact</span>",tooltip:"Impact",command:"fontName","arguments":"Impact"},
+			   			            {value:"Lucida Grande",html:"<span style=\"font-family: Lucida Grande\">Lucida Grande</span>",tooltip:"Lucida Grande",command:"fontName","arguments":"Lucida Grande"},
+			   			            {value:"Lucida Sans",html:"<span style=\"font-family: Lucida Sans\">Lucida Sans</span>",tooltip:"Lucida Sans",command:"fontName","arguments":"Lucida Sans"},
+			   			            {value:"Serif",html:"<span style=\"font-family: Serif\">Serif</span>",tooltip:"Serif",command:"fontName","arguments":"Serif"},
+			   			            {value:"Sans",html:"<span style=\"font-family: Sans\">Sans</span>",tooltip:"Sans",command:"fontName","arguments":"Sans"},
+			   			            {value:"Tahoma",html:"<span style=\"font-family: Tahoma\">Tahoma</span>",tooltip:"Tahoma",command:"fontName","arguments":"Tahoma"},
+			   			            {value:"Times",html:"<span style=\"font-family: Times\">Times</span>",tooltip:"Times",command:"fontName","arguments":"Times"},
+			   			            {value:"Times New Roman",html:"<span style=\"font-family: Times New Roman\">Times New Roman</span>",tooltip:"Times New Roman",command:"fontName","arguments":"Times New Roman"},
+			   			            {value:"Verdana",html:"<span style=\"font-family: Verdana\">Verdana</span>",tooltip:"Verdana",command:"fontName","arguments":"Verdana"}]},
+				   "fontSize":{html:"<i class='fa fa-text-height' aria-hidden='true'></i>",tooltip:"Font Size",
 					   		    isDropdown:true,dataSource:[]},
 				   "paragraphFormat":{html:"<i class='fa fa-paragraph' aria-hidden='true'></i>",tooltip:"Paragraph Format",
 					   			isDropdown:true,
@@ -99,22 +112,60 @@ var NSEditor = (function()
 					   			            {value:"header2",htmlKey:"header2"},
 					   			            {value:"header3",htmlKey:"header3"},
 					   			            {value:"header4",htmlKey:"header4"}]},
- 			       "align":{html:"<i class='fa fa-align-left' aria-hidden='true'></i>",tooltip:"Align",click:alignHandler.bind(this),
-	 			    	  	isDropdown:true,
-				   			dataSource:[{value:"justifyCenter",htmlKey:"justifyCenter"},
-				   			            {value:"justifyLeft",htmlKey:"justifyLeft"},
-				   			            {value:"justifyRight",htmlKey:"justifyRight"},
-				   			            {value:"justifyFull",htmlKey:"justifyFull"}]},
+ 			       "align":{html:"<i class='fa fa-align-left' aria-hidden='true'></i>",tooltip:"Align",
+	 			    	  		isDropdown:true,
+	 			    	  		dataSource:[{value:"justifyCenter",htmlKey:"justifyCenter"},
+	 			    	  		            {value:"justifyLeft",htmlKey:"justifyLeft"},
+	 			    	  		            {value:"justifyRight",htmlKey:"justifyRight"},
+	 			    	  		            {value:"justifyFull",htmlKey:"justifyFull"}]},
+	 		       "color":{html:"<i class='fa fa-paint-brush' aria-hidden='true'></i>",tooltip:"Font Color",
+	 						   isDropdown:true,dataSource:[]},
+	 			   "backgroundColor":{html:"<i class='fa fa-magic' aria-hidden='true'></i>",tooltip:"Background Color",
+		 					   isDropdown:true,dataSource:[]},
 				 };
-		var arrFontSize = [8,9,10,12,14,18,24,30,36,48,60,72,96];
+		//the browser doesnot allow font size > 7
+		var arrFontSize = [{label:"xx-large",style:"xx-large",value:7},
+		                   {label:"x-large",style:"x-large",value:6},
+		                   {label:"large",style:"large",value:5},
+		                   {label:"medium",style:"medium",value:4},
+		                   {label:"small",style:"small",value:3},
+		                   {label:"x-small",style:"x-small",value:2},
+		                   {label:"xx-small",style:"xx-small",value:1}];
 		var fontDataSource = [];
 		for(var count = 0;count < arrFontSize.length;count++)
 		{
-			var font = arrFontSize[count];
-			var fontPx = font + "px";
-			fontDataSource.push({value:fontPx,html:"<span>" + font + "</span>",command:fontPx});
+			var item = arrFontSize[count];
+			fontDataSource.push({value:item.label,html:"<span style=\"font-size: " + item.style + "\">" + item.label + "</span>",command:"fontsize","arguments":item.value});
 		}
 		this.__toolBarButton["fontSize"].dataSource = fontDataSource;
+		var arrForeColor = [{label:"#000000",style:"#000000",value:"#000000"},
+		                    {label:"#0000FF",style:"#0000FF",value:"#0000FF"},
+							{label:"#30AD23",style:"#30AD23",value:"#30AD23"},
+							{label:"#FF7F00",style:"#FF7F00",value:"#FF7F00"},
+							{label:"#FF0000",style:"#FF0000",value:"#FF0000"},
+							{label:"#FFFF00",style:"#FFFF00",value:"#FFFF00"},
+							{label:"#FFFFFF",style:"#FFFFFF",value:"#FFFFFF"}];
+		var foreColorDataSource = [];
+		for(var count = 0;count < arrForeColor.length;count++)
+		{
+			var item = arrForeColor[count];
+			foreColorDataSource.push({value:item.label,html:"<span style=\"color: " + item.style + "\">" + item.label + "</span>",command:"forecolor","arguments":item.value});
+		}
+		this.__toolBarButton["color"].dataSource = foreColorDataSource;
+		var arrBackColor = [{label:"#000000",style:"#000000",value:"#000000"},
+		                    {label:"#0000FF",style:"#0000FF",value:"#0000FF"},
+							{label:"#30AD23",style:"#30AD23",value:"#30AD23"},
+							{label:"#FF7F00",style:"#FF7F00",value:"#FF7F00"},
+							{label:"#FF0000",style:"#FF0000",value:"#FF0000"},
+							{label:"#FFFF00",style:"#FFFF00",value:"#FFFF00"},
+							{label:"#FFFFFF",style:"#FFFFFF",value:"#FFFFFF"}];
+		var backColorDataSource = [];
+		for(var count = 0;count < arrBackColor.length;count++)
+		{
+			var item = arrBackColor[count];
+			backColorDataSource.push({value:item.label,html:"<span style=\"color: " + item.style + "\">" + item.label + "</span>",command:"backcolor","arguments":item.value});
+		}
+		this.__toolBarButton["backgroundColor"].dataSource = backColorDataSource;
 		this.__setSetting();
 		this.__initializePluggins();
 		this.__initDefault();
@@ -160,6 +211,14 @@ var NSEditor = (function()
 			this.util.removeEvent(window,"click",this.__windowClickRef);
 			this.__windowClickRef = null;
 		}
+		if(this.__copyPasteRef)
+		{
+			var doc = this.__isModeTextArea() ? document : this.__frameContentDoc;
+			this.util.removeEvent(doc,"cut",this.__copyPasteRef);
+			this.util.removeEvent(doc,"copy",this.__copyPasteRef);
+			this.util.removeEvent(doc,"paste",this.__copyPasteRef);
+			this.__copyPasteRef = null;
+		}
 		if(this.__textAreaObserver)
 		{
 			this.__textAreaObserver.disconnect();
@@ -177,6 +236,7 @@ var NSEditor = (function()
 		{
 			this.util.removeStyleClass(this.__orignalTextArea,"nsEditorTextAreaHidden");
 		}
+		
 		this.base.removeComponent.call(this);
 	};
 	
@@ -329,10 +389,6 @@ var NSEditor = (function()
 			btnItem.innerHTML = item.html;
 			if(item.tooltip && item.tooltip.length > 0)
 			{
-				/*this.util.addStyleClass(btnItem,"nsEditorTooltip");
-				var span = this.util.createElement("span",null,"nsEditorTooltipText");
-				span.appendChild(document.createTextNode(item.tooltip));
-				btnItem.appendChild(span);*/
 				this.__nsToolTipInElement.addToolTip(btnItem,item.tooltip);
 			}
 			if(item.isDropdown)
@@ -356,46 +412,28 @@ var NSEditor = (function()
 			{
 				parent.appendChild(btnItem);
 			}
+			item.control = btnItem;
+			item.selected = false;
 			return btnItem;
 		}
 		return null;
 	};
 	
+	NSEditor.prototype.__makeToolBarItemActive = function(item,isActive)
+	{
+		if(item)
+		{
+			item.selected = isActive;
+			if(item.control)
+			{
+				isActive ? this.util.addStyleClass(item.control,"nsEditorToolBarItemActive") : this.util.removeStyleClass(item.control,"nsEditorToolBarItemActive");
+			}
+		}
+	};
+	
 	NSEditor.prototype.__createToolBarDropdown = function(parentItem,event)
 	{
 		var arrItem = parentItem.dataSource;
-		/*if(arrItem && arrItem.length > 0)
-		{
-			var self = this;
-			this.util.removeAllItems(this.__editorDropDown);
-			var dropdown =  this.util.createElement("ul",null,"nsEditorToolBarDropdown");
-			for(var count = 0;count < arrItem.length;count++)
-			{
-				var item = arrItem[count];
-				var value = item.value;
-				if(item.hasOwnProperty("htmlKey"))
-				{
-					item = this.__toolBarButton[item["htmlKey"]];
-				}
-				if(item)
-				{
-					var child = this.util.createElement("li",null,"nsEditorToolBarDropdownItem");
-					child.innerHTML = item.html;
-					child.setAttribute("data-nsEditor-value",value);
-					this.util.addEvent(child,"click",(function(item){
-						return function(event){
-							self.__toolBarButtonClickHandler.call(self,item,event);
-						};
-					})(item));
-					dropdown.appendChild(child);
-				}
-			}
-			if(parent)
-			{
-				parent.appendChild(dropdown);
-			}
-			return dropdown;
-		}*/
 		if(arrItem && arrItem.length > 0)
 		{
 			var self = this;
@@ -449,6 +487,7 @@ var NSEditor = (function()
 				{
 					item.click(item,event);
 				}
+				this.__makeToolBarItemActive(item,true);
 			}
 		}
 	};
@@ -600,14 +639,25 @@ var NSEditor = (function()
 	NSEditor.prototype.__initTextArea = function()
 	{
 		var listenerComponent = this.__isModeTextArea() ? this.__compTextArea : this.__frameContentWindow;
+		var clickListener = this.__isModeTextArea() ? this.__compTextArea : this.__frameContentDoc;
 		var self = this;
 		var eventListener = function(event){
+			//var target = self.util.getTarget(event);
 			self.__saveSelection();
-			self.__updateToolbar(listenerComponent);
+			//self.__updateToolbar(target);
 		};
 		this.util.addEvent(listenerComponent,"keyup",eventListener);
 		this.util.addEvent(listenerComponent,"mouseup",eventListener);
 		this.util.addEvent(listenerComponent,"mouseout",eventListener);
+		this.util.addEvent(clickListener,"click",this.__textAreaClickHandler.bind(this));
+		if(!this.__copyPasteRef)
+		{
+			this.__copyPasteRef = this.__documentCopyPasteListener.bind(this);
+			var doc = this.__isModeTextArea() ? document : this.__frameContentDoc;
+			this.util.addEvent(doc,"cut",this.__copyPasteRef);
+			this.util.addEvent(doc,"copy",this.__copyPasteRef);
+			this.util.addEvent(doc,"paste",this.__copyPasteRef);
+		}
 	};
 	
 	NSEditor.prototype.__saveSelection = function()
@@ -615,9 +665,75 @@ var NSEditor = (function()
 		this.__selectedRange = this.__getInternalRange();
 	};
 	
-	NSEditor.prototype.__updateToolbar = function(listenerComponent)
+	NSEditor.prototype.__updateToolbar = function(element)
 	{
+		var self = this;
+		var checkForTags = function(arrTags,item)
+		{
+			if(arrTags && arrTags.length > 0)
+			{
+				var tempElement = element;
+				while (tempElement && tempElement.nodeType == 1) 
+				{
+					if (arrTags.indexOf(tempElement.tagName.toLowerCase()) > -1) 
+					{
+						self.__makeToolBarItemActive(item,true);
+					}
+					tempElement = tempElement.parentNode;
+				}
+			}
+		};
+		var checkForCSS = function(objCSS,item)
+		{
+			if(objCSS)
+			{
+				var tempElement = element;
+				while (tempElement && tempElement.nodeType == 1) 
+				{
+					var arrCSS = Object.keys(objCSS);
+					for(var cssCount = 0;cssCount < arrCSS.length;cssCount++)
+					{
+						if(isCSSValuePresentInElement(arrCSS[cssCount],objCSS[arrCSS[cssCount]]))
+						{
+							self.__makeToolBarItemActive(item,true);
+						}
+					}
+					tempElement = tempElement.parentNode;
+				}
+			}
+		};
+		var isCSSValuePresentInElement = function(property,value)
+		{
+			var cssValue = self.util.getStyleValue(element,property);
+			if(cssValue)
+			{
+				if(typeof (value) === "function")
+				{
+					var callback = value;
+					if(callback && callback(cssValue.toString().toLowerCase()))
+					{
+						return true;
+					}
+				}
+				else if(cssValue.toString().toLowerCase() === value)
+				{
+					return true;
+				}
+			}
+			return false;
+		};
 		
+		var arrKeys = Object.keys(this.__toolBarButton);
+		for(var count = 0;count < arrKeys.length;count++)
+		{
+			var key = arrKeys[count];
+			var item = this.__toolBarButton[key];
+			this.__makeToolBarItemActive(item,false);
+			var arrTags = item.tags;
+			checkForTags(arrTags,item);
+			var css = item.css;
+			checkForCSS(css,item);
+		}
 	};
 	
 	NSEditor.prototype.__enableIFrameDesignMode = function(iframe,html)
@@ -758,6 +874,67 @@ var NSEditor = (function()
 				this.util.removeStyleClass(this.__editorDropDown,"nsEditorToolBarDropdownShow");
 			}
 		//}
+	};
+	
+	NSEditor.prototype.__documentCopyPasteListener = function(event)
+	{
+		var event = this.util.getEvent(event);
+		var cutHandler = function(data)
+		{
+			
+		};
+		var copyHandler = function(data)
+		{
+			
+		};
+		var pasteHandler = function(data)
+		{
+			console.log(data);
+		};
+		var getText = function()
+		{
+			if(event.clipboardData && event.clipboardData.getData) 
+			{
+	            var text = "";
+	            // IE
+	            if (window.clipboardData && window.clipboardData.getData) 
+	            { 
+	            	text = window.clipboardData.getData("Text");
+	            } 
+	            else if (event.clipboardData && event.clipboardData.getData) 
+	            {
+	            	/*for(var count = 0;count < event.clipboardData.types.length;count++)
+	            	{
+	            		console.log(event.clipboardData.types[count] + " : " + event.clipboardData.getData(event.clipboardData.types[count]));
+	            	}*/
+	            	//E = e.clipboardData.getData("text/html") : /text\/rtf/.test(n) && t.browser.safari ? E = w : /text\/plain/.test(n) && !t.browser.mozilla && (E = t.html.escapeEntities(e.clipboardData.getData("text/plain")).replace(/\n/g, "<br>")),
+	            	var E = event.clipboardData.getData("text/html");
+	            	console.log(E.match(/(class=\"?Mso|class=\'?Mso|class="?Xl|class='?Xl|class=Xl|style=\"[^\"]*\bmso\-|style=\'[^\']*\bmso\-|w:WordDocument)/gi));
+	            	text = event.clipboardData.getData("text/plain");
+	            }
+	            return text;
+	        }
+			return "";
+		};
+		var text = getText();
+		switch(event.type)
+		{
+			case "cut":
+				cutHandler(text);
+			break;
+			case "copy":
+				copyHandler(text);
+			break;
+			case "paste":
+				pasteHandler(text);
+			break;
+		}
+	};
+	
+	NSEditor.prototype.__textAreaClickHandler = function(event)
+	{
+		var target = this.util.getTarget(event);
+		this.__updateToolbar(target);
 	};
 	
 	NSEditor.prototype.__textAreaScrollHandler = function(event)
@@ -974,7 +1151,6 @@ var NSEditor = (function()
 	NSEditor.prototype.__getPreviousWord = function() 
 	{
 		var cursorPosition = this.__getCursorPosition();
-		console.log(cursorPosition);
 		var lastWord = this.__getWordAtPosition(this.__getTextForTextArea(),cursorPosition);
 		return lastWord;
 	};
@@ -1067,8 +1243,10 @@ var NSEditor = (function()
 			// in Firefox untrusted JavaScript is not allowed to access the clipboard
 			try 
 			{
+				this.__restoreSelection();
 				this.__setFocusOnControl(true);
 				doc.execCommand(command, false, arguments);
+				this.__saveSelection();
 			} 
 			catch (error) 
 			{
@@ -1081,7 +1259,7 @@ var NSEditor = (function()
 	{
 		if(this.__isModeTextArea())
 		{
-			//isFocus ? (this.__compTextArea ? this.__compTextArea.focus() : null) : null;
+			isFocus ? (this.__compTextArea ? this.__compTextArea.focus() : null) : null;
 		}
 		else
 		{
@@ -1092,12 +1270,13 @@ var NSEditor = (function()
 	NSEditor.prototype.__restoreSelection = function() 
 	{
 		var selection = null;
-		if(this.__isModeTextArea())
+		var self = this;
+		var setTextRange = function(win,doc)
 		{
-			if (window.getSelection || document.createRange) 
+			if(win.getSelection || doc.createRange) 
 			{
-				selection = window.getSelection();
-			    if (this.__selectedRange) 
+				selection = win.getSelection();
+			    if (self.__selectedRange) 
 			    {
 			        try 
 			        {
@@ -1105,38 +1284,24 @@ var NSEditor = (function()
 			        } 
 			        catch (error) 
 			        {
-			        	document.body.createTextRange().select();
-			        	document.selection.empty();
+			        	doc.body.createTextRange().select();
+			        	doc.selection.empty();
 			        }
-			        selection.addRange(this.__selectedRange);
+			        selection.addRange(self.__selectedRange);
 			     }
 			} 
-			else if (document.selection && this.__selectedRange) 
+			else if (doc.selection && self.__selectedRange) 
 			{
-				this.__selectedRange.select();
+				self.__selectedRange.select();
 			}
+		};
+		if(this.__isModeTextArea())
+		{
+			setTextRange(window,document);
 		}
 		else
 		{
-			if (this.__compTextArea.contentWindow) 
-			{
-				if (this.__compTextArea.contentWindow.getSelection) 
-				{
-					return this.__compTextArea.contentWindow.getSelection();
-				}
-				if (this.__compTextArea.contentWindow.selection) 
-				{
-					return this.__compTextArea.contentWindow.selection;
-				}
-			}
-			if (this.__frameContentDoc.getSelection) 
-			{
-				return this.__frameContentDoc.getSelection();
-			}
-			if (this.__frameContentDoc.selection) 
-			{
-				return this.__frameContentDoc.selection;
-			}
+			setTextRange(this.__frameContentWindow,this.__frameContentDoc);
 		}
 	};
 	
@@ -1229,76 +1394,6 @@ var NSEditor = (function()
 		
 	};
 	
-	var boldHandler = function(item,event)
-	{
-		
-	};
-
-	var italicHandler = function(item,event)
-	{
-		
-	};
-
-	var underlineHandler = function(item,event)
-	{
-		
-	};
-	
-	var strikeThroughHandler = function(item,event)
-	{
-		
-	};
-	
-	var subScriptHandler = function(item,event)
-	{
-		
-	};
-	
-	var superScriptHandler = function(item,event)
-	{
-		
-	};
-	
-	var fontFamilyHandler = function(item,event)
-	{
-		
-	};
-	
-	var fontSizeHandler = function(item,event)
-	{
-		
-	};
-	
-	var paragraphFormatHandler = function(item,event)
-	{
-		
-	};
-	
-	var alignHandler = function(item,event)
-	{
-		
-	};
-	
-	var orderedListHandler = function(item,event)
-	{
-		
-	};
-	
-	var unorderedListHandler = function(item,event)
-	{
-		
-	};
-	
-	var undoHandler = function(item,event)
-	{
-		
-	};
-	
-	var redoHandler = function(item,event)
-	{
-		
-	};
-
 	//end of section of functions for toolbar buttons
 	
 	NSEditor.TOOLBAR_BUTTONS_FULLSCREEN = "fullScreen";
