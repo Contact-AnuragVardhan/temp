@@ -39,6 +39,8 @@ var NSEditor = (function()
 		this.__editorDropDown = null;
 		this.__selectedRange = null;
 		
+		this.__pluginsInstances = {};
+		
 		this.__nsEditorPaste = null;
 		this.__nsEditorWordPaste = null;
 		
@@ -57,11 +59,10 @@ var NSEditor = (function()
 	{
 		this.base.initializeComponent.call(this);
 		this.__browserDetail = this.util.getBrowser();
-		this.__toolBarButton = {"fullScreen":{html:"<i class='fa fa-expand' aria-hidden='true'></i>",tooltip:"Full Screen",click:fullScreenHandler.bind(this)},
-				   "bold":{html:"<i class='fa fa-bold' aria-hidden='true'></i>",tooltip:"Bold",tags: ["b", "strong"],css: {fontWeight: "bold"},hotkey: {"ctrl": 1, "key": 66},command:"bold"},
-				   "italic":{html:"<i class='fa fa-italic' aria-hidden='true'></i>",tooltip:"Italic",tags: ["i", "em"],css: {fontStyle: "italic"},hotkey: {"ctrl": 1, "key": 66},command:"italic"},
-				   "underline":{html:"<i class='fa fa-underline' aria-hidden='true'></i>",tooltip:"Underline",tags: ["u"],css: {textDecoration: "underline"},hotkey: {"ctrl": 1, "key": 73},command:"underline"},
-				   "strikeThrough":{html:"<i class='fa fa-strikethrough' aria-hidden='true'></i>",tooltip:"Strikethrough",tags: ["s", "strike"],css: {textDecoration: "line-through"},command:"strikeThrough"},
+		this.__toolBarButton = {"bold":{html:"<i class='fa fa-bold' aria-hidden='true'></i>",tooltip:"Bold",tags: ["b", "strong"],css: {fontWeight: "bold"},hotkey: {"ctrl": 1, "key": 66},command:"bold"},
+				   "italic":{html:"<i class='fa fa-italic' aria-hidden='true'></i>",tooltip:"Italic",tags: ["i", "em"],css: {fontStyle: "italic"},hotkey: {"ctrl": 1, "key": 73},command:"italic"},
+				   "underline":{html:"<i class='fa fa-underline' aria-hidden='true'></i>",tooltip:"Underline",tags: ["u"],css: {textDecoration: "underline"},hotkey: {"ctrl": 1, "key": 85},command:"underline"},
+				   "strikeThrough":{html:"<i class='fa fa-strikethrough' aria-hidden='true'></i>",tooltip:"Strikethrough",tags: ["s", "strike"],css: {textDecoration: "line-through"},hotkey: {"ctrl": 1, "key": 83},command:"strikeThrough"},
 				   "justifyCenter":{html:"<i class='fa fa-align-center' aria-hidden='true'></i>",tooltip:"Justify Center",css: {textAlign: "center"},command:"justifyCenter"},
 				   "justifyLeft":{html:"<i class='fa fa-align-left' aria-hidden='true'></i>",tooltip:"Justify Left",css: {textAlign: "left"},command:"justifyLeft"},
 				   "justifyRight":{html:"<i class='fa fa-align-right' aria-hidden='true'></i>",tooltip:"Justify Right",css: {textAlign: "right"},command:"justifyRight"},
@@ -171,8 +172,9 @@ var NSEditor = (function()
 		}
 		this.__toolBarButton["backgroundColor"].dataSource = backColorDataSource;
 		this.__setSetting();
-		this.__initializePluggins();
+		this.__initializeTools();
 		this.__initDefault();
+		this.__initializePlugins();
 		this.__createComponent();
 	};
 	
@@ -247,6 +249,21 @@ var NSEditor = (function()
 	NSEditor.prototype.componentResized = function(event) 
 	{
 		this.base.componentResized.call(this,event);
+	};
+	
+	NSEditor.prototype.registerPlugin = function(name,pluggin) 
+	{
+		if(name && pluggin)
+		{
+			if(!NSEditor.__plugins)
+			{
+				NSEditor.__plugins = {};
+			}
+			if(!NSEditor.__plugins[name])
+			{
+				NSEditor.__plugins[name] = pluggin;
+			}
+		}
 	};
 	
 	//if setting["enableLineNumber"] is true then the components for line Number is created and then 
@@ -334,7 +351,20 @@ var NSEditor = (function()
 		}
 	};
 	
-	NSEditor.prototype.__initializePluggins = function()
+	NSEditor.prototype.__initializePlugins = function() 
+	{
+		this.__pluginsInstances = {};
+		if(NSEditor.__plugins)
+		{
+			for(var plugginName in NSEditor.__plugins)
+			{
+				var objPlugin = new NSEditor.__plugins[plugginName](this);
+				this.__pluginsInstances[plugginName] = {prototype: NSEditor.__plugins[plugginName],instance: objPlugin};
+			}
+		}
+	};
+	
+	NSEditor.prototype.__initializeTools = function()
 	{
 		this.__nsToolTipInElement = new this.util.nsToolTipInElement();
 		this.__nsEditorPaste = new NSEditorPaste(this,this.__pasteHandler.bind(this));
@@ -639,6 +669,7 @@ var NSEditor = (function()
 			divTextArea.style.minHeight = (baseMeasurement.height - 6) + "px";
 			this.util.addStyleClass(this.__orignalTextArea,"nsEditorTextAreaHidden");
 		}
+		this.util.addStyleClass(divTextArea,"nsEditorTextAreaGeneric");
 		
 		return divTextArea;
 	};
@@ -653,6 +684,7 @@ var NSEditor = (function()
 			self.__saveSelection();
 			//self.__updateToolbar(target);
 		};
+		this.util.addEvent(listenerComponent,"keydown",this.__textAreaKeyDownHandler.bind(this));
 		this.util.addEvent(listenerComponent,"keyup",eventListener);
 		this.util.addEvent(listenerComponent,"mouseup",eventListener);
 		this.util.addEvent(listenerComponent,"mouseout",eventListener);
@@ -887,6 +919,70 @@ var NSEditor = (function()
 				this.util.removeStyleClass(this.__editorDropDown,"nsEditorToolBarDropdownShow");
 			}
 		//}
+	};
+	
+	NSEditor.prototype.__textAreaKeyDownHandler = function(event)
+	{
+		var event = this.util.getEvent(event);
+		if(!this.getDisabled())
+		{
+			if (event.keyCode === this.util.KEYCODE.BACKSPACE) 
+			{ 
+				var emptyRegex = /^<([\w]+)[^>]*>(<br\/?>)?<\/\1>$/;
+				if (emptyRegex.test(self.getContent())) 
+				{ 
+					event.stopPropagation(); // prevent remove single empty tag
+					event.preventDefault();
+				}
+			}
+			else
+			{
+				if (event.ctrlKey || event.metaKey) 
+				{
+					var self = this;
+					var processArray = function(objToolBar)
+					{
+						for (var key in objToolBar) 
+						{
+							var item = objToolBar[key];
+							if(item && item.hotkey)
+							{
+								if((item.hotkey.ctrl && event.ctrlKey && event.keyCode === item.hotkey.key) || (event.keyCode === item.hotkey.key))
+								{
+									self.__executeCommand(item.command,item);
+									if(item.click)
+									{
+										item.click(item,event);
+									}
+									self.__makeToolBarItemActive(item,true);
+									event.preventDefault();
+									return true;
+								}
+							}
+							else if(item.isDropdown)
+							{
+								if(processArray(item.dataSource))
+								{
+									return true;
+								}
+							}
+						}
+						return false;
+					};
+					processArray(this.__toolBarButton);
+					
+					/*if (event.keyCode === 13) 
+					{
+						var range = this.__getRange();
+						range.pasteHTML("<br/>");
+						range.collapse(false);
+						range.select();
+						event.preventDefault();
+					}*/
+				}
+			}
+		}
+		
 	};
 	
 	NSEditor.prototype.__textAreaCopyPasteListener = function(event)
@@ -1435,7 +1531,7 @@ var NSEditor = (function()
 			if(!this.__divTemp)
 			{
 				this.__divTemp =  document.createElement("div");
-	        	this.__divTemp.style.display = "none";
+	        	this.util.addStyleClass(this.__divTemp,"nsEditorHidden");
 	        	document.body.appendChild(this.__divTemp);
 	        	this.__divTemp.setAttribute("contenteditable",true);
 	        	if (window.clipboardData && window.clipboardData.getData) 
@@ -1625,7 +1721,7 @@ var NSEditor = (function()
 		
 		this.__isWordContent = function(htmlContent) 
 		{
-		    return /<font face="Times New Roman"|class="?Mso|style="[^"]*\bmso-|style='[^'']*\bmso-|w:WordDocument/i.test(htmlContent) || /class="OutlineElement/.test(htmlhtmlContent) || /id="?docs\-internal\-guid\-/.test(htmlContent);
+		    return /<font face="Times New Roman"|class="?Mso|style="[^"]*\bmso-|style='[^'']*\bmso-|w:WordDocument/i.test(htmlContent) || /class="OutlineElement/.test(htmlContent) || /id="?docs\-internal\-guid\-/.test(htmlContent);
 		};
 		
 		this.__isNumericList = function(text) 
@@ -1660,6 +1756,46 @@ var NSEditor = (function()
 		this.__initialize();
 	};
 	
+	var NSEditorFullScreen = function(nsEditor)
+	{
+		this.__nsEditor = nsEditor;
+		this.util = nsEditor.util;
+		
+		this.__config = {
+			textAreaStyle:{width:"100%",height:"100%"},
+			outerContainerStyle:{width:"100%",height:"100%",position:"absolute",left:"0px",top:"0px",padding:"0px","z-index":1000}
+		};
+		
+		this.__orignalValues = {};
+		
+		this.__initialize = function()
+		{
+			var self = this;
+			this.__nsEditor.__toolBarButton["fullScreen"] = {html:"<i class='fa fa-expand' aria-hidden='true'></i>",tooltip:"Full Screen",
+												  click:function(event){
+													  self.toggle();
+												  }};
+		};
+		
+		this.toggle = function()
+		{
+			this.util.hasStyleClass(this.__nsEditor.__divOuterContainer,"nsEditorFullScreen") ? this.restore() : this.maximize();
+		};
+		
+		this.maximize = function()
+		{
+			this.util.addStyleClass(this.__nsEditor.__divOuterContainer,"nsEditorFullScreen");
+		};
+		
+		this.restore = function()
+		{
+			this.util.removeStyleClass(this.__nsEditor.__divOuterContainer,"nsEditorFullScreen");
+		};
+		
+		this.__initialize();
+	};
+	NSEditor.prototype.registerPlugin("fullScreen",NSEditorFullScreen);
+
 	 
 	
 	
