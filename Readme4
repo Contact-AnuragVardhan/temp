@@ -1,221 +1,276 @@
-<!DOCTYPE html>
-<html>
-<head>
-	<meta charset="utf-8">
-	<title>Date Picker Demo</title>
-	<meta content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' name='viewport'>
-	<style>
-		body,html
-		{
-			margin:0px;
-			padding:0px;
-			height:100%;
-			background:#FFFFFF;
-		}
-		.container
-		{
-			width:100%;
-			height:40%;
-			flex: 1 1 auto;
-    		padding-left: 25px;
-    		padding-top: 50px;
-		}
-		.calFooter
-		{
-			
-		}
-	</style>
-	
-	<link href="../lib/css/com/org/component.css" rel="stylesheet">
-	<link href="../lib/css/com/org/nsCalendar.css" rel="stylesheet">
-	<link href="../lib/css/com/org/nsDatePicker.css" rel="stylesheet">
-	<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.css" rel="stylesheet">
-	<link href="http://fontawesome.io/3.2.1/assets/font-awesome/css/font-awesome.css" rel="stylesheet">
-	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.css">
-	<script src="../lib/com/org/util/nsUtil.js"></script>
-	<script src="../lib/com/org/util/nsDateUtil.js"></script>
-	<script src="../lib/com/org/util/nsSVG.js"></script>
-	<script src="../lib/com/org/prototype/base/nsContainerBase.js"></script>
-	<script src="../lib/com/org/prototype/nsCalendar.js"></script>
-	<script src="../lib/com/org/prototype/nsDatePicker.js"></script>
- </head>
- 
-<body onload="initialize()">
-	<div class="container">
-		<div style="display: inline-block;width:33%;">
-			<p> Basic Date Picker</p>
-			<div id="divSimple">
-			</div>
-			<div id="divSimpleSelectedDate" style="height:30px;">
-			</div>
-		</div>
-		<div style="display: inline-block;width:33%;">
-			<p>Date Picker with Min Max date</p>
-			<div id="divMinMax">
-			</div>
-			<div id="divMinMaxSelectedDate" style="height:30px;">
-			</div>
-		</div>
-		<div style="display: inline-block;width:33%;">
-			<p>Calendar with Disabled Date (date less than today is disabled)</p>
-			<div id="divCalDisabled">
-			</div>
-			<div id="divCalDisabledSelectedDate" style="height:30px;">
-			</div>
-		</div>
-	</div>
-	<div class="container">
-		<div style="display: inline-block;width:33%;">
-			<p>Date Picker with Disabled Textbox</p>
-			<div id="divDisabledTextBox">
-			</div>
-			<div id="divDisabledTextBoxSelectedDate" style="height:30px;">
-			</div>
-		</div>
-		<div style="display: inline-block;width:33%;">
-			<p>Date Picker with Custom Button</p>
-			<div id="divCustomButton">
-			</div>
-			<div id="divCustomButtonSelectedDate" style="height:30px;">
-			</div>
-		</div>
-		<div style="display: inline-block;width:33%;">
-			<p>Date Picker With Footer</p>
-			<div id="divFooterCal">
-			</div>
-			<div id="divFooterCalSelectedDate" style="height:30px;">
-			</div>
-		</div>
-	</div>
-	
-	
-	<script>
-		var util = null;
-		function initialize()
-		{
-			util = new NSUtil();
-			initailizeSimpleCal();
-			initailizeMinMaxCal();
-			initailizeDisabledCal();
-			initailizeDisabledTextBox();
-			initailizeCustomButton();
-			initailizeFooterCal();
-		}
-		
-		function initailizeSimpleCal()
-		{
-			var divSimple = document.querySelector("#divSimple");
-			var nsDatePicker = new NSDatePicker(divSimple);
-			util.addEvent(divSimple,NSDatePicker.DATE_SELECTED,function(event)
-					{
-						console.log(event.detail);
-						var divSimpleCalSelectedDate = document.querySelector("#divSimpleSelectedDate");
-						divSimpleCalSelectedDate.innerHTML = event.detail;
-					});
-		}
-		
-		function initailizeMinMaxCal()
-		{
-			var divMinMax = document.querySelector("#divMinMax");
-			var minDate = "02/10/2007";
-			var maxDate = "11/10/2020";
-			var inputDateFormat = "MM/dd/yyyy";
-			var setting = {inputDateFormat:inputDateFormat,minDate:minDate,maxDate:maxDate};
-			var nsDatePicker = new NSDatePicker(divMinMax,setting);
-			util.addEvent(divMinMax,NSDatePicker.DATE_SELECTED,function(event)
-					{
-						console.log(event.detail);
-						var divMinMaxSelectedDate = document.querySelector("#divMinMaxSelectedDate");
-						divMinMaxSelectedDate.innerHTML = event.detail;
-					});
-		}
-		
-		function initailizeDisabledCal()
-		{
-			var divCalDisabled = document.querySelector("#divCalDisabled");
-			var setting = {markDayDisabled:function(date){
-				var todayDate = new Date();
-				if(date < todayDate)
-				{
-					return false;
-				}
-				return true;
-			}};
-			var nsDatePicker = new NSDatePicker(divCalDisabled,setting);
-			util.addEvent(divCalDisabled,NSDatePicker.DATE_SELECTED,function(event)
-					{
-						console.log(event.detail);
-						var divMinMaxSelectedDate = document.querySelector("#divMinMaxSelectedDate");
-						divCalDisabledSelectedDate.innerHTML = event.detail;
-					});
-		}
-		
-		function initailizeDisabledTextBox()
-		{
-			var divDisabledTextBox = document.querySelector("#divDisabledTextBox");
-			var setting = {enableTextBoxDisabled:true};
-			var nsDatePicker = new NSDatePicker(divDisabledTextBox,setting);
-			util.addEvent(divDisabledTextBox,NSDatePicker.DATE_SELECTED,function(event)
-					{
-						console.log(event.detail);
-						var divDisabledTextBoxSelectedDate = document.querySelector("#divDisabledTextBoxSelectedDate");
-						divDisabledTextBoxSelectedDate.innerHTML = event.detail;
-					});
-		}
-		
-		function initailizeCustomButton()
-		{
-			var divCustomButton = document.querySelector("#divCustomButton");
-			var setting = {buttonHtml:"<i class='glyphicon glyphicon-calendar'></i>",placeHolder:"yyyy-mm-dd",dateOutputFormat:"yyyy-mm-dd"};
-			var nsDatePicker = new NSDatePicker(divCustomButton,setting);
-			util.addEvent(divCustomButton,NSDatePicker.DATE_SELECTED,function(event)
-					{
-						console.log(event.detail);
-						var divCustomButtonSelectedDate = document.querySelector("#divCustomButtonSelectedDate");
-						divCustomButtonSelectedDate.innerHTML = event.detail;
-					});
-		}
-		
-		function initailizeFooterCal()
-		{
-			var divFooterCal = document.querySelector("#divFooterCal");
-			var divFooter = document.createElement("div");
-			util.addStyleClass(divFooter,"calFooter");
-			var span = document.createElement("span");
-			util.addStyleClass(span,"btn-group pull-left");
-			var btnToday = document.createElement("button");
-			util.addStyleClass(btnToday,"btn btn-sm btn-info");
-			btnToday.onclick = function(){
-				nsDatePicker.setTodayDate();
-			};
-			/*btnToday.addEventListener("click",function(){
-				nsDatePicker.setTodayDate();
-			});*/
-			btnToday.innerHTML = "Today";
-			span.appendChild(btnToday);
-			var btnClear = document.createElement("button");
-			util.addStyleClass(btnClear,"btn btn-sm btn-danger");
-			btnClear.addEventListener("click",function(){
-				nsDatePicker.reset();
-			});
-			btnClear.innerHTML = "Clear";
-			span.appendChild(btnClear);
-			var btnClose = document.createElement("button");
-			util.addStyleClass(btnClose,"btn btn-sm btn-success pull-right");
-			btnClose.addEventListener("click",function(){
-				nsDatePicker.closeCalendar();
-			});
-			btnClose.innerHTML = "Close";
-			divFooter.appendChild(span);
-			divFooter.appendChild(btnClose);
-			var setting = {showFooter:true,footerContent:divFooter};
-			var nsDatePicker = new NSDatePicker(divFooterCal,setting);
-			util.addEvent(divFooterCal,NSDatePicker.DATE_SELECTED,function(event)
-					{
-						console.log(event.detail);
-						var divFooterCalSelectedDate = document.querySelector("#divFooterCalSelectedDate");
-						divFooterCalSelectedDate.innerHTML = event.detail;
-					});
-		}
-	</script>
-</body>
+.nsEditor.nsEditorOuterContainer 
+{
+	border: 1px solid #c0c0c0;
+	overflow: hidden;
+}
+
+.nsEditor .nsEditorToolBarContainer
+{
+	position: relative;
+	width: 100%;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    color: #222222;
+    background: #ffffff;
+    z-index: 4;
+    font-family: Arial, Helvetica, sans-serif;
+    box-sizing: border-box;
+    padding: 0 2px;
+    border: 0px;
+}
+
+.nsEditor .nsEditorToolBarButton
+{
+	background: transparent;
+    color: #222222;
+    outline: 0;
+    border: 0;
+    line-height: 1;
+    cursor: pointer;
+    text-align: center;
+    margin: 0px 2px;
+    transition: background 0.2s ease 0s;
+    border-radius: 0;
+    background-clip: padding-box;
+    z-index: 2;
+    position: relative;
+    box-sizing: border-box;
+    text-decoration: none;
+    user-select: none;
+    float: left;
+    padding: 0;
+    width: 37px;
+    height: 38px;
+}
+
+.nsEditor .nsEditorToolBarButton:hover, .nsEditor .nsEditorToolBarButton:focus
+{
+	background: #d6d6d6 !important;
+    color: #222222 !important
+}
+
+.nsEditor .nsEditorToolBarButton.nsEditorToolBarItemActive
+{
+	color: #1e88e5;
+    background: #d6d6d6;
+}
+
+.nsEditor .nsEditorToolBarButtonDropdown::after
+{	
+	position: absolute;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 4px solid #222222;
+    right: 2px;
+    top: 17px;
+    content: "";
+}
+
+.nsEditor .nsEditorToolBarButtonDisabled
+{
+	color: #bdbdbd;
+    cursor: default
+}
+
+.nsEditorToolBarDropdown
+{
+	display: none;
+    position: absolute;
+    overflow: auto;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 4;
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    background: wheat;
+}
+
+.nsEditorToolBarDropdown .nsEditorToolBarDropdownItem
+{
+	color: inherit;
+    padding: 4px 24px;
+    text-decoration: none;
+    display: block;
+    font-size: 15px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.nsEditorToolBarDropdown .nsEditorToolBarDropdownItem:hover
+{
+	background-color: #ddd
+}
+
+.nsEditorToolBarDropdown.nsEditorToolBarDropdownShow
+{
+	display:block;
+}
+
+.nsEditor .nsEditorTabContainer
+{
+	width: 100%;
+	padding: 0;
+	background-color: #CCC9A8;
+    border-top: 1px solid #888;
+    text-align: left;
+    margin: 0;
+}
+.nsEditor .nsEditorBodyContainer
+{
+	/*z-index: 4;*/
+    overflow-x: auto;
+    border-top: solid #888 1px;
+    border-bottom: solid #888 1px;
+    position: relative;
+    clear: both;
+    height:100%;
+}
+
+.nsEditor .nsEditorFooterContainer
+{
+	width: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #ECE9D8;
+    text-align: center;
+    border-top: 1px solid #d1d1d1;
+    background: #f8f8f8;
+}
+
+.nsEditor .nsEditorTextAreaContainer 
+{
+	padding: 0px;
+	margin: 0px;
+	height: 100%;
+}
+
+.nsEditor .nsEditorTextAreaContainer .nsEditorTextArea, .nsEditorOuterContainer .nsEditorLineNumberWrapper .nsEditorLineNumber 
+{
+	font-family: monospace;
+	line-height: 15px !important;
+}
+
+.nsEditor .nsEditorTextAreaContainer .nsEditorTextArea 
+{
+	overflow: auto;
+	padding-right:5px;
+	padding-top:5px;
+	border: 0;
+}
+
+.nsEditor .nsEditorTextAreaContainer .nsEditorTextArea:focus
+{
+	outline: none;
+}
+
+.nsEditor .nsEditorTextAreaContainer .nsEditorTextArea:empty:not(:focus):before 
+{
+  content: attr(data-placeholder)
+}
+
+.nsEditor .nsEditorLineNumberContainer 
+{
+	margin-top: 0px;
+	width: 50px;
+	float: left;
+	overflow: hidden;
+	border-right: 1px solid #c0c0c0;
+	margin-right: 10px;
+}
+
+.nsEditor .nsEditorLineNumberWrapper 
+{
+	padding-top: 5px;
+	background: #f0f0f0;
+    color: #333;
+}
+
+.nsEditor .nsEditorLineNumberWrapper .nsEditorLineNumber 
+{
+	padding-right: 8px;
+	padding-top: 0px;
+	text-align: right;
+	white-space: nowrap;
+	font-size: 12px;
+}
+
+.nsEditor .nsEditorComponentHidden
+{
+	display: none !important;
+}
+
+.nsEditor .nsEditorLineNumberWrapper .nsEditorLineNumberSelected 
+{
+	color: red;
+}
+
+.nsEditor .nsEditorTextAreaContainer .nsEditorTextAreaIFrame
+{
+	width: 100%;
+    position: relative;
+    display: block;
+    z-index: 2;
+    box-sizing: border-box;
+    border-width: initial;
+    border-style: none;
+    border-color: initial;
+    border-image: initial;
+}
+
+.nsEditorTextAreaHidden
+{
+	display: none !important;
+}
+
+.nsEditorHidden
+{
+	position:absolute;
+	right: 999px;
+    top:999px;
+}
+
+/* Full Screen Pluggin */
+.nsEditor.nsEditorFullScreen
+{
+	width:99% !important;
+	height:99% !important;
+	position:absolute !important;
+	left:0px !important;
+	top:0px !important;
+	padding:0px !important;
+	z-index:1000 !important;
+}
+
+.nsEditorFullScreen .nsEditorLineNumberContainer
+{
+	height:100% !important;
+}
+
+.nsEditorFullScreen .nsEditorTextAreaGeneric
+{
+/* 	width: 900px !important; */
+	height:100% !important;
+}
+/* End of Full Screen Pluggin */
+
+/*  Resize Pluggin */
+.nsEditor .nsEditorResizer
+{
+	width: 0;
+    height: 0;
+    overflow: hidden;
+    border-width: 10px 10px 0 0;
+    border-color: transparent #bcbcbc transparent transparent;
+    border-style: dashed solid dashed dashed;
+    font-size: 0;
+    vertical-align: bottom;
+    margin-top: 6px;
+    margin-bottom: 4px;
+    cursor: se-resize;
+    float: right;
+    margin-right: 3px;
+}
+/* End of Resize Pluggin */
