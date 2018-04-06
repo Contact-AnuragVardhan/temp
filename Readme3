@@ -20,6 +20,8 @@ var NSEditor = (function()
 		this.__frameContentWindow = null;
 		this.__frameContentDoc = null;
 		this.__frameBody = null;
+		this.__txtSourceCode = null;
+		this.__compPlaceHolder = null;
 		
 		this.__textAreaScrollRef = null;
 		this.__textAreaResizeRef = null;
@@ -27,6 +29,7 @@ var NSEditor = (function()
 		this.__textAreaKeyDownRef = null;
 		
 		this.__textAreaObserver = null; 
+		this.__orignalTextAreaObserver = null; 
 		this.__timeOutInterval = null;
 		this.__lastTextAreaHeight = 0; 
 		this.__lastTextAreaWidth = 0;
@@ -38,6 +41,7 @@ var NSEditor = (function()
 		this.__nsToolTipInElement = null;
 		this.__editorDropDown = null;
 		this.__selectedRange = null;
+		this.__isSourceMode = false;
 		
 		this.__pluginsInstances = {};
 		
@@ -66,7 +70,7 @@ var NSEditor = (function()
 				   "superscript":{html:"<i class='fa fa-superscript' aria-hidden='true'></i>",tooltip:"Superscript",tags: ["sup"],command:"superscript"},
 				  
 				   "paragraph":{html:"<p>Normal</p>",tooltip:"Paragraph",command: "FormatBlock",
-						   		    "arguments": (this.__browserDetail.isMSIE || this.__browserDetail.isSafari) ? "<p>" : "p",tags: ["p"]},
+						   		    "arguments": (this.__browserDetail.isMSIE || this.__browserDetail.isSafari) ? "<p>" : "p",tags:["p"]},
 				   "header1":{html:"<h1>Heading 1</h1>",tooltip:"Header 1",
 					   				 command: "FormatBlock",
 							   		 "arguments": "<h1>",tags: ["h1"]},
@@ -85,6 +89,10 @@ var NSEditor = (function()
 				   "redo":{html:"<i class='fa fa-rotate-right' aria-hidden='true'></i>",tooltip:"Redo",command:"redo"},
 				   "outdent":{html:"<i class='fa fa-outdent' aria-hidden='true'></i>",tooltip:"Decrease Indent",command:"outdent"},
 				   "indent":{html:"<i class='fa fa-indent' aria-hidden='true'></i>",tooltip:"Increase Indent",command:"indent"},
+				   "viewSourceCode":{html:"<i class='fa fa-code' aria-hidden='true'></i>",tooltip:"View Source Code",click: this.__viewSourceCodeHandler.bind(this)},
+				   "print":{html:"<i class='fa fa-print' aria-hidden='true'></i>",tooltip:"Print",command:"print"},
+				   "pageBreakForPrinting":{html:"<i class='fa fa-bookmark' aria-hidden='true'></i>",tooltip:"Insert Page Break for Printing",click: this.__pageBreakForPrintingHandler.bind(this)},
+				   "horizontalRule":{html:"<i class='fa fa-minus' aria-hidden='true'></i>",tooltip:"Print",command:"insertHorizontalRule",tags:["hr"]},
 				   "fontFamily":{html:"<i class='fa fa-font' aria-hidden='true'></i>",tooltip:"Font Family",
 			   			isDropdown:true,
 			   			dataSource:[{value:"Arial",html:"<span style=\"font-family: Arial\">Arial</span>",tooltip:"Arial",command:"fontName","arguments":"Arial"},
@@ -214,10 +222,10 @@ var NSEditor = (function()
 			this.util.removeEvent(window,"click",this.__windowClickRef);
 			this.__windowClickRef = null;
 		}
-		if(this.__textAreaObserver)
+		if(this.__orignalTextAreaObserver)
 		{
-			this.__textAreaObserver.disconnect();
-			this.__textAreaObserver = null;
+			this.__orignalTextAreaObserver.disconnect();
+			this.__orignalTextAreaObserver = null;
 		}
 		if(this.__divOuterContainer)
 		{
@@ -276,7 +284,12 @@ var NSEditor = (function()
 	
 	NSEditor.prototype.getText = function() 
 	{
-		return this.__getTextForTextArea();
+		return this.__getTextFromTextArea();
+	};
+	
+	NSEditor.prototype.getHtml = function() 
+	{
+		return this.__getHtmlFromTextArea();
 	};
 	
 	NSEditor.prototype.__initDefault = function()
@@ -317,6 +330,7 @@ var NSEditor = (function()
 			this.__config["autoSuggestTriggers"] = this.__setting["autoSuggestTriggers"];
 			this.__config["enableToolbarInFooter"] = Boolean.parse(this.__setting["enableToolbarInFooter"]);
 			this.__config["mode"] = this.__setting["mode"];
+			this.__config["placeholder"] = this.__setting["placeholder"];
 		}
 		this.__callSetSettingsInPluggin();
 	};
@@ -353,14 +367,19 @@ var NSEditor = (function()
 		this.__createTabBar();
 		this.__createBody();
 		this.__createFooter();
+		this.__createPlaceHolder();
 		if(!this.__windowClickRef)
 		{
 			this.__windowClickRef = this.__windowClickHandler.bind(this);
 			this.util.addEvent(window,"click",this.__windowClickRef);
 		}
 		this.__editorDropDown =  this.util.createElement("ul",this.getID() + "dropDown","nsEditorToolBarDropdown");
-		//document.body.appendChild(this.__editorDropDown);
 		this.__divOuterContainer.appendChild(this.__editorDropDown);
+		if(this.__isModeTextArea())
+		{
+			this.__callComponentsInitializedInPluggin();
+			this.__checkPlaceHolderRequired();
+		}
 	};
 	
 	NSEditor.prototype.__createToolBar = function()
@@ -443,6 +462,19 @@ var NSEditor = (function()
 		}
 	};
 	
+	NSEditor.prototype.__makeToolBarItemDisabled = function(item,isDisabled)
+	{
+		if(item)
+		{
+			item.selected = false;
+			item.disabled = isDisabled;
+			if(item.control)
+			{
+				isDisabled ? this.util.addStyleClass(item.control,"nsEditorToolBarButtonDisabled") : this.util.removeStyleClass(item.control,"nsEditorToolBarButtonDisabled");
+			}
+		}
+	};
+	
 	NSEditor.prototype.__createToolBarDropdown = function(parentItem,event)
 	{
 		var arrItem = parentItem.dataSource;
@@ -494,7 +526,10 @@ var NSEditor = (function()
 		{
 			if(!this.getDisabled())
 			{
-				this.__executeCommand(item.command,item);
+				if(item.command)
+				{
+					this.__executeCommand(item.command,item);
+				}
 				if(item.click)
 				{
 					item.click(item,event);
@@ -538,6 +573,7 @@ var NSEditor = (function()
 	NSEditor.prototype.__createTextArea = function()
 	{
 		var divTextArea = null;
+		var content = "";
 		if(this.__isModeTextArea())
 		{
 			//do not add class here as it will get overriden from if orignalTextArea has class
@@ -548,10 +584,10 @@ var NSEditor = (function()
 			{
 				if(this.__orignalTextArea.value.length > 0)
 				{
-					divTextArea.appendChild(document.createTextNode(this.__orignalTextArea.value));
+					content = this.__orignalTextArea.value;
 				}
-				var arrAttributes = ["placeholder","tabIndex","style","class"];
-				var arrNewAttributes = ["data-placeholder","tabIndex","style","class"];
+				var arrAttributes = ["tabIndex","style","class"];
+				var arrNewAttributes = ["tabIndex","style","class"];
 				for(var count = 0;count < arrAttributes.length;count++)
 				{
 					if(this.__orignalTextArea.getAttribute(arrAttributes[count]))
@@ -575,7 +611,6 @@ var NSEditor = (function()
 			}
 			divTextArea.setAttribute("frameborder","0");
 			divTextArea.setAttribute("allowtransparency","true");
-			var content = "";
 			if(this.__orignalTextArea)
 			{
 				if(this.__orignalTextArea.getAttribute("tabindex"))
@@ -586,15 +621,6 @@ var NSEditor = (function()
 				{
 					content = this.__orignalTextArea.value;
 				}
-			}
-			else if(this.__config.defaultValue && this.__config.defaultValue.length > 0)
-			{
-				content = this.__config.defaultValue;
-			}
-			//for Mozilla showing cursor
-			if(!content)
-			{
-				content = "<br />";
 			}
 			var style = "html\r\n" + 
 					"		{\r\n" + 
@@ -627,22 +653,49 @@ var NSEditor = (function()
 					"		{\r\n" + 
 					"			background:#b5d6fd;\r\n" + 
 					"			color:#000;\r\n" + 
+					"		}\r\n" +
+					"		.nsEditorPageBreak\r\n" + 
+					"		{\r\n" + 
+					"			clear: both !important;\r\n" + 
+					"    		width: 100% !important;\r\n" + 
+					"    		border-top: #999 1px dotted !important;\r\n" + 
+					"    		border-bottom: #999 1px dotted !important;\r\n" + 
+					"    		padding: 0 !important;\r\n" + 
+					"    		height: 7px !important;\r\n" + 
+					"    		cursor: default !important;\r\n" + 
 					"		}";
+					
 					
 			var html = "<html><head><style>" + style + "</style></head><body class=\"nsEditorBody\" contenteditable=\"true\" aria-disabled=\"false\" spellcheck=\"true\" dir=\"auto\">" + content + "</body></html>";
 			this.__enableIFrameDesignMode(divTextArea,html);
 		}
+		if(!content && this.__config.defaultValue && this.__config.defaultValue.length > 0)
+		{
+			content = this.__config.defaultValue;
+		}
+		//for Mozilla showing cursor
+		if(content)
+		{
+			content = this.__getWrappedContent(content);
+		}
+		else
+		{
+			content = "<p><br /></p>";
+		}
+		this.__config.defaultValue = content;
 		if(this.__orignalTextArea)
 		{
 			var width = (this.__orignalTextArea.clientWidth || 0);
 			var height = (this.__orignalTextArea.clientHeight || 0);
 			var textWidth = this.util.getOuterWidth(this.__orignalTextArea);
-			this.__divOuterContainer.style.width = textWidth + "px";
+			this.__setWidth(textWidth);
 			var baseMeasurement = this.__orignalTextArea.getBoundingClientRect();
-			divTextArea.style.width = (baseMeasurement.width) + "px";
-			divTextArea.style.height = (baseMeasurement.height) + "px";
-			divTextArea.style.minHeight = (baseMeasurement.height - 6) + "px";
+			this.__setHeight(baseMeasurement.height);
 			this.util.addStyleClass(this.__orignalTextArea,"nsEditorTextAreaHidden");
+			if(!this.__config["placeholder"] && this.__orignalTextArea.getAttribute("placeholder"))
+			{
+				this.__config["placeholder"] = this.__orignalTextArea.getAttribute("placeholder");
+			}
 		}
 		this.util.addStyleClass(divTextArea,"nsEditorTextAreaGeneric");
 		
@@ -653,18 +706,38 @@ var NSEditor = (function()
 	{
 		var listenerComponent = this.__isModeTextArea() ? this.__compTextArea : this.__frameContentWindow;
 		var clickListener = this.__isModeTextArea() ? this.__compTextArea : this.__frameContentDoc;
+		var body = this.__isModeTextArea() ? this.__compTextArea : this.__getIFrameBody();
 		var self = this;
 		var eventListener = function(event){
+			event = self.util.getEvent(event);
 			//var target = self.util.getTarget(event);
 			self.__saveSelection();
 			//self.__updateToolbar(target);
+			switch(event.type)
+			{
+				case "mouseup":
+					self.__checkPlaceHolderRequired();
+					break;
+			}
 		};
+		if(this.__config.defaultValue)
+		{
+			body.innerHTML = this.__config.defaultValue;
+		}
 		this.util.addEvent(listenerComponent,"keydown",this.__textAreaKeyDownHandler.bind(this));
 		this.util.addEvent(listenerComponent,"keyup",eventListener);
 		this.util.addEvent(listenerComponent,"mouseup",eventListener);
 		this.util.addEvent(listenerComponent,"mouseout",eventListener);
+		this.util.addEvent(listenerComponent,"focusout",eventListener);
 		this.util.addEvent(clickListener,"click",this.__textAreaClickHandler.bind(this));
-		this.__callComponentsInitializedInPluggin();
+		if(!this.__isModeTextArea())
+		{
+			this.__callComponentsInitializedInPluggin();
+			this.__checkPlaceHolderRequired();
+		}
+		this.__textAreaObserver = new MutationObserver(this.__textAreaChangeHandler.bind(this));
+		var observerConfig = {attributes:false,childList:true,characterData:true,subtree:true};
+		this.__textAreaObserver.observe(body, observerConfig);
 	};
 	
 	NSEditor.prototype.__saveSelection = function()
@@ -804,7 +877,6 @@ var NSEditor = (function()
 		{
 			var textWidth = this.__divOuterContainer.offsetWidth;
 			var baseMeasurement = this.__compTextArea.getBoundingClientRect();
-			this.__divLineNumberContainer.style.height = (baseMeasurement.height) + "px";
 			this.__divLineNumberWrapper = this.util.createDiv(this.getID() + "linenumberwrapper","nsEditorLineNumberWrapper");
 			this.__divLineNumberContainer.appendChild(this.__divLineNumberWrapper);
 			this.__drawLineNumbers(1);
@@ -812,8 +884,7 @@ var NSEditor = (function()
 									parseInt(this.util.getStyleValue(this.__divOuterContainer,"border-right-width",false)) + 
 									parseInt(this.util.getStyleValue(this.__divOuterContainer,"padding-left",false)) + 
 									parseInt(this.util.getStyleValue(this.__divOuterContainer,"padding-right",false));
-			this.__divOuterContainer.style.width = (textWidth - this.__paddingHorizontal) + "px";
-			this.__compTextArea.style.width = (textWidth - this.__divLineNumberContainer.offsetWidth - this.__paddingHorizontal - 20) + "px";
+			this.__setWidth(textWidth - this.__paddingHorizontal);
 			this.__lastTextAreaHeight = this.__compTextArea.offsetHeight; 
 			this.__lastTextAreaWidth = this.__compTextArea.offsetWidth;
 			if(!this.__textAreaScrollRef)
@@ -845,10 +916,10 @@ var NSEditor = (function()
 			}
 		}
 		//observer to watch if orignalTextArea has some style changed
-		if(!this.__textAreaObserver && this.__orignalTextArea)
+		if(!this.__orignalTextAreaObserver && this.__orignalTextArea)
 		{
-			this.__textAreaObserver = new MutationObserver(this.__textAreaStyleChangeHandler.bind(this));
-			this.__textAreaObserver.observe(this.__orignalTextArea, {attributes:true,attributeFilter:["style"]});
+			this.__orignalTextAreaObserver = new MutationObserver(this.__orignalTextAreaStyleChangeHandler.bind(this));
+			this.__orignalTextAreaObserver.observe(this.__orignalTextArea, {attributes:true,attributeFilter:["style"]});
 		}
 		this.__setLineNumberVisibility(this.__config["enableLineNumber"]);
 	};
@@ -886,13 +957,12 @@ var NSEditor = (function()
 	
 	NSEditor.prototype.__textAreaKeyDownHandler = function(event)
 	{
-		var event = this.util.getEvent(event);
+		event = this.util.getEvent(event);
 		if(!this.getDisabled())
 		{
 			if (event.keyCode === this.util.KEYCODE.BACKSPACE) 
 			{ 
-				var emptyRegex = /^<([\w]+)[^>]*>(<br\/?>)?<\/\1>$/;
-				if (emptyRegex.test(self.getContent())) 
+				if (this.__isTextAreaBlank()) 
 				{ 
 					event.stopPropagation(); // prevent remove single empty tag
 					event.preventDefault();
@@ -945,7 +1015,16 @@ var NSEditor = (function()
 				}
 			}
 		}
+		this.__checkPlaceHolderRequired();
 		
+	};
+	
+	NSEditor.prototype.__textAreaKeyUpHandler = function(event)
+	{
+		 /*if (decls.isVisible())
+         {
+             decls.setFilter(getFilterText());
+         }*/
 	};
 	
 	NSEditor.prototype.__textAreaClickHandler = function(event)
@@ -977,72 +1056,28 @@ var NSEditor = (function()
 	NSEditor.prototype.__textAreaResizeHandler = function(event)
 	{
 		var listenerComponent = this.__getScrollComponent();
-		this.__divLineNumberContainer.style.height = (listenerComponent.clientHeight) + "px";
 	};
 	
-	NSEditor.prototype.__textAreaStyleChangeHandler = function(arrMutation)
+	NSEditor.prototype.__orignalTextAreaStyleChangeHandler = function(arrMutation)
 	{
-		arrMutation.forEach(function(mutation) 
+		for(var count = 0;count < arrMutation.length;count++)
 		{
-	        if (mutation.type == "attributes") 
+			var mutation = arrMutation[count];
+			if (mutation.type == "attributes") 
 	        {
 	        	
 	        }
-	    });
+			
+		}
 	};
 	
-	NSEditor.prototype.__textAreaKeyUpHandler = function(event)
+	NSEditor.prototype.__textAreaChangeHandler= function(arrMutation)
 	{
-		 /*if (decls.isVisible())
-         {
-             decls.setFilter(getFilterText());
-         }*/
-	};
-	
-	NSEditor.prototype.__textAreaKeyDownHandler = function(event)
-	{
-		//console.log(this.__getPreviousWord());
-		/*var triggered = false;
-
-        function processTriggers(triggers, callback)
-        {
-            if (triggered) { return; }
-            triggers.forEach(function (item)
-            {
-                if (triggered) { return; }
-
-                var shiftKey = item.shiftKey || false;
-                var ctrlKey = item.ctrlKey || false;
-                var keyCode = item.keyCode || 0;
-                var preventDefault = item.preventDefault || false;
-
-                if (evt.keyCode === keyCode && evt.shiftKey === shiftKey && evt.ctrlKey === ctrlKey)
-                {
-                    startColumnIndex = getCaretOffset() + 1;
-                    triggered = true;
-                    callback(item,this.__getPreviousWord());
-                    if (preventDefault)
-                    {
-                        evt.preventDefault();
-                    }
-                }
-            });
-        }
-
-        processTriggers(declsTriggers, declarationsCallback);
-
-        if (decls.isVisible())
-        {
-            if (evt.keyCode === 8)
-            {
-                decls.setFilter(getFilterText());
-            }
-            else
-            {
-                this.__handleKeySpecialKeys(event);
-            }
-        }*/
-		
+		//for(var count = 0;count < arrMutation.length;count++)
+		//{
+			//var mutation = arrMutation[count];
+			this.__checkPlaceHolderRequired();
+		//}
 	};
 	
 	NSEditor.prototype.__drawLineNumbers = function(fromLine)
@@ -1115,7 +1150,7 @@ var NSEditor = (function()
         }
 	};
 	
-	NSEditor.prototype.__getTextForTextArea = function() 
+	NSEditor.prototype.__getTextFromTextArea = function() 
 	{
 		var text = null;
 		if(this.__isModeTextArea())
@@ -1124,7 +1159,25 @@ var NSEditor = (function()
 		}
 		else
 		{
+			text = this.__getIFrameText();
+		}
+		return text;
+	};
+	
+	NSEditor.prototype.__getHtmlFromTextArea = function() 
+	{
+		var text = null;
+		if(this.__isModeTextArea())
+		{
+			text  = this.__compTextArea.innerHTML;
+		}
+		else
+		{
 			text = this.__getIFrameContent();
+		}
+		if(text)
+		{
+			text = text.replace(/^(<p[^>]*>(&nbsp;|&#160;|\s|\u00a0|<br \/>|)<\/p>[\r\n]*|<br \/>[\r\n]*)$/, "");
 		}
 		return text;
 	};
@@ -1170,12 +1223,18 @@ var NSEditor = (function()
 	NSEditor.prototype.__getPreviousWord = function() 
 	{
 		var cursorPosition = this.__getCursorPosition();
-		var lastWord = this.__getWordAtPosition(this.__getTextForTextArea(),cursorPosition);
+		var lastWord = this.__getWordAtPosition(this.__getTextFromTextArea(),cursorPosition);
 		return lastWord;
 	};
 	//end of function to get last text for autocomplete
 	
 	//functions related to IFrame
+	NSEditor.prototype.__getIFrameText = function() 
+	{
+		var iframeBody = this.__getIFrameBody();
+	    return (iframeBody ? (iframeBody.textContent || iframeBody.innerText) : null);
+	};
+	
 	NSEditor.prototype.__getIFrameContent = function() 
 	{
 		var iframeBody = this.__getIFrameBody();
@@ -1396,6 +1455,88 @@ var NSEditor = (function()
 		return null;
 	};
 	
+	NSEditor.prototype.__insertHTML = function(html) 
+	{
+		if(html && html.length > 0)
+		{
+			var doc = this.__isModeTextArea() ? document : this.__frameContentDoc;
+			var divTemp = document.createElement("div");
+			divTemp.innerHTML = html;
+			var element = divTemp.childNodes[0];
+			if(this.__browserDetail.isMSIE)
+			{
+				this.__executeCommand("insertImage",{"arguments": "##nsEditorImage##"});
+				var image = doc.querySelector('img[src="##nsEditorImage##"]');
+				if(image)
+				{
+					image.parentNode.replaceChild(element,image);
+				}
+			}
+			else if (this.__browserDetail.isFirefox) 
+			{ 
+				range = this.__getInternalRange();
+				range.deleteContents();
+				range.insertNode(element);
+			}
+			else
+			{
+				this.__executeCommand("insertHTML",{"arguments": html});
+			}
+		}
+	};
+	
+	NSEditor.prototype.__viewSourceCodeHandler = function(item,event)
+	{
+		if(!this.__txtSourceCode)
+		{
+			this.__txtSourceCode = this.util.createElement("textarea",this.getID() + "sourcetextArea","nsEditorSourceTextArea");
+			this.__txtSourceCode.setAttribute("disabled",true);
+			this.__divTextAreaContainer.appendChild(this.__txtSourceCode);
+		}
+		//view source is shown then show editor
+		if (this.__isSourceMode)
+		{
+			this.util.addStyleClass(this.__txtSourceCode,"nsEditorTextAreaHidden");
+			this.util.removeStyleClass(this.__compTextArea,"nsEditorTextAreaHidden");
+			this.__checkPlaceHolderRequired();
+			var arrKeys = Object.keys(this.__toolBarButton);
+			for(var count = 0;count < arrKeys.length;count++)
+			{
+				var key = arrKeys[count];
+				var toolBarItem = this.__toolBarButton[key];
+				this.__makeToolBarItemDisabled(toolBarItem,false);
+			}
+		}
+		//view source is not shown then show viewsource text area
+		else
+		{
+			var html = this.__getHtmlFromTextArea();
+			this.util.removeStyleClass(this.__txtSourceCode,"nsEditorTextAreaHidden");
+			this.util.addStyleClass(this.__compTextArea,"nsEditorTextAreaHidden");
+			this.__txtSourceCode.value = html;
+			this.__showHidePlaceHolder(false);
+			var arrKeys = Object.keys(this.__toolBarButton);
+			//var arrEnableKeys = ["fullScreen","viewSourceCode"];
+			for(var count = 0;count < arrKeys.length;count++)
+			{
+				var key = arrKeys[count];
+				var toolBarItem = this.__toolBarButton[key];
+				if(item != toolBarItem)
+				{
+					var disabled = toolBarItem.checkDisability ? toolBarItem.checkDisability(key,toolBarItem,item) : true;
+					this.__makeToolBarItemDisabled(toolBarItem,disabled);
+				}
+			}
+		}
+		this.__isSourceMode = !this.__isSourceMode;
+	};
+	
+	NSEditor.prototype.__pageBreakForPrintingHandler = function(item,event)
+	{
+		var divPageBreak = "<div class=\"nsEditorPageBreak\" style=\"page-break-after: always\" title=\"Page Break\"></div>";
+		this.__insertHTML(divPageBreak);
+	};
+	
 	NSEditor.prototype.__getScrollComponent = function() 
 	{
 		var component = this.__isModeTextArea() ? this.__compTextArea : this.__getIFrameBody();
@@ -1407,6 +1548,163 @@ var NSEditor = (function()
 		return (this.__config["mode"] !== NSEditor.MODE_IFRAME);
 	};
 	
+	NSEditor.prototype.__resizeContainer = function(width,height) 
+	{
+		this.__setHeight(height);
+		this.__setWidth(width);
+		this.__handleLineNumberOnResize();
+	};
+	
+	NSEditor.prototype.__dispatchEvent = function(eventType,data,param,bubbles,cancelable)
+	{
+		this.util.dispatchEvent(this.__baseComponent,eventType,data,param,bubbles,cancelable);
+	};
+	
+	NSEditor.prototype.__addEvent = function(eventType,listener)
+	{
+		this.util.addEvent(this.__baseComponent,eventType,listener);
+	};
+	
+	NSEditor.prototype.__setHeight = function(height)
+	{
+		if(height)
+		{
+			this.__divBodyContainer.style.height = height + "px";
+		}
+	};
+	
+	NSEditor.prototype.__getHeight = function()
+	{
+		var baseMeasurement = this.__divBodyContainer.getBoundingClientRect();
+		return baseMeasurement.height;
+	};
+	
+	NSEditor.prototype.__setWidth = function(width)
+	{
+		if(width)
+		{
+			this.__divOuterContainer.style.width = width + "px";
+		}
+	};
+	
+	NSEditor.prototype.__getWidth = function()
+	{
+		var baseMeasurement = this.__divOuterContainer.getBoundingClientRect();
+		return baseMeasurement.width;
+	};
+	
+	NSEditor.prototype.__handleLineNumberOnResize = function()
+	{
+		var lineNumberHeight = 15;
+		var listenerComponent = this.__getScrollComponent();
+		
+		var scrollTop = listenerComponent.scrollTop;
+		var firstLine = Math.floor((scrollTop / lineNumberHeight) + 1);
+		var remainingScroll = (scrollTop / lineNumberHeight) % 1;
+
+		this.__drawLineNumbers(firstLine);
+		this.__divLineNumberWrapper.style.marginTop = (-1 * (remainingScroll * lineNumberHeight)) + "px";
+		this.__paddingHorizontal = parseInt(this.util.getStyleValue(this.__divOuterContainer,"border-left-width",false)) +
+								parseInt(this.util.getStyleValue(this.__divOuterContainer,"border-right-width",false)) + 
+								parseInt(this.util.getStyleValue(this.__divOuterContainer,"padding-left",false)) + 
+								parseInt(this.util.getStyleValue(this.__divOuterContainer,"padding-right",false));
+	};
+	
+	NSEditor.prototype.__getWrappedContent = function(content) 
+	{
+		if(content)
+		{
+			var isPFound = content.match(/<\/?p>/gi);
+			if (!isPFound) 
+			{
+				return "<p>" + content + "</p>";
+			}
+		}
+		return content;
+	};
+	
+	//Placeholder functions
+	NSEditor.prototype.__createPlaceHolder = function() 
+	{
+		if(!this.__compPlaceHolder && this.__config["placeholder"] && this.__config["placeholder"].length > 0)
+		{
+			this.__compPlaceHolder = this.util.createElement("span",this.getID() + "Placeholder","nsEditorPlaceholder");
+			this.__compPlaceHolder.appendChild(document.createTextNode(this.__config["placeholder"]));
+			this.__divTextAreaContainer.appendChild(this.__compPlaceHolder);
+		}
+	};
+	
+	NSEditor.prototype.__showHidePlaceHolder = function(isVisible) 
+	{
+		if(this.__compPlaceHolder)
+		{
+			isVisible ? this.util.addStyleClass(this.__compPlaceHolder,"nsEditorPlaceholderShow") : this.util.removeStyleClass(this.__compPlaceHolder,"nsEditorPlaceholderShow");
+			if(isVisible)
+			{
+				this.__setPlaceHolderPosition();
+			}
+		}
+	};
+	
+	NSEditor.prototype.__setPlaceHolderPosition = function() 
+	{
+		if(this.__compPlaceHolder)
+		{
+			var self = this;
+			var getValue = function(obj,element)
+			{
+				for(var count = 0;count < arrStyle.length;count++)
+				{
+					obj[arrProp[count]] = self.__getStyleValue(self.util.getStyleValue(element,arrStyle[count],false));
+				}
+			};
+			var body = this.__isModeTextArea() ? this.__compTextArea : this.__getIFrameBody();
+			var firstChild = body.children[0];
+			var child = {};
+			var element = {};
+			var arrStyle = ["margin-top","margin-right","margin-left","padding-top","padding-right","padding-left"];
+			var arrProp = ["marginTop","marginRight","marginLeft","paddingTop","paddingRight","paddingLeft"];
+			getValue(child,firstChild);
+			getValue(element,body);
+			for(var count = 0;count < arrProp.length;count++)
+			{
+				var prop = arrProp[count];
+				this.__compPlaceHolder.style[prop] = Math.max(child[prop],element[prop]) + "px";
+			}
+		}
+	};
+	
+	NSEditor.prototype.__checkPlaceHolderRequired = function() 
+	{
+		var self = this;
+		var callLater = function()
+		{
+			self.__showHidePlaceHolder(self.__isTextAreaBlank());
+		};
+		setTimeout(callLater, 0);
+	};
+	//end of Placeholder functions
+	NSEditor.prototype.__isTextAreaBlank = function() 
+	{
+		var body = this.__isModeTextArea() ? this.__compTextArea : this.__getIFrameBody();
+		if(body.children.length === 1)
+		{
+			var html = this.getHtml();
+			/*if(html == "<p><br /></p>")
+			{
+				return true;
+			}*/
+			var emptyRegex = /^<([\w]+)[^>]*>(<br\/?>)?<\/\1>$/;
+			var isBlank = emptyRegex.test(html);
+			return isBlank;
+		}
+		return false;
+	};
+	
+	NSEditor.prototype.__getStyleValue = function(styleValue) 
+	{
+        return parseInt(styleValue, 10) || 0;
+    };
 	//section of functions for pluggin
 	NSEditor.prototype.__initializePlugins = function() 
 	{
@@ -1490,6 +1788,13 @@ var NSEditor = (function()
 		this.__observer = null;
 		this.__arrLinks = {};
 		
+		
+		this.__deniedTags = [];
+		this.__deniedAttrs = [];
+		this.__allowedStyleProps = ["font-family", "font-size", "background", "color", "width", "text-align", "vertical-align", "background-color", "padding", "margin", "height", "margin-top", "margin-left", "margin-right", "margin-bottom", "text-decoration", "font-weight", "font-style"],
+		this.__shape = {}; 
+
+		
 		this.setSettings = function()
 		{
 			
@@ -1547,7 +1852,7 @@ var NSEditor = (function()
 		
 		this.__textAreaPasteListener = function(event)
 		{
-			var event = this.util.getEvent(event);
+			event = this.util.getEvent(event);
 			this.__getPastedHTML(event);
 			event.stopPropagation();
 			event.preventDefault();
@@ -1675,8 +1980,94 @@ var NSEditor = (function()
 			return htmlContent;
 		};
 		
-		this.__formatWord = function(htmlContent)
+		this.__formatWord = function(htmlContent,rtfContent)
 		{
+			if(htmlContent.indexOf("<colgroup>") === 0)
+			{
+				htmlContent = "<table>" + htmlContent + "</table>";
+			}
+			htmlContent = htmlContent.replace(/<span[\n\r ]*style='mso-spacerun:yes'>[\r\n\u00a0 ]*<\/span>/g, "&nbsp;"),
+			this.__formatVShape(htmlContent);
+			var domParser = new DOMParser();
+			var docWord = domParser.parseFromString(htmlContent, "text/html");
+			var docHead = docWord.head;
+			var docBody = docWord.body;
+			var arrStyle = this.__getStyles(docHead);
+			var processUnicode = function(node)
+			{
+				if (node.nodeType == Node.TEXT_NODE && /\n|\u00a0/.test(node.data)) 
+				{
+                    if (!/\S| /.test(node.data))
+                    {
+                    	if(node.data == " ")
+                    	{
+                    		node.data = "\u200b";
+                    		return true;
+                    	}
+                    	else
+                    	{
+                    		if(node.parentNode)
+                    		{
+                    			node.parentNode.removeChild(node);
+                    		}
+                    		return false;
+                    	}
+                    }
+                    node.data = node.data.replace(/\n/gi, " ");
+                }
+                return false;
+			};
+			var processImage = function(node)
+			{
+				 if(node.nodeType != Node.ELEMENT_NODE || "V:IMAGEDATA" != node.tagName && "IMG" != node.tagName)
+				 {
+					 this.__formatImageAndShape(node, rtfContent);
+					 return true;
+				 }
+				 return false;
+			};
+			var processNode = function(node)
+			{
+				if (node.nodeType == Node.TEXT_NODE)
+				{
+					node.data = node.data.replace(/<br>(\n|\r)/gi, "<br>");
+					return false;
+				}
+				if (node.nodeType == Node.ELEMENT_NODE) 
+				{
+					 if (j(node)) 
+					 {
+						 var parentNode = node.parentNode;
+                         var previousSibling = node.previousSibling;
+                         var tempNode = m(node, arrStyle);
+                         var child = previousSibling ? previousSibling.nextSibling : parentNode.firstChild;
+                         if(child)
+                         {
+                        	 parentNode.insertBefore(tempNode, child);
+                         }
+                         else
+                         {
+                        	 parentNode.appendChild(tempNode);
+                         }
+                         return false;
+					 }
+					 return x(node, arrStyle);
+				}
+				if(node.nodeType == Node.COMMENT_NODE)
+				{
+					h(node);
+					return false;
+				}
+				return true;
+			};
+			this.__processNode(docBody,processUnicode);
+			this.__processNode(docBody,processImage);
+			this.__processNode(docBody,processNode);
+			
+			
+			
+			
+			
 			function shapeTagging( element ) 
 			{
 				// Check if regular or canvas shape (#1088).
@@ -1704,6 +2095,107 @@ var NSEditor = (function()
 			return htmlContent;
 
 		};
+		
+		this.__getHtmlBody = function(htmlContent)
+		{
+			htmlContent = htmlContent.replace(/[.\s\S\w\W<>]*(<html[^>]*>[.\s\S\w\W<>]*<\/html>)[.\s\S\w\W<>]*/i, "$1");
+			
+		};
+		
+		this.__processNode = function(node,callback)
+		{
+			if(callback(node))
+			{
+				var child = node.firstChild;
+				while(child)
+				{
+					var childCopy = child;
+					var prevChild = child.previousSibling;
+					child = child.nextSibling;
+					this.__processNode(childCopy,callback);
+					if(childCopy.previousSibling || childCopy.nextSibling || childCopy.parentNode || !child || prevChild == child.previousSibling)
+					{
+						if(child.parentNode)
+						{
+							child = prevChild ? prevChild.nextSibling : node.firstChild;
+						}
+						else if(childCopy.previousSibling || childCopy.nextSibling || childCopy.parentNode || !child || child.previousSibling || 
+								child.nextSibling || child.parentNode)
+						{
+							if(prevChild)
+							{
+								child = prevChild.nextSibling ? prevChild.nextSibling.nextSibling : null;
+							}
+							else if(node.firstChild)
+							{
+								child = node.firstChild.nextSibling;
+							}
+						}
+							
+					}
+				}
+			}
+			
+		};
+		
+		this.__formatVShape = function(htmlContent)
+		{
+			var arrShape = htmlContent.split("v:shape");
+			 for (var count = 1; count < arrShape.length; count++) 
+			 {
+				 var shape = arrShape[count];
+				 var shapeID = shape.split(' id="')[1]; 
+				 if (shapeID && shapeID.length > 1) 
+				 {
+					 shapeID = shapeID.split('"')[0];
+					 var spID = shape.split(' o:spid="')[1];
+					 if(spID && spID.length > 1)
+					 {
+						 spID = spID.split('"')[0];
+						 this.__shape[shapeID] = spID;
+					 }
+				 }
+			 }
+		};
+		
+		this.__formatImageAndShape = function(node,rtfCode)
+		{
+			var spId = null;
+			if(rtfCode)
+			{
+				if ("IMG" == node.tagName) 
+				{
+					 var src = node.getAttribute("src");
+					 if (!src || src.indexOf("file://") === -1)
+					 {
+						 return;
+					 }
+					 spId = this.__shape[node.getAttribute("v:shapes")];
+					 if(spId)
+					 {
+						 spId = node.getAttribute("v:shapes");
+					 }
+				}
+			}
+			else
+			{
+				spId = node.parentNode.getAttribute("o:spid");
+			}
+			node.removeAttribute("height");
+			if(spId)
+			{
+				 E || v(c);
+                 var f = E[spId.substring(7)];
+                 if(f) 
+                 {
+                     var g = t(f.image_hex)
+                       , h = "data:" + f.image_type + ";base64," + g;
+                     "IMG" === node.tagName ? (node.src = h,
+                     node.setAttribute("data-fr-image-pasted", !0)) : a(node.parentNode).before('<img data-fr-image-pasted="true" src="' + h + '" style="' + node.parentNode.getAttribute("style") + '">').remove();
+                 }
+			}
+		};
+		
 		
 		this.__getStyles = function(wordHead)
 		{
@@ -1943,6 +2435,8 @@ var NSEditor = (function()
 		this.__nsEditor = nsEditor;
 		this.util = nsEditor.util;
 		
+		this.__orignalSetting = {bodyHeight:0};
+		
 		this.setSettings = function()
 		{
 			
@@ -1952,12 +2446,20 @@ var NSEditor = (function()
 		{
 			var self = this;
 			this.__nsEditor.__toolBarButton["fullScreen"] = {html:"<i class='fa fa-expand' aria-hidden='true'></i>",tooltip:"Full Screen",
+												  checkDisability: function(toolBarKey,toolBarItem,item)
+												  {
+													  if(toolBarKey === "viewSourceCode")
+													  {
+														  return true;
+													  }
+													  return false;
+												  },
 												  click:function(item,event)
 												  {
 													  self.toggle();
 													  event = self.util.getEvent();
 													  var iTag = event.target;
-													  if(event.target.nodeName === "button")
+													  if(event.target.nodeName.toLowerCase() === "button")
 													  {
 														  iTag = event.target.children[0];
 													  }
@@ -2000,34 +2502,18 @@ var NSEditor = (function()
 		this.maximize = function()
 		{
 			this.util.addStyleClass(this.__nsEditor.__divOuterContainer,"nsEditorFullScreen");
-			this.__handleLineNumber();
+			this.__orignalSetting.bodyHeight = this.__nsEditor.__divBodyContainer.clientHeight;
+			var height = this.__nsEditor.__divOuterContainer.clientHeight - this.__nsEditor.__divToolBarContainer.clientHeight - this.__nsEditor.__divTabContainer.clientHeight - this.__nsEditor.__divFooterContainer.clientHeight;
+			this.__nsEditor.__resizeContainer(null,height);
+			this.__nsEditor.__dispatchEvent(NSEditor.EVENT_MAXIMIZED);
 		};
 		
 		this.restore = function()
 		{
 			this.util.removeStyleClass(this.__nsEditor.__divOuterContainer,"nsEditorFullScreen");
-			this.__handleLineNumber();
-		};
-		
-		this.__handleLineNumber = function()
-		{
-			var lineNumberHeight = 15;
-			var listenerComponent = this.__nsEditor.__getScrollComponent();
-			
-			var scrollTop = listenerComponent.scrollTop;
-			var firstLine = Math.floor((scrollTop / lineNumberHeight) + 1);
-			var remainingScroll = (scrollTop / lineNumberHeight) % 1;
-
-			this.__nsEditor.__drawLineNumbers(firstLine);
-			this.__nsEditor.__divLineNumberWrapper.style.marginTop = (-1 * (remainingScroll * lineNumberHeight)) + "px";
-			
-			
-			var textWidth = this.__nsEditor.__divOuterContainer.offsetWidth;
-			this.__nsEditor.__paddingHorizontal = parseInt(this.util.getStyleValue(this.__nsEditor.__divOuterContainer,"border-left-width",false)) +
-									parseInt(this.util.getStyleValue(this.__nsEditor.__divOuterContainer,"border-right-width",false)) + 
-									parseInt(this.util.getStyleValue(this.__nsEditor.__divOuterContainer,"padding-left",false)) + 
-									parseInt(this.util.getStyleValue(this.__nsEditor.__divOuterContainer,"padding-right",false));
-			this.__nsEditor.__compTextArea.style.width = (textWidth - this.__nsEditor.__divLineNumberContainer.offsetWidth - this.__nsEditor.__paddingHorizontal - 20) + "px";
+			this.__nsEditor.__resizeContainer(null,this.__orignalSetting.bodyHeight);
+			this.__orignalSetting = {bodyHeight:0};
+			this.__nsEditor.__dispatchEvent(NSEditor.EVENT_RESTORED);
 		};
 		
 		NSEditor.prototype.maximize = function()
@@ -2038,21 +2524,34 @@ var NSEditor = (function()
 		
 	};
 	NSEditor.TOOLBAR_BUTTONS_FULLSCREEN = "fullScreen";
+	NSEditor.EVENT_MAXIMIZED = "maximized";
+	NSEditor.EVENT_RESTORED = "restored";
 	NSEditor.prototype.registerPlugin("fullScreen",NSEditorFullScreen);
 	
 	var NSEditorResize = function(nsEditor)
 	{
 		this.__nsEditor = nsEditor;
 		this.util = nsEditor.util;
+		this.__width = 0;
+		this.__height = 0;
+		this.__minWidth = 0;
+		this.__minHeight = 0;
+		this.__startPoint = {xPos:0,yPos:0};
+		this.__enbaleResizeHorizontal = false;
+		this.__enbaleResizeVertical = false;
+		this.__docMouseMoveRef = null;
+		this.__docMouseUpRef = null;
 		
 		this.setSettings = function()
 		{
 			this.__nsEditor.__config["enableResize"] = Boolean.parse(this.__nsEditor.__setting["enableResize"]);
 			this.__nsEditor.__config["resizeDirection"] = this.__nsEditor.__setting["resizeDirection"] || NSEditor.RESIZE_DIRECTION_VERTICAL;
-			this.__nsEditor.__config["minWidth"] = this.__nsEditor.__setting["minWidth"] || 800;
-			this.__nsEditor.__config["minHeight"] = this.__nsEditor.__setting["minHeight"] || 300;
-			this.__nsEditor.__config["maxWidth"] = this.__nsEditor.__setting["maxWidth"] || 1000;
-			this.__nsEditor.__config["maxHeight"] = this.__nsEditor.__setting["maxHeight"] || 2000;
+			this.__nsEditor.__config["minWidth"] = parseInt(this.__nsEditor.__setting["minWidth"] || 800);
+			this.__nsEditor.__config["minHeight"] = parseInt(this.__nsEditor.__setting["minHeight"] || 300);
+			this.__nsEditor.__config["maxWidth"] = parseInt(this.__nsEditor.__setting["maxWidth"] || 1000);
+			this.__nsEditor.__config["maxHeight"] = parseInt(this.__nsEditor.__setting["maxHeight"] || 2000);
+			this.__enbaleResizeHorizontal = (this.__nsEditor.__config["resizeDirection"] == NSEditor.RESIZE_DIRECTION_BOTH || this.__nsEditor.__config["resizeDirection"] == NSEditor.RESIZE_DIRECTION_HORIZONTAL ) && (this.__nsEditor.__config["minWidth"] != this.__nsEditor.__config["maxWidth"]);
+			this.__enbaleResizeVertical = (this.__nsEditor.__config["resizeDirection"] == NSEditor.RESIZE_DIRECTION_BOTH || this.__nsEditor.__config["resizeDirection"] == NSEditor.RESIZE_DIRECTION_VERTICAL ) && (this.__nsEditor.__config["minHeight"] != this.__nsEditor.__config["maxHeight"]);
 		};
 		
 		this.initialize = function()
@@ -2073,7 +2572,13 @@ var NSEditor = (function()
 				spanResizer.innerHTML = "\u25E2";
 				this.util.addEvent(spanResizer,"mousedown",this.__resizeMouseDownHandler.bind(this));
 				this.__nsEditor.__divFooterContainer.appendChild(spanResizer);
-				
+				var self = this;
+				this.__nsEditor.__addEvent(NSEditor.EVENT_MAXIMIZED,function(event){
+					self.util.addStyleClass(spanResizer,"nsEditorComponentHidden");
+				});
+				this.__nsEditor.__addEvent(NSEditor.EVENT_RESTORED,function(event){
+					self.util.removeStyleClass(spanResizer,"nsEditorComponentHidden");
+				});
 			}
 		};
 		
@@ -2089,7 +2594,53 @@ var NSEditor = (function()
 		
 		this.__resizeMouseDownHandler = function(event)
 		{
-			
+			event = this.util.getEvent(event);
+			this.__startPoint = {xPos:event.clientX,yPos:event.clientY};
+			var body = this.__nsEditor.__divBodyContainer;
+			var outerContainer = this.__nsEditor.__divOuterContainer;
+			this.__width = parseInt(document.defaultView.getComputedStyle(outerContainer).width, 10);
+			this.__height = parseInt(document.defaultView.getComputedStyle(body).height, 10);
+			this.__minWidth = (this.__nsEditor.__config["minWidth"] > this.__width) ? this.__width : this.__nsEditor.__config["minWidth"];
+			this.__minHeight = (this.__nsEditor.__config["minHeight"] > this.__height) ? this.__height : this.__nsEditor.__config["minHeight"];
+			this.__docMouseMoveRef = this.__docMouseMoveHandler.bind(this);
+			this.__docMouseUpRef = this.__docMouseUpHandler.bind(this);
+			this.util.addEvent(document,"mousemove",this.__docMouseMoveRef);
+			this.util.addEvent(document,"mouseup",this.__docMouseUpRef);
+			if (!this.__nsEditor.__isModeTextArea()) 
+			{
+				this.util.addEvent(this.__nsEditor.__frameContentDoc,"mousemove",this.__docMouseMoveRef);
+				this.util.addEvent(this.__nsEditor.__frameContentDoc,"mouseup",this.__docMouseUpRef);
+			}
+			event.preventDefault();
+		};
+		
+		this.__docMouseMoveHandler = function(event)
+		{
+			event = this.util.getEvent(event);
+			var width = null;
+			var height = null;
+			var internalWidth = this.__width + event.clientX - this.__startPoint.xPos;
+			var internalHeight = this.__height + event.clientY - this.__startPoint.yPos;
+			if (this.__enbaleResizeHorizontal)
+			{
+				width = Math.max(this.__minWidth, Math.min(internalWidth, this.__nsEditor.__config["maxWidth"]));
+			}
+			if (this.__enbaleResizeVertical)
+			{
+				height = Math.max(this.__minHeight, Math.min(internalHeight, this.__nsEditor.__config["maxHeight"]));
+			}
+			this.__nsEditor.__resizeContainer(width,height);
+		};
+		
+		this.__docMouseUpHandler = function(event)
+		{
+			this.util.removeEvent(document,"mousemove",this.__docMouseMoveRef);
+			this.util.removeEvent(document,"mouseup",this.__docMouseUpRef);
+			if (!this.__nsEditor.__isModeTextArea()) 
+			{
+				this.util.removeEvent(this.__nsEditor.__frameContentDoc,"mousemove",this.__docMouseMoveRef);
+				this.util.removeEvent(this.__nsEditor.__frameContentDoc,"mouseup",this.__docMouseUpRef);
+			}
 		};
 	};
 	NSEditor.RESIZE_DIRECTION_HORIZONTAL = "horizontal";
