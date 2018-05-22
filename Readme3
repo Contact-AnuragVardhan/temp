@@ -1,60 +1,75 @@
-.nsEditor .nsEditorToolBarButtonDisabled
+	this.__setYearDropdown(year);
+	this.__setYearDropdown(monthDate.getFullYear());
+	item.date = new Date(date.getTime());
+	//dont fire event as it is just to update the cell
+					this.__setCellSelection(dateToSet,cell,false);
+	
+	//IE issue 
+	NSCalendar.prototype.__setYearDropdown = function(year)
+	{
+		//this.__cmbYear.selectedIndex = this.__cmbYear.querySelector('option[value="'+ monthDate.getFullYear() +'"]').index;
+		this.__cmbYear.querySelector('option[value="'+ year +'"]').selected = "selected";
+	};
+	
+	,item[this.__childField],item[this.__objGrid.__childrenCountField]
+	 this.__objAdvancedFilterSetting = {};
+	 
+	 NSGroupingGrid.prototype.__initialize = function ()
 {
-	opacity: 0.5;
-    filter: alpha(opacity=50);
-    border: 0px none transparent;
-    padding: 1px;
-    cursor: auto;
-    pointer-events: none;
+	var setGroupColumn = false;
+	if(this.__nsGrid.hasAttribute("isSingleLevelGrouping"))
+	{
+		this.__isSingleLevelMode =  Boolean.parse(this.__nsGrid.getAttribute("isSingleLevelGrouping"));
+	}
+	if(this.__nsGrid.hasAttribute("multiLevelGroupColumn"))
+	{
+		this.__multiLevelGroupColumn = this.__nsGrid.getAttribute("multiLevelGroupColumn");
+		if(this.__multiLevelGroupColumn)
+		{
+			this.__multiLevelGroupColumn.dataField = this.__nsGrid.getID() + "_group_field";
+			if(!this.__multiLevelGroupColumn.groupRenderer)
+			{
+				this.__multiLevelGroupColumn.groupRenderer = this.__groupTextRenderer.bind(this);
+			}
+		}
+		else
+		{
+			setGroupColumn = true;
+		}
+	}
+	else
+	{
+		setGroupColumn = true;
+	}
+	if(setGroupColumn)
+	{
+		this.__multiLevelGroupColumn = {headerText:"Group",dataField:this.__nsGrid.getID() + "_group_field",width:"100px",enableFilter:true,groupRenderer:this.__groupTextRenderer.bind(this)};
+	}
+};
+
+NSGroupingGrid.prototype.__groupTextRenderer = function(data,dataField,rowIndex,columnIndex,row,arrChildren,childrenCount)
+{
+	if(data && data.hasOwnProperty(dataField))
+	{
+		var innerHTML = "<span>" + data[dataField];
+		if(childrenCount)
+		{
+			innerHTML += " &#40;" + childrenCount + "&#41;";
+		}
+		innerHTML += "</span>";
+		return innerHTML;
+	}
+	return "";
+};
+
+if (!String.prototype.startsWith) 
+{
+	  String.prototype.startsWith = function(searchString, position) 
+	  {
+	    position = position || 0;
+	    return this.indexOf(searchString, position) === position;
+	  };
 }
 
-.nsEditor .nsEditorSourceTextArea
-{
-	width: 100%;
-    height: 100%;
-	font-family: 'Courier New', Monospace;
-    font-size: small;
-    background-color: #fff;
-    white-space: pre-wrap;
-    border: none;
-    padding: 0;
-    margin: 0;
-    display: block;
-    resize: none;
-}
-
-.nsEditor .nsEditorPlaceholder
-{
-	position: absolute;
-    font-size: 16px;
-    color: #aaaaaa;
-    z-index: 1;
-    display: none;
-    top: 0;
-    left: 0;
-    right: 0;
-    overflow: hidden;
-    line-height: normal;
-    text-align: left;
-    pointer-events: none;
-}
-
-.nsEditor .nsEditorPlaceholderShow
-{
-	display: block;
-}
-
-.nsEditorPageBreak
-{
-	clear: both !important;
-    width: 100% !important;
-    border-top: #999 1px dotted !important;
-    border-bottom: #999 1px dotted !important;
-    padding: 0 !important;
-    height: 7px !important;
-    cursor: default !important;
-}
-
-style="padding-left:200px;"
-,'viewSourceCode',"print","pageBreakForPrinting","horizontalRule"],
-,resizeDirection:NSEditor.RESIZE_DIRECTION_BOTH
+this.KEYCODE = {BACKSPACE:8, TAB:9, ENTER:13, SHIFT:16, CTRL:17, ALT:18, ESC:27,SPACE:32,PAGEUP:33,PAGEDOWN:34,LEFT:37,UP:38,RIGHT:39,DOWN:40,INSERT:45,DELETE:46};
+	
