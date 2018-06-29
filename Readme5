@@ -1,106 +1,64 @@
 {
-  "name": "raectsrc2",
-  "version": "0.1.0",
-  "private": true,
-  "dependencies": {
-    "@types/react-dom-factories": "^1.0.1",
-    "@types/react-router": "^4.0.27",
-    "@types/react-router-dom": "^4.2.7",
-    "react": "^16.4.1",
-    "react-dom": "^16.4.1",
-    "react-dom-factories": "^1.0.2",
-    "react-router": "^4.3.1",
-    "react-router-dom": "^4.3.1",
-    "react-scripts-ts": "2.16.0"
+  "extends": ["tslint:recommended", "tslint-react", "tslint-config-prettier"],
+  "linterOptions": {
+    "exclude": [
+      "config/**/*.js",
+      "node_modules/**/*.ts",
+      "public/lib/**/*.js"
+    ]
   },
-  "scripts": {
-    "start": "react-scripts-ts start",
-    "build": "react-scripts-ts build",
-    "test": "react-scripts-ts test --env=jsdom",
-    "eject": "react-scripts-ts eject"
-  },
-  "devDependencies": {
-    "@types/jest": "^23.1.2",
-    "@types/node": "^10.3.6",
-    "@types/react": "^16.4.2",
-    "@types/react-dom": "^16.0.6",
-    "typescript": "^2.9.2"
-  }
+  "rules": {
+  		"comment-format": [
+	      false,
+	      "check-space"
+	    ],
+	    "curly": true,
+	    "deprecation": {
+	      "severity": "warn"
+	    },
+	    "eofline": true,
+	    "forin": true,
+	    "indent": [
+	      false,
+	      "spaces"
+	    ],
+        "object-literal-sort-keys": false,
+		"object-literal-shorthand": false,
+		"variable-name": false,
+		"member-access": false,
+	    "member-ordering": [
+	      true,
+	      {
+	        "order": [
+	          "static-field",
+	          "instance-field",
+	          "static-method",
+	          "instance-method"
+	        ]
+	      }
+    	],
+    	 "no-console": [
+	      true,
+	      "debug",
+	      "info",
+	      "time",
+	      "timeEnd",
+	      "trace"
+	    ],
+	    "no-empty": false,
+    	"no-empty-interface": true
+    },
+    "no-shadowed-variable": [
+	  true,
+	  {
+	    "class": true,
+	    "enum": true,
+	    "function": true,
+	    "interface": false,
+	    "namespace": true,
+	    "typeAlias": false,
+	    "typeParameter": false
+	  }
+	]
+	
 }
-index.tsx
-
-import * as React from 'react';
-import * as ReactDOM from 'react-dom';
-import {BrowserRouter} from 'react-router-dom';
-import App from './App';
-import './index.css';
-import registerServiceWorker from './registerServiceWorker';
-
-ReactDOM.render(
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>,
-    document.getElementById('root')
-);
-registerServiceWorker();
-
-
-App.tsx
-
-import * as React from 'react';
-
-import Content from "./modules/content/content";
-import Sidebar from "./modules/sidebar/sidebar";
-
-class App extends React.Component<any, any> {
-    constructor(props: any){
-        super(props);
-  }
-    
-  public render() {
-    return (
-            <div className ="wrapper">
-              <Sidebar />
-              <Content />
-            </div>
-    );
-  }
-}
-
-export default App;
-flatGridExample.tsx
-import * as React from 'react';
-import NSGridReact from "../../lib/nsGrid/nsGridReact";
-
-export default class FlatGridExample extends React.Component<any, any> {
-    
-  protected gridColumn : any[];
-  protected gridSetting : any;
-
-  constructor(props: any) 
-  {
-	  super(props);
-	  this.gridColumn =  [{headerText: "",dataField:"isDelete",width:"20px",showMenu:false,headerTruncateToFit:true,enableFilter:false},
-                          {headerText: "Supervisor",dataField:"groupOrEmpName",width:"450px",showMenu:false,headerTruncateToFit:true},
-                          {headerText: "Alternate Approvers",dataField:"type",width:"450px",showMenu:false,headerTruncateToFit:true,}];
-       const customClass: any = {headerCell:"columnClass",firstBodyColumn:"columnClass",nonFirstBodyColumn:"columnClass"};
-       this.gridSetting = {type: "normal",columnResizable: true,columnDraggable: false,enableFilter: false,enableAdvancedFilter: false, 
-                       columns: this.gridColumn,customClass: customClass};
-  }
-  
-  public render() {
-      return(
-         <NSGridReact setting={this.gridSetting}/>
-      )
-  }
-  
-  public componentDidMount() {
-      console.log("");
-  }
-  
-  public shouldComponentUpdate(nextProps: any, nextState: any) {
-      return false;
-  }
-    
-}
-
