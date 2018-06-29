@@ -1,173 +1,77 @@
-import * as React from 'react';
-import * as DOM from "react-dom-factories";
+import {NgModule,ModuleWithProviders} from '@angular/core';
+import {ANALYZE_FOR_ENTRY_COMPONENTS} from '@angular/core';
 
-declare var NSGrid: any;
+import { NSGridComponent } from '../component/nsGrid.component';
 
-export default class NSGridReact extends React.Component<any, any> {
-    
-    private __nsGrid: any;
-    private __container: any;
-    private __setting : any;
+@NgModule({
+    imports: [],
+    declarations: [
+        NSGridComponent
+    ],
+    exports: [
+        NSGridComponent
+    ]
+})
 
-    private __hasInitialized: boolean = false;
-    private __hasGridDataSource: boolean = false;
-    //private __hasDestroyed: boolean = false;
-
-    constructor(public props: any, public state: any) 
-    {
-        super(props);
-    }
-    
-    public componentDidMount() 
-    {
-        if(!this.__nsGrid)
-        {
-            this.__setting = this.props.setting;
-            this.__nsGrid = new NSGrid(this.__container,this.__setting);
-        }
-        this.__hasInitialized = true;
-    }
-    
-    public shouldComponentUpdate(nextProps: any, nextState: any) 
-    {
-        return false;
-    }
-    
-    public componentWillReceiveProps(nextProps: any) 
-    {
-        if(this.__hasGridDataSource)
-        {
-            
-        }
-    }
-    
-    public componentWillUnmount() 
-    {
-        if(this.__hasInitialized)
-        {
-            //this.__hasDestroyed = true;
-        }
-    }
-
-    public render() {
-        return DOM.div({
-            style: this.getStyleForContainer(),
-            ref: e => {
-                this.__container = e;
-            }
-        });
-        return  this.__container;
-    }
-    
-    private getStyleForContainer() 
-    {
-        const style: any = { height: "100%" };
-        // allow user to override styles
-        const containerStyle = this.props.containerStyle;
-        if (containerStyle) {
-            Object.keys(containerStyle).forEach(key => {
-                style[key] = containerStyle[key];
-            });
-        }
-        return style;
+export class NSGridModule 
+{
+    static forRoot(components:any= []): ModuleWithProviders {
+        return {
+            ngModule: NSGridModule,
+            providers: [
+                {provide: ANALYZE_FOR_ENTRY_COMPONENTS, useValue: components, multi: true}
+            ],
+        };
     }
 }
 
 
+import {
+    Injectable,
+    Injector,
+    ComponentFactoryResolver,
+    EmbeddedViewRef,
+    ApplicationRef,
+    ViewContainerRef,
+    ComponentRef
+} from '@angular/core';
 
+@Injectable()
+export class DynamicComponentService 
+{
 
-import * as React from 'react';
-import { Redirect, Route, Switch } from 'react-router-dom';
-import FlatGridExample from "../flatGrid/flatGridExample";
-import HierarchicalGridExample from "../hierarchicalGrid/hierarchicalGridExample";
+    constructor(private componentFactoryResolver: ComponentFactoryResolver,
+                private applicationRef: ApplicationRef,
+                //private viewContainerRef: ViewContainerRef,
+                private injector: Injector) 
+    { 
+    
+    }
 
-export default class Content extends React.Component<any, any> {
-  constructor(props: any) 
-  {
-      super(props);
-      
-  }
-  
-  public render() {
-    return (
-            <div id="content">
-                <nav className="navbar navbar-expand-lg navbar-light bg-light">
-                    <div className="container-fluid">
-                        <button type="button" id="sidebarCollapse" className="btn btn-info">
-                            <i className="fas fa-align-left" />
-                            <span>Toggle Sidebar</span>
-                        </button>
-                    </div>
-                </nav>
-                <Switch>
-                    <Redirect exact={true} from="/" to="/flatGrid"/>
-                    <Route exact={true} path='/flatGrid' component={FlatGridExample} />
-                    <Route exact={true} path='/hierarchicalGrid' component={HierarchicalGridExample} />
-                </Switch>
-            </div>
-    );
-  }
+    createComponentRef(componentClass: any): ComponentRef<any> 
+    {
+        const factory = this.componentFactoryResolver.resolveComponentFactory(componentClass);
+        const componentRef = factory.create(this.injector);
+        this.applicationRef.attachView(componentRef.hostView);
+        return componentRef;
+    }
+    
+    getInstanceFromComponentRef(componentRef: ComponentRef<any>): any
+    {
+        return componentRef.instance;
+    }
+
+    getDomElementFromComponentRef(componentRef: ComponentRef<any>): HTMLElement 
+    {
+        return (componentRef.hostView as EmbeddedViewRef<any>).rootNodes[0] as HTMLElement;
+    }
+
+    destroyRef(componentRef: ComponentRef<any>, delay: number) 
+    {
+        setTimeout(() => {
+            this.applicationRef.detachView(componentRef.hostView);
+            componentRef.destroy();
+        }, delay);
+    }
+    
 }
-
-import * as React from 'react';
-
-export default class HierarchicalGridExample extends React.Component<any, any> {
-  constructor(props: any) 
-  {
-      super(props);
-      console.log("In HierarchicalGridExample");
-      this.state = {counter:1};
-  }
-  
-  public handleClick = () => {
-    this.setState({
-      counter: this.state.counter + 1 
-    });
-  };
-  
-  public render() {
-    return (
-    <div>
-      <button onClick={this.handleClick}>
-        {this.state.counter}
-      </button>
-      
-     </div>
-    );
-  }
-}
-
-import * as React from 'react';
-import {Link} from 'react-router-dom';
-
-export default class Sidebar extends React.Component<any, any> {
-  constructor(props: any) 
-  {
-      super(props);
-      
-  }
-  
-  public render() {
-    return (
-            <nav id="sidebar">
-                <div className ="sidebar-header">
-                    <h4>React NS Components</h4>
-                </div>
-                <ul className ="list-unstyled components">
-                    <li className ="active">
-                    <a href="#nsGridSubmenu" data-toggle="collapse" aria-expanded="false" className ="dropdown-toggle">NSGrid</a>
-                    <ul className ="collapse list-unstyled" id="nsGridSubmenu">
-                        <li>
-                            <Link to={'/flatGrid'}>FlatGrid</Link>
-                        </li>
-                        <li>
-                            <Link to={'/hierarchicalGrid'}>HierarchicalGrid</Link>
-                        </li>
-                    </ul>
-                    </li>
-                </ul>
-            </nav>
-    );
-  }
-}
-
