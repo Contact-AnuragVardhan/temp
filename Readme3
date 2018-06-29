@@ -1,44 +1,1250 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json">
-        <!-- Bootstrap CSS CDN -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" 
-     integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
-     <!-- Custom CSS -->
-    <link rel="stylesheet" href="%PUBLIC_URL%/style.css">
-    <link href="%PUBLIC_URL%/lib/css/component.min.css" rel="stylesheet" type="text/css" />
-    <link href="%PUBLIC_URL%/lib/css/nsGrid.min.css" rel="stylesheet" type="text/css" />
-    
-    <title>React App</title>
-  </head>
-  <body>
-    <noscript>
-      You need to enable JavaScript to run this app.
-    </noscript>
-    <div id="root"></div>
-    
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js" integrity="sha384-uefMccjFJAIv6A+rW+L4AHf99KvxDjWSu1z9VI8SKNVmz4sk7buKt/6v9KI65qnm" crossorigin="anonymous"></script>
-    
-    <script src="%PUBLIC_URL%/lib/js/nsUtil.min.js"></script>
-	<script src="%PUBLIC_URL%/lib/js/nsSVG.min.js"></script>
-	<script src="%PUBLIC_URL%/lib/js/nsContainerBase.min.js"></script>
-	<script src="%PUBLIC_URL%/lib/js/nsPluggins.min.js"></script>
-	<script src="%PUBLIC_URL%/lib/js/nsGrid.min.js"></script>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
+import { Component, Input, Output, OnChanges, OnInit, OnDestroy, ElementRef, SimpleChange, EventEmitter,
+    ViewEncapsulation, AfterViewInit, ComponentRef, ChangeDetectorRef, DoCheck, KeyValueDiffers, KeyValueDiffer, KeyValueChangeRecord } from '@angular/core';
 
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
+import { DynamicComponentService } from '../../../util/services/dynamicComponent/dynamicComponent.service';
 
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
-  </body>
-</html>
+declare var NSUtil: any;
+declare var NSGrid: any;
+
+////////// Interfaces /////////////////////////////////////////////////////////
+
+export interface INSGridCascadeFunction {
+    (control : any,childControl : any,item : any,dataField: string,cellIndex: number,colItem : any,childCell: any,row : any):void;
+}
+
+export interface INSGridFilterRendererFunction {
+    (colItem: INSGridColumn,colIndex: number,cell: any,row: any):any;
+}
+
+export interface INSGridAdvancedFilterHandler {
+    (dataField:string,nsPopUp: any,advancedFilterSetting: any,rendererID: string,enableApply: boolean,createApplySectionCallback: any,advanceFilterGridCallback: any,removePopUpCallback: any):void;
+}
+
+export interface INSGridGroupRendererFunction {
+    (item: any,dataField: string,index: number,colIndex: number,row: any,arrChildren: any[],childrenCount: number,arrFlatChildren: any[],groupLevel:number): string | any;
+}
+
+export interface INSGridItemRendererFunction {
+    (item: any,dataField: string,index: number,colIndex: number,row: any): string | any;
+}
+
+export interface INSGridLabelFunction {
+    (item: any,dataField: string,colItem: INSGridColumn):string;
+}
+
+export interface INSGridToolTipRendererFunction {
+    (item: any,dataField: string,index: number,colIndex: number,row: any):string;
+}
+
+export interface INSGridTemplateSetDataFunction {
+    (cellElement: any, item: any,dataField: string,colItem: INSGridColumn,row: any):void;
+}
+
+export interface INSGridHeaderRendererFunction {
+    (colItem: INSGridColumn,colIndex: number): string | any;
+}
+
+export interface INSGridExtraRowHeaderRendererFunction {
+    (dataField: string,colItem: INSGridColumn,arrFilteredGroupedSource: any[],rowIndex: number,colIndex: number,extraHeaderCell: any,extraHeaderRow: any): string | any;
+}
+
+export interface INSGridContextMenuProviderFunction {
+    (item: any, colIndex: number,rowIndex: number): any;
+}
+
+export interface INSGridPaginationFetchRecordFunction {
+    (fromRecord: number, toRecord: number,pageSize: number): void;
+}
+
+export interface INSGridFilterFunction {
+    (item: any,filter: any,setting: any,isHierarchical: boolean,childField: string,parentItem: any): any;
+}
+
+export interface INSGridHierarchyFilterChildrenFunction {
+    (item: any,index: number,isMatch: boolean,filter: any,setting: any,parentItem: any): boolean;
+}
+
+export interface INSGridRowMoverDropEndHandlerFunction {
+    (row: any,targetTable: any,targetRow: any): any;
+}
+
+export interface INSGridEditorValidatorFunction {
+    (element: any,value: any): boolean;
+}
+
+export interface INSGridEditorIsCellEditableFunction {
+    (colItem: INSGridColumn,item: any,colIndex: number,row: any,rowIndex: number): boolean;
+}
+
+export interface INSGridEditorAPICommitChangesFunction {
+    (): void;
+}
+
+export interface INSGridEditorAPICancelChangesFunction {
+    (): void;
+}
+
+export interface INSEventDispatcherFunction {
+    (eventType: string,data: any,param: any,bubbles?: boolean,cancelable?: boolean): void;
+}
+
+export interface INSGridCustomClassSetting {
+    outerContainer?: string,
+    titleBar?: string,
+    headerRow?: string,
+    headerCell?: string,
+    filterRow?: string,
+    filterCell?: string,
+    bodyRow?: string,
+     //for Hierarchies and Grouping grid
+    firstBodyColumn?: string,
+    nonFirstBodyColumn?: string
+}
+
+export interface INSGridMultiCellSelectionSetting {
+    scrollableElement?: any,
+    enableFillHandle?: boolean,
+    enableKeyboardNavigation?: boolean,
+    enableCopy?: boolean,
+    enablePaste?: boolean,
+    cellClass?: string,
+    areaClass?: string,
+    areaClassLeft?: string,
+    areaClassRight?: string,
+    areaClassTop?: string,
+    areaClassBottom?: string
+}
+
+
+export interface INSGridFilterSetting {
+    filterRenderer?: INSGridFilterRendererFunction,
+    filterTemplate?: string,
+    enableAdvancedFilter?: boolean,
+    advancedFilterType?: string,
+    advancedFilterHandler?: INSGridAdvancedFilterHandler,
+    [propName: string]: any;
+}
+
+export interface INSGridEditorSetting {
+    editType?: string,//can be EDITOR_EDITTYPE_CELL,EDITOR_EDITTYPE_ROW
+    clickType?: string,// can be EDITOR_EDITING_SINGLECLICK,EDITOR_EDITING_DOUBLECLICK,EDITOR_EDITING_NOCLICK
+    stopEditingOnGridFocusOut?: boolean // if true then grids stops editing when focus is out of grid
+}
+
+export interface INSGridColumnEditorSetting {
+    type?: string, // can be EDITOR_TYPE_TEXT,EDITOR_TYPE_TEXTAREA,EDITOR_TYPE_CUSTOM
+    params?: any,// any param to the editor. Properties will differ according to editors
+    customEditor?: any,
+    validator?: INSGridEditorValidatorFunction,
+    isCellEditableCallback?: INSGridEditorIsCellEditableFunction
+}
+
+export interface INSGridEditorCustomComponentSetting {
+    cell: any,
+    row: any,
+    item: any,
+    rowIndex: number,
+    cellIndex: number,
+    position: any,
+    defaultValue: any,
+    commitChanges: INSGridEditorAPICommitChangesFunction,
+    cancelChanges: INSGridEditorAPICancelChangesFunction,
+    validator: INSGridEditorValidatorFunction,
+    setting: INSGridColumnEditorSetting,
+    column: INSGridColumn
+}
+
+export interface INSGridRendererComponentInstance
+{
+    instance: INSGridRendererComponent,
+    componentRef: ComponentRef<any>,
+    item: any,
+    index: number,
+    colIndex: number,
+    columnName: string;
+}
+
+export interface INSGridRendererComponent 
+{
+    setData(item: any,dataField: string,index: number,colIndex: number,row: any): void;
+    //getElement(): HTMLElement;
+}
+
+export interface INSGridGroupRendererComponentInstance
+{
+    instance: INSGridGroupRendererComponent,
+    componentRef: ComponentRef<any>,
+    item: any,
+    index: number,
+    colIndex: number,
+    columnName: string;
+}
+
+export interface INSGridGroupRendererComponent
+{
+    setData(item: any,dataField: string,index: number,colIndex: number,row: any,arrChildren: any[],childrenCount: number,arrFlatChildren: any[],groupLevel:number): void;
+    //getElement(): HTMLElement;
+}
+
+export interface INSGridHeaderRendererComponentInstance
+{
+    instance: INSGridHeaderRendererComponent,
+    componentRef: ComponentRef<any>,
+    index: number,
+    colItem: INSGridColumn,
+    colIndex: number
+}
+
+export interface INSGridHeaderRendererComponent
+{
+    setData(colItem: INSGridColumn,colIndex: number): void;
+    //getElement(): HTMLElement;
+}
+
+export interface INSGridToolTipRendererComponentInstance
+{
+    instance: INSGridToolTipRendererComponent,
+    componentRef: ComponentRef<any>,
+    item: any,
+    index: number,
+    colIndex: number,
+    columnName: string;
+}
+
+export interface INSGridToolTipRendererComponent
+{
+    setData(item: any,dataField: string,index: number,colIndex: number,row: any): void;
+    //getElement(): HTMLElement;
+}
+
+export interface INSGridExtraRowHeaderRendererComponentInstance
+{
+    instance: INSGridExtraRowHeaderRendererComponent,
+    componentRef: ComponentRef<any>,
+    colItem: INSGridColumn,
+    index: number,
+    colIndex: number,
+    columnName: string;
+}
+
+export interface INSGridExtraRowHeaderRendererComponent
+{
+    setData(dataField: string,colItem: INSGridColumn,filteredDataSource: any[],index: number,colIndex: number,extraHeaderCell: any,extraHeaderRow: any): void;
+    //getElement(): HTMLElement;
+}
+
+export interface INSGridEditorCustomComponentInstance
+{
+    instance: INSGridEditorCustomComponent,
+    componentRef: ComponentRef<any>,
+    setting: INSGridEditorCustomComponentSetting,
+    colItem: INSGridColumn,
+    index: number,
+    colIndex: number,
+    columnName: string;
+}
+
+export interface INSGridEditorCustomComponent
+{
+     // gets called once after the editor is created
+    init(setting: INSGridEditorCustomComponentSetting): void;
+    // Return the DOM element of editor which gets added in DOM
+    //getElement(): HTMLElement;
+    //fired when element is added in DOM
+    elementAdded?(): void;
+    //fired when a key was pressed. can be used if component is preventing event propagation.
+    handleKeyDown?(event: any,keyCode: any): void;
+    // Should return the final value to the grid, the result of the editing
+    getValue(): any;
+    // gets called when editor is being destroyed.Used to do editor cleanup
+    destroy?(): void;
+    // gets called when editor is on focus. used when element added in dom and the element which should have focus is different
+    setFocus(): void;
+    // gets called when grid checks if editor has focus. used when element added in dom and the element which should have focus is different
+    hasFocus?(): boolean;
+    // gets called when grid wants the current editor value. used when element added in dom and the element which should have focus is different
+    hasValueChanged?(currentValue: any): boolean
+    // gets called when grid has to commit value.If the validate function returns false then editor value is not committed and editor is not destroyed.
+    validate?() : boolean;
+    // gets called at the start to figure out whether the editor is popUp or not.
+    isPopUp() : boolean;
+    // gets called when editor has to save the value. should be used when user wants to manipulate the value before save
+    save?(): void;
+    // gets called when editor has to cancel the value. should be used when user wants to manipulate the value before cancel
+    cancel?(): void;
+    setPopUpWrapper?(popUpWrapper: any): void;
+}
+
+export interface INSGridColumn {
+    dataField?: string,
+    headerText?: string,
+    width?: any;
+    sortable?: boolean;
+    sortDescending?: boolean;
+    truncateToFit?: boolean;
+    headerTruncateToFit?: boolean;
+    sortField?: string;
+    resizable?: boolean;
+    draggable?: boolean;
+    autoSize?: boolean;
+    showMenu?: boolean;
+    minWidth?: number,
+    groupRenderer?: INSGridGroupRendererFunction,
+    groupRendererComponent?: any,
+    itemRenderer?: INSGridItemRendererFunction,
+    itemRendererComponent?: any,
+    template?: string,
+    setData?: INSGridTemplateSetDataFunction,
+    labelFunction?: INSGridLabelFunction,
+    headerRenderer?: INSGridHeaderRendererFunction,
+    headerRendererComponent?: any,
+    headerTemplate?: string,
+    toolTipField?: string,
+    toolTipRenderer?: INSGridToolTipRendererFunction,
+    toolTipRendererComponent?: any,
+    extraRowHeaderRenderer?: INSGridExtraRowHeaderRendererFunction,
+    extraRowHeaderRendererComponent?: any,
+    priority?: number ,
+    /*****filter related ***********/
+    enableFilter?: boolean,
+    filter?: INSGridFilterSetting,
+    /*****editor related ***********/
+    enableEditable?: boolean,
+    editorSetting?: INSGridColumnEditorSetting,
+    [propName: string]: any;
+}
+
+export interface INSGridSetting {
+    nsTitle?: string,
+    type?: string,
+    context?: any,
+    enableMouseHover?: boolean,
+    enableMultipleSelection?: boolean,
+    enableKeyboardNavigation?: boolean,
+    enableColumnMouseHover?: boolean,
+    childField?: string,
+    rowKeyField?: string,
+    groupByField?: string,
+    columnMinWidth?: number,
+    customScrollerRequired?: boolean,
+    columnResizable?: boolean,
+    columnDraggable?: boolean,
+    columnAutoSize?: boolean,
+    enablePagination?: boolean,
+    paginationType?: string,
+    paginationMode?: boolean,
+    enableAsyncLoadPagination?: boolean,
+    pageSize?: number,
+    totalRecords?: number,
+    paginationFetchRecordCallBack?: INSGridPaginationFetchRecordFunction,
+    enableContextMenu?: boolean,
+    contextMenuProvider?: INSGridContextMenuProviderFunction,
+    enableFilter?: boolean,
+    filterFunction?: INSGridFilterFunction,
+    hierarchyFilterChildrenFunction?: INSGridHierarchyFilterChildrenFunction,
+    enableAdvancedFilter?: boolean,
+    enableVirtualScroll?: boolean,
+    enableDataRefreshOnScrollEnd?: boolean,
+    dataRefreshfireDelay?: number,
+    bottomPercentageForAddRows?: number,
+    enableServerCall?: boolean,
+    rowHeight?: number,
+    enableExport?: boolean,
+    exportFileName?: boolean,
+    enableResponsive?: boolean,
+    enableRowSelection?: boolean,
+    enableCellSelection?: boolean,
+    enableMultiCellSelection?: boolean,
+    responsiveMode?: string,
+    noDataMessage?: string,
+    leftFixedColumn?: number,
+    rightFixedColumn?: number,
+    enableFixedColumnAnimation?: boolean,
+    enableRowMove?: boolean,
+    isSameTableMove?: boolean,
+    rowMoverDropEndHandler?: INSGridRowMoverDropEndHandlerFunction,
+    renderInCachedMode?: boolean,
+    enableVariableRowHeight?: boolean,
+    enableToolTipForTruncateText?: boolean,
+    heightOffset?: number,
+    enableMultiSort?: boolean,
+    multiColumnKey?: string,
+    dataSource?: any[],
+    columns?: INSGridColumn[],
+    headerExtraRowCount?: number,
+    customClass?: INSGridCustomClassSetting,
+    theme?: string,
+    showExpandCollapseIcon?: boolean,
+    multiCellSelectionSetting?: INSGridMultiCellSelectionSetting,
+    isSingleLevelGrouping?: boolean,
+    multiLevelGroupColumn?: INSGridColumn,
+    enableEditable?: boolean,
+    editorSetting?: INSGridEditorSetting,
+    //isPopUp should be true if the grid is used in cases like autocomplete so that componentResized is called multiple times so that width is adjusted properly
+    isPopUp?: boolean,
+    //eventDispatcher to support different frameworks 
+    eventDispatcher?: INSEventDispatcherFunction,
+    [propName: string]: any;
+}
+
+
+
+@Component({
+  selector: 'ns-grid',
+  template: '',
+  encapsulation: ViewEncapsulation.None
+})
+
+export class NSGridComponent implements OnChanges, OnInit, OnDestroy, AfterViewInit, DoCheck
+{  
+    @Input() setting: INSGridSetting;
+    @Input() set dataSource(arrSource:any[])
+    {
+        this.__dataSource = arrSource;
+        if(this.__nsGrid)
+        {
+            this.__objCustomComponent = {};
+            if(this.__dataSource.length > 0)
+            {
+                this.__hasGridDataSource = true;
+            }
+            this.__nsGrid.dataSource(arrSource);
+        }
+    }
+    get dataSource(): any[] 
+    {
+        return this.__dataSource;
+    }
+  
+    @Output() gridRendered:EventEmitter<any> = new EventEmitter();
+    @Output() rowSelected:EventEmitter<any> = new EventEmitter();
+    @Output() rowUnselected:EventEmitter<any> = new EventEmitter();
+    @Output() rowClicked:EventEmitter<any> = new EventEmitter();
+    @Output() rowDoubleClicked:EventEmitter<any> = new EventEmitter();
+    @Output() rowNavigated:EventEmitter<any> = new EventEmitter();
+    @Output() cellSelected:EventEmitter<any> = new EventEmitter();
+    @Output() cellUnselected:EventEmitter<any> = new EventEmitter();
+    @Output() cellClicked:EventEmitter<any> = new EventEmitter();
+    @Output() cellDoubleClicked:EventEmitter<any> = new EventEmitter();
+    @Output() sortChanging:EventEmitter<any> = new EventEmitter();
+    @Output() sortChanged:EventEmitter<any> = new EventEmitter();
+    @Output() advancedFilterClosing:EventEmitter<any> = new EventEmitter();
+    @Output() filterChanging:EventEmitter<any> = new EventEmitter();
+    @Output() filterChanged:EventEmitter<any> = new EventEmitter();
+    @Output() filterResetted:EventEmitter<any> = new EventEmitter();
+    @Output() columnResizing:EventEmitter<any> = new EventEmitter();
+    @Output() columnResized:EventEmitter<any> = new EventEmitter();
+    @Output() columnMoving:EventEmitter<any> = new EventEmitter();
+    @Output() columnMoved:EventEmitter<any> = new EventEmitter();
+    @Output() rendererComponentCreated:EventEmitter<any> = new EventEmitter();
+    @Output() editorCellValueChanged:EventEmitter<any> = new EventEmitter();
+    
+    public static readonly GRID_RENDERED = "gridRendered";
+    public static readonly MULTI_SELECTION_EDITORS_TEXT = "TEXT";
+    public static readonly MULTI_SELECTION_EDITORS_TEXTAREA = "TEXTAREA";
+    public static readonly GRID_TYPE_HIERARCHICAL = "hierarchical";
+    public static readonly GRID_TYPE_GROUP = "group";
+    public static readonly GRID_TYPE_NORMAL = "normal";
+    public static readonly PAGINATION_TYPE_SCROLL = "scroll";
+    public static readonly PAGINATION_TYPE_PAGES = "pages";
+    public static readonly PAGINATION_MODE_AUTO = "auto";
+    public static readonly PAGINATION_MODE_MANUAL = "manual";
+    public static readonly RESPONSIVE_MODE_STACK = "stack";
+    public static readonly RESPONSIVE_MODE_COLUMN_TOGGLE = "columnToggle";
+    public static readonly ADVANCED_FILTER_TEXT = "text";
+    public static readonly ADVANCED_FILTER_NUMBER = "number";
+    public static readonly ADVANCED_FILTER_LIST = "list";
+    public static readonly MULTICOLUMN_KEY_SHIFT = "shift";
+    public static readonly MULTICOLUMN_KEY_CTRL = "ctrl";
+    public static readonly MULTICOLUMN_KEY_ALT = "alt";
+    public static readonly NAVIGATION_UP = "up";
+    public static readonly NAVIGATION_DOWN = "down";
+    //Editors
+    public static readonly EDITOR_EDITTYPE_CELL = "cell";
+    public static readonly EDITOR_EDITTYPE_ROW = "row";
+    public static readonly EDITOR_EDITING_SINGLECLICK = "singleClick";
+    public static readonly EDITOR_EDITING_DOUBLECLICK = "doubleClick";
+    public static readonly EDITOR_EDITING_NOCLICK = "noClick";
+    public static readonly EDITOR_TYPE_TEXT = "text";
+    public static readonly EDITOR_TYPE_TEXTAREA = "textArea";
+    public static readonly EDITOR_TYPE_CUSTOM = "custom";
+
+    private __element: HTMLElement;
+    private __nsGrid: any;
+    private __dataSource:any[];
+    private __objCustomComponent: any;
+    private __hasInitialized: boolean = false;
+    private __hasGridDataSource: boolean = false;
+    private __detectSettingChanges: boolean = false;
+    private __hasDestroyed: boolean = false;
+    private __differ: any;
+    private __gridRendered: Promise<boolean> = new Promise<boolean>(resolve => {
+            resolve(true);
+        }
+    );
+
+    constructor(private elementRef:ElementRef,
+                private dynamicComponentService: DynamicComponentService,
+                private changeDetectorRef : ChangeDetectorRef,
+                private differs: KeyValueDiffers) 
+    {
+        this.__element = elementRef.nativeElement;
+    };
+    
+    ngOnInit() : void
+    {
+    };
+  
+    ngOnChanges(changes: {[propName: string]: SimpleChange}): void 
+    {
+        if(this.__hasInitialized)
+        {
+            //console.log(changes);
+        }
+    };
+    
+    ngDoCheck() 
+    {
+        if(this.__hasGridDataSource)
+        {
+            if(this.__differ)
+            {
+                let changes: any = this.__differ.diff(this.setting);
+                if(changes) 
+                {
+                    this.__applySettingChanges(changes);
+                } 
+            }
+        }
+    };
+  
+    ngAfterViewInit(): void 
+    {
+        if(!this.__nsGrid)
+        {
+            let setting:INSGridSetting = new NSUtil().cloneObject(this.setting,true);
+            setting.columns = this.__setColumn(this.setting.columns);
+            setting.multiLevelGroupColumn = this.__setColumnObject(this.setting.multiLevelGroupColumn);
+            setting.eventDispatcher = this.__eventDispatcher.bind(this);
+            if(this.__dataSource)
+            {
+                setting["dataSource"] = this.__dataSource;
+                if(this.__dataSource.length > 0)
+                {
+                    this.__hasGridDataSource = true;
+                }
+            }
+            this.__objCustomComponent = {};
+            this.__nsGrid = new NSGrid(this.__element,setting);
+            this.__differ = this.differs.find(this.setting).create(null);
+        }
+        this.__hasInitialized = true;
+    };
+  
+    ngOnDestroy(): void 
+    {
+        if(this.__hasInitialized)
+        {
+            this.__hasDestroyed = true;
+        }
+    };
+  
+    getElement(): HTMLElement
+    {
+        return this.__element;
+    };
+    
+    setHeightOffset(offset : number) : void
+    {
+        this.__nsGrid.setHeightOffset(offset);
+    };
+    
+    deviceViewChanged(conditionTrue : boolean,queryIndex : number = 0,query : string = "") : void
+    {
+        this.__nsGrid.deviceViewChanged(conditionTrue,queryIndex,query);
+    };
+    
+    setState(data : any): void
+    {
+        this.__nsGrid.setState(data);
+    };
+    
+    getState(): any
+    {
+        return this.__nsGrid.getState();
+    };
+    
+    setColumn(arrColumns:INSGridColumn[]): void
+    {
+        this.__nsGrid.setColumn(this.__setColumn(arrColumns));
+    };
+    
+    setContextMenuSetting(contextMenuSetting:any): void
+    {
+        this.__nsGrid.setContextMenuSetting(contextMenuSetting);
+    };
+    
+    getOrignalItem(item : any): void
+    {
+        return this.__nsGrid.getOrignalItem(item);
+    };
+    
+    addRows(source : any[]): void
+    {
+        this.__nsGrid.addRows(source);
+    };
+    
+    removeRows(arrIndex : any[]): void
+    {
+        this.__nsGrid.removeRows(arrIndex);
+    };
+    
+    groupBy(groupByField : string): void
+    {
+        this.__nsGrid.expandAll(groupByField);
+    };
+    
+    expandAll(): void
+    {
+        this.__nsGrid.expandAll();
+    };
+    
+    collapseAll(): void
+    {
+        this.__nsGrid.collapseAll();
+    };
+    
+    expandCollapseByRow(element : any,rowIndex : number): void
+    {
+        this.__nsGrid.expandCollapseByRow(element,rowIndex);
+    };
+    
+    getRowInfo(row : any): any
+    {
+        return this.__nsGrid.getRowInfo(row);
+    };
+    
+    getCellInfo(cell : any): any
+    {
+        return this.__nsGrid.getCellInfo(cell);
+    };
+    
+    getItemInfo(objItem : any): any
+    {
+        return this.__nsGrid.getItemInfo(objItem);
+    };
+    
+    getItemInfoByKeyField(keyFieldValue : string): any
+    {
+        return this.__nsGrid.getItemInfoByKeyField(keyFieldValue);
+    };
+    
+    cascadeValues(event: any,callBack: INSGridCascadeFunction): void
+    {
+        this.__nsGrid.cascadeValues(event,callBack);
+    };
+    
+    setFontSize(fontSize: number): void
+    {
+        this.__nsGrid.setFontSize(fontSize);
+    };
+    
+    addColumn(objColumn: INSGridColumn): void
+    {
+        this.__nsGrid.addColumn(this.__setColumnObject(objColumn));
+    };
+    
+    changeDeviceView(conditionTrue: boolean): void
+    {
+        this.__nsGrid.changeDeviceView(conditionTrue);
+    };
+    
+    hideColumn(column: INSGridColumn): boolean
+    {
+        return this.__nsGrid.hideColumn(column);
+    };
+    
+    showColumn(column: INSGridColumn): boolean
+    {
+        return this.__nsGrid.showColumn(column);
+    };
+    
+    swapColumns(sourceColumn: INSGridColumn,destinationColumn: INSGridColumn): boolean
+    {
+        return this.__nsGrid.swapColumns(sourceColumn,destinationColumn);
+    };
+    
+    moveColumn(column: INSGridColumn,toIndex: number): boolean
+    {
+        return this.__nsGrid.moveColumn(column,toIndex);
+    };
+    
+    sortBy(column: INSGridColumn,isAscending: boolean): void
+    {
+        this.__nsGrid.sortBy(column,isAscending);
+    };
+    
+    autoResizeColumn(column: INSGridColumn): void
+    {
+        this.__nsGrid.autoResizeColumn(column);
+    };
+    
+    updateRowByIndex(index: number): void
+    {
+        this.__nsGrid.updateRowByIndex(index);
+    };
+    
+    updateRowByKeyField(keyFieldValue: any): void
+    {
+        this.__nsGrid.updateRowByKeyField(keyFieldValue);
+    };
+    
+    updateCellByIndex(index: number,dataField: string): void
+    {
+        this.__nsGrid.updateCellByIndex(index,dataField);
+    };
+    
+    updateCellByKeyField(keyFieldValue: any,dataField: string): void
+    {
+        this.__nsGrid.updateCellByKeyField(keyFieldValue,dataField);
+    };
+    
+    updateItemInDataSource(item: any): void
+    {
+        this.__nsGrid.updateItemInDataSource(item);
+    };
+    
+    getGroupedSource(): any[]
+    {
+        return this.__nsGrid.getGroupedSource();
+    }
+    
+    setSelectedItems(arrItems: any[]): void
+    {
+        this.__nsGrid.setSelectedItems(arrItems);
+    };
+    
+    addSelectedItems(arrItems: any[]): void
+    {
+        this.__nsGrid.addSelectedItems(arrItems);
+    };
+    
+    removeSelectedItems(arrItems: any[]): void
+    {
+        this.__nsGrid.removeSelectedItems(arrItems);
+    };
+    
+    setSelectedItem(item: any): void
+    {
+        this.__nsGrid.setSelectedItem(item);
+    };
+    
+    setSelectedIndexes(arrSelectedIndex: number[]): void
+    {
+        this.__nsGrid.setSelectedIndexes(arrSelectedIndex);
+    };
+    
+    getSelectedIndex(): number
+    {
+        return this.__nsGrid.getSelectedIndex();
+    };
+    
+    getSelectedItem(): any
+    {
+        return this.__nsGrid.getSelectedItem();
+    };
+    
+    getSelectedIndexes(): number[]
+    {
+        return this.__nsGrid.getSelectedIndexes();
+    };
+    
+    getSelectedItems(): any[]
+    {
+        return this.__nsGrid.getSelectedItems();
+    };
+    
+    deselectAll(): void
+    {
+        this.__nsGrid.deselectAll();
+    };
+    
+    filter(filter: any,setting: any,enableHighlighting: boolean = false,recordLimit: number = -1): void
+    {
+        this.__nsGrid.filter(filter,setting,enableHighlighting,recordLimit);
+    };
+    
+    resetFilters(): void
+    {
+        this.__nsGrid.resetFilters();
+    };
+    
+    getFilteredData(): any[]
+    {
+        return this.__nsGrid.getFilteredData();
+    };
+    
+    highlightText(dataField: string,text: string): void
+    {
+        this.__nsGrid.highlightText(dataField,text);
+    };
+    
+    unHighlightText(): void
+    {
+        this.__nsGrid.unHighlightText();
+    };
+    
+    fixFixedHeader(): void
+    {
+        this.__nsGrid.fixFixedHeader();
+    };
+    
+    scrollToIndex(selectedIndex: number,animationRequired: boolean = false): void
+    {
+        this.__nsGrid.scrollToIndex(selectedIndex,animationRequired);
+    };
+    
+    setNoDataMessage(message: string): void
+    {
+        this.__nsGrid.setNoDataMessage(message);
+    };
+    
+    renderHeaderExtraRows(): void
+    {
+        this.__nsGrid.renderHeaderExtraRows();
+    };
+    //Editor related public functions
+    editCellByIndex(index: number,dataField: string): void
+    {
+        this.__nsGrid.editCellByIndex(index,dataField);
+    };
+    editCellByKeyField(index: number,dataField: string): void
+    {
+        this.__nsGrid.editCellByKeyField(index,dataField);
+    };
+    editCellByItem(item: any,dataField: string): void
+    {
+        this.__nsGrid.editCellByItem(item,dataField);
+    };
+    getEditorInstances(): any[]
+    {
+        return this.__nsGrid.getEditorInstances();
+    };
+    //end of editor related public functions
+    setStyle(styleProp: string,value: any): void
+    {
+        this.__nsGrid.setStyle(styleProp,value);
+    };
+    
+    setFocus(isFocus: boolean): void
+    {
+        this.__nsGrid.setFocus(isFocus);
+    };
+    
+    hasFocus(): boolean
+    {
+        return this.__nsGrid.hasFocus();
+    };
+    
+    setTheme(theme: string): void
+    {
+        this.__nsGrid.setTheme(theme);
+    };
+    
+    changeProperty(propertyName: string,value: any): void
+    {
+        this.__nsGrid.changeProperty(propertyName,value);
+    };
+    
+    getRendererComponentInstance(columnName:string,rowIndex: number): INSGridRendererComponentInstance
+    {
+        if(this.__objCustomComponent && this.__objCustomComponent[columnName] && this.__objCustomComponent[columnName].length > rowIndex && this.__objCustomComponent[columnName][rowIndex]["renderer"])
+        {
+            return this.__objCustomComponent[columnName][rowIndex]["renderer"];
+        }
+        return null;
+    };
+    
+    getGroupRendererComponentInstance(columnName:string,rowIndex: number): INSGridGroupRendererComponentInstance
+    {
+        if(this.__objCustomComponent && this.__objCustomComponent[columnName] && this.__objCustomComponent[columnName].length > rowIndex && this.__objCustomComponent[columnName][rowIndex]["groupRenderer"])
+        {
+            return this.__objCustomComponent[columnName][rowIndex]["groupRenderer"];
+        }
+        return null;
+    };
+    
+    getHeaderRendererComponentInstance(columnName:string): INSGridHeaderRendererComponentInstance
+    {
+        let rowIndex: number = 0;
+        if(this.__objCustomComponent && this.__objCustomComponent[columnName] && this.__objCustomComponent[columnName].length > rowIndex && this.__objCustomComponent[columnName][rowIndex]["headerRenderer"])
+        {
+            return this.__objCustomComponent[columnName][rowIndex]["headerRenderer"];
+        }
+        return null;
+    };
+    
+    getToolTipRendererComponentInstance(columnName:string,rowIndex: number): INSGridToolTipRendererComponentInstance
+    {
+        if(this.__objCustomComponent && this.__objCustomComponent[columnName] && this.__objCustomComponent[columnName].length > rowIndex && this.__objCustomComponent[columnName][rowIndex]["toolTipRenderer"])
+        {
+            return this.__objCustomComponent[columnName][rowIndex]["toolTipRenderer"];
+        }
+        return null;
+    };
+    
+    getExtraRowHeaderRendererComponentInstance(columnName:string,rowIndex: number): INSGridExtraRowHeaderRendererComponentInstance
+    {
+        if(this.__objCustomComponent && this.__objCustomComponent[columnName] && this.__objCustomComponent[columnName].length > rowIndex && this.__objCustomComponent[columnName][rowIndex]["extraRowHeaderRenderer"])
+        {
+            return this.__objCustomComponent[columnName][rowIndex]["extraRowHeaderRenderer"];
+        }
+        return null;
+    };
+    
+    getEditorComponentInstance(columnName:string,rowIndex: number): INSGridEditorCustomComponentInstance
+    {
+        if(this.__objCustomComponent && this.__objCustomComponent[columnName] && this.__objCustomComponent[columnName].length > rowIndex && this.__objCustomComponent[columnName][rowIndex]["editor"])
+        {
+            return this.__objCustomComponent[columnName][rowIndex]["editor"];
+        }
+        return null;
+    };
+    
+    getGrid(): any
+    {
+        return  this.__nsGrid;
+    };
+    
+    private __applySettingChanges(changes: any): void 
+    {
+        if(this.__detectSettingChanges)
+        {
+            let self: any = this;
+            let applyChange: any = function(record: KeyValueChangeRecord<string,any>)
+            {
+                self.__nsGrid.changeProperty(record.key,record.currentValue);
+            };
+            changes.forEachChangedItem((record: KeyValueChangeRecord<string,any>) => applyChange(record));
+            changes.forEachAddedItem((record: KeyValueChangeRecord<string,any>) =>  applyChange(record));
+            changes.forEachRemovedItem((record: KeyValueChangeRecord<string,any>) => applyChange(record));
+        }
+       this.__detectSettingChanges = true;
+    };
+    
+    private __setColumn(arrColumns:INSGridColumn[]): INSGridColumn[]
+    {
+        if(arrColumns && arrColumns.length > 0)
+        {
+            let retValue: INSGridColumn[] = [];
+            for (let column of arrColumns)
+            {
+                retValue.push(this.__setColumnObject(column));
+            }
+            return retValue;
+        }
+        return arrColumns;
+    };
+    
+    private __setColumnObject(objColumn: INSGridColumn): INSGridColumn
+    {
+        if(objColumn)
+        {
+            let self: any = this;
+            if(objColumn.itemRendererComponent)
+            {
+                objColumn.itemRenderer = function(item: any,dataField: string,index: number,colIndex: number,row: any): any
+                {
+                    return self.__renderer(objColumn.itemRendererComponent,item,dataField,index,colIndex,row);
+                };
+            }
+            if(objColumn.groupRendererComponent)
+            {
+                objColumn.groupRenderer = function(item: any,dataField: string,index: number,colIndex: number,row: any,arrChildren: any[],childrenCount: number,arrFlatChildren: any[],groupLevel:number): any
+                {
+                    return self.__groupRenderer(objColumn.groupRendererComponent,item,dataField,index,colIndex,row,arrChildren,childrenCount,arrFlatChildren,groupLevel);
+                };
+            }
+            if(objColumn.headerRendererComponent)
+            {
+                objColumn.headerRenderer = function(colItem: INSGridColumn,colIndex: number): any
+                {
+                    return self.__headerRenderer(objColumn.headerRendererComponent,colItem,colIndex);
+                };
+            }
+            if(objColumn.toolTipRendererComponent)
+            {
+                objColumn.toolTipRenderer = function(item: any,dataField: string,index: number,colIndex: number,row: any): any
+                {
+                    return self.__toolTipRenderer(objColumn.toolTipRendererComponent,item,dataField,index,colIndex,row);
+                };
+            }
+            if(objColumn.extraRowHeaderRendererComponent)
+            {
+                objColumn.extraRowHeaderRenderer = function(dataField: string,colItem: INSGridColumn,arrFilteredGroupedSource: any[],rowIndex: number,colIndex: number,extraHeaderCell: any,extraHeaderRow: any): any
+                {
+                    return self.__extraRowHeaderRenderer(objColumn.extraRowHeaderRendererComponent,dataField,colItem,arrFilteredGroupedSource,rowIndex,colIndex,extraHeaderCell,extraHeaderRow);
+                };
+            }
+            if(objColumn.editorSetting && objColumn.editorSetting.customEditor)
+            {
+                objColumn.editorSetting.customEditor = self.__customEditor(objColumn.editorSetting.customEditor,objColumn);
+            }
+        }
+        return objColumn;
+    };
+    
+    private __customEditor(customEditorComponent: any,objColumn: INSGridColumn): any
+    {
+        let self: any = this;
+        let __editor: any = function()
+        {
+            let objComponent: any = null;
+            let componentRef: ComponentRef<any> = null;
+            
+            this.init = function(setting: INSGridEditorCustomComponentSetting): void
+            {
+                 let index: number = setting.rowIndex;
+                 let objRef: any = self.__getComponent(customEditorComponent,objColumn.dataField,index);
+                 objComponent = objRef.instance;
+                 componentRef = objRef.ref;
+                 objComponent.init(setting);
+                 let objItem: INSGridEditorCustomComponentInstance = {instance: objComponent,componentRef: componentRef,setting: setting,colItem: objColumn,index: index,colIndex: setting.cellIndex,columnName: objColumn.dataField};
+                 self.__objCustomComponent[objColumn.dataField][index]["editor"] = objItem;
+                 self.__emitRendererComponentCreated(objItem);
+            };
+            this.getElement = function(): HTMLElement
+            {
+                return self.__getElement(componentRef);
+            };
+            this.elementAdded = function(): void
+            {
+                if(objComponent.elementAdded)
+                {
+                    objComponent.elementAdded();
+                }
+            };
+            this.handleKeyDown = function(event: any,keyCode: any): void
+            {
+                if(objComponent.handleKeyDown)
+                {
+                    objComponent.handleKeyDown(event,keyCode);
+                }
+            };
+            this.getValue = function(): any
+            {
+                return objComponent.getValue();
+            };
+            this.destroy = function(): void
+            {
+                if(objComponent.destroy)
+                {
+                    objComponent.destroy();
+                }
+            };
+            this.setFocus = function(): void
+            {
+                objComponent.setFocus();
+            };
+            this.hasFocus = function(): any
+            {
+                if(objComponent.hasFocus)
+                {
+                    return objComponent.hasFocus();
+                }
+                return null;
+            };
+            this.hasValueChanged = function(currentValue: any): any
+            {
+                if(objComponent.hasValueChanged)
+                {
+                    return objComponent.hasValueChanged(currentValue);
+                }
+                return null;
+            };
+            this.validate = function(): any
+            {
+                if(objComponent.validate)
+                {
+                    return objComponent.validate();
+                }
+                return null;
+            };
+            this.isPopUp = function(): boolean
+            {
+                return objComponent.isPopUp();
+            };
+            this.save = function(): void
+            {
+                if(objComponent.save)
+                {
+                    objComponent.save();
+                }
+            };
+            this.cancel = function(): void
+            {
+                if(objComponent.cancel)
+                {
+                    objComponent.cancel();
+                }
+            };
+            this.setPopUpWrapper = function(popUpWrapper: HTMLElement): void
+            {
+                if(objComponent.setPopUpWrapper)
+                {
+                    objComponent.setPopUpWrapper(popUpWrapper);
+                }
+            };
+        };
+        
+        return __editor;
+    };
+    
+    private __renderer(rendererComponent: any,item: any,dataField: string,index: number,colIndex: number,row: any): any
+    {
+        if(item)
+        {
+            let objRef: any = this.__getComponent(rendererComponent,dataField,index);
+            let objComponent: any = objRef.instance;
+            objComponent.setData(item,dataField,index,colIndex,row);
+            this.__callAfterSetData(objRef.ref);
+            let objItem: INSGridRendererComponentInstance = {instance: objComponent,componentRef: objRef.ref,item: item,index: index,colIndex: colIndex,columnName: dataField};
+            this.__objCustomComponent[dataField][index]["renderer"] = objItem;
+            this.__emitRendererComponentCreated(objItem);
+            return this.__getElement(objRef.ref);//objComponent.getElement();
+        }
+        return null;
+    };
+    
+    private __groupRenderer(rendererComponent: any,item: any,dataField: string,index: number,colIndex: number,row: any,arrChildren: any[],childrenCount: number,arrFlatChildren: any[],groupLevel:number): any
+    {
+        if(item)
+        {
+            let objRef: any = this.__getComponent(rendererComponent,dataField,index);
+            let objComponent: any = objRef.instance;
+            objComponent.setData(item,dataField,index,colIndex,row,arrChildren,childrenCount,arrFlatChildren,groupLevel);
+            this.__callAfterSetData(objRef.ref);
+            let objItem:INSGridGroupRendererComponentInstance = {instance: objComponent,componentRef: objRef.ref,item: item,index: index,colIndex: colIndex,columnName: dataField};
+            this.__objCustomComponent[dataField][index]["groupRenderer"] = objItem;
+            this.__emitRendererComponentCreated(objItem);
+            return this.__getElement(objRef.ref);//objComponent.getElement();
+        }
+        return null;
+    };
+    
+    private __headerRenderer(rendererComponent: any,colItem: INSGridColumn,colIndex: number): any
+    {
+        if(colItem)
+        {
+            let dataField : string = colItem.dataField;
+            let index : number = 0;
+            let objRef: any = this.__getComponent(rendererComponent,dataField,index);
+            let objComponent: any = objRef.instance;
+            objComponent.setData(colItem,colIndex);
+            this.__callAfterSetData(objRef.ref);
+            let objItem: INSGridHeaderRendererComponentInstance = {instance: objComponent,componentRef: objRef.ref,index: index,colItem: colItem,colIndex: colIndex};
+            this.__objCustomComponent[dataField][index]["headerRenderer"] = objItem;
+            this.__emitRendererComponentCreated(objItem);
+            return this.__getElement(objRef.ref);//objComponent.getElement();
+        }
+        return null;
+    };
+    
+    private __toolTipRenderer(rendererComponent: any,item: any,dataField: string,index: number,colIndex: number,row: any): any
+    {
+        if(item)
+        {
+            let objRef: any = this.__getComponent(rendererComponent,dataField,index);
+            let objComponent: any = objRef.instance;
+            objComponent.setData(item,dataField,index,colIndex,row);
+            this.__callAfterSetData(objRef.ref);
+            let objItem: INSGridToolTipRendererComponentInstance = {instance: objComponent,componentRef: objRef.ref,item: item,index: index,colIndex: colIndex,columnName: dataField};
+            this.__objCustomComponent[dataField][index]["toolTipRenderer"] = objItem;
+            this.__emitRendererComponentCreated(objItem);
+            return this.__getElement(objRef.ref);
+        }
+        return null;
+    };
+    
+    private __extraRowHeaderRenderer(rendererComponent: any,dataField: string,colItem: INSGridColumn,filteredDataSource: any[],index: number,colIndex: number,extraHeaderCell: any,extraHeaderRow: any): any
+    {
+        if(colItem)
+        {
+            let objRef: any = this.__getComponent(rendererComponent,dataField,index);
+            let objComponent: any = objRef.instance;
+            objComponent.setData(dataField,colItem,filteredDataSource,index,colIndex,extraHeaderCell,extraHeaderRow);
+            this.__callAfterSetData(objRef.ref);
+            let objItem: INSGridExtraRowHeaderRendererComponentInstance = {instance: objComponent,componentRef: objRef.ref,colItem: colItem,index: index,colIndex: colIndex,columnName: dataField};
+            this.__objCustomComponent[dataField][index]["extraRowHeaderRenderer"] = objItem;
+            this.__emitRendererComponentCreated(objItem);
+            return this.__getElement(objRef.ref);
+        }
+        return null;
+    };
+    
+    private __getComponent(rendererComponent: any,dataField: string,index: number): any
+    {
+        let componentRef: ComponentRef<any> = this.dynamicComponentService.createComponentRef(rendererComponent);
+        let objComponent: any = this.dynamicComponentService.getInstanceFromComponentRef(componentRef);
+        if(!this.__objCustomComponent[dataField])
+        {
+            this.__objCustomComponent[dataField] = [];
+        }
+        if(!this.__objCustomComponent[dataField][index])
+        {
+            this.__objCustomComponent[dataField][index] = {};
+        }
+        return {ref: componentRef,instance: objComponent};
+    };
+    
+    private __eventDispatcher(eventType: string,data: any,param: any,bubbles: boolean= true,cancelable: boolean= false): void
+    {
+        if(!this.__hasDestroyed)
+        {
+            let eventEmitter: any = <EventEmitter<any>> (<any>this)[eventType];
+            if (eventEmitter) 
+            {
+                let event: any = {eventName: eventType,detail: data};
+                if(param)
+                {
+                     for (let key in param) 
+                     {
+                         if(param.hasOwnProperty(key)) 
+                         {
+                             event[key] = param[key];
+                         } 
+                     }   
+                }
+                if (eventType === "gridRendered") 
+                {
+                    this.__gridRendered.then((result => {
+                        eventEmitter.emit(event);
+                    }));
+                } 
+                else 
+                {
+                    eventEmitter.emit(event);
+                }
+            } 
+            else 
+            {
+                console.debug(eventType + " is not dispatched by NS-GRID Angular");
+            }
+        }  
+    };
+
+    private __emitRendererComponentCreated(objItem:any)
+    {
+        this.rendererComponentCreated.emit(objItem);
+    };
+    
+    private __callAfterSetData(componentRef: ComponentRef<any>): void
+    {
+        componentRef.changeDetectorRef.detectChanges();
+    };
+    
+    private __getElement(componentRef: ComponentRef<any>): any
+    {
+        return componentRef.location.nativeElement;
+    };
+}
