@@ -1,713 +1,157 @@
-import { Component, Input, Output, OnChanges, OnInit, OnDestroy, ElementRef, SimpleChange, EventEmitter,
-    ViewEncapsulation, AfterViewInit } from '@angular/core';
-
-declare var NSUtil: any;
-declare var NSPanel: any;
-
-////////// Interfaces /////////////////////////////////////////////////////////
-
-export interface INSPanelMinimizeAddRemoveElementFunction {
-    (component: any,parentComponent: any,isMinimized: boolean):void;
-}
-
-export interface INSPanelCustomClass {
-    container?: string;
-    titleBar?: string;
-    iconContainer?: string;
-    icon?: string;
-    body?: string;
-    [propName: string]: any;
-}
-
-export interface INSPanelToolBarDetailsObject {
-    iconHTML?: string;
-    title?: string;
-}
-
-export interface INSPanelToolBarDetails {
-    minimize?: INSPanelToolBarDetailsObject;
-    maximize?: INSPanelToolBarDetailsObject;
-    expand?: INSPanelToolBarDetailsObject;
-    collapse?: INSPanelToolBarDetailsObject;
-    fullScreen?: INSPanelToolBarDetailsObject;
-    restore?: INSPanelToolBarDetailsObject;
-    close?: INSPanelToolBarDetailsObject;
-}
-
-export interface INSPanelDivSetting {
-    top?: string;
-    left?: string;
-    width?: string;
-    height?: string;
-}
-
-export interface INSPanelSetting {
-    context?: any;
-    parent?: any;
-    title?: string;
-    titleHtml?: string;
-    content?: any;
-    template?: string;
-    templateUrl?: string;
-    minWidth?: number;
-    minHeight?: number;
-    enablePopUp?: boolean;
-    enableModal?: boolean;
-    enableCollapse?: boolean;
-    enableMinimization?: boolean;
-    enableFullScreen?: boolean;
-    enableDrag?: boolean;
-    enableResize?: boolean;
-    enableTitleDblClick?: boolean;
-    enableMoveOnClick?: boolean;
-    enableModalAnimation?: boolean;
-    enableModalCloseOnOutsideClick?: boolean;
-    enableModalCloseOnEscape?: boolean;
-    enableCloseIconVisibility?: boolean;
-    minimizedDirection?: string;
-    theme?: string;
-    minimizeAddRemoveElementCallback?: INSPanelMinimizeAddRemoveElementFunction,
-    customClass?: INSPanelCustomClass;
-    toolBarDetails?: INSPanelToolBarDetails;
-    panelSetting?: INSPanelDivSetting;
-}
-
-@Component({
-  selector: 'ns-panel',
-  template: '<ng-content></ng-content>',
-  encapsulation: ViewEncapsulation.None
-})
-
-export class NSPanelComponent implements OnChanges, OnInit, OnDestroy, AfterViewInit 
-{  
-    @Input() setting: INSPanelSetting;
-    
-    @Output() dragStaring:EventEmitter<any> = new EventEmitter();
-    @Output() dragging:EventEmitter<any> = new EventEmitter();
-    @Output() dragEnd:EventEmitter<any> = new EventEmitter();
-    @Output() resizeStaring:EventEmitter<any> = new EventEmitter();
-    @Output() resizing:EventEmitter<any> = new EventEmitter();
-    @Output() resizeEnd:EventEmitter<any> = new EventEmitter();
-    @Output() collapseStarting:EventEmitter<any> = new EventEmitter();
-    @Output() collapseEnd:EventEmitter<any> = new EventEmitter();
-    @Output() expansionStarting:EventEmitter<any> = new EventEmitter();
-    @Output() expansionEnd:EventEmitter<any> = new EventEmitter();
-    @Output() minimizeStarting:EventEmitter<any> = new EventEmitter();
-    @Output() minimizeEnd:EventEmitter<any> = new EventEmitter();
-    @Output() maximizeStarting:EventEmitter<any> = new EventEmitter();
-    @Output() maximizeEnd:EventEmitter<any> = new EventEmitter();
-    @Output() fullScreenStarting:EventEmitter<any> = new EventEmitter();
-    @Output() fullScreenEnd:EventEmitter<any> = new EventEmitter();
-    @Output() restoreStarting:EventEmitter<any> = new EventEmitter();
-    @Output() restoreEnd:EventEmitter<any> = new EventEmitter();
-    @Output() closed:EventEmitter<any> = new EventEmitter();
-
-    private __element: HTMLElement;
-    private __objNSPanel: any;
-    
-
-    constructor(private elementRef:ElementRef) 
-    {
-        
-    };
-  
-    ngOnChanges(changes: {[propName: string]: SimpleChange}): void 
-    {
-        console.log(this.elementRef.nativeElement);
-    };
-  
-    ngOnInit() : void
-    {
-        console.log(this.elementRef.nativeElement);
-    };
-    
-    //elements children are created in ngAfterViewInit and not in ngOnInit
-    ngAfterViewInit(): void 
-    {
-        console.log(this.elementRef.nativeElement);
-        this.__element = this.elementRef.nativeElement;
-        this.__objNSPanel = new NSPanel(this.__element,this.setting); 
-        this.__creationHandler();
-        this.__addEventHandlers();
-    };
-  
-    ngOnDestroy(): void 
-    {
-    };
-    
-    open(): void
-    {
-        /*if(!this.__objNSPanel)
-        {
-            this.__element = this.elementRef.nativeElement;
-            this.__objNSPanel = new NSPanel(this.__element,this.setting); 
-            this.__creationHandler();
-            this.__addEventHandlers();
-        }*/
-        if(this.__objNSPanel)
-        {
-            return this.__objNSPanel.open();
-        }
-    };
-    
-    close(): void
-    {
-        if(this.__objNSPanel)
-        {
-            return this.__objNSPanel.close();
-        }
-    };
-    
-    getBaseElement(): any
-    {
-        if(this.__objNSPanel)
-        {
-            return this.__objNSPanel.getBaseElement();
-        }
-        return null;
-    };
-  
-    getElement(): HTMLElement
-    {
-        return this.__element;
-    };
-  
-    minimize(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.minimize();
-        }
-    };
-    
-    maximize(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.maximize();
-        }
-    };
-    
-    collapse(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.collapse();
-        }
-    };
-    
-    expand(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.expand();
-        }
-    };
-    
-    fullScreen(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.fullScreen();
-        }
-    };
-    
-    restore(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.restore();
-        }
-    };
-    
-    disableResize(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.disableResize();
-        }
-    };
-    
-    disableDrag(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.disableDrag();
-        }
-    };
-    
-    disableCollapse(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.disableCollapse();
-        }
-    };
-    
-    disableMinMax(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.disableCollapse();
-        }
-    };
-    
-    disableFullScreen(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.disableCollapse();
-        }
-    };
-    
-    isCollapsed(): boolean
-    {
-        if(this.__objNSPanel)
-        {
-            return this.__objNSPanel.isCollapsed();
-        }
-        return false;
-    };
-    
-    isMinimized(): boolean
-    {
-        if(this.__objNSPanel)
-        {
-            return this.__objNSPanel.isMinimized();
-        }
-        return false;
-    };
-    
-    isFullScreen(): boolean
-    {
-        if(this.__objNSPanel)
-        {
-            return this.__objNSPanel.isFullScreen();
-        }
-        return false;
-    };
-    
-    private __creationHandler(): void
-    {
-        if(!this.__element)
-        {
-            this.__element = this.__objNSPanel.getBaseElement();
-        }
-    };
-    
-    private __addEventHandlers(): void
-    {
-        if(this.__element)
-        {
-            let util = new NSUtil();
-            let eventHandler:any = this.__navEventHandler.bind(this);
-            util.addEvent(this.__element,NSPanel.DRAG_STARTING,eventHandler);
-            util.addEvent(this.__element,NSPanel.DRAGGING,eventHandler);
-            util.addEvent(this.__element,NSPanel.DRAG_END,eventHandler);
-            util.addEvent(this.__element,NSPanel.RESIZE_STARTING,eventHandler);
-            util.addEvent(this.__element,NSPanel.RESIZING,eventHandler);
-            util.addEvent(this.__element,NSPanel.RESIZE_END,eventHandler);
-            util.addEvent(this.__element,NSPanel.COLLAPSE_STARTING,eventHandler);
-            util.addEvent(this.__element,NSPanel.COLLAPSE_END,eventHandler);
-            util.addEvent(this.__element,NSPanel.EXPANSION_STARTING,eventHandler);
-            util.addEvent(this.__element,NSPanel.EXPANSION_END,eventHandler);
-            util.addEvent(this.__element,NSPanel.MINIMIZE_STARTING,eventHandler);
-            util.addEvent(this.__element,NSPanel.MINIMIZE_END,eventHandler);
-            util.addEvent(this.__element,NSPanel.MAXIMIZE_STARTING,eventHandler);
-            util.addEvent(this.__element,NSPanel.MAXIMIZE_END,eventHandler);
-            util.addEvent(this.__element,NSPanel.FULLSCREEN_STARTING,eventHandler);
-            util.addEvent(this.__element,NSPanel.FULLSCREEN_END,eventHandler);
-            util.addEvent(this.__element,NSPanel.RESTORE_STARTING,eventHandler);
-            util.addEvent(this.__element,NSPanel.RESTORE_END,eventHandler);
-            util.addEvent(this.__element,NSPanel.CLOSED,eventHandler);
-        }
-    };
-  
-    private __navEventHandler(event:any)
-    {
-        this[event.type].emit(event.detail);
-    }
-}
-
-
-import { Component, Input, Output, OnChanges, OnInit, OnDestroy, ElementRef, SimpleChange, EventEmitter,
-    ViewEncapsulation, AfterViewInit } from '@angular/core';
-
-declare var NSUtil: any;
-declare var NSTextBox: any;
-
-////////// Interfaces /////////////////////////////////////////////////////////
-
-export interface INSTextBoxServerSearchFunction {
-    (searchString:string,filterSetting:any,enableHighlighting:boolean,searchRecordLimit:number):void;
-}
-
-export interface INSTextBoxRendererFunction {
-    (item:any,labelField:string):string;
-}
-
-export interface INSTextBoxSetting {
-    type?: string;
-    context?: any;
-    dropDownType?: string;
-    maxChars?: number;
-    minChars?: number;
-    minSearchStartChars?: number;
-    caseSensitive?: boolean;
-    required?: boolean;
-    placeholder?: string;
-    displayAsPassword?: boolean;
-    enableServerSide?: boolean;
-    enableServerWithSmartSearch?: boolean;
-    serverSearchCallback?: INSTextBoxServerSearchFunction;
-    textBoxRendererCallback?: INSTextBoxRendererFunction;
-    delay?: number;
-    maxListHeight?: number,
-    listWidth?: number;
-    labelField?: string;
-    arrGridSearchField?:string[];
-    isGridOrFilter?: boolean;
-    stopHoveringField?: string;
-    labelFunction?: any;
-    template?: string;
-    setDataCallBack?: any;
-    itemRenderer?: any;
-    enableMultipleSelection?: boolean;
-    enableKeyboardNavigation?: boolean;
-    noRecordsFoundMessage?: string;
-    multiSelectionSeparator?: string;
-    pattern?: string;
-    restrict?: string;
-    dataSource?:any[];
-    styleClass?: string;
-    dropDownSetting?: any;
-    filterSetting?: any;
-    enableHighlighting?: boolean;
-    searchRecordLimit?: number;
-}
-
-@Component({
-  selector: 'ns-textbox',
-  template: '',
-  encapsulation: ViewEncapsulation.None
-})
-
-export class NSTextBoxComponent implements OnChanges, OnInit, OnDestroy, AfterViewInit 
-{  
-    @Input() setting: INSTextBoxSetting;
-    @Input() set dataSource(arrSource:any[])
-    {
-    	this.__dataSource = arrSource;
-    	if(this.__nsTextBox)
-    	{
-    		this.__nsTextBox.dataSource(arrSource);
-    	}
-    }
-    get dataSource(): any[] 
-    {
-    	return this.__dataSource;
+else 
+		    {
+				var text = this.util.getValueByKeys(item,dataField);
+				if(text)
+				{
+					div.appendChild(document.createTextNode(text));
+				}
+		    }
+		    
+		    //from https://stackoverflow.com/questions/201183/how-to-determine-equality-for-two-javascript-objects/16788517#16788517
+// used in frameworks wrapper
+NSUtil.prototype.isObjectEqual = function(origValue, newValue) 
+{
+	if (origValue === null || origValue === undefined || newValue === null || newValue === undefined) 
+	{ 
+		return origValue === newValue; 
 	}
-  
-    @Output() itemSelected:EventEmitter<any> = new EventEmitter();
-    @Output() itemUnselected:EventEmitter<any> = new EventEmitter();
-    
-   	public static readonly TYPE_AUTOTEXT = "text";
-   	public static readonly TYPE_AUTOCOMPLETE = "autocomplete";
-   	public static readonly TYPE_EMAIL = "email";
-   	public static readonly TYPE_NUMBER = "number";
-   	public static readonly TYPE_PASSWORD = "password";
-   	public static readonly TYPE_URL = "url";
-   	public static readonly DROPDOWN_TYPE_LIST = "list";
-   	public static readonly DROPDOWN_TYPE_GRID = "grid";
-   	public static readonly FILTER_TYPE_EXACT = "exact";
-	public static readonly FILTER_TYPE_STARTS_WITH = "startsWith";
-	public static readonly FILTER_TYPE_ENDS_WITH = "endsWith";
-	public static readonly FILTER_TYPE_CONTAINS = "contains";
+	// after this just checking type of one would be enough
+	if (origValue.constructor !== newValue.constructor) 
+	{ 
+		return false; 
+	}
+	// if they are functions, they should exactly refer to same one (because of closures)
+	if (origValue instanceof Function) 
+	{ 
+		return origValue === newValue; 
+	}
+	// if they are regexps, they should exactly refer to same one (it is hard to better equality check on current ES)
+	if (origValue instanceof RegExp) 
+	{ 
+		return origValue === newValue; 
+	}
+	if (origValue === newValue || origValue.valueOf() === newValue.valueOf()) 
+	{ 
+		return true; 
+	}
+	if (Array.isArray(origValue) && origValue.length !== newValue.length) 
+	{ 
+		return false; 
+	}
+	// if they are dates, they must had equal valueOf
+	if (origValue instanceof Date) 
+	{ 
+		return false; 
+	}
+	// if they are strictly equal, they both need to be object at least
+	if (!(origValue instanceof Object)) 
+	{ 
+		return false; 
+	}
+	if (!(newValue instanceof Object)) 
+	{ 
+		return false; 
+	}
+	// recursive object equality check
+	var arrKeys = Object.keys(origValue);
+	var arrNewKeys = Object.keys(newValue);
+	for(count = 0,len = arrNewKeys,length;count < len;count++)
+	{
+		if(arrKeys.indexOf(count) !== -1)
+		{
+			return false;
+		}
+		for(innerCount = 0,len = arrKeys,length;innerCount < len;innerCount++)
+		{
+			return this.isObjectEqual(origValue[innerCount], newValue[innerCount]);
+		}
+	}
+	return true;
+};
 
-    private __element: HTMLElement;
-    private __nsTextBox: any;
-    private __dataSource:any[];
+NSUtil.prototype.getValueByKeys = function(item,key)
+{
+	var objReturn = {};
+	if(item)
+	{
+		(function flatObject(item, index)
+		 {
+		   var suffix = toString.call(item) == "[object Array]" ? "]" : "";
+		   for(var key in item)
+		   {
+				if(!item.hasOwnProperty(key))continue;
+				objReturn[index+key+suffix] = item[key];
+				if( toString.call(item[key]) == "[object Array]" )flatObject(item[key],index+key+suffix+"[");
+				if( toString.call(item[key]) == "[object Object]" )flatObject(item[key],index+key+suffix+".");   
+		   }
+		 })(item,"");
+	}
+	return objReturn[key];
+};
 
-    constructor(private elementRef:ElementRef) 
-    {
-        this.__element = elementRef.nativeElement;
-    };
-  
-    ngOnChanges(changes: {[propName: string]: SimpleChange}): void 
-    {
-        if(!this.__nsTextBox)
-        {
-        	if(this.__dataSource)
-        	{
-        		this.setting["dataSource"] = this.__dataSource;
-        	}
-            this.__nsTextBox = new NSTextBox(this.__element,this.setting);
-        }
-    };
-  
-    ngOnInit() : void
-    {
-        let util = new NSUtil();
-        let eventHandler:any = this.__eventHandler.bind(this);
-        util.addEvent(this.__element,NSTextBox.ITEM_SELECTED,eventHandler);
-        util.addEvent(this.__element,NSTextBox.ITEM_UNSELECTED,eventHandler);
-    };
-  
-    ngAfterViewInit(): void 
-    {
-    };
-  
-    ngOnDestroy(): void 
-    {
-    };
+<style>
+    	body {
+			overflow-x: auto;
+			overflow-y: hidden;
+		}
+		html {
+		  height: 100%;
+		}
+		body {
+		  min-height: 100%;
+		}
+		
+		.columnClass
+		{
+		    padding: 3px 5px 3px 5px !important;
+		    font-size: 13.5px;
+		    font-family: 'Source Sans Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+		    vertical-align: top;
+		    border-top: 1px solid #ddd;
+		}
+    </style>
     
-    create(): void
-    {
-        this.__nsTextBox = new NSTextBox(this.__element,this.setting);
-    };
-  
-    getElement(): HTMLElement
-    {
-        return this.__element;
-    };
-    
-    getTextBox(): any
-    {
-        return this.__nsTextBox.getTextBox();
-    };
-    
-    setText(text : string): void
-    {
-        this.__nsTextBox.setText(text);
-    };
-    
-    getText(): string
-    {
-        return this.__nsTextBox.getText();
-    };
-    
-    getSelectedItem(): any
-    {
-        return this.__nsTextBox.getSelectedItem();
-    };
-    
-    getSelectedItems(): any[]
-    {
-        return this.__nsTextBox.getSelectedItems();
-    };
-  
-    private __eventHandler(event:any)
-    {
-        this[event.type].emit(event.detail);
-    }
-}
+    <style type="text/css">
 
-
-import { Component, Input, Output, OnChanges, OnInit, OnDestroy, ElementRef, SimpleChange, EventEmitter,
-    ViewEncapsulation, AfterViewInit } from '@angular/core';
-
-import { NSMessageBoxService } from '../nsMessageBox/service/nsMessageBox.service';
-import { NSMessageBoxComponent, INSMessageBoxConfirmSetting, INSMessageBoxAlertSetting, INSMessageBoxConfirmButtonSetting, 
-         INSMessageBoxCallbackFunction } from '../nsMessageBox/component/nsMessageBox.component';
-
-import { INSPanelCustomClass, INSPanelDivSetting } from '../nsPanel/nsPanel.component'
-
-declare var NSUtil: any;
-declare var NSMessageBox: any;
-declare var NSPanel: any;
-
-@Component({
-  selector: 'ns-popup',
-  template: '',
-  encapsulation: ViewEncapsulation.None
-})
-
-export class PopUpComponent implements OnChanges, OnInit, OnDestroy, AfterViewInit 
-{  
-    static objNSMessageBoxService: NSMessageBoxService;
-    private __element: HTMLElement;
-
-    constructor(private elementRef:ElementRef) 
-    {
-        this.__element = elementRef.nativeElement;
-    };
-  
-    ngOnChanges(changes: {[propName: string]: SimpleChange}): void 
-    {
-        
-    };
-  
-    ngOnInit() : void
-    {
-        
-    };
-  
-    ngAfterViewInit(): void 
-    {
-    };
-  
-    ngOnDestroy(): void 
-    {
-    };
-    
-    getElement(): HTMLElement
-    {
-        return this.__element;
-    };
-    
-    showAlert(alertMessage:string,fontAwsomeIcon:string = "fa-bell",iconColor:string = "text-nomura-red",alertHeader:string = "Alert"): NSMessageBoxComponent
-    {
-        let titleHtml: string = '<i class="fa ' + fontAwsomeIcon + ' ' + iconColor + '"></i>&nbsp;&nbsp;<h3 class="box-title">' + alertHeader + '<span></span></h3>';
-        let bodyHtml: string = '<span style="text-align: center;">' + alertMessage + '</span>';
-        let customClass:INSPanelCustomClass = {container:"box box-nomura-red",titleBar:"box-header with-border",titleBarContent:null,iconConatiner:null,icon:null,body:null,
-                                                messageBody:"box-body",messageFooter:"box-footer"};
-        let setting : INSMessageBoxAlertSetting = { titleHtml: titleHtml,bodyContent: bodyHtml,customClass: customClass,
-                                                    enableModalCloseOnOutsideClick:true,enableModalCloseOnEscape:true,
-                                                    buttonClass:"btn btn-nomura-green",enableCloseIconVisibility:false};
-        //let nsMessageBoxService: NSMessageBoxService = new NSMessageBoxService();
-        //nsMessageBoxService.alert(setting);
-        //return nsMessageBoxService;
-        //return this.__nsMessageBoxService.alert(setting);
-        return null;
-    } 
-    
-    static setMessageBoxService(value: NSMessageBoxService): void
-    {
-        PopUpComponent.objNSMessageBoxService = value;
-    }
-  
-    static showAlertPopup(alertMessage:string,fontAwsomeIcon:string = "fa-bell",iconColor:string = "text-nomura-red",alertHeader:string = "Alert"): NSMessageBoxComponent
-    {
-       return PopUpComponent.__showAlert(alertMessage,fontAwsomeIcon,iconColor,alertHeader);
-    }
-    
-    static showSuccessAlertPopup(alertMessage:string,alertHeader:string = "Success"): NSMessageBoxComponent
-    {
-        return PopUpComponent.__showAlert(alertMessage,"fa-check","text-nomura-green",alertHeader);
-    }
-  
-    static showFailureAlertPopup(alertMessage:string,alertHeader:string = "Failure"): NSMessageBoxComponent
-    {
-        return PopUpComponent.__showAlert(alertMessage,"fa-warning","text-nomura-red",alertHeader);
-    }
-  
-    static showOkCancelPopup(alertMessage:string,alertHeader:string = "Alert",confirmCallback: any = null, cancelCallback: any = null): NSMessageBoxComponent
-    {
-        return PopUpComponent.__showConfirm(alertMessage,alertHeader,confirmCallback,cancelCallback);
-    }
-  
-    static showNotificationsListPopup(alertMessage:string[],callback: any = null): NSMessageBoxComponent
-    {
-        return PopUpComponent.__showNotificationsList(alertMessage,callback);
-    }
-    
-    static __showAlert(alertMessage:string,fontAwsomeIcon:string = "fa-bell",iconColor:string = "text-nomura-red",alertHeader:string = "Alert"): NSMessageBoxComponent
-    {
-        let titleHtml: string = '<i class="fa ' + fontAwsomeIcon + ' ' + iconColor + '"></i>&nbsp;&nbsp;<h3 class="box-title">' + alertHeader + '<span></span></h3>';
-        let bodyHtml: string = '<span style="text-align: center;">' + alertMessage + '</span>';
-        let customClass:INSPanelCustomClass = {container:"box box-nomura-red",titleBar:"box-header with-border",titleBarContent:null,iconConatiner:null,icon:null,body:null,
-                                                messageBody:"box-body",messageFooter:"box-footer"};
-        let setting : INSMessageBoxAlertSetting = { titleHtml: titleHtml,bodyContent: bodyHtml,customClass: customClass,
-                                                    enableModalCloseOnOutsideClick:true,enableModalCloseOnEscape:true,
-                                                    buttonClass:"btn btn-nomura-green",enableCloseIconVisibility:false};
-        //let nsMessageBoxService: NSMessageBoxService = new NSMessageBoxService();
-        //nsMessageBoxService.alert(setting);
-        //return nsMessageBoxService;
-        return PopUpComponent.objNSMessageBoxService.alert(setting);
-    } 
-    
-    static __showConfirm(alertMessage:string,alertHeader:string = null,confirmCallback: any = null, cancelCallback: any = null): NSMessageBoxComponent
-    {
-        alertHeader = alertHeader ? alertHeader : "Alert";
-        let titleHtml: string = '<i class="fa fa fa-bell text-nomura-red"></i>&nbsp;&nbsp;<h3 class="box-title">' + alertHeader + '<span></span></h3>';
-        let bodyHtml: string = '<span>' + alertMessage + '</span>';
-        let customClass:INSPanelCustomClass = {container:"box box-nomura-red",titleBar:"box-header with-border",titleBarContent:null,iconConatiner:null,icon:null,body:null,
-                                                messageBody:"box-body",messageFooter:"box-footer"};
-        let confirm: INSMessageBoxConfirmButtonSetting = {label:"Yes",cssClass:"btn btn-nomura-green",callback:confirmCallback};
-        let cancel: INSMessageBoxConfirmButtonSetting = {label:"Cancel",cssClass:"btn btn-nomura-red",callback:cancelCallback};
-        let panelSetting: INSPanelDivSetting = {width:"45%"};
-        let setting : INSMessageBoxConfirmSetting = { titleHtml: titleHtml,bodyContent: bodyHtml,customClass: customClass,
-                                                    enableModalCloseOnOutsideClick:true,enableModalCloseOnEscape:true,
-                                                    enableCloseIconVisibility:false,
-                                                    confirm:confirm,cancel:cancel,panelSetting:panelSetting};
-        
-        /*let nsMessageBoxService: NSMessageBoxService = new NSMessageBoxService();
-        nsMessageBoxService.confirm(setting);
-        return nsMessageBoxService;*/
-        return PopUpComponent.objNSMessageBoxService.confirm(setting);
-    }
-    
-    static __showNotificationsList(alertMessage:string[],callback: any = null): NSMessageBoxComponent
-    {
-        if(alertMessage && alertMessage.length > 0)
-        {
-            let titleHtml: string = '<i class="fa fa-tv text-nomura-green"></i>&nbsp;&nbsp;<h3 class="box-title">' + "System Notifications" + '<span></span></h3>';
-            let bodyHtml: string = '<ul class="notifications-list notifications-list-in-box">';
-            for (let message of alertMessage) 
-            {
-                bodyHtml +='<li class="notification">';
-                bodyHtml +='<div class="notification-icon">';
-                bodyHtml +='<i class="fa fa-circle-o text-nomura-orange"></i>';
-                bodyHtml +='</div>';
-                bodyHtml +='<div class="notification-message">';
-                bodyHtml +='<span>' + message + '</span>';
-                bodyHtml +='</div>';
-                bodyHtml +='</li>';
-            }
-            bodyHtml +='</ul>';
-            let customClass:INSPanelCustomClass = {container:"box box-nomura-red",titleBar:"box-header with-border",titleBarContent:null,iconConatiner:null,icon:null,body:null,
-                                                    messageBody:"box-body",messageFooter:"box-footer"};
-            let setting : INSMessageBoxAlertSetting = { titleHtml: titleHtml,bodyContent: bodyHtml,customClass: customClass,
-                                                        enableModalCloseOnOutsideClick:true,enableModalCloseOnEscape:true,
-                                                        buttonClass:"btn btn-nomura-green",callback:callback,enableCloseIconVisibility:false};
-            /*let nsMessageBoxService: NSMessageBoxService = new NSMessageBoxService();
-            nsMessageBoxService.alert(setting);
-            return nsMessageBoxService;*/
-            return PopUpComponent.objNSMessageBoxService.alert(setting);
-        }
-        return null;
-    }
-    
-}
-
-
-import { NgModule, ModuleWithProviders } from '@angular/core';
-import { NSTextBoxComponent } from '../nsTextBox/nsTextBox.component';
-import { NSCalendarComponent } from '../nsCalendar/nsCalendar.component';
-import { NSDatePickerComponent } from '../nsDatePicker/nsDatePicker.component';
-import { NSPanelComponent } from '../nsPanel/nsPanel.component';
-import { NSMessageBoxComponent } from '../nsMessageBox/component/nsMessageBox.component';
-import { NSMessageBoxService } from '../nsMessageBox/service/nsMessageBox.service';
-import { DynamicComponentService } from '../services/dynamicComponent/dynamicComponent.service';
-
-@NgModule({
-  imports: [
-  ],
-  declarations: [
-    NSTextBoxComponent,
-    NSCalendarComponent,
-    NSDatePickerComponent,
-    NSPanelComponent,
-    NSMessageBoxComponent
-  ],
-  exports:[
-    NSTextBoxComponent,
-    NSCalendarComponent,
-    NSDatePickerComponent,
-    NSPanelComponent,
-    NSMessageBoxComponent
-  ],
-  providers: [
-    DynamicComponentService,
-    NSMessageBoxService
-  ]
-})
-export class SharedModule {
-  /*static forRoot(): ModuleWithProviders {
-    return {
-      ngModule: SharedModule,
-      providers: [NSTextBoxComponent]
-    };
-  }*/
-  
-}
+		.loading {
+		  -webkit-animation: sk-scaleout 1.0s infinite ease-in-out;
+		  animation: sk-scaleout 1.0s infinite ease-in-out;
+		  background-color: black;
+		  border-radius: 100%;
+		  height: 6em;
+		  width: 6em;
+		}
+		
+		.container {
+		  align-items: center;
+		  background-color: white;
+		  display: flex;
+		  height: 100vh;
+		  justify-content: center;
+		  width: 100vw;
+		}
+		
+		@keyframes sk-scaleout {
+		  0% {
+		    -webkit-transform: scale(0);
+		    transform: scale(0);
+		  }
+		  100% {
+		    -webkit-transform: scale(1.0);
+		    opacity: 0;
+		    transform: scale(1.0);
+		  }
+		}
+		
+	</style>
+	
+	<div id="spinner" class="container">
+	  <div class="loading"></div>
+	</div>
+	
+	"ordered-imports": [false, {
+		  "import-sources-order": "any",
+		  "named-imports-order": "any"
+		}]
+		
+		"@types/prop-types": "^15.5.3",
