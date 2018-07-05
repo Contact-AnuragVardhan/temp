@@ -1,782 +1,337 @@
-import { Component, Input, Output, OnChanges, OnInit, OnDestroy, ElementRef, SimpleChange, EventEmitter,
-    ViewEncapsulation, AfterViewInit } from '@angular/core';
+let spinner = null;
 
-import { NSCalendarComponent, INSCalendarCustomClass, INSCalendarSetting } from '../nsCalendar/nsCalendar.component';
-
-declare var NSUtil: any;
-declare var NSCalendar: any;
-declare var NSDatePicker: any;
-
-////////// Interfaces /////////////////////////////////////////////////////////
-
-export interface INSDatePickerCustomClass {
-    container?: string;
-    textInput?: string;
-    button?: string;
-    calContainer?: string;
-    calHeaderContainer?: string;
-    calPrevButton?: string;
-    calNextButton?: string;
-    calMonthDropdown?: string;
-    calYearDropdown?: string;
-    calWeekContainer?: string;
-    calWeek?: string;
-    calDayContainer?: string;
-    calDay?: string;
-    calFooterContainer?: string;
-    [propName: string]: any;
-}
-
-export interface INSDatePickerSetting  extends INSCalendarSetting {
-    dateOutputFormat?: string;
-    placeHolder?: string;
-    buttonHtml?: string;
-    enableTextBoxDisabled?: boolean;
-    customClass?: INSDatePickerCustomClass;
-}
-
-@Component({
-  selector: 'ns-datePicker',
-  template: '',
-  encapsulation: ViewEncapsulation.None
-})
-
-export class NSDatePickerComponent implements OnChanges, OnInit, OnDestroy, AfterViewInit 
-{  
-    @Input() setting: INSDatePickerSetting;
-  
-    @Output() calendarOpened:EventEmitter<any> = new EventEmitter();
-    @Output() calendarClosed:EventEmitter<any> = new EventEmitter();
-    @Output() dateSelected:EventEmitter<any> = new EventEmitter();
-
-    private __element: HTMLElement;
-    private __objNSDatePicker: any;
-
-    constructor(private elementRef:ElementRef) 
-    {
-        this.__element = elementRef.nativeElement;
-    };
-  
-    ngOnChanges(changes: {[propName: string]: SimpleChange}): void 
-    {
-       
-    };
-  
-    ngOnInit() : void
-    {
-       this.__objNSDatePicker = new NSDatePicker(this.__element,this.setting); 
-    };
-  
-    ngAfterViewInit(): void 
-    {
-    };
-  
-    ngOnDestroy(): void 
-    {
-    };
-  
-    getElement(): HTMLElement
-    {
-        return this.__element;
-    };
-    
-    getSelectedDate(): any
-    {
-        return this.__objNSDatePicker.getSelectedDate();
-    };
-    
-    getSelectedDateAsString(format: string): any
-    {
-        return this.__objNSDatePicker.getSelectedDateAsString(format);
-    };
-    
-    setSelectedDate(date: any,format: string): void
-    {
-        this.__objNSDatePicker.setSelectedDate(date,format);
-    };
-    
-    setYear(year: number): void
-    {
-        this.__objNSDatePicker.setYear(year);
-    };
-    
-    setMonth(month: number): void
-    {
-        this.__objNSDatePicker.setMonth(month);
-    };
-    
-    reset(): void
-    {
-        this.__objNSDatePicker.reset();
-    };
-    
-    setTodayDate(): void
-    {
-        this.__objNSDatePicker.setTodayDate();
-    };
-    
-    showCalendar(): void
-    {
-        this.__objNSDatePicker.showCalendar();
-    };
-    
-    closeCalendar(): void
-    {
-        this.__objNSDatePicker.closeCalendar();
-    };
-    
-    getCalendar(): any
-    {
-        return this.__objNSDatePicker.getCalendar();
-    };
-    
-    getTextBox(): any
-    {
-        return this.__objNSDatePicker.getTextBox();
-    };
-    
-    toggleCalendarVisibility(): void
-    {
-        this.__objNSDatePicker.toggleCalendarVisibility();
-    };
-    
-    setStyle(styleProp: string,value: any): void
-    {
-        this.__objNSDatePicker.setStyle(styleProp,value);
-    };
-    
-    setFocus(isFocus: boolean): void
-    {
-        this.__objNSDatePicker.setFocus(isFocus);
-    };
-    
-    hasFocus(): boolean
-    {
-        return this.__objNSDatePicker.hasFocus();
-    };
-    
-    setTheme(theme: string): void
-    {
-        this.__objNSDatePicker.setTheme(theme);
-    };
-    
-    changeProperty(propertyName: string,value: any): void
-    {
-        this.__objNSDatePicker.changeProperty(propertyName,value);
-    };
-    
-    private __addEventHandlers(): void
-    {
-        let util = new NSUtil();
-        let eventHandler:any = this.__eventHandler.bind(this);
-        util.addEvent(this.__element,NSDatePicker.CALENDAR_OPENED,eventHandler);
-        util.addEvent(this.__element,NSDatePicker.CALENDAR_CLOSED,eventHandler);
-        util.addEvent(this.__element,NSDatePicker.DATE_SELECTED,eventHandler);
-    }
-  
-    private __eventHandler(event:any)
-    {
-        this[event.type].emit(event.detail);
-    }
-}
-
-
-import { Component, Input, Output, OnChanges, OnInit, OnDestroy, ElementRef, SimpleChange, EventEmitter,
-    ViewEncapsulation, AfterViewInit } from '@angular/core';
-
-import { NSPanelComponent, INSPanelToolBarDetails, INSPanelSetting } from '../../nsPanel/nsPanel.component';
-
-declare var NSUtil: any;
-declare var NSMessageBox: any;
-declare var NSPanel: any;
-
-////////// Interfaces /////////////////////////////////////////////////////////
-
-export interface INSMessageBoxCallbackFunction {
-    (event: any):void;
-}
-
-export interface INSMessageBoxConfirmButtonSetting{
-    label?: string;
-    cssClass?: string;
-    callback?: INSMessageBoxCallbackFunction;
-}
-
-export interface INSMessageBoxToolBarDetails extends INSPanelToolBarDetails {
-    messageBody?: string;
-    messageFooter?: string;
-}
-
-export interface INSMessageBoxSetting extends INSPanelSetting {
-    
-} 
-
-export interface INSMessageBoxAlertSetting extends INSMessageBoxSetting {
-    bodyContent?: any;
-    bodyTemplate?: string;
-    bodyTemplateUrl?: string;
-    buttonLabel?: string;
-    buttonClass?: string;
-    callback?: INSMessageBoxCallbackFunction;
-}
-
-export interface INSMessageBoxConfirmSetting extends INSMessageBoxSetting {
-    bodyContent?: any;
-    bodyTemplate?: string;
-    bodyTemplateUrl?: string;
-    confirm?: INSMessageBoxConfirmButtonSetting;
-    cancel?: INSMessageBoxConfirmButtonSetting;
-}
-
-export interface INSMessageBoxCustomSetting extends INSMessageBoxSetting {
-    bodyContent?: any;
-    bodyTemplate?: string;
-    bodyTemplateUrl?: string;
-    buttons?: INSMessageBoxConfirmButtonSetting[];
-}
-
-
-@Component({
-  selector: 'ns-messageBox',
-  template: '<ng-content></ng-content>',
-  encapsulation: ViewEncapsulation.None
-})
-
-export class NSMessageBoxComponent implements OnChanges, OnInit, OnDestroy, AfterViewInit 
-{  
-    @Input() setting: INSMessageBoxSetting;
-    
-    @Output() dragStaring:EventEmitter<any> = new EventEmitter();
-    @Output() dragging:EventEmitter<any> = new EventEmitter();
-    @Output() dragEnd:EventEmitter<any> = new EventEmitter();
-    @Output() resizeStaring:EventEmitter<any> = new EventEmitter();
-    @Output() resizing:EventEmitter<any> = new EventEmitter();
-    @Output() resizeEnd:EventEmitter<any> = new EventEmitter();
-    @Output() collapseStarting:EventEmitter<any> = new EventEmitter();
-    @Output() collapseEnd:EventEmitter<any> = new EventEmitter();
-    @Output() expansionStarting:EventEmitter<any> = new EventEmitter();
-    @Output() expansionEnd:EventEmitter<any> = new EventEmitter();
-    @Output() minimizeStarting:EventEmitter<any> = new EventEmitter();
-    @Output() minimizeEnd:EventEmitter<any> = new EventEmitter();
-    @Output() maximizeStarting:EventEmitter<any> = new EventEmitter();
-    @Output() maximizeEnd:EventEmitter<any> = new EventEmitter();
-    @Output() fullScreenStarting:EventEmitter<any> = new EventEmitter();
-    @Output() fullScreenEnd:EventEmitter<any> = new EventEmitter();
-    @Output() restoreStarting:EventEmitter<any> = new EventEmitter();
-    @Output() restoreEnd:EventEmitter<any> = new EventEmitter();
-    @Output() closed:EventEmitter<any> = new EventEmitter();
-
-    private __element: HTMLElement;
-    private __objNSMessageBox: any;
-    private __objNSPanel: any;
-    private __objBodyContent: any;
-    
-
-    constructor(private elementRef:ElementRef) 
-    {
-        this.__element = elementRef.nativeElement;
-        console.log("In constructor");
-    };
-  
-    ngOnChanges(changes: {[propName: string]: SimpleChange}): void 
-    {
-        
-    };
-  
-    ngOnInit() : void
-    {
-        if(this.__element)
-        {
-           this.__objBodyContent = this.__element;
-        }
-        this.__createComponent();
-    };
-  
-    ngAfterViewInit(): void 
-    {
-    };
-  
-    ngOnDestroy(): void 
-    {
-    };
-  
-    getElement(): HTMLElement
-    {
-        return this.__element;
-    };
-  
-    minimize(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.minimize();
-        }
-    };
-    
-    maximize(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.maximize();
-        }
-    };
-    
-    collapse(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.collapse();
-        }
-    };
-    
-    expand(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.expand();
-        }
-    };
-    
-    fullScreen(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.fullScreen();
-        }
-    };
-    
-    restore(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.restore();
-        }
-    };
-    
-    disableResize(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.disableResize();
-        }
-    };
-    
-    disableDrag(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.disableDrag();
-        }
-    };
-    
-    disableCollapse(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.disableCollapse();
-        }
-    };
-    
-    disableMinMax(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.disableCollapse();
-        }
-    };
-    
-    disableFullScreen(): void
-    {
-        if(this.__objNSPanel)
-        {
-            this.__objNSPanel.disableCollapse();
-        }
-    };
-    
-    isCollapsed(): boolean
-    {
-        if(this.__objNSPanel)
-        {
-            return this.__objNSPanel.isCollapsed();
-        }
-        return false;
-    };
-    
-    isMinimized(): boolean
-    {
-        if(this.__objNSPanel)
-        {
-            return this.__objNSPanel.isMinimized();
-        }
-        return false;
-    };
-    
-    isFullScreen(): boolean
-    {
-        if(this.__objNSPanel)
-        {
-            return this.__objNSPanel.isFullScreen();
-        }
-        return false;
-    };
-    
-    alert(message: string | INSMessageBoxAlertSetting, title?: string, callback?: INSMessageBoxCallbackFunction): void
-    {
-        this.__createComponent();
-        this.__objNSMessageBox.alert(message,title,callback);
-        this.__creationHandler();
-    };
-    
-    confirm(message: string | INSMessageBoxConfirmSetting, title?: string, confirmCallback?: INSMessageBoxCallbackFunction, cancelCallback?: INSMessageBoxCallbackFunction): void
-    {
-        this.__createComponent();
-        this.__objNSMessageBox.confirm(message,title,confirmCallback,cancelCallback);
-        this.__creationHandler();
-    };
-    
-    custom(setting: INSMessageBoxCustomSetting):void
-    {
-        this.__createComponent();
-        if(setting || this.__objBodyContent)
-        {
-            if(!setting)
-            {
-                setting = {};
-            }
-            if(!setting.bodyContent && this.__objBodyContent)
-            {
-                setting.bodyContent = this.__objBodyContent;
-            }
-            this.__objNSMessageBox.custom(setting);
-            this.__creationHandler();
-        }
-    };
-    
-    close(): void
-    {
-        this.__createComponent();
-        this.__objNSMessageBox.close();
-    };
-    
-    getPanel(): any
-    {
-        return this.__objNSPanel;
-    };
-    
-    private __createComponent(): void
-    {
-        if(!this.__objNSMessageBox)
-        {
-            this.__objNSMessageBox = new NSMessageBox(this.setting); 
-            this.__addEventHandlers();
-        }
-    };
-    
-    private __creationHandler(): void
-    {
-        this.__objNSPanel =  this.__objNSMessageBox.getPanel();
-        if(!this.__element)
-        {
-            this.__element = this.__objNSPanel.getBaseElement();
-        }
-    };
-    
-    private __addEventHandlers(): void
-    {
-        if(this.__element)
-        {
-            let util = new NSUtil();
-            let eventHandler:any = this.__navEventHandler.bind(this);
-            util.addEvent(this.__element,NSPanel.DRAG_STARTING,eventHandler);
-            util.addEvent(this.__element,NSPanel.DRAGGING,eventHandler);
-            util.addEvent(this.__element,NSPanel.DRAG_END,eventHandler);
-            util.addEvent(this.__element,NSPanel.RESIZE_STARTING,eventHandler);
-            util.addEvent(this.__element,NSPanel.RESIZING,eventHandler);
-            util.addEvent(this.__element,NSPanel.RESIZE_END,eventHandler);
-            util.addEvent(this.__element,NSPanel.COLLAPSE_STARTING,eventHandler);
-            util.addEvent(this.__element,NSPanel.COLLAPSE_END,eventHandler);
-            util.addEvent(this.__element,NSPanel.EXPANSION_STARTING,eventHandler);
-            util.addEvent(this.__element,NSPanel.EXPANSION_END,eventHandler);
-            util.addEvent(this.__element,NSPanel.MINIMIZE_STARTING,eventHandler);
-            util.addEvent(this.__element,NSPanel.MINIMIZE_END,eventHandler);
-            util.addEvent(this.__element,NSPanel.MAXIMIZE_STARTING,eventHandler);
-            util.addEvent(this.__element,NSPanel.MAXIMIZE_END,eventHandler);
-            util.addEvent(this.__element,NSPanel.FULLSCREEN_STARTING,eventHandler);
-            util.addEvent(this.__element,NSPanel.FULLSCREEN_END,eventHandler);
-            util.addEvent(this.__element,NSPanel.RESTORE_STARTING,eventHandler);
-            util.addEvent(this.__element,NSPanel.RESTORE_END,eventHandler);
-            util.addEvent(this.__element,NSPanel.CLOSED,eventHandler);
-        }
-    };
-  
-    private __navEventHandler(event:any)
-    {
-        this[event.type].emit(event.detail);
-    }
-}
-
-import {Injectable, ViewContainerRef, ComponentFactoryResolver, ApplicationRef, Injector,
-        EmbeddedViewRef, ComponentRef, ReflectiveInjector } from '@angular/core';
-
-import { NSPanelComponent, INSPanelToolBarDetails, INSPanelSetting } from '../../nsPanel/nsPanel.component';
-import { NSMessageBoxComponent, INSMessageBoxAlertSetting, INSMessageBoxCallbackFunction, INSMessageBoxConfirmSetting } from '../component/nsMessageBox.component';
-import { DynamicComponentService } from '../../services/dynamicComponent/dynamicComponent.service';
-import { PopUpComponent } from '../../popUpComponent/popUp.component';
-
-@Injectable()
-export class NSMessageBoxService 
+const ReactFetch = function (url, options = {}) 
 {
-    constructor(private dynamicComponentService: DynamicComponentService
-               ) 
-    {
-        //remove when you remove PopUpComponent as it is a bad design 
-        //Ideally NSMessageBoxService should be injected in every component and then its function should be called
-         PopUpComponent.setMessageBoxService(this);
-    }
-    
-    alert(message: string | INSMessageBoxAlertSetting, title?: string, callback?: INSMessageBoxCallbackFunction): NSMessageBoxComponent
-    {
-        const messageBox: NSMessageBoxComponent = this.__createComponent();
-        messageBox.alert(message,title,callback);
-        return messageBox;
-    };
-    
-    confirm(message: string | INSMessageBoxConfirmSetting, title?: string, confirmCallback?: INSMessageBoxCallbackFunction, cancelCallback?: INSMessageBoxCallbackFunction): NSMessageBoxComponent
-    {
-        const messageBox: NSMessageBoxComponent = this.__createComponent();
-        messageBox.confirm(message,title,confirmCallback,cancelCallback);
-        return messageBox;
-    };
-    
-    private __createComponent(): any
-    {
-        let messageBoxComponentRef: ComponentRef<NSMessageBoxComponent> = this.dynamicComponentService.createComponentRef(NSMessageBoxComponent);
-        return this.dynamicComponentService.getInstanceFromComponentRef(messageBoxComponentRef);
-    };
-    
-    
+	spinner = document.getElementById('spinner');
+	showHideSpinner(true);
+	return fetch(url, options)
+    		.then(handleResponse, handleNetworkError);
 }
 
-import { Component, Input, Output, OnChanges, OnInit, OnDestroy, ElementRef, SimpleChange, EventEmitter,
-    ViewEncapsulation, AfterViewInit } from '@angular/core';
-import { Router} from '@angular/router';
+const handleResponse = function (response) 
+{
+	showHideSpinner(false);
+	if (response.ok) 
+	{
+	    return response.json();
+	} 
+	else 
+	{
+	    return response.json().then(function (error) {
+	      throw error;
+	    });
+	}
+}
 
+const handleNetworkError = function (error) 
+{
+	showHideSpinner(false);
+	throw {
+		message: error.message
+	};
+}
+
+const showHideSpinner = function(isShow)
+{
+	if(spinner)
+	{
+		if(isShow)
+		{
+			spinner.removeAttribute('hidden');
+		}
+		else if(!spinner.hasAttribute('hidden') || spinner.getAttribute('hidden') !== "true")
+		{
+			spinner.setAttribute('hidden', 'true');
+		}
+		
+	}
+}
+
+//module.exports = ReactFetch;
+
+export default ReactFetch;
+
+
+import * as React from 'react';
+import * as DOM from "react-dom-factories";
+import * as PropTypes from "prop-types";
+import {INSGridSetting} from "./interfaces";
+
+declare var NSGrid: any;
 declare var NSUtil: any;
-declare var NSNavigation: any;
 
-////////// Interfaces /////////////////////////////////////////////////////////
-
-export interface INSNavigationClickFunction {
-    (event:any,item:INSNavigationMenu,li:any):void;
+export interface INSGridReactSettings extends INSGridSetting {
+    setting?: INSGridSetting;
 }
 
-export interface INSNavigationMenu {
-    menuName: string;
-    href: string;
-    iconBeforeHtml: string;
-    iconAfterHtml: string;
-    onClick: INSNavigationClickFunction;
-    childMenus?: INSNavigationMenu[];
-    [propName: string]: any;
-}
-
-
-@Component({
-  selector: 'ns-navigation',
-  template: '',
-  encapsulation: ViewEncapsulation.None
-})
-
-export class NSNavigationComponent implements OnChanges, OnInit, OnDestroy, AfterViewInit 
-{  
-    @Input() set setting(value:any)
-    {
-      this.__setting = value;
-      if(!this.__nsNavigation && this.__setting)
-      {
-          if(this.__dataSource)
-          {
-            this.__manageDataSource();
-            this.__setting["dataSource"] = this.dataSource;
-          }
-          this.__nsNavigation = new NSNavigation(this.__element,this.__setting);
-      }
-    }
-    get setting(): any
-    {
-      return this.__setting;
-    }
-    @Input() set dataSource(arrSource:INSNavigationMenu[])
-    {
-    	this.__dataSource = arrSource;
-    	if(this.__nsNavigation)
-    	{
-        this.__manageDataSource();
-    		this.__nsNavigation.dataSource(arrSource);
-    	}
-    }
-    get dataSource(): INSNavigationMenu[] 
-    {
-    	return this.__dataSource;
-	  }
+export default class NSGridReact extends React.Component<INSGridReactSettings, any> {
     
-  
-    @Output() navigationOpenStart:EventEmitter<any> = new EventEmitter();
-    @Output() navigationOpenEnd:EventEmitter<any> = new EventEmitter();
-    @Output() navigationCloseStart:EventEmitter<any> = new EventEmitter();
-    @Output() navigationCloseEnd:EventEmitter<any> = new EventEmitter();
-    @Output() navigationMenuSelected:EventEmitter<any> = new EventEmitter();
-    @Output() navigationMenuDeselected:EventEmitter<any> = new EventEmitter();
+    private __nsGrid: any;
+    private __container: any;
+    private __setting : any;
+    private __dataSource : any;
+    private __nsUtil : any;
+    private __arrEvents: string[] = [ NSGrid.GRID_RENDERED,
+                            NSGrid.ROW_SELECTED,
+                            NSGrid.ROW_UNSELECTED,
+                            NSGrid.ROW_CLICKED,
+                            NSGrid.ROW_DOUBLE_CLICKED,
+                            NSGrid.ROW_NAVIGATED,
+                            NSGrid.CELL_SELECTED,
+                            NSGrid.CELL_UNSELECTED,
+                            NSGrid.CELL_CLICKED,
+                            NSGrid.CELL_DOUBLE_CLICKED,
+                            NSGrid.SORT_CHANGING,
+                            NSGrid.SORT_CHANGED,
+                            NSGrid.ADVANCED_FILTER_CLOSING,
+                            NSGrid.FILTER_CHANGING,
+                            NSGrid.FILTER_CHANGED,
+                            NSGrid.FILTER_RESETTED,
+                            NSGrid.COLUMN_RESIZING,
+                            NSGrid.COLUMN_RESIZED,
+                            NSGrid.COLUMN_MOVING,
+                            NSGrid.COLUMN_MOVED,
+                            NSGrid.MULTI_SELECTION_EDITORS_TEXT,
+                            NSGrid.MULTI_SELECTION_EDITORS_TEXTAREA,
+                            NSGrid.EDITOR_CELL_VALUE_CHANGED];
 
-    private __element: HTMLElement;
-    private __nsNavigation: any;
-    private __dataSource:INSNavigationMenu[];
-    private __setting:any;
+    private __arrMethods: string[] = ["setHeightOffset","deviceViewChanged","setState","getState","setColumn","setContextMenuSetting","getOrignalItem",
+                                      "addRows","removeRows","groupBy","expandAll","collapseAll","expandCollapseByRow","getRowInfo","getCellInfo","getItemInfo",
+                                      "getItemInfoByKeyField"];
 
-    constructor(private elementRef:ElementRef,private router: Router) 
+    private __hasInitialized: boolean = false;
+    private __hasGridDataSource: boolean = false;
+    private __hasDestroyed: boolean = false;
+    private __objCustomComponent: any;
+
+    constructor(public props: INSGridReactSettings, public state: any) 
     {
-        this.__element = elementRef.nativeElement;
-    };
-  
-    ngOnChanges(changes: {[propName: string]: SimpleChange}): void 
+        super(props, state);
+    }
+    
+    public componentDidMount() 
     {
-        /*if(!this.__nsNavigation && this.__setting)
+        if(!this.__nsGrid)
         {
-            this.__manageDataSource();
+            this.__nsUtil = new NSUtil();
+            if(!this.props)
+            {
+                this.props = {};
+            }
+            const setting:INSGridSetting =  this.__nsUtil.cloneObject(this.props.setting,true);
+            this.__dataSource = this.props.dataSource || setting.dataSource;
+            //setting.columns = this.__setColumn(this.__setting.columns);
+            //setting.multiLevelGroupColumn = this.__setColumnObject(this.setting.multiLevelGroupColumn);
+            //setting.eventDispatcher = this.__eventDispatcher.bind(this);
             if(this.__dataSource)
             {
-            	this.setting["dataSource"] = this.dataSource;
-            }
-            this.__nsNavigation = new NSNavigation(this.__element,this.setting);
-        }*/
-    };
-  
-    ngOnInit() : void
-    {
-        let util = new NSUtil();
-        let eventHandler:any = this.__navEventHandler.bind(this);
-        util.addEvent(this.__element,NSNavigation.NAVIGATION_OPEN_START,eventHandler);
-        util.addEvent(this.__element,NSNavigation.NAVIGATION_OPEN_END,eventHandler);
-        util.addEvent(this.__element,NSNavigation.NAVIGATION_CLOSE_START,eventHandler);
-        util.addEvent(this.__element,NSNavigation.NAVIGATION_CLOSE_END,eventHandler);
-        util.addEvent(this.__element,NSNavigation.NAVIGATION_MENU_SELECTED,eventHandler);
-        util.addEvent(this.__element,NSNavigation.NAVIGATION_MENU_DESELECTED,eventHandler);
-    };
-  
-    ngAfterViewInit(): void 
-    {
-    };
-  
-    ngOnDestroy(): void 
-    {
-    };
-  
-    getElement(): HTMLElement
-    {
-        return this.__element;
-    };
-  
-    isNavOpen(): Boolean
-    {
-        return (this.__nsNavigation ? this.__nsNavigation.isNavOpen() : false);
-    };
-    
-    toggleNavigation(): void 
-    {
-      if(this.__nsNavigation)
-      {
-        this.__nsNavigation.toggleNavigation();
-      }
-    };
-    
-    openNavigation(): void 
-    {
-        if(this.__nsNavigation)
-        {
-          this.__nsNavigation.openNavigation();
-        }
-    };
-    
-    closeNavigation(): void 
-    {
-        if(this.__nsNavigation)
-        {
-          this.__nsNavigation.closeNavigation();
-        }
-    };
-    
-    selectMenu(itemOrElement:any): void 
-    {
-        if(this.__nsNavigation)
-        {
-          this.__nsNavigation.selectMenu(itemOrElement);
-        }
-    };
-    
-    setDataSource(source:INSNavigationMenu): void 
-    {
-        if(this.__nsNavigation)
-        {
-          this.__nsNavigation.dataSource(source);
-        }
-    };
-  
-    setStyle(styleProp:String,value:any)
-    {
-        if(this.__nsNavigation)
-        {
-          this.__nsNavigation.setStyle(styleProp,value);
-        }
-        
-    };
-  
-    private __manageDataSource():void
-    {
-        if(this.dataSource && this.dataSource.length > 0)
-        {
-            for(let source of this.dataSource)
-            {
-                this.__manageDataSourceItem(source);
-            }
-        }
-    };
-  
-    private __manageDataSourceItem(item:INSNavigationMenu):void
-    {
-        if(item)
-        {
-            if(item.childMenus && item.childMenus.length > 0)
-            {
-                for(let childMenu of item.childMenus)
+                setting.dataSource = this.__dataSource;
+                if(this.__dataSource.length > 0)
                 {
-                    this.__manageDataSourceItem(childMenu);
+                    this.__hasGridDataSource = true;
                 }
             }
-            else
+            this.__objCustomComponent = {};
+            this.__setting = setting;
+            this.__nsGrid = new NSGrid(this.__container,this.__setting);
+            this.__addEvents();
+            this.__addMethods();
+        }
+        this.__hasInitialized = true;
+    }
+    
+    public shouldComponentUpdate(nextProps: any, nextState: any) 
+    {
+        return false;
+    }
+    
+    public componentWillReceiveProps(nextProps: any) 
+    {
+        const objChanges: any = {};
+        const arrPropKeys: string[] = Object.keys(nextProps);
+        const arrSettingKeys: string[] = Object.keys(this.__setting);
+        for (const propKey of arrPropKeys)
+        {
+            if(propKey === "setting")
             {
-                item.click = this.__menuClickHandler.bind(this);
+                const newSetting: INSGridSetting =  nextProps.setting;
+                for (const settingKey of arrSettingKeys)
+                {
+                    if(!this.__nsUtil.isObjectEqual(this.__setting[settingKey],newSetting[settingKey]))
+                    {
+                        objChanges[settingKey] = {oldValue: this.__setting[settingKey], newValue: newSetting[settingKey]};
+                    }  
+                }
+            }
+            else if(!this.__nsUtil.isObjectEqual(this.props[propKey],nextProps[propKey]))
+            {
+                objChanges[propKey] = {oldValue: this.props[propKey], newValue: nextProps[propKey]};
             }
         }
-    };
-  
-    private __menuClickHandler(event:any,item:INSNavigationMenu,li:any):void
-    {
-        if(item)
+        console.log(objChanges);
+        const arrChangeKeys: string[] = Object.keys(objChanges);
+        for (const changeKey of arrChangeKeys)
         {
-            if(item.href)
+            if(changeKey === "dataSource")
+            {
+                this.__dataSource = objChanges[changeKey].newValue;
+                if(this.__nsGrid)
+                {
+                    this.__objCustomComponent = {};
+                    if(this.__dataSource && this.__dataSource.length > 0)
+                    {
+                        this.__hasGridDataSource = true;
+                    }
+                    this.__nsGrid.dataSource(this.__dataSource);
+                }
+            }
+            else if(this.__hasGridDataSource)
             {
                 
-                this.router.navigate([item.href]);
-            }
-            if(item.onClick)
-            {
-                item.onClick(event,item,li);
             }
         }
-    };
-  
-    private __navEventHandler(event:any)
-    {
-        this[event.type].emit(event.detail);
+        
     }
+    
+    public componentWillUnmount() 
+    {
+        if(this.__hasInitialized)
+        {
+            this.__hasDestroyed = true;
+        }
+    }
+
+    public render() 
+    {
+        return DOM.div({
+            style: this.__getStyleForContainer(),
+            ref: e => {
+                this.__container = e;
+            }
+        });
+        return this.__container;
+    }
+    
+    public expandAll()
+    {
+        
+    }
+    
+    private __getStyleForContainer() 
+    {
+        const style: any = { height: "100%" };
+        const containerStyle = this.props.containerStyle;
+        if (containerStyle) {
+            Object.keys(containerStyle).forEach(key => {
+                style[key] = containerStyle[key];
+            });
+        }
+        return style;
+    }
+    
+    private __addMethods()
+    {
+        this.__addProperties(this.__arrMethods, PropTypes.func);
+    }
+    
+    private __addEvents()
+    {
+        for (const eventName of this.__arrEvents)
+        {
+            const eventListenerName = 'on' + eventName[0].toUpperCase() + eventName.substring(1);
+            if(this.props[eventListenerName])
+            {
+                this.__nsUtil.addEvent(this.__container,eventName,this.props[eventListenerName]());
+            }
+        }
+    }
+    
+    private __addProperties(arrProperties: string[], propType: any) 
+    {
+        if(arrProperties && arrProperties.length > 0)
+        {
+            for (const propertyName of arrProperties)
+            {
+                NSGridReact[propertyName] = propType;
+            }
+        }
+    }
+    
+    
+}
+
+import * as React from 'react';
+import {INSGridColumn, INSGridCustomClassSetting, INSGridSetting} from "../../lib/nsGrid/interfaces";
+import NSGridReact from "../../lib/nsGrid/nsGridReact";
+import ReactFetch from "../../reactUtil/reactFetch/reactFetch";
+
+
+export default class FlatGridExample extends React.Component<any, any> 
+{
+      private __gridRef: any;
+      private grid: any; 
+
+      constructor(props: any) 
+      {
+          super(props);
+          this.state = {
+                  gridSetting: this.__getGridSetting(),
+                  dataSource: []
+          };
+          this.onGridRendered = this.onGridRendered.bind(this);
+          this.grid = React.createRef();
+      }
+      
+      public render() 
+      {
+          return(
+             <NSGridReact setting={this.state.gridSetting} 
+                          dataSource={this.state.dataSource}
+                          onGridRendered= {this.onGridRendered}
+                          ref= {this.grid}/>
+          )
+      }
+  
+      public componentDidMount() 
+      {
+          const header = new Headers({
+              'Access-Control-Allow-Origin':'*',
+              'Content-Type': 'multipart/form-data'
+          });
+          const sentData={
+                  method:'GET',
+                  mode: 'cors',
+                  header: header
+          };
+          ReactFetch("https://randomuser.me/api/?results=100")
+          .then(data => {this.setState({dataSource: data.results})})
+          .catch(error => console.log(error));
+          console.log(this.grid.current.expandAll());
+      }
+      
+      public onGridRendered()
+      {
+          console.log("gridRendered");
+      }
+      
+      private __getGridSetting(): INSGridSetting
+      {
+          const gridColumn: INSGridColumn[] = this.__getGridColumns();
+          const customClass: INSGridCustomClassSetting = {headerCell:"columnClass",firstBodyColumn:"columnClass",nonFirstBodyColumn:"columnClass"};
+          const gridSetting: INSGridSetting = {type: "normal",columnResizable: true,columnDraggable: false,enableFilter: false,enableAdvancedFilter: false, 
+                                               columns: gridColumn,customClass: customClass,heightOffset: 70};
+      
+          return gridSetting;
+      }
+      
+      private __getGridColumns(): INSGridColumn[]
+      {
+         return  [{headerText: "Cell",dataField:"cell",width:"100px",showMenu:false,headerTruncateToFit:true,enableFilter:true},
+                  {headerText: "Gender",dataField:"gender",width:"100px",showMenu:false,headerTruncateToFit:true,enableFilter:true},
+                  {headerText: "Email",dataField:"email",width:"150px",showMenu:false,headerTruncateToFit:true},
+                  {headerText: "NAT",dataField:"nat",width:"50px",showMenu:false,headerTruncateToFit:true},
+                  {headerText: "Phone",dataField:"phone",width:"150px",showMenu:false,headerTruncateToFit:true,enableFilter:true},
+                  {headerText: "Name",dataField:"name.first",width:"150px",showMenu:false,headerTruncateToFit:true,enableFilter:true}]; 
+      }
+      
 }
