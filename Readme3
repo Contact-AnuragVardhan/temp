@@ -1,1 +1,351 @@
+   <link href="%PUBLIC_URL%/lib/css/nsNavigation.min.css" rel="stylesheet" type="text/css" />
+    
+    <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ <script src="%PUBLIC_URL%/lib/js/nsNavigation.min.js"></script>
+ 
+ private component: any;
+    private parent: any;
+    
+    this.component = component;
+        this.parent = parent;
+        
+        callback?: any,
+        
+        if(callback)
+        {
+            callback(this,this.componentRef,this.getElement());
+        }
+        
+        import DynamicComponentService from "../dynamicComponentService/dynamicComponentService"
+        
+        componentRef: DynamicComponentService,
+        
+        INSGridEditorCustomComponentSetting    nsGridInterfaces
+        
+        
+        
+        export interface INSNavigationClickFunction {
+    (event:any,item:INSNavigationMenu,li:any):void;
+}
+
+nsNavigationInterfaces.d.ts
+
+export interface INSNavigationMenu {
+    menuName: string;
+    href ?: string;
+    iconBeforeHtml ?: string;
+    iconAfterHtml ?: string;
+    onClick ?: INSNavigationClickFunction;
+    childMenus?: INSNavigationMenu[];
+    [propName: string]: any;
+}
+
+export interface INSNavigationCustomClassSetting {
+    navContainer?: string,
+    menuContainer?: string,
+    headerMenu?: string,
+    menu?: string,
+    selectedParentMenu?: string,
+    selectedMenu?: string
+}
+
+export interface INSNavigationSetting {
+    containerElement?: any,
+    elementsBeforeMenu?: any,
+    pageHeaderContainer?: any,
+    pageContentContainer?: any,
+    header?: any,
+    showCollapseIcon?: boolean,
+    iconCollapse?: any,
+    dataSource?: INSNavigationMenu[],
+    titleField?: string,
+    childField?: string,
+    iconPosition?: string,
+    iconMenuExpanded?: string,
+    iconMenuCollapsed?: string,
+    context?: any,
+    collapseLeftOffset?: number,
+    collapseTopOffset?: number,
+    isPositionAbsolute?: boolean,
+    extraAttribute?: string,
+    customClass?: INSNavigationCustomClassSetting,
+    [propName: string]: any;
+}
+
+
+import * as React from 'react';
+import * as DOM from "react-dom-factories";
+import {INSNavigationClickFunction, INSNavigationMenu, INSNavigationCustomClassSetting, INSNavigationSetting} from "./nsNavigationInterfaces";
+
+declare var NSUtil: any;
+declare var NSNavigation: any;
+
+export interface INSNavigationReactSettings extends INSNavigationSetting {
+    setting?: INSNavigationSetting;
+}
+
+export default class NSNavigationReact extends React.Component<INSNavigationReactSettings, any> {
+    private __nsNavigation: any;
+    private __container: any;
+    private __nsUtil : any;
+    private __arrEvents: string[] = [ NSNavigation.NAVIGATION_OPEN_START,
+                                      NSNavigation.NAVIGATION_OPEN_END,
+                                      NSNavigation.NAVIGATION_CLOSE_START,
+                                      NSNavigation.NAVIGATION_CLOSE_END,
+                                      NSNavigation.NAVIGATION_MENU_SELECTED,
+                                      NSNavigation.NAVIGATION_MENU_DESELECTED];
+    private __dataSource:INSNavigationMenu[];
+    private __setting:any;
+    private __hasInitialized: boolean = false;
+    private __hasGridDataSource: boolean = false;
+    private __hasDestroyed: boolean = false;
+
+    constructor(public props: INSNavigationReactSettings, public state: any) 
+    {
+        super(props, state);
+    }
+    
+    public componentDidMount() 
+    {
+        if(!this.__nsNavigation)
+        {
+            this.__nsUtil = new NSUtil();
+            if(!this.props)
+            {
+                //this.props = {};
+            }
+            const setting:INSNavigationReactSettings =  this.__nsUtil.cloneObject(this.props.setting,true);
+            this.__dataSource = this.props.dataSource || setting.dataSource;
+            this.__manageDataSource();
+            if(this.__dataSource)
+            {
+                setting.dataSource = this.__dataSource;
+                if(this.__dataSource.length > 0)
+                {
+                    this.__hasGridDataSource = true;
+                }
+            }
+            this.__setting = setting;
+            this.__nsNavigation = new NSNavigation(this.__container,this.__setting);
+            this.__addEvents();
+        }
+        this.__hasInitialized = true;
+    }
+    
+    public shouldComponentUpdate(nextProps: any, nextState: any) 
+    {
+        return false;
+    }
+    
+    public componentWillReceiveProps(nextProps: any) 
+    {
+        const objChanges: any = {};
+        const arrPropKeys: string[] = Object.keys(nextProps);
+        const arrSettingKeys: string[] = Object.keys(this.__setting);
+        for (const propKey of arrPropKeys)
+        {
+            if(propKey === "setting")
+            {
+                const newSetting: INSNavigationReactSettings =  nextProps.setting;
+                for (const settingKey of arrSettingKeys)
+                {
+                    if(!this.__nsUtil.isObjectEqual(this.__setting[settingKey],newSetting[settingKey]))
+                    {
+                        objChanges[settingKey] = {oldValue: this.__setting[settingKey], newValue: newSetting[settingKey]};
+                    }  
+                }
+            }
+            else if(!this.__nsUtil.isObjectEqual(this.props[propKey],nextProps[propKey]))
+            {
+                objChanges[propKey] = {oldValue: this.props[propKey], newValue: nextProps[propKey]};
+            }
+        }
+        console.log(objChanges);
+        const arrChangeKeys: string[] = Object.keys(objChanges);
+        for (const changeKey of arrChangeKeys)
+        {
+            if(changeKey === "dataSource")
+            {
+                this.__dataSource = objChanges[changeKey].newValue;
+                if(this.__nsNavigation)
+                {
+                    if(this.__dataSource && this.__dataSource.length > 0)
+                    {
+                        this.__hasGridDataSource = true;
+                    }
+                    this.__nsNavigation.dataSource(this.__dataSource);
+                }
+            }
+            else if(this.__hasGridDataSource)
+            {
+                
+            }
+        }
+        
+    }
+    
+    public componentWillUnmount() 
+    {
+        if(this.__hasInitialized)
+        {
+            this.__hasDestroyed = true;
+        }
+    }
+    
+    public render() 
+    {
+        return DOM.div({
+            style: this.__getStyleForContainer(),
+            ref: e => {
+                this.__container = e;
+            }
+        });
+    }
+    
+    public getElement(): any
+    {
+        return this.__container;
+    };
+    
+    public isNavOpen(): boolean
+    {
+        return (this.__nsNavigation ? this.__nsNavigation.isNavOpen() : false);
+    };
+    
+    public toggleNavigation(): void 
+    {
+      if(this.__nsNavigation)
+      {
+        this.__nsNavigation.toggleNavigation();
+      }
+    };
+    
+    public openNavigation(): void 
+    {
+        if(this.__nsNavigation)
+        {
+          this.__nsNavigation.openNavigation();
+        }
+    };
+    
+    public closeNavigation(): void 
+    {
+        if(this.__nsNavigation)
+        {
+          this.__nsNavigation.closeNavigation();
+        }
+    };
+    
+    public selectMenu(itemOrElement:any): void 
+    {
+        if(this.__nsNavigation)
+        {
+          this.__nsNavigation.selectMenu(itemOrElement);
+        }
+    };
+    
+    public setDataSource(source:INSNavigationMenu[]): void 
+    {
+        if(this.__nsNavigation)
+        {
+          this.__manageDataSource();
+          this.__nsNavigation.dataSource(source);
+        }
+    };
+  
+    public setStyle(styleProp:string,value:any)
+    {
+        if(this.__nsNavigation)
+        {
+          this.__nsNavigation.setStyle(styleProp,value);
+        }
+        
+    };
+    
+    private __manageDataSource():void
+    {
+        if(this.__dataSource && this.__dataSource.length > 0)
+        {
+            for(const source of this.__dataSource)
+            {
+                this.__manageDataSourceItem(source);
+            }
+        }
+    };
+  
+    private __manageDataSourceItem(item:INSNavigationMenu):void
+    {
+        if(item)
+        {
+            if(item.childMenus && item.childMenus.length > 0)
+            {
+                for(const childMenu of item.childMenus)
+                {
+                    this.__manageDataSourceItem(childMenu);
+                }
+            }
+            else
+            {
+                item.click = this.__menuClickHandler.bind(this);
+            }
+        }
+    };
+  
+    private __menuClickHandler(event:any,item:INSNavigationMenu,li:any):void
+    {
+        if(item)
+        {
+            if(item.href)
+            {
+                
+                //this.router.navigate([item.href]);
+            }
+            if(item.onClick)
+            {
+                item.onClick(event,item,li);
+            }
+        }
+    };
+    
+    private __getStyleForContainer() 
+    {
+        const style: any = { height: "100%" };
+        const containerStyle = this.props.containerStyle;
+        if (containerStyle) {
+            Object.keys(containerStyle).forEach(key => {
+                style[key] = containerStyle[key];
+            });
+        }
+        return style;
+    }
+    
+    private __addEvents()
+    {
+        const self = this;
+        for (const eventName of this.__arrEvents)
+        {
+            this.__nsUtil.addEvent(this.__container,eventName,(function(eventNameParam: string){
+              return function(event: any) {
+                self.__eventListener.bind(self)(event,eventNameParam);
+              }
+            })(eventName));
+        }
+    }
+    
+    private __eventListener(event: any,eventName: string)
+    {
+        const eventListenerName: string = 'on' + eventName[0].toUpperCase() + eventName.substring(1);
+        if(this.props[eventListenerName])
+        {
+            this.props[eventListenerName](event);
+        }
+    }
+
+}
+
+import GridRendererComponent from "../gridRendererComponent/gridRendererComponent";
+import GridEditorComponent from "../gridEditorComponent/gridEditorComponent";
+
+                   <Route exact={true} path='/gridRenderer' component={GridRendererComponent} />
+                     <Route exact={true} path='/gridEditor' component={GridEditorComponent} />
 
