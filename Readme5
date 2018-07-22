@@ -1,64 +1,263 @@
-{
-  "extends": ["tslint:recommended", "tslint-react", "tslint-config-prettier"],
-  "linterOptions": {
-    "exclude": [
-      "config/**/*.js",
-      "node_modules/**/*.ts",
-      "public/lib/**/*.js"
-    ]
-  },
-  "rules": {
-  		"comment-format": [
-	      false,
-	      "check-space"
-	    ],
-	    "curly": true,
-	    "deprecation": {
-	      "severity": "warn"
-	    },
-	    "eofline": true,
-	    "forin": true,
-	    "indent": [
-	      false,
-	      "spaces"
-	    ],
-        "object-literal-sort-keys": false,
-		"object-literal-shorthand": false,
-		"variable-name": false,
-		"member-access": false,
-	    "member-ordering": [
-	      true,
-	      {
-	        "order": [
-	          "static-field",
-	          "instance-field",
-	          "static-method",
-	          "instance-method"
-	        ]
-	      }
-    	],
-    	 "no-console": [
-	      true,
-	      "debug",
-	      "info",
-	      "time",
-	      "timeEnd",
-	      "trace"
-	    ],
-	    "no-empty": false,
-    	"no-empty-interface": true
-    },
-    "no-shadowed-variable": [
-	  true,
-	  {
-	    "class": true,
-	    "enum": true,
-	    "function": true,
-	    "interface": false,
-	    "namespace": true,
-	    "typeAlias": false,
-	    "typeParameter": false
-	  }
-	]
-	
+
+    private __customEditor(customEditorComponent: any,objColumn: INSGridColumn): any
+    {
+        const self: any = this;
+        const __editor: any = function(this: any)
+        {
+            let objComponent: any = null;
+            let componentRef: any = null;
+            
+            this.init = function(setting: INSGridEditorCustomComponentSetting): void
+            {
+                 const callback = function(dynamicCompRef: DynamicComponentService,localComponentRef: any,container: HTMLElement)
+                 {
+                   objComponent = localComponentRef;
+                   componentRef = dynamicCompRef;
+                   objComponent.init(setting);
+                   const objItem: INSGridEditorCustomComponentInstance = {instance: objComponent,componentRef: componentRef,setting: setting,colItem: objColumn,index: index,colIndex: setting.cellIndex,columnName: objColumn.dataField};
+                   self.__objCustomComponent[objColumn.dataField][index].editor = objItem;
+                   self.__emitRendererComponentCreated(objItem);
+                 };
+                 const index: number = setting.rowIndex;
+                 const objRef: any = self.__getComponent(customEditorComponent,objColumn.dataField,index,callback.bind(self),setting);
+            };
+            this.getElement = function(): HTMLElement
+            {
+                return componentRef.getElement();
+            };
+            this.elementAdded = function(): void
+            {
+                if(objComponent.elementAdded)
+                {
+                    objComponent.elementAdded();
+                }
+            };
+            this.handleKeyDown = function(event: any,keyCode: any): void
+            {
+                if(objComponent.handleKeyDown)
+                {
+                    objComponent.handleKeyDown(event,keyCode);
+                }
+            };
+            this.getValue = function(): any
+            {
+                return objComponent.getValue();
+            };
+            this.destroy = function(): void
+            {
+                if(objComponent.destroy)
+                {
+                    objComponent.destroy();
+                }
+            };
+            this.setFocus = function(): void
+            {
+                objComponent.setFocus();
+            };
+            this.hasFocus = function(): any
+            {
+                if(objComponent.hasFocus)
+                {
+                    return objComponent.hasFocus();
+                }
+                return null;
+            };
+            this.hasValueChanged = function(currentValue: any): any
+            {
+                if(objComponent.hasValueChanged)
+                {
+                    return objComponent.hasValueChanged(currentValue);
+                }
+                return null;
+            };
+            this.validate = function(): any
+            {
+                if(objComponent.validate)
+                {
+                    return objComponent.validate();
+                }
+                return null;
+            };
+            this.isPopUp = function(): boolean
+            {
+                return objComponent.isPopUp();
+            };
+            this.save = function(): void
+            {
+                if(objComponent.save)
+                {
+                    objComponent.save();
+                }
+            };
+            this.cancel = function(): void
+            {
+                if(objComponent.cancel)
+                {
+                    objComponent.cancel();
+                }
+            };
+            this.setPopUpWrapper = function(popUpWrapper: HTMLElement): void
+            {
+                if(objComponent.setPopUpWrapper)
+                {
+                    objComponent.setPopUpWrapper(popUpWrapper);
+                }
+            };
+        };
+        
+        return __editor;
+    };
+    
+    private __renderer(rendererComponent: any,item: any,dataField: string,index: number,colIndex: number,row: any): any
+    {
+        if(item)
+        {
+            const self = this;
+            const callback = function(dynamicCompRef: DynamicComponentService,componentRef: any,container: HTMLElement)
+            {
+              componentRef.setData(item,dataField,index,colIndex,row);
+              const objItem: INSGridRendererComponentInstance = {instance: componentRef,componentRef: objRef.ref,item: item,index: index,colIndex: colIndex,columnName: dataField};
+              self.__objCustomComponent[dataField][index].renderer = objItem;
+              self.__emitRendererComponentCreated(objItem);
+            };
+            const objRef: any = this.__getComponent(rendererComponent,dataField,index,callback.bind(this));
+            return objRef.container;
+        }
+        return null;
+    };
+    
+    private __groupRenderer(rendererComponent: any,item: any,dataField: string,index: number,colIndex: number,row: any,arrChildren: any[],childrenCount: number,arrFlatChildren: any[],groupLevel:number): any
+    {
+        if(item)
+        {
+            const self = this;
+            const callback = function(dynamicCompRef: DynamicComponentService,componentRef: any,container: HTMLElement)
+            {
+              const objComponent: any = objRef.instance;
+              objComponent.setData(item,dataField,index,colIndex,row,arrChildren,childrenCount,arrFlatChildren,groupLevel);
+              const objItem:INSGridGroupRendererComponentInstance = {instance: objComponent,componentRef: objRef.ref,item: item,index: index,colIndex: colIndex,columnName: dataField};
+              self.__objCustomComponent[dataField][index].groupRenderer = objItem;
+              self.__emitRendererComponentCreated(objItem);
+            };
+            const objRef: any = this.__getComponent(rendererComponent,dataField,index,callback.bind(this));
+            return objRef.container;
+        }
+        return null;
+    };
+    
+    private __headerRenderer(rendererComponent: any,colItem: INSGridColumn,colIndex: number): any
+    {
+        if(colItem)
+        {
+            const self = this;
+            const callback = function(dynamicCompRef: DynamicComponentService,componentRef: any,container: HTMLElement)
+            {
+              const objComponent: any = objRef.instance;
+              objComponent.setData(colItem,colIndex);
+              const objItem: INSGridHeaderRendererComponentInstance = {instance: objComponent,componentRef: objRef.ref,index: index,colItem: colItem,colIndex: colIndex};
+              self.__objCustomComponent[dataField][index].headerRenderer = objItem;
+              self.__emitRendererComponentCreated(objItem);
+            };
+            const dataField : string = colItem.dataField;
+            const index : number = 0;
+            const objRef: any = this.__getComponent(rendererComponent,dataField,index,callback.bind(this));
+            return objRef.container;
+        }
+        return null;
+    };
+    
+    private __toolTipRenderer(rendererComponent: any,item: any,dataField: string,index: number,colIndex: number,row: any): any
+    {
+        if(item)
+        {
+            const self = this;
+            const callback = function(dynamicCompRef: DynamicComponentService,componentRef: any,container: HTMLElement)
+            {
+              const objComponent: any = objRef.instance;
+              objComponent.setData(item,dataField,index,colIndex,row);
+              const objItem: INSGridToolTipRendererComponentInstance = {instance: objComponent,componentRef: objRef.ref,item: item,index: index,colIndex: colIndex,columnName: dataField};
+              self.__objCustomComponent[dataField][index].toolTipRenderer = objItem;
+              self.__emitRendererComponentCreated(objItem);
+            };
+            const objRef: any = this.__getComponent(rendererComponent,dataField,index,callback.bind(this));
+            return objRef.container;
+        }
+        return null;
+    };
+    
+    private __extraRowHeaderRenderer(rendererComponent: any,dataField: string,colItem: INSGridColumn,filteredDataSource: any[],index: number,colIndex: number,extraHeaderCell: any,extraHeaderRow: any): any
+    {
+        if(colItem)
+        {
+            const self = this;
+            const callback = function(dynamicCompRef: DynamicComponentService,componentRef: any,container: HTMLElement)
+            {
+              const objComponent: any = objRef.instance;
+              objComponent.setData(dataField,colItem,filteredDataSource,index,colIndex,extraHeaderCell,extraHeaderRow);
+              const objItem: INSGridExtraRowHeaderRendererComponentInstance = {instance: objComponent,componentRef: objRef.ref,colItem: colItem,index: index,colIndex: colIndex,columnName: dataField};
+              self.__objCustomComponent[dataField][index].extraRowHeaderRenderer = objItem;
+              self.__emitRendererComponentCreated(objItem);
+            };
+            const objRef: any = this.__getComponent(rendererComponent,dataField,index,callback.bind(this));
+            return objRef.container;
+        }
+        return null;
+    };
+    
+    private __getComponent(rendererComponent: any,dataField: string,index: number, callback?: null,prop?: null): any
+    {
+        if(!this.__objCustomComponent[dataField])
+        {
+            this.__objCustomComponent[dataField] = [];
+        }
+        if(!this.__objCustomComponent[dataField][index])
+        {
+            this.__objCustomComponent[dataField][index] = {};
+        }
+        const dynamicComponentService: DynamicComponentService = new DynamicComponentService(rendererComponent);
+        dynamicComponentService.createComponent(callback,prop);
+        const objComponent: any = dynamicComponentService.getComponentInstance();
+        const container: any = dynamicComponentService.getElement();
+        return {ref: dynamicComponentService,instance: objComponent,container: container};
+    };
+    
+    private __getStyleForContainer() 
+    {
+        const style: any = { height: "100%" };
+        const containerStyle = this.props.containerStyle;
+        if (containerStyle) {
+            Object.keys(containerStyle).forEach(key => {
+                style[key] = containerStyle[key];
+            });
+        }
+        return style;
+    }
+    
+    private __addEvents()
+    {
+        const self = this;
+        for (const eventName of this.__arrEvents)
+        {
+            this.__nsUtil.addEvent(this.__container,eventName,(function(eventNameParam: string){
+              return function(event: any) {
+                self.__eventListener.bind(self)(event,eventNameParam);
+              }
+            })(eventName));
+        }
+    }
+    
+    private __eventListener(event: any,eventName: string)
+    {
+        const eventListenerName: string = 'on' + eventName[0].toUpperCase() + eventName.substring(1);
+        if(this.props[eventListenerName])
+        {
+            this.props[eventListenerName](event);
+        }
+    }
+  
+    private __emitRendererComponentCreated(objItem:any)
+    {
+        this.__eventListener(objItem,"rendererComponentCreated");
+    };
+    
 }
