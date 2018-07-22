@@ -1,272 +1,102 @@
-let spinner = null;
-
-const ReactFetch = function (url, options = {}) 
-{
-	spinner = document.getElementById('spinner');
-	showHideSpinner(true);
-	return fetch(url, options)
-    		.then(handleResponse, handleNetworkError);
-}
-
-const handleResponse = function (response) 
-{
-	showHideSpinner(false);
-	if (response.ok) 
-	{
-	    return response.json();
-	} 
-	else 
-	{
-	    return response.json().then(function (error) {
-	      throw error;
-	    });
-	}
-}
-
-const handleNetworkError = function (error) 
-{
-	showHideSpinner(false);
-	throw {
-		message: error.message
-	};
-}
-
-const showHideSpinner = function(isShow)
-{
-	if(spinner)
-	{
-		if(isShow)
-		{
-			spinner.removeAttribute('hidden');
-		}
-		else if(!spinner.hasAttribute('hidden') || spinner.getAttribute('hidden') !== "true")
-		{
-			spinner.setAttribute('hidden', 'true');
-		}
-		
-	}
-}
-
-//module.exports = ReactFetch;
-
-export default ReactFetch;
-
-
 import * as React from 'react';
-import * as DOM from "react-dom-factories";
-import * as PropTypes from "prop-types";
-import {INSGridSetting} from "./interfaces";
 
-declare var NSGrid: any;
-declare var NSUtil: any;
+import {INSGridEditorCustomComponent, INSGridEditorCustomComponentSetting} from "../../lib/nsGrid/nsGridInterfaces";
 
-export interface INSGridReactSettings extends INSGridSetting {
-    setting?: INSGridSetting;
-}
-
-export default class NSGridReact extends React.Component<INSGridReactSettings, any> {
+export default class EmailEditor extends React.Component<INSGridEditorCustomComponentSetting, any> implements INSGridEditorCustomComponent
+{
+    private __setting: INSGridEditorCustomComponentSetting;
+    private input: any; 
     
-    private __nsGrid: any;
-    private __container: any;
-    private __setting : any;
-    private __dataSource : any;
-    private __nsUtil : any;
-    private __arrEvents: string[] = [ NSGrid.GRID_RENDERED,
-                            NSGrid.ROW_SELECTED,
-                            NSGrid.ROW_UNSELECTED,
-                            NSGrid.ROW_CLICKED,
-                            NSGrid.ROW_DOUBLE_CLICKED,
-                            NSGrid.ROW_NAVIGATED,
-                            NSGrid.CELL_SELECTED,
-                            NSGrid.CELL_UNSELECTED,
-                            NSGrid.CELL_CLICKED,
-                            NSGrid.CELL_DOUBLE_CLICKED,
-                            NSGrid.SORT_CHANGING,
-                            NSGrid.SORT_CHANGED,
-                            NSGrid.ADVANCED_FILTER_CLOSING,
-                            NSGrid.FILTER_CHANGING,
-                            NSGrid.FILTER_CHANGED,
-                            NSGrid.FILTER_RESETTED,
-                            NSGrid.COLUMN_RESIZING,
-                            NSGrid.COLUMN_RESIZED,
-                            NSGrid.COLUMN_MOVING,
-                            NSGrid.COLUMN_MOVED,
-                            NSGrid.MULTI_SELECTION_EDITORS_TEXT,
-                            NSGrid.MULTI_SELECTION_EDITORS_TEXTAREA,
-                            NSGrid.EDITOR_CELL_VALUE_CHANGED];
-
-    private __arrMethods: string[] = ["setHeightOffset","deviceViewChanged","setState","getState","setColumn","setContextMenuSetting","getOrignalItem",
-                                      "addRows","removeRows","groupBy","expandAll","collapseAll","expandCollapseByRow","getRowInfo","getCellInfo","getItemInfo",
-                                      "getItemInfoByKeyField"];
-
-    private __hasInitialized: boolean = false;
-    private __hasGridDataSource: boolean = false;
-    private __hasDestroyed: boolean = false;
-    private __objCustomComponent: any;
-
-    constructor(public props: INSGridReactSettings, public state: any) 
+    constructor(props: INSGridEditorCustomComponentSetting,state: any) 
     {
-        super(props, state);
+        super(props,state);
+        this.__setting = props;
+        this.input = React.createRef();
+        const email = this.props.defaultValue;
+        this.state = {
+          email
+        };
+        this.__handleChange = this.__handleChange.bind(this);
     }
-    
-    public componentDidMount() 
+
+    init(setting: INSGridEditorCustomComponentSetting) : void
+    { 
+    };
+
+    elementAdded(): void
     {
-        if(!this.__nsGrid)
+    };
+  
+    handleKeyDown(event: any,keyCode: any): void
+    {
+        if (keyCode === 37 && keyCode === 39) 
         {
-            this.__nsUtil = new NSUtil();
-            if(!this.props)
-            {
-                this.props = {};
-            }
-            const setting:INSGridSetting =  this.__nsUtil.cloneObject(this.props.setting,true);
-            this.__dataSource = this.props.dataSource || setting.dataSource;
-            //setting.columns = this.__setColumn(this.__setting.columns);
-            //setting.multiLevelGroupColumn = this.__setColumnObject(this.setting.multiLevelGroupColumn);
-            //setting.eventDispatcher = this.__eventDispatcher.bind(this);
-            if(this.__dataSource)
-            {
-                setting.dataSource = this.__dataSource;
-                if(this.__dataSource.length > 0)
-                {
-                    this.__hasGridDataSource = true;
-                }
-            }
-            this.__objCustomComponent = {};
-            this.__setting = setting;
-            this.__nsGrid = new NSGrid(this.__container,this.__setting);
-            this.__addEvents();
-            this.__addMethods();
+            event.stopImmediatePropagation();
         }
-        this.__hasInitialized = true;
-    }
-    
-    public shouldComponentUpdate(nextProps: any, nextState: any) 
+    };
+  
+    getValue(): any
+    {
+        return this.state.email;
+    };
+  
+    setFocus(): void
+    {
+        this.input.current.focus();
+    };
+
+    hasFocus(): boolean
+    {
+       return (this.input.current === document.activeElement);
+    };
+  
+    validate(): boolean
+    {
+        if(this.__validateEmail(this.getValue()))
+        {
+            return true;
+        }
+        alert(this.getValue() + " is not a valid email. Please enter a valid email");
+        this.setFocus();
+        return false;
+    };
+
+    isPopUp(): boolean
     {
         return false;
-    }
-    
-    public componentWillReceiveProps(nextProps: any) 
-    {
-        const objChanges: any = {};
-        const arrPropKeys: string[] = Object.keys(nextProps);
-        const arrSettingKeys: string[] = Object.keys(this.__setting);
-        for (const propKey of arrPropKeys)
-        {
-            if(propKey === "setting")
-            {
-                const newSetting: INSGridSetting =  nextProps.setting;
-                for (const settingKey of arrSettingKeys)
-                {
-                    if(!this.__nsUtil.isObjectEqual(this.__setting[settingKey],newSetting[settingKey]))
-                    {
-                        objChanges[settingKey] = {oldValue: this.__setting[settingKey], newValue: newSetting[settingKey]};
-                    }  
-                }
-            }
-            else if(!this.__nsUtil.isObjectEqual(this.props[propKey],nextProps[propKey]))
-            {
-                objChanges[propKey] = {oldValue: this.props[propKey], newValue: nextProps[propKey]};
-            }
-        }
-        console.log(objChanges);
-        const arrChangeKeys: string[] = Object.keys(objChanges);
-        for (const changeKey of arrChangeKeys)
-        {
-            if(changeKey === "dataSource")
-            {
-                this.__dataSource = objChanges[changeKey].newValue;
-                if(this.__nsGrid)
-                {
-                    this.__objCustomComponent = {};
-                    if(this.__dataSource && this.__dataSource.length > 0)
-                    {
-                        this.__hasGridDataSource = true;
-                    }
-                    this.__nsGrid.dataSource(this.__dataSource);
-                }
-            }
-            else if(this.__hasGridDataSource)
-            {
-                
-            }
-        }
-        
-    }
-    
-    public componentWillUnmount() 
-    {
-        if(this.__hasInitialized)
-        {
-            this.__hasDestroyed = true;
-        }
-    }
+    };
 
-    public render() 
-    {
-        return DOM.div({
-            style: this.__getStyleForContainer(),
-            ref: e => {
-                this.__container = e;
-            }
-        });
-        return this.__container;
+    render() {
+        const style = {width: "100%"}
+        return (
+            <input ref= {this.input} type="text" 
+                   style={style} value={this.state.email} 
+                   onChange={this.__handleChange}/>
+        );
     }
-    
-    public expandAll()
+  
+    private __handleChange(event: any) 
     {
-        
+        this.setState({email: event.target.value});
     }
-    
-    private __getStyleForContainer() 
+  
+    private __validateEmail(email: string): boolean 
     {
-        const style: any = { height: "100%" };
-        const containerStyle = this.props.containerStyle;
-        if (containerStyle) {
-            Object.keys(containerStyle).forEach(key => {
-                style[key] = containerStyle[key];
-            });
-        }
-        return style;
+        const regex = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        return regex.test(email);
     }
-    
-    private __addMethods()
-    {
-        this.__addProperties(this.__arrMethods, PropTypes.func);
-    }
-    
-    private __addEvents()
-    {
-        for (const eventName of this.__arrEvents)
-        {
-            const eventListenerName = 'on' + eventName[0].toUpperCase() + eventName.substring(1);
-            if(this.props[eventListenerName])
-            {
-                this.__nsUtil.addEvent(this.__container,eventName,this.props[eventListenerName]());
-            }
-        }
-    }
-    
-    private __addProperties(arrProperties: string[], propType: any) 
-    {
-        if(arrProperties && arrProperties.length > 0)
-        {
-            for (const propertyName of arrProperties)
-            {
-                NSGridReact[propertyName] = propType;
-            }
-        }
-    }
-    
-    
-}
+            
+   
+};
 
 import * as React from 'react';
-import {INSGridColumn, INSGridCustomClassSetting, INSGridSetting} from "../../lib/nsGrid/interfaces";
+import {INSGridColumn, INSGridCustomClassSetting, INSGridSetting} from "../../lib/nsGrid/nsGridInterfaces";
 import NSGridReact from "../../lib/nsGrid/nsGridReact";
 import ReactFetch from "../../reactUtil/reactFetch/reactFetch";
+import EmailEditor from "../editors/emailEditor";
 
 
-export default class FlatGridExample extends React.Component<any, any> 
+export default class GridEditorComponent extends React.Component<any, any> 
 {
       private __gridRef: any;
       private grid: any; 
@@ -284,29 +114,103 @@ export default class FlatGridExample extends React.Component<any, any>
       
       public render() 
       {
-          return(
-             <NSGridReact setting={this.state.gridSetting} 
-                          dataSource={this.state.dataSource}
-                          onGridRendered= {this.onGridRendered}
-                          ref= {this.grid}/>
-          )
+          if(this.state)
+          {
+              return(
+                 <NSGridReact setting={this.state.gridSetting} 
+                              dataSource={this.state.dataSource}
+                              onGridRendered= {this.onGridRendered}
+                              ref= {this.grid}/>
+              )
+          }
+          else
+          {
+              return "";
+          }
       }
   
       public componentDidMount() 
       {
-          const header = new Headers({
-              'Access-Control-Allow-Origin':'*',
-              'Content-Type': 'multipart/form-data'
-          });
-          const sentData={
-                  method:'GET',
-                  mode: 'cors',
-                  header: header
-          };
           ReactFetch("https://randomuser.me/api/?results=100")
           .then(data => {this.setState({dataSource: data.results})})
           .catch(error => console.log(error));
-          console.log(this.grid.current.expandAll());
+      }
+      
+      public onGridRendered()
+      {
+          console.log("gridRendered");
+      }
+      
+      private __getGridSetting(): INSGridSetting
+      {
+          const gridColumn: INSGridColumn[] = this.__getGridColumns();
+          const customClass: INSGridCustomClassSetting = {headerCell:"columnClass",firstBodyColumn:"columnClass",nonFirstBodyColumn:"columnClass"};
+          const gridSetting: INSGridSetting = {type: "normal",columnResizable: true,columnDraggable: false,enableFilter: false,enableAdvancedFilter: false, 
+                                               columns: gridColumn,customClass: customClass,heightOffset: 70,enableEditable:true,enableCellSelection:true,
+                                               editorSetting:{stopEditingOnGridFocusOut: true}};
+      
+          return gridSetting;
+      }
+      
+      private __getGridColumns(): INSGridColumn[]
+      {
+         return  [{headerText: "Cell",dataField:"cell",width:"100px",showMenu:false,headerTruncateToFit:true,enableFilter:true},
+                  {headerText: "Gender",dataField:"gender",width:"100px",showMenu:false,headerTruncateToFit:true,enableFilter:true},
+                  {headerText: "Email",dataField:"email",width:"150px",showMenu:false,headerTruncateToFit:true,
+                    editorSetting:{type:"custom",params:null,customEditor: EmailEditor}},
+                  {headerText: "NAT",dataField:"nat",width:"50px",showMenu:false,headerTruncateToFit:true},
+                  {headerText: "Phone",dataField:"phone",width:"150px",showMenu:false,headerTruncateToFit:true,enableFilter:true},
+                  {headerText: "Name",dataField:"name.first",width:"150px",showMenu:false,headerTruncateToFit:true,enableFilter:true}]; 
+      }
+      
+}
+
+
+import * as React from 'react';
+import {INSGridColumn, INSGridCustomClassSetting, INSGridSetting} from "../../lib/nsGrid/nsGridInterfaces";
+import NSGridReact from "../../lib/nsGrid/nsGridReact";
+import ReactFetch from "../../reactUtil/reactFetch/reactFetch";
+import CountryRenderer from "../renderers/countryRenderer";
+
+
+export default class GridRendererComponent extends React.Component<any, any> 
+{
+      private __gridRef: any;
+      private grid: any; 
+
+      constructor(props: any) 
+      {
+          super(props);
+          this.state = {
+                  gridSetting: this.__getGridSetting(),
+                  dataSource: []
+          };
+          this.onGridRendered = this.onGridRendered.bind(this);
+          this.grid = React.createRef();
+      }
+      
+      public render() 
+      {
+          if(this.state)
+          {
+              return(
+                 <NSGridReact setting={this.state.gridSetting} 
+                              dataSource={this.state.dataSource}
+                              onGridRendered= {this.onGridRendered}
+                              ref= {this.grid}/>
+              )
+          }
+          else
+          {
+              return "";
+          }
+      }
+  
+      public componentDidMount() 
+      {
+          ReactFetch("https://randomuser.me/api/?results=100")
+          .then(data => {this.setState({dataSource: data.results})})
+          .catch(error => console.log(error));
       }
       
       public onGridRendered()
@@ -329,9 +233,145 @@ export default class FlatGridExample extends React.Component<any, any>
          return  [{headerText: "Cell",dataField:"cell",width:"100px",showMenu:false,headerTruncateToFit:true,enableFilter:true},
                   {headerText: "Gender",dataField:"gender",width:"100px",showMenu:false,headerTruncateToFit:true,enableFilter:true},
                   {headerText: "Email",dataField:"email",width:"150px",showMenu:false,headerTruncateToFit:true},
-                  {headerText: "NAT",dataField:"nat",width:"50px",showMenu:false,headerTruncateToFit:true},
+                  {headerText: "NAT",dataField:"nat",width:"50px",showMenu:false,headerTruncateToFit:true,itemRendererComponent: CountryRenderer},
                   {headerText: "Phone",dataField:"phone",width:"150px",showMenu:false,headerTruncateToFit:true,enableFilter:true},
                   {headerText: "Name",dataField:"name.first",width:"150px",showMenu:false,headerTruncateToFit:true,enableFilter:true}]; 
       }
       
+}
+
+
+import * as React from 'react';
+
+import {INSGridRendererComponent} from "../../lib/nsGrid/nsGridInterfaces";
+
+export default class CountryRenderer extends React.Component<any, any> implements INSGridRendererComponent
+{
+    constructor(props: any,state: any) 
+    {
+        super(props,state);
+        this.state = {
+          country: "",
+          countryUrl: "#"
+        };
+    }
+
+    public setData(item: any,dataField: string,index: number,colIndex: number,row: any): void
+    {
+        this.setState({country:item[dataField],countryUrl:"http://api.worldbank.org/v2/countries/" + item[dataField]});
+    }
+
+    render() {
+        const style = {color: "blue", textDecoration: "underline"}
+        return (
+            <a href={this.state.countryUrl} target="_blank" style={style}>{this.state.country}</a>
+        );
+    }
+};
+
+import * as React from 'react';
+import {Link} from 'react-router-dom';
+import NSNavigationReact from "../../lib/nsNavigation/nsNavigationReact";
+import {INSNavigationClickFunction, INSNavigationMenu, INSNavigationCustomClassSetting, INSNavigationSetting} from "../../lib/nsNavigation/nsNavigationInterfaces";
+
+export default class Sidebar extends React.Component<any, any> {
+    
+  private nav: any; 
+  constructor(props: any) 
+  {
+      super(props);
+      this.state = {
+              menuSetting: this.__getSetting(),
+              dataSource: this.__getMenuSource()
+      };
+      this.onNavEventHandler = this.onNavEventHandler.bind(this);
+      this.nav = React.createRef();
+  }
+  
+  /*public render() {
+    return (
+            <nav id="sidebar">
+                <div className ="sidebar-header">
+                    <h4>React NS Components</h4>
+                </div>
+                <ul className ="list-unstyled components">
+                    <li className ="active">
+                      <a href="#nsGridSubmenu" data-toggle="collapse" aria-expanded="false" className ="dropdown-toggle">NSGrid</a>
+                      <ul className ="collapse list-unstyled" id="nsGridSubmenu">
+                          <li>
+                              <Link to={'/flatGrid'}>Flat Grid</Link>
+                          </li>
+                          <li>
+                              <Link to={'/gridRenderer'}>Grid With Renderer</Link>
+                          </li>
+                          <li>
+                              <Link to={'/gridEditor'}>Grid With Editor</Link>
+                          </li>
+                          <li>
+                              <Link to={'/hierarchicalGrid'}>Hierarchical Grid</Link>
+                          </li>
+                          
+                      </ul>
+                    </li>
+                </ul>
+            </nav>
+    );
+  }*/
+  
+  public render()
+  {
+      
+      return (
+           <NSNavigationReact setting={this.state.menuSetting} 
+                              dataSource={this.state.dataSource}
+                              onNavigationOpenStart= {this.onNavEventHandler}
+                              onNavigationCloseStart= {this.onNavEventHandler}
+                              onNavigationMenuSelected= {this.onNavEventHandler}
+                              ref= {this.nav}/>   
+      );
+  }
+  
+  
+  
+  onNavEventHandler(event:any,eventType:string)
+  {
+      const divContent:any = this.nav.current.getElement();
+      switch(event.type)
+      {
+        case "navigationOpenStart":
+          divContent.style.marginLeft = "250px";  
+        break;
+        case "navigationCloseStart":
+          divContent.style.marginLeft = "50px";
+        break;
+        case "navigationMenuSelected":
+          if(event instanceof Event)
+          { 
+              //const item:any = event.detail;
+              /*const compMenuHeader = this.__compMenuHeader.nativeElement;
+              compMenuHeader.innerHTML = item.menuName;*/
+          }
+        break;
+      }
+  }
+  
+  private __getSetting(): INSNavigationSetting
+  {
+      const setting:INSNavigationSetting =  {header:"NAVIGATION",showCollapseIcon:false,iconCollapse:"<i class='fa fa-bars pull-right'></i>",
+              titleField:"menuName",childField:"childMenus",iconPosition:"right",iconMenuExpanded:"<i class='fa fa-angle-left'></i>",
+              iconMenuCollapsed:"<i class='fa fa-angle-left'></i>"};
+  
+      return setting;
+  }
+  
+  private __getMenuSource(): INSNavigationMenu[]
+  {
+      const dataSource: INSNavigationMenu[] = [{menuName: "NSGrid",childMenus:
+                                                          [{menuName: "Flat Grid",href:"flatGrid"},
+                                                           {menuName: "Grid With Renderer",href:"gridRenderer"},
+                                                           {menuName: "Grid With Editor",href:"gridEditor"},
+                                                           {menuName: "Hierarchical Grid",href:"hierarchicalGrid"}]
+                                              }];
+      return dataSource;
+  }
 }
