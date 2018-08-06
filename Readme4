@@ -1,377 +1,374 @@
-import * as React from 'react';
+package com.org.servlet;
 
-import {INSGridEditorCustomComponent, INSGridEditorCustomComponentSetting} from "../../lib/nsGrid/nsGridInterfaces";
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
-export default class EmailEditor extends React.Component<INSGridEditorCustomComponentSetting, any> implements INSGridEditorCustomComponent
-{
-    private __setting: INSGridEditorCustomComponentSetting;
-    private input: any; 
-    
-    constructor(props: INSGridEditorCustomComponentSetting,state: any) 
-    {
-        super(props,state);
-        this.__setting = props;
-        this.input = React.createRef();
-        const email = this.props.defaultValue;
-        this.state = {
-          email
-        };
-        this.__handleChange = this.__handleChange.bind(this);
+import javax.servlet.ServletException;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.sun.jersey.core.util.Base64;
+
+/**
+ * Servlet implementation class ImageProcessor
+ */
+
+public class ImageProcessor extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+       
+	static int counter = 0;
+    /**
+     * @see HttpServlet#HttpServlet()
+     */
+    public ImageProcessor() {
+        super();
+        // TODO Auto-generated constructor stub
     }
 
-    init(setting: INSGridEditorCustomComponentSetting) : void
-    { 
-    };
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		String fileName = request.getParameter("fileName");
+		response.setContentType("image/jpeg");  
+	    ServletOutputStream out;  
+	    out = response.getOutputStream();  
+	    FileInputStream fin = new FileInputStream("target/" + fileName);  
+	      
+	    BufferedInputStream bin = new BufferedInputStream(fin);  
+	    BufferedOutputStream bout = new BufferedOutputStream(out);  
+	    int ch =0; ;  
+	    while((ch=bin.read())!=-1)  
+	    {  
+	    bout.write(ch);  
+	    }  
+	      
+	    bin.close();  
+	    fin.close();  
+	    bout.close();  
+	    out.close();  
+	}
 
-    elementAdded(): void
-    {
-    };
-  
-    handleKeyDown(event: any,keyCode: any): void
-    {
-        if (keyCode === 37 && keyCode === 39) 
-        {
-            event.stopImmediatePropagation();
-        }
-    };
-  
-    getValue(): any
-    {
-        return this.state.email;
-    };
-  
-    setFocus(): void
-    {
-        this.input.current.focus();
-    };
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException 
+	{
+		System.out.println(request.getParameterNames());
+		String base64data = request.getParameter("imageData");
+		String fileName = request.getParameter("fileName");
+		File of = new File("target/" + fileName);
+		FileOutputStream osf = new FileOutputStream(of);
+		try {
+			osf.write(Base64.decode(base64data));
+			osf.flush();
+		} finally {
+			osf.close();
+		}
+		response.getWriter().write("../imageProcessor?fileName=" + fileName);
+	}
 
-    hasFocus(): boolean
-    {
-       return (this.input.current === document.activeElement);
-    };
-  
-    validate(): boolean
-    {
-        if(this.__validateEmail(this.getValue()))
-        {
-            return true;
-        }
-        alert(this.getValue() + " is not a valid email. Please enter a valid email");
-        this.setFocus();
-        return false;
-    };
-
-    isPopUp(): boolean
-    {
-        return false;
-    };
-
-    render() {
-        const style = {width: "100%"}
-        return (
-            <input ref= {this.input} type="text" 
-                   style={style} value={this.state.email} 
-                   onChange={this.__handleChange}/>
-        );
-    }
-  
-    private __handleChange(event: any) 
-    {
-        this.setState({email: event.target.value});
-    }
-  
-    private __validateEmail(email: string): boolean 
-    {
-        const regex = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-        return regex.test(email);
-    }
-            
-   
-};
-
-import * as React from 'react';
-import {INSGridColumn, INSGridCustomClassSetting, INSGridSetting} from "../../lib/nsGrid/nsGridInterfaces";
-import NSGridReact from "../../lib/nsGrid/nsGridReact";
-import ReactFetch from "../../reactUtil/reactFetch/reactFetch";
-import EmailEditor from "../editors/emailEditor";
-
-
-export default class GridEditorComponent extends React.Component<any, any> 
-{
-      private __gridRef: any;
-      private grid: any; 
-
-      constructor(props: any) 
-      {
-          super(props);
-          this.state = {
-                  gridSetting: this.__getGridSetting(),
-                  dataSource: []
-          };
-          this.onGridRendered = this.onGridRendered.bind(this);
-          this.grid = React.createRef();
-      }
-      
-      public render() 
-      {
-          if(this.state)
-          {
-              return(
-                 <NSGridReact setting={this.state.gridSetting} 
-                              dataSource={this.state.dataSource}
-                              onGridRendered= {this.onGridRendered}
-                              ref= {this.grid}/>
-              )
-          }
-          else
-          {
-              return "";
-          }
-      }
-  
-      public componentDidMount() 
-      {
-          ReactFetch("https://randomuser.me/api/?results=100")
-          .then(data => {this.setState({dataSource: data.results})})
-          .catch(error => console.log(error));
-      }
-      
-      public onGridRendered()
-      {
-          console.log("gridRendered");
-      }
-      
-      private __getGridSetting(): INSGridSetting
-      {
-          const gridColumn: INSGridColumn[] = this.__getGridColumns();
-          const customClass: INSGridCustomClassSetting = {headerCell:"columnClass",firstBodyColumn:"columnClass",nonFirstBodyColumn:"columnClass"};
-          const gridSetting: INSGridSetting = {type: "normal",columnResizable: true,columnDraggable: false,enableFilter: false,enableAdvancedFilter: false, 
-                                               columns: gridColumn,customClass: customClass,heightOffset: 70,enableEditable:true,enableCellSelection:true,
-                                               editorSetting:{stopEditingOnGridFocusOut: true}};
-      
-          return gridSetting;
-      }
-      
-      private __getGridColumns(): INSGridColumn[]
-      {
-         return  [{headerText: "Cell",dataField:"cell",width:"100px",showMenu:false,headerTruncateToFit:true,enableFilter:true},
-                  {headerText: "Gender",dataField:"gender",width:"100px",showMenu:false,headerTruncateToFit:true,enableFilter:true},
-                  {headerText: "Email",dataField:"email",width:"150px",showMenu:false,headerTruncateToFit:true,
-                    editorSetting:{type:"custom",params:null,customEditor: EmailEditor}},
-                  {headerText: "NAT",dataField:"nat",width:"50px",showMenu:false,headerTruncateToFit:true},
-                  {headerText: "Phone",dataField:"phone",width:"150px",showMenu:false,headerTruncateToFit:true,enableFilter:true},
-                  {headerText: "Name",dataField:"name.first",width:"150px",showMenu:false,headerTruncateToFit:true,enableFilter:true}]; 
-      }
-      
 }
 
-
-import * as React from 'react';
-import {INSGridColumn, INSGridCustomClassSetting, INSGridSetting} from "../../lib/nsGrid/nsGridInterfaces";
-import NSGridReact from "../../lib/nsGrid/nsGridReact";
-import ReactFetch from "../../reactUtil/reactFetch/reactFetch";
-import CountryRenderer from "../renderers/countryRenderer";
-
-
-export default class GridRendererComponent extends React.Component<any, any> 
-{
-      private __gridRef: any;
-      private grid: any; 
-
-      constructor(props: any) 
-      {
-          super(props);
-          this.state = {
-                  gridSetting: this.__getGridSetting(),
-                  dataSource: []
-          };
-          this.onGridRendered = this.onGridRendered.bind(this);
-          this.grid = React.createRef();
-      }
-      
-      public render() 
-      {
-          if(this.state)
-          {
-              return(
-                 <NSGridReact setting={this.state.gridSetting} 
-                              dataSource={this.state.dataSource}
-                              onGridRendered= {this.onGridRendered}
-                              ref= {this.grid}/>
-              )
-          }
-          else
-          {
-              return "";
-          }
-      }
+<servlet>
+  	<servlet-name>ImageProcessor</servlet-name>
+  	<display-name>ImageProcessor</display-name>
+  	<description></description>
+  	<servlet-class>com.org.servlet.ImageProcessor</servlet-class>
+  </servlet>
+  <servlet-mapping>
+  	<servlet-name>ImageProcessor</servlet-name>
+  	<url-pattern>/imageProcessor</url-pattern>
+  </servlet-mapping>
   
-      public componentDidMount() 
-      {
-          ReactFetch("https://randomuser.me/api/?results=100")
-          .then(data => {this.setState({dataSource: data.results})})
-          .catch(error => console.log(error));
-      }
-      
-      public onGridRendered()
-      {
-          console.log("gridRendered");
-      }
-      
-      private __getGridSetting(): INSGridSetting
-      {
-          const gridColumn: INSGridColumn[] = this.__getGridColumns();
-          const customClass: INSGridCustomClassSetting = {headerCell:"columnClass",firstBodyColumn:"columnClass",nonFirstBodyColumn:"columnClass"};
-          const gridSetting: INSGridSetting = {type: "normal",columnResizable: true,columnDraggable: false,enableFilter: false,enableAdvancedFilter: false, 
-                                               columns: gridColumn,customClass: customClass,heightOffset: 70};
-      
-          return gridSetting;
-      }
-      
-      private __getGridColumns(): INSGridColumn[]
-      {
-         return  [{headerText: "Cell",dataField:"cell",width:"100px",showMenu:false,headerTruncateToFit:true,enableFilter:true},
-                  {headerText: "Gender",dataField:"gender",width:"100px",showMenu:false,headerTruncateToFit:true,enableFilter:true},
-                  {headerText: "Email",dataField:"email",width:"150px",showMenu:false,headerTruncateToFit:true},
-                  {headerText: "NAT",dataField:"nat",width:"50px",showMenu:false,headerTruncateToFit:true,itemRendererComponent: CountryRenderer},
-                  {headerText: "Phone",dataField:"phone",width:"150px",showMenu:false,headerTruncateToFit:true,enableFilter:true},
-                  {headerText: "Name",dataField:"name.first",width:"150px",showMenu:false,headerTruncateToFit:true,enableFilter:true}]; 
-      }
-      
-}
+  NSUtil.prototype.setOffSet = function(element, offset) 
+ {
+	 if(element && offset)
+     {
+		var calculatePosition = false;
+		var position = this.getStyleValue(element,"position",true);
+		if (position === "static") 
+		{
+			element.style.position = "relative";
+		}
+		var currentOffset = this.getOffSet(element);
+		var curCSSTop = element.style.top;
+		var curCSSLeft =  element.style.left;
+		var curTop,curLeft;
+		calculatePosition = (position === "absolute" || position === "fixed" ) && (curCSSTop + curCSSLeft).indexOf( "auto" ) > -1;
+		if (calculatePosition) 
+		{
+			var curPosition = this.getPosition(element);
+			curTop = curPosition.top;
+			curLeft = curPosition.left;
+		} 
+		else 
+		{
+			curTop = parseFloat( curCSSTop ) || 0;
+			curLeft = parseFloat( curCSSLeft ) || 0;
+		}
+		if (offset.top != null) 
+		{
+			element.style.top = ((offset.top - currentOffset.top) + curTop) + "px";
+		}
+		if (offset.left != null) 
+		{
+			element.style.left = ((offset.left - currentOffset.left ) + curLeft) + "px";
+		}
+     }
+	 return offset;
+ };
+ 
+ this.__loadStartHandler = function(event)
+	{
+		if(this.__setting["loadStartHandler"])
+		{
+			this.__setting["loadStartHandler"]();
+		}
+	};
+	
+	this.__progressHandler = function(event)
+	{
+		if(this.__setting["progressHandler"])
+		{
+			if (event.lengthComputable) 
+			{
+				this.__setting["progressHandler"](event.loaded,event.total);
+			}
+			else
+			{
+				this.__setting["progressHandler"](event.loaded,-1);
+			}
+			
+		}
+	};
+	
+	this.__abortHandler = function(event)
+	{
+		if(this.__setting["abortHandler"])
+		{
+			this.__setting["abortHandler"]();
+		}
+	};
+	
+	this.__errorHandler = function(event)
+	{
+		var data = this.__getResponseData();
+		this.__defaultErrorHandler(data);
+	};
+	
+	this.__loadHandler = function(event)
+	{
+		var data = this.__getResponseData();
+		this.__defaultSuccessHandler(data,this.__config.dataType);
+	};
+	
+	this.__timeOutHandler = function(event)
+	{
+		if(this.__setting["timeOutHandler"])
+		{
+			this.__setting["timeOutHandler"]();
+		}
+	};
+	
+	this.__loadEndHandler = function(event)
+	{
+		this.__defaultCompleteHandler();
+	};
+	
+	this.__getResponseData = function()
+	{
+		var contentType = this.__request.getResponseHeader("content-type");
+		var data = null;
+		if(contentType && contentType.indexOf("json") > -1)
+		{
+			data = this.__request.response;
+		}
+		else 
+		{
+			var isXMLData = false;
+			var dataType = this.__requestDone.dataType;
+			if(!dataType && contentType && contentType.indexOf("xml") > -1)
+			{
+				isXMLData = true;
+			}
+			if(isXMLData || (dataType && dataType.indexOf("xml") > -1))
+			{
+				data = this.__request.responseXML;
+			}
+			else
+			{
+				data = this.__request.responseText;
+			}
+			// If the specified type is "script", execute the returned text response as if it was JavaScript
+			if (dataType == "script") 
+			{
+				eval.call(window, data);
+			}
+		}
+		return data;
+	};
 
-
-import * as React from 'react';
-
-import {INSGridRendererComponent} from "../../lib/nsGrid/nsGridInterfaces";
-
-export default class CountryRenderer extends React.Component<any, any> implements INSGridRendererComponent
-{
-    constructor(props: any,state: any) 
-    {
-        super(props,state);
-        this.state = {
-          country: "",
-          countryUrl: "#"
-        };
-    }
-
-    public setData(item: any,dataField: string,index: number,colIndex: number,row: any): void
-    {
-        this.setState({country:item[dataField],countryUrl:"http://api.worldbank.org/v2/countries/" + item[dataField]});
-    }
-
-    render() {
-        const style = {color: "blue", textDecoration: "underline"}
-        return (
-            <a href={this.state.countryUrl} target="_blank" style={style}>{this.state.country}</a>
-        );
-    }
-};
-
-import * as React from 'react';
-import {Link} from 'react-router-dom';
-import NSNavigationReact from "../../lib/nsNavigation/nsNavigationReact";
-import {INSNavigationClickFunction, INSNavigationMenu, INSNavigationCustomClassSetting, INSNavigationSetting} from "../../lib/nsNavigation/nsNavigationInterfaces";
-
-export default class Sidebar extends React.Component<any, any> {
-    
-  private nav: any; 
-  constructor(props: any) 
-  {
-      super(props);
-      this.state = {
-              menuSetting: this.__getSetting(),
-              dataSource: this.__getMenuSource()
-      };
-      this.onNavEventHandler = this.onNavEventHandler.bind(this);
-      this.nav = React.createRef();
-  }
-  
-  /*public render() {
-    return (
-            <nav id="sidebar">
-                <div className ="sidebar-header">
-                    <h4>React NS Components</h4>
-                </div>
-                <ul className ="list-unstyled components">
-                    <li className ="active">
-                      <a href="#nsGridSubmenu" data-toggle="collapse" aria-expanded="false" className ="dropdown-toggle">NSGrid</a>
-                      <ul className ="collapse list-unstyled" id="nsGridSubmenu">
-                          <li>
-                              <Link to={'/flatGrid'}>Flat Grid</Link>
-                          </li>
-                          <li>
-                              <Link to={'/gridRenderer'}>Grid With Renderer</Link>
-                          </li>
-                          <li>
-                              <Link to={'/gridEditor'}>Grid With Editor</Link>
-                          </li>
-                          <li>
-                              <Link to={'/hierarchicalGrid'}>Hierarchical Grid</Link>
-                          </li>
-                          
-                      </ul>
-                    </li>
-                </ul>
-            </nav>
-    );
-  }*/
-  
-  public render()
-  {
-      
-      return (
-           <NSNavigationReact setting={this.state.menuSetting} 
-                              dataSource={this.state.dataSource}
-                              onNavigationOpenStart= {this.onNavEventHandler}
-                              onNavigationCloseStart= {this.onNavEventHandler}
-                              onNavigationMenuSelected= {this.onNavEventHandler}
-                              ref= {this.nav}/>   
-      );
-  }
-  
-  
-  
-  onNavEventHandler(event:any,eventType:string)
-  {
-      const divContent:any = this.nav.current.getElement();
-      switch(event.type)
-      {
-        case "navigationOpenStart":
-          divContent.style.marginLeft = "250px";  
-        break;
-        case "navigationCloseStart":
-          divContent.style.marginLeft = "50px";
-        break;
-        case "navigationMenuSelected":
-          if(event instanceof Event)
-          { 
-              //const item:any = event.detail;
-              /*const compMenuHeader = this.__compMenuHeader.nativeElement;
-              compMenuHeader.innerHTML = item.menuName;*/
-          }
-        break;
-      }
-  }
-  
-  private __getSetting(): INSNavigationSetting
-  {
-      const setting:INSNavigationSetting =  {header:"NAVIGATION",showCollapseIcon:false,iconCollapse:"<i class='fa fa-bars pull-right'></i>",
-              titleField:"menuName",childField:"childMenus",iconPosition:"right",iconMenuExpanded:"<i class='fa fa-angle-left'></i>",
-              iconMenuCollapsed:"<i class='fa fa-angle-left'></i>"};
-  
-      return setting;
-  }
-  
-  private __getMenuSource(): INSNavigationMenu[]
-  {
-      const dataSource: INSNavigationMenu[] = [{menuName: "NSGrid",childMenus:
-                                                          [{menuName: "Flat Grid",href:"flatGrid"},
-                                                           {menuName: "Grid With Renderer",href:"gridRenderer"},
-                                                           {menuName: "Grid With Editor",href:"gridEditor"},
-                                                           {menuName: "Hierarchical Grid",href:"hierarchicalGrid"}]
-                                              }];
-      return dataSource;
-  }
-}
+	this.__getRequest = function() 
+	{
+		if (window.ActiveXObject)
+		{
+			return new ActiveXObject('Microsoft.XMLHTTP');
+		}
+		else if (window.XMLHttpRequest)
+		{
+			return new XMLHttpRequest();
+		}
+		return false;
+	};
+	
+	this.__getParam = function()
+	{
+		var strParam = "";
+		var param = this.__config.param;
+		for(var paramKey in param)
+		{
+			if(param[paramKey])
+			{
+				strParam += "&" + paramKey + "=" + param[paramKey];
+			}
+		}
+		if(strParam && strParam.length > 1)
+		{
+			strParam = strParam.substring(1);
+		}
+		return strParam;
+	};
+	
+	this.__defaultSuccessHandler = function(response,dataType)
+	{
+		if(dataType === "jsonp")
+		{
+			 var functionName = this.__functionNameInitials + this.__random;
+			 var instanceName = this.__instanceNameInitials + this.__random;
+			 if(window[instanceName])
+			 {
+				 window[instanceName] = null;
+			 }
+			 if(window[functionName])
+			 {
+				 window[functionName] = null;
+			 }
+		}
+		if(this.__config.successHandler)
+		{
+			this.__config.successHandler(response);
+		}
+	};
+	
+	this.__defaultErrorHandler = function(response)
+	{
+		if(this.__config.errorHandler)
+		{
+			this.__config.errorHandler(response);
+		}
+	};
+	
+	this.__defaultCompleteHandler = function()
+	{
+		if(this.__config.completeHandler)
+		{
+			this.__config.completeHandler();
+		}
+	};
+	
+	this.__initialize = function()
+	{
+		if(!this.__setting)
+		{
+			return;
+		}
+		this.__config = {
+			method: this.__setting["method"] || "POST",
+			url: this.__setting["url"] || "",
+			param: this.__setting["param"] || {},
+			dataType: this.__setting["dataType"] || "",
+			successHandler: this.__setting["successHandler"],
+			errorHandler: this.__setting["errorHandler"],
+			completeHandler: this.__setting["completeHandler"],
+			timeOutHandler: this.__setting["timeOutHandler"],
+			//if browser supports W3C Events then the below function will fire
+			loadStartHandler: this.__setting["loadStartHandler"],
+			progressHandler: this.__setting["progressHandler"],
+			abortHandler: this.__setting["abortHandler"],
+			//end of browser supports W3C Events then the below function will fire
+			timeout: this.__setting.timeout || -1,
+			header: this.__setting["header"]
+		};
+		if(this.__config.dataType.toUpperCase() === "JSONP")
+		{
+			this.__handleJSONP();
+		}
+		else
+		{
+			if(this.__config.timeout > 0)
+			{
+				var ref = this;
+				window.setTimeout(function() 
+				{
+					ref.requestDone = true;
+				}, this.config.timeout);
+			}
+			this.__request = this.__getRequest();
+			if(this.__request) 
+			{
+				var req = this.__request;
+				var strParam = this.__getParam();
+				if (this.__config.method.toUpperCase() === "POST") 
+				{
+					req.open("POST",this.__config.url, true);
+					if(this.__config.header)
+					{
+						for(var key in this.__config.header)
+						{
+							req.setRequestHeader(key,this.__config.header[key]);
+						}
+					}
+					//req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+				} 
+				else 
+				{
+					var url = this.__config.url;
+					if(strParam && strParam != "")
+					{
+						url += "?" + strParam;
+						//so that send method sends as null for GET
+						strParam = null;
+					}
+					req.open("GET",url, true);
+				}
+				//Browser supports W3C Events
+				if("onloadstart" in req)
+				{
+					req.onloadstart = this.__bindFunction(this.__loadStartHandler, this);
+					req.onprogress = this.__bindFunction(this.__progressHandler, this);
+					req.onabort = this.__bindFunction(this.__abortHandler, this);
+					req.onerror = this.__bindFunction(this.__errorHandler, this);
+					req.onload = this.__bindFunction(this.__loadHandler, this);
+					req.ontimeout = this.__bindFunction(this.__timeOutHandler, this);
+					req.onloadend = this.__bindFunction(this.__loadEndHandler, this);
+				}
+				// Browser does not support W3C Events
+				else
+				{
+					req.onreadystatechange = this.__bindFunction(this.__stateChange, this);
+				}
+				if(this.__config.dataType)
+				{
+					//req.responseType = this.__config.dataType;
+				}
+				req.send(strParam);
+			}
+		}
+	};
