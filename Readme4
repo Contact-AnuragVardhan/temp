@@ -1,236 +1,256 @@
-function serverSideDemo()
+this.__processIconsInColumn(objColumn);
+
+NSGrid.prototype.__processIconsInColumn = function(objColumn)
+	{
+		if(objColumn)
+		{
+			var itemIcons = objColumn["icons"];
+			var icons = null;
+			if(itemIcons)
+			{
+				icons = {};
+				icons.menu = itemIcons["menu"] || this.__icons["menu"];
+				icons.filter = itemIcons["filter"] || this.__icons["filter"];
+				icons.sortAscending = itemIcons["sortAscending"] || this.__icons["sortAscending"];
+				icons.sortDescending = itemIcons["sortDescending"] || this.__icons["sortDescending"];
+				icons.columnMove = itemIcons["columnMove"] || this.__icons["columnMove"];
+			}
+			else if(this.__icons)
+			{
+				icons = this.util.cloneObject(this.__icons,true);
+				delete icons.exportButton;
+				delete icons.rowExpanded;
+				delete icons.rowCollapsed;
+			}
+			if(icons)
+			{
+				objColumn.icons = icons;
+			}
+		}
+	};
+	
+	if(this.__getColumnCustomIcon(colItem,"columnMove"))
 				{
-					var lstServerSideDemo = document.getElementById("lstServerSideDemo");
-					var setting = {labelField:"firstName",enableHierarchical:true,enableVirtualScroll:false,enableDragDrop:false,
-							isDraggable:true,isDroppable:false,
-							enableMultipleSelection:true,enableKeyboardNavigation:true,customScrollerRequired:false,
-			 		   		disableHoverField:"stopOver",enableDragAfterHold:true,holdTime:300,enableCloneMode:true,enableContextMenu:false,
-			 		   		contextMenuProvider:contextMenuProvider,enableTruncateToFit:true,enableToolTipForTruncateText:true,
-			 		   		toolTipRenderer:toolTipRenderer,
-			 		   		enableOnDemandHierarchy:true,onDemandChildDetectionField:"hasChildren",onDemandChildFetchCallback:getNthLevelData};
-					//, template:"templateDemo",setData:"setData",itemRenderer:itemRenderer
-					//setting["dataSource"] = getFirstLevelData();
-					nsServerHierarchical = new NSList(lstServerSideDemo,setting);
+					divMove.innerHTML = this.__getColumnCustomIcon(colItem,"columnMove");
+				}
+				
+				if(colItem.hasOwnProperty("sortable") && colItem["sortable"])
+			{
+				var divSorting = this.util.createDiv(colID + "SortContainer","nsGridSortContainer");
+				divCell.appendChild(divSorting);
+				if(!this.__isSortingIconCustom(colItem))
+				{
+					var divSortAsc = this.util.createDiv(colID + "SortAsc","nsSortAsc"); 
+					divSorting.appendChild(divSortAsc);
+					var divSortSpacer = this.util.createDiv(colID + "SortSpacer","nsSortSpacer"); 
+					divSorting.appendChild(divSortSpacer);
+					var divSortDesc = this.util.createDiv(colID + "SortDesc","nsSortDesc"); 
+					divSorting.appendChild(divSortDesc);
+				}
+			}
+			
+			if(this.__getColumnCustomIcon(colItem,"menu"))
+					{
+						divMenuContainer.innerHTML = this.__getColumnCustomIcon(colItem,"menu");
+					}
 					
-					var util= new NSUtil();
-					var setting =  {
-						method: "GET",
-						url: "/JSLib/hierarchicalFirstLevelData",
-						dataType: "json",
-						param: {
-							datalength: "10"
-						},
-						successHandler: function( data ) {
-							console.log(data);
-							getParentData(data);
-						}
-					};
-					var ajax = new util.ajax(setting);
-				}
-				
-				var lastItem = null;
-				function getParentData(result)
-				{
-					nsServerHierarchical.dataSource(result);
-					console.log(result);
-				}
-				
-				function getNthLevelData(item,rowIndex,rowLevel,event)
-				{
-					var util= new NSUtil();
-					var setting =  {
-						method: "GET",
-						url: "/JSLib/hierarchicalNonFirstLevelData",
-						dataType: "json",
-						param: {
-							datalength: "10",
-							parentid:item.id
-						},
-						successHandler: function( data ) {
-							console.log(data);
-							if(data && data.length > 0)
-							{
-								nsServerHierarchical.addItemsAsChildren(item,data);
-							}
-							else
-							{
-								item.hasChildren = false;
-								nsServerHierarchical.updateListItemByIndex(rowIndex);
-							}
-						}
-					};
-					var ajax = new util.ajax(setting);
-				}
-				
-				
-NSGrid.prototype.addItemsAsChildren = function(item,arrChildren)
+					NSGrid.prototype.__setArrowDirection = function(compArrow,isCollapsed)
 	{
-		this.__objGrid.addItemsAsChildren(item,arrChildren);
-	};
-	
-	if(objColumn.hasOwnProperty("groupRenderer"))
-			{
-				objColumn["groupRenderer"] = this.util.getFunction(objColumn["groupRenderer"]);
-			}
-			//itemRendrer property gets precedence over template
-			if(objColumn.hasOwnProperty("itemRenderer"))
-			{
-				objColumn["itemRenderer"] = this.util.getFunction(objColumn["itemRenderer"]);
-			}
-			else if(objColumn.hasOwnProperty("template") && objColumn["template"])
-			{
-				//setData should be before template for checking
-				if(objColumn.hasOwnProperty("setData"))
-				{
-					objColumn["setData"] = this.util.getFunction(objColumn["setData"]);
-				}
-				objColumn.templateRenderer = this.util.getTemplate(objColumn["template"]);
-			}
-			else if(objColumn.hasOwnProperty("labelFunction"))
-			{
-				objColumn["labelFunction"] = this.util.getFunction(objColumn["labelFunction"]);
-			}
-			if(objColumn.hasOwnProperty("headerRenderer"))
-			{
-				objColumn["headerRenderer"] = this.util.getFunction(objColumn["headerRenderer"]);
-			}
-			else if(objColumn.hasOwnProperty("headerTemplate") && objColumn["headerTemplate"])
-			{
-				objColumn.headerTemplate = this.util.getTemplate(objColumn["headerTemplate"]);
-			}
-			if(!objColumn.hasOwnProperty("toolTipField") && objColumn.hasOwnProperty("toolTipRenderer"))
-			{
-				objColumn["toolTipRenderer"] = this.util.getFunction(objColumn["toolTipRenderer"]);
-			}
-			if(objColumn.hasOwnProperty("extraRowHeaderRenderer"))
-			{
-				objColumn["extraRowHeaderRenderer"] = this.util.getFunction(objColumn["extraRowHeaderRenderer"]);
-			}
-			
-			NSGrid.prototype.__createBodyRow = function(item)
-	{
-		this.__objGrid.__createRow(item);
-	};
-	
-	NSGrid.prototype.__createBodyRowAt = function(item,index)
-	{
-		if(item && index > -1)
-	    {
-			this.__objGrid.__createRow(item,index);
-	    }
-	};
-	
-	rowIndex = parseInt(rowIndex);
-			if(rowIndex > -1)
-			{
-				var item = this.__getItemByIndex(rowIndex);
-				if(item[this.__childField]  && item[this.__childField].length > 0)
-		        {
-					this.__showHideRow(rowIndex,target,!isCollapse);
-		        }
-				else 
-				{
-					this.__objGrid.__handleOnDemandClick(item,event);
-				}
-			}
-			
-			
-			var row = rowItem[this.__fieldRowHtml];
-				if(!row)
-				{
-					this.__createBodyRowAt(rowItem,rowItem[this.__fieldIndex]);
-					row = rowItem[this.__fieldRowHtml];
-					this.__updateSourceIndex();
-				}
-				
-				NSGrid.prototype.__updateSourceIndex = function(source)
-	{
-		if(!source)
+		if(compArrow)
 		{
-			source = this.__getAllItems();
+			var parent = this.util.findParent(compArrow,"TD");
+			var colIndex = parseInt(parent.getAttribute("currentColumnIndex"));
+			var colItem = this.__getColumnObject(colIndex);
+			this.__objGrid.__setArrowDirection(compArrow,isCollapsed,colItem);
 		}
-		var item = null;
-		var row = null;
-		var length = source.length;
-		for(var count = 0;count < length;count++)
+	};
+	
+	NSGrid.prototype.__getCustomIcon = function(iconField)
+	{
+		if(this.__icons && this.__icons[iconField])
 		{
-			item = source[count];
-			var index = (this.__enableHierarchical || this.__enableGrouping) ? (count + 1) : count;
-			item[this.__fieldIndex] = index;
-			row = item[this.__fieldRowHtml];
-			if(row && this.util.isElementOfType(row,"tr"))
+			return this.__icons[iconField];
+		}
+		return null;
+	};
+	
+	NSGrid.prototype.__getColumnCustomIcon = function(colItem,iconField)
+	{
+		if(colItem && colItem.icons && colItem.icons[iconField])
+		{
+			return colItem.icons[iconField];
+		}
+		return null;
+	};
+	
+	NSGrid.prototype.__isSortingIconCustom = function(colItem)
+	{
+		if(this.__getColumnCustomIcon(colItem,"sortAscending") && this.__getColumnCustomIcon(colItem,"sortDescending"))
+		{
+			return true;
+		}
+		return false;
+	};
+	
+	NSGrid.prototype.__isRowExpansionIconCustom = function()
+	{
+		if(this.__getCustomIcon("rowExpanded") && this.__getCustomIcon("rowCollapsed"))
+		{
+			return true;
+		}
+		return false;
+	};
+	
+	
+	this.__setSortIcons= function(target,isAscVisible,isDescVisible,columnDetail)
+		{
+			if(target)
 			{
-				row.setAttribute("ns-index",index);
-				var compArrow = row.querySelector(".nsArrow");
-				if(compArrow)
+				if(!columnDetail)
 				{
-					compArrow.setAttribute("ns-parent-row-count",index);
-					var arrowID = this.getID() + "compArrow" + index;
-					compArrow.setAttribute("id",arrowID);
-					var compSvg = compArrow.querySelector("svg");
-					if(compSvg)
+					var columnIndex = parseInt(target.getAttribute("currentColumnIndex"));
+					columnDetail = this.__nsGrid.__getColumnObject(columnIndex);
+				}
+				if(columnDetail && this.__nsGrid.__isSortingIconCustom(columnDetail))
+				{
+					var divSorting = target.querySelector(".nsGridSortContainer");
+					if(divSorting)
 					{
-						var svgID = arrowID + "svg";
-						compSvg.setAttribute("id",svgID);
-					}
-					var compUse = compArrow.querySelector("use");
-					if(compUse)
-					{
-						var useID = arrowID + "use";
-						compUse.setAttribute("id",useID);
+						divSorting.innerHTML = "";
+						if(isAscVisible)
+						{
+							divSorting.innerHTML += this.__nsGrid.__getColumnCustomIcon(columnDetail,"sortAscending");
+						}
+						if(isDescVisible)
+						{
+							divSorting.innerHTML += this.__nsGrid.__getColumnCustomIcon(columnDetail,"sortDescending");
+						}
 					}
 				}
+				else
+				{
+					if(isAscVisible != null)
+					{
+						 var divSortAsc = document.getElementById(target.getAttribute("id") + "SortAsc");
+						 if(divSortAsc)
+						 {
+							 divSortAsc.style.display = isAscVisible ? "" : "none";
+						 }
+					}
+					if(isDescVisible != null)
+					{
+						 var divSortDesc = document.getElementById(target.getAttribute("id") + "SortDesc");
+						 if(divSortDesc)
+						 {
+							 divSortDesc.style.display = isDescVisible ? "" : "none";
+						 }
+					}
+				}
+			}
+		};
+		
+		if(this.__nsGrid.__getColumnCustomIcon(colItem,"filter"))
+					{
+						divFilterIconContainer.innerHTML = this.__nsGrid.__getColumnCustomIcon(colItem,"filter");
+					}
+					
+					NSHierarchicalGrid.prototype.__createArrow = function(compArrow,objSVG,arrowID,isCollapsed,item,colItem)
+	{
+		 if(this.__nsGrid.__isRowExpansionIconCustom())
+		 {
+			 this.__setArrowDirection(compArrow,isCollapsed,colItem);
+		 }
+		 else
+		 {
+			 var svg = objSVG.addSVG(compArrow,arrowID + "svg",this.__CLASS_ARROW,null,null,null,null,null,null,true);
+			 this.util.addStyleClass(svg,this.__CLASS_ARROW + "Theme");
+			 if(isCollapsed)
+			 {
+				 objSVG.addUse(svg,arrowID + "use",null,"#svgArrowRight");
+			 }
+			 else
+			 {
+				 objSVG.addUse(svg,arrowID + "use",null,"#svgArrowDown");
+			 }
+		 }
+	};
+	
+	NSHierarchicalGrid.prototype.__setArrowDirection = function(compArrow,isCollapsed,colItem)
+	{
+		if(this.__nsGrid.__isRowExpansionIconCustom())
+		{
+			if(isCollapsed)
+			{
+				compArrow.innerHTML = this.__nsGrid.__getCustomIcon("rowCollapsed");
+			}
+			else
+			{
+				compArrow.innerHTML = this.__nsGrid.__getCustomIcon("rowExpanded");
+			}
+		}
+		else
+		{
+			var objSVG = new NSSvg();
+			var useID = compArrow.getAttribute("id") + "use";
+			if(isCollapsed)
+			{
+				objSVG.changeUseHref(useID,"#svgArrowRight");
+			}
+			else
+			{
+				objSVG.changeUseHref(useID,"#svgArrowDown");
 			}
 		}
 	};
 	
-	if(this.__enableVirtualScroll)
-				{
-					this.util.warning("NSList","As enableVirtualScroll is true so OnDemandHierarchy will have no impact.");
-				}
-				
-				NSGroupingGrid.prototype.addItemsAsChildren = function(item,arrChildren)
+	NSGroupingGrid.prototype.__createArrow = function(compArrow,objSVG,arrowID,isCollapsed,item,colItem)
 	{
-	};
-	NSGroupingGrid.prototype.__handleOnDemandClick = function(item,event)
-	{
-	};
-	
-	var addRow = true;
-			if(!this.util.isUndefinedOrNull(itemIndex) && itemIndex > 0 && this.__nsGrid.__tblCenterBodyBody.children 
-					&& this.__nsGrid.__tblCenterBodyBody.children.length >= itemIndex)
-			{
-				var prevRow = this.__nsGrid.__tblCenterBodyBody.children[itemIndex - 1]; //this.__nsGrid.__getRowByIndex(itemIndex);
-				if(prevRow)
-				{
-					this.__nsGrid.__tblCenterBodyBody.insertBefore(row,prevRow);
-					addRow = false;
-				}
-			}
-			if(addRow)
-			{
-				this.__nsGrid.__tblCenterBodyBody.appendChild(row);
-			}
-			
-			NSFlatGrid.prototype.addItemsAsChildren = function(item,arrChildren)
-	{
-	};
-	NSFlatGrid.prototype.__handleOnDemandClick = function(item,event)
-	{
+		 compArrow.style.paddingTop = "0px";
+		 if(this.__nsGrid.__isRowExpansionIconCustom())
+		 {
+			 this.__setArrowDirection(compArrow,isCollapsed,colItem);
+		 }
+		 else
+		 {
+			 var classArrow = "nsGridGroupIcon"; 
+			 var svg = objSVG.addSVG(compArrow,arrowID + "svg","nsGridGroupSVG",null,null,null,null,null,null,true);
+			 this.util.addStyleClass(svg,classArrow);
+			 this.util.addStyleClass(svg,classArrow + "Theme");
+			 if(isCollapsed)
+			 {
+				 objSVG.addUse(svg,arrowID + "use",null,"#svgPlus");
+			 }
+			 else
+			 {
+				 objSVG.addUse(svg,arrowID + "use",null,"#svgMinus");
+			 }
+		 }
 	};
 	
-	var addRow = true;
-			if(!this.util.isUndefinedOrNull(itemIndex) && itemIndex > -1 && this.__nsGrid.__tblCenterBodyBody.children 
-					&& this.__nsGrid.__tblCenterBodyBody.children.length > itemIndex)
+	NSGroupingGrid.prototype.__setArrowDirection = function(compArrow,isCollapsed,colItem)
+	{
+		if(this.__nsGrid.__isRowExpansionIconCustom())
+		{
+			if(isCollapsed)
 			{
-				var prevRow = this.__nsGrid.__tblCenterBodyBody.children[itemIndex]; //this.__nsGrid.__getRowByIndex(itemIndex);
-				if(prevRow)
-				{
-					this.__nsGrid.__tblCenterBodyBody.insertBefore(row,prevRow);
-					addRow = false;
-				}
+				compArrow.innerHTML = this.__nsGrid.__getCustomIcon("rowCollapsed");
 			}
-			if(addRow)
+			else
 			{
-				this.__nsGrid.__tblCenterBodyBody.appendChild(row);
+				compArrow.innerHTML = this.__nsGrid.__getCustomIcon("rowExpanded");
 			}
+		}
+		else
+		{
+			var objSVG = new NSSvg();
+			var useID = compArrow.getAttribute("id") + "use";
+			if(isCollapsed)
+			{
+				objSVG.changeUseHref(useID,"#svgPlus");
+			}
+			else
+			{
+				objSVG.changeUseHref(useID,"#svgMinus");
+			}
+		}
+	};
