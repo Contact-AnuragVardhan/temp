@@ -1,256 +1,252 @@
-this.__processIconsInColumn(objColumn);
+	NSUtil.prototype.css = function (element,key,value)
+	{
+		var styles;
+	    if (this.isUndefined(value)) 
+	    {
+	        if (this.isString(key)) 
+	        {
+	            return element.style[key];
+	        }
+	        styles = key;
+	    } 
+	    else 
+	    {
+	        styles = {};
+	        styles[key] = value;
+	    }
+	    for(var style in styles)
+	    {
+	    	element.style[style] = styles[style];
+	    }
+	};
+	
+.nsDataGridContainer .nsGridPagination
+{
+    margin: auto;
+    width: 100%;
+    text-align: center;
+}
 
-NSGrid.prototype.__processIconsInColumn = function(objColumn)
-	{
-		if(objColumn)
+.nsScrollerElement
+{
+	 overflow:hidden;
+	 position: relative;
+}
+.nsScrollerVerticalContainer 
+{
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0px;
+    z-index: 3;
+    width: 16px;
+    overflow: hidden;
+    background-image: linear-gradient(to right, #f2f1ec, #fdfef9);
+    border: 1px solid #ecede5;
+}
+.nsScrollerVerticalBar {
+    position: absolute;
+    right: 0;
+    z-index: 1;
+    width: 14px;
+    background: #999;
+    cursor: default;
+    -webkit-transition: width .2s ease-out;
+    -moz-transition: width .2s ease-out;
+    -ms-transition: width .2s ease-out;
+    -o-transition: width .2s ease-out;
+    transition: width .2s ease-out;
+    text-align: center;
+    line-height: 14px;
+}
+.nsScrollerHorizontal {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right:16px;
+    background: rgba(235,235,245,.5);
+    width: 100%;
+    height: 16px;
+    -webkit-transition: all .2s linear;
+    -moz-transition: all .2s linear;
+    -ms-transition: all .2s linear;
+    -o-transition: all .2s linear;
+    transition: all .2s linear;
+    z-index: 2;
+}
+.nsScrollerHorizontalBar {
+    margin-top: 2px;
+}
+.nsScrollerHorizontalBar {
+    position: absolute;
+    bottom: 0;
+    width: 10px;
+    height: 14px;
+    cursor: pointer;
+    background: #fc9;
+    -webkit-transition: height .2s ease-out;
+    -moz-transition: height .2s ease-out;
+    -ms-transition: height .2s ease-out;
+    -o-transition: height .2s ease-out;
+    transition: height .2s ease-out;
+}
+.nsScrollerHidden 
+{
+  display: none;
+}
+
+.nsScrollerScrollable {
+    
+    -ms-overflow-style: none;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    margin: 0;
+    border: 0;
+    padding: 0;
+}
+
+.nsScrollerScrollable-v {
+	overflow-y: scroll;
+	width: -webkit-calc(100% - 17px);
+	width: -moz-calc(100% - 17px);
+	width: -o-calc(100% - 17px);
+	width: calc(100% - 17px);
+}
+
+.nsScrollerScrollable-h {
+	overflow-x: scroll;
+	height: -webkit-calc(100% - 17px);
+	height: -moz-calc(100% - 17px);
+	height: -o-calc(100% - 17px);
+	height: calc(100% - 17px);
+}
+
+.nsScrollerScrollable::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+.nsScrollerButtonUp, .nsScrollerButtonDown {
+    position: absolute;
+    z-index: 1;
+    width: 15px;
+    height: 16px;
+    box-sizing: border-box;
+}
+
+.nsScrollerButtonLeft, .nsScrollerButtonRight {
+    position: absolute;
+    z-index: 1;
+    width: 16px;
+    height: 15px;
+    box-sizing: border-box;
+}
+
+.nsScrollerButtonUp {
+    top: 0;
+}
+
+.nsScrollerButtonDown {
+    bottom: 0;
+}
+
+.nsScrollerButtonLeft {
+    left: 0;
+}
+
+.nsScrollerButtonRight {
+    right: 0;
+}
+
+.nsScrollerControl-v {
+    border: 1px solid #f3ffff;
+    box-shadow: 1px 1px 1px #b7caf5 inset, 1px 1px 1px #7b9fd3;
+    border-radius: 3px;
+    background-image: linear-gradient(to right, #c9d7fc, #baccf4);
+    text-align: center;
+    font-size: 8px;
+    line-height: 14px;
+    color: #4e6287;
+    cursor: default;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.nsScrollerControl-h {
+    border: 1px solid #f3ffff;
+    box-shadow: 1px 1px 1px #b7caf5 inset, 1px 1px 1px #7b9fd3;
+    border-radius: 3px;
+    background-image: linear-gradient(to right, #c9d7fc, #baccf4);
+    text-align: center;
+    font-size: 8px;
+    width: 14px;
+    color: #4e6287;
+    cursor: default;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.nsScrollerBarParent-v 
+{
+    position: absolute;
+    top: 16px;
+    bottom: 16px;
+    right: 0;
+    width: 100%;
+}
+
+.nsScrollerBarParent-h 
+{
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    top: 0;
+    height: 100%;
+}
+
+.nsScrollerVerticalContainer-both
+{
+	bottom: 16px;
+}
+
+.nsScrollerBarParent-h-both
+{
+	right: 32px;
+}
+
+.nsScrollerButtonRight-both
+{
+	right: 16px;
+}
+
+.nsScrollBarCorner
+{
+	background-color: #f7f7f7;
+   position:absolute;
+   bottom: 0;
+   right: 0;
+   width: 16px;
+   height: 16px;
+   z-index: 2;
+   box-shadow: 1px 1px 0 rgba(0,0,0,0.2) inset;
+}
+
+if(this.__enablePagination && !this.__isPaginationTypeScroll && this.__isPaginationModeAuto)
 		{
-			var itemIcons = objColumn["icons"];
-			var icons = null;
-			if(itemIcons)
+			if(this.__arrInternalSource && this.__arrInternalSource.length > 0)
 			{
-				icons = {};
-				icons.menu = itemIcons["menu"] || this.__icons["menu"];
-				icons.filter = itemIcons["filter"] || this.__icons["filter"];
-				icons.sortAscending = itemIcons["sortAscending"] || this.__icons["sortAscending"];
-				icons.sortDescending = itemIcons["sortDescending"] || this.__icons["sortDescending"];
-				icons.columnMove = itemIcons["columnMove"] || this.__icons["columnMove"];
+				this.__divPagination ? this.__divPagination.style.display = "" : null;
 			}
-			else if(this.__icons)
+			else
 			{
-				icons = this.util.cloneObject(this.__icons,true);
-				delete icons.exportButton;
-				delete icons.rowExpanded;
-				delete icons.rowCollapsed;
-			}
-			if(icons)
-			{
-				objColumn.icons = icons;
+				this.__divPagination ? this.__divPagination.style.display = "none" : null;
 			}
 		}
-	};
-	
-	if(this.__getColumnCustomIcon(colItem,"columnMove"))
-				{
-					divMove.innerHTML = this.__getColumnCustomIcon(colItem,"columnMove");
-				}
-				
-				if(colItem.hasOwnProperty("sortable") && colItem["sortable"])
-			{
-				var divSorting = this.util.createDiv(colID + "SortContainer","nsGridSortContainer");
-				divCell.appendChild(divSorting);
-				if(!this.__isSortingIconCustom(colItem))
-				{
-					var divSortAsc = this.util.createDiv(colID + "SortAsc","nsSortAsc"); 
-					divSorting.appendChild(divSortAsc);
-					var divSortSpacer = this.util.createDiv(colID + "SortSpacer","nsSortSpacer"); 
-					divSorting.appendChild(divSortSpacer);
-					var divSortDesc = this.util.createDiv(colID + "SortDesc","nsSortDesc"); 
-					divSorting.appendChild(divSortDesc);
-				}
-			}
-			
-			if(this.__getColumnCustomIcon(colItem,"menu"))
-					{
-						divMenuContainer.innerHTML = this.__getColumnCustomIcon(colItem,"menu");
-					}
-					
-					NSGrid.prototype.__setArrowDirection = function(compArrow,isCollapsed)
-	{
-		if(compArrow)
-		{
-			var parent = this.util.findParent(compArrow,"TD");
-			var colIndex = parseInt(parent.getAttribute("currentColumnIndex"));
-			var colItem = this.__getColumnObject(colIndex);
-			this.__objGrid.__setArrowDirection(compArrow,isCollapsed,colItem);
-		}
-	};
-	
-	NSGrid.prototype.__getCustomIcon = function(iconField)
-	{
-		if(this.__icons && this.__icons[iconField])
-		{
-			return this.__icons[iconField];
-		}
-		return null;
-	};
-	
-	NSGrid.prototype.__getColumnCustomIcon = function(colItem,iconField)
-	{
-		if(colItem && colItem.icons && colItem.icons[iconField])
-		{
-			return colItem.icons[iconField];
-		}
-		return null;
-	};
-	
-	NSGrid.prototype.__isSortingIconCustom = function(colItem)
-	{
-		if(this.__getColumnCustomIcon(colItem,"sortAscending") && this.__getColumnCustomIcon(colItem,"sortDescending"))
-		{
-			return true;
-		}
-		return false;
-	};
-	
-	NSGrid.prototype.__isRowExpansionIconCustom = function()
-	{
-		if(this.__getCustomIcon("rowExpanded") && this.__getCustomIcon("rowCollapsed"))
-		{
-			return true;
-		}
-		return false;
-	};
-	
-	
-	this.__setSortIcons= function(target,isAscVisible,isDescVisible,columnDetail)
-		{
-			if(target)
-			{
-				if(!columnDetail)
-				{
-					var columnIndex = parseInt(target.getAttribute("currentColumnIndex"));
-					columnDetail = this.__nsGrid.__getColumnObject(columnIndex);
-				}
-				if(columnDetail && this.__nsGrid.__isSortingIconCustom(columnDetail))
-				{
-					var divSorting = target.querySelector(".nsGridSortContainer");
-					if(divSorting)
-					{
-						divSorting.innerHTML = "";
-						if(isAscVisible)
-						{
-							divSorting.innerHTML += this.__nsGrid.__getColumnCustomIcon(columnDetail,"sortAscending");
-						}
-						if(isDescVisible)
-						{
-							divSorting.innerHTML += this.__nsGrid.__getColumnCustomIcon(columnDetail,"sortDescending");
-						}
-					}
-				}
-				else
-				{
-					if(isAscVisible != null)
-					{
-						 var divSortAsc = document.getElementById(target.getAttribute("id") + "SortAsc");
-						 if(divSortAsc)
-						 {
-							 divSortAsc.style.display = isAscVisible ? "" : "none";
-						 }
-					}
-					if(isDescVisible != null)
-					{
-						 var divSortDesc = document.getElementById(target.getAttribute("id") + "SortDesc");
-						 if(divSortDesc)
-						 {
-							 divSortDesc.style.display = isDescVisible ? "" : "none";
-						 }
-					}
-				}
-			}
-		};
 		
-		if(this.__nsGrid.__getColumnCustomIcon(colItem,"filter"))
-					{
-						divFilterIconContainer.innerHTML = this.__nsGrid.__getColumnCustomIcon(colItem,"filter");
-					}
-					
-					NSHierarchicalGrid.prototype.__createArrow = function(compArrow,objSVG,arrowID,isCollapsed,item,colItem)
-	{
-		 if(this.__nsGrid.__isRowExpansionIconCustom())
-		 {
-			 this.__setArrowDirection(compArrow,isCollapsed,colItem);
-		 }
-		 else
-		 {
-			 var svg = objSVG.addSVG(compArrow,arrowID + "svg",this.__CLASS_ARROW,null,null,null,null,null,null,true);
-			 this.util.addStyleClass(svg,this.__CLASS_ARROW + "Theme");
-			 if(isCollapsed)
-			 {
-				 objSVG.addUse(svg,arrowID + "use",null,"#svgArrowRight");
-			 }
-			 else
-			 {
-				 objSVG.addUse(svg,arrowID + "use",null,"#svgArrowDown");
-			 }
-		 }
-	};
-	
-	NSHierarchicalGrid.prototype.__setArrowDirection = function(compArrow,isCollapsed,colItem)
-	{
-		if(this.__nsGrid.__isRowExpansionIconCustom())
-		{
-			if(isCollapsed)
-			{
-				compArrow.innerHTML = this.__nsGrid.__getCustomIcon("rowCollapsed");
-			}
-			else
-			{
-				compArrow.innerHTML = this.__nsGrid.__getCustomIcon("rowExpanded");
-			}
-		}
-		else
-		{
-			var objSVG = new NSSvg();
-			var useID = compArrow.getAttribute("id") + "use";
-			if(isCollapsed)
-			{
-				objSVG.changeUseHref(useID,"#svgArrowRight");
-			}
-			else
-			{
-				objSVG.changeUseHref(useID,"#svgArrowDown");
-			}
-		}
-	};
-	
-	NSGroupingGrid.prototype.__createArrow = function(compArrow,objSVG,arrowID,isCollapsed,item,colItem)
-	{
-		 compArrow.style.paddingTop = "0px";
-		 if(this.__nsGrid.__isRowExpansionIconCustom())
-		 {
-			 this.__setArrowDirection(compArrow,isCollapsed,colItem);
-		 }
-		 else
-		 {
-			 var classArrow = "nsGridGroupIcon"; 
-			 var svg = objSVG.addSVG(compArrow,arrowID + "svg","nsGridGroupSVG",null,null,null,null,null,null,true);
-			 this.util.addStyleClass(svg,classArrow);
-			 this.util.addStyleClass(svg,classArrow + "Theme");
-			 if(isCollapsed)
-			 {
-				 objSVG.addUse(svg,arrowID + "use",null,"#svgPlus");
-			 }
-			 else
-			 {
-				 objSVG.addUse(svg,arrowID + "use",null,"#svgMinus");
-			 }
-		 }
-	};
-	
-	NSGroupingGrid.prototype.__setArrowDirection = function(compArrow,isCollapsed,colItem)
-	{
-		if(this.__nsGrid.__isRowExpansionIconCustom())
-		{
-			if(isCollapsed)
-			{
-				compArrow.innerHTML = this.__nsGrid.__getCustomIcon("rowCollapsed");
-			}
-			else
-			{
-				compArrow.innerHTML = this.__nsGrid.__getCustomIcon("rowExpanded");
-			}
-		}
-		else
-		{
-			var objSVG = new NSSvg();
-			var useID = compArrow.getAttribute("id") + "use";
-			if(isCollapsed)
-			{
-				objSVG.changeUseHref(useID,"#svgPlus");
-			}
-			else
-			{
-				objSVG.changeUseHref(useID,"#svgMinus");
-			}
-		}
-	};
+		this.util.warning("NSGrid","NSSvg has not been included so the icons might not appear");
