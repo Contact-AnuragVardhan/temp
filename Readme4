@@ -1,2 +1,19 @@
-this.util.dispatchEvent(this.__baseComponent,NSDatePicker.INPUT_CHANGE,strDate,{date:date,value:strDate});
-NSDatePicker.INPUT_CHANGE = "inputChange";
+var genericEventHandler = this.__genericTextBoxEvent.bind(this);
+			this.util.addEvent(this.__textBox,"change",genericEventHandler);
+			this.util.addEvent(this.__textBox,"input",genericEventHandler);
+      
+      this.util.addStyleClass(this.__textBox,cssClass);
+      
+      NSTextBox.prototype.__genericTextBoxEvent = function(event)
+	{
+		if(this.__isFocusOnControl())
+		{
+			event = this.util.getEvent(event);
+			var cancelled = this.util.dispatchEvent(this.__baseComponent,event.type,this.getText(),{changeEvent:event},null,true);
+			if(cancelled)
+			{
+				event.preventDefault();
+			}
+		}
+	};
+	
