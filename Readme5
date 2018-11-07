@@ -1,538 +1,1262 @@
- "use strict"; 
-var NSHierarchicalGrid = (function()
+var NSScroller = (function()
 {
-	function NSHierarchicalGrid(nsGrid,nsUtil) 
+	function NSScroller(setting)
 	{
-		this.__nsGrid = nsGrid;
-		this.util = nsUtil;
+		var self = this;
+		var util = null;
+		var config = {};
 		
-		this.__ARROW_COLLAPSE_PATH = "M 0 9.99994L 6.10352e-005 -3.05176e-005L 5 5.00006L 0 9.99994 Z";
-		this.__ARROW_EXPANDED_PATH = "M 0 3.05176e-005L 9.99994 9.15527e-005L 4.99988 5.00003L 0 3.05176e-005 Z";
-		this.__CLASS_ARROW = "nsGridArrowFill";
-		this.__rowCounter = -1;
-		this.__enableOnDemandHierarchy = false;
-		this.__onDemandChildDetectionField = "hasChildren";
-		this.__onDemandChildFetchCallback = null;
-	}
-	/********************************Common Functions for Grid ****************************************/
-	NSHierarchicalGrid.prototype.__initialize = function ()
-	{
-		var setting = this.__nsGrid.__setting;
-		if(setting.hasOwnProperty("enableOnDemandHierarchy"))
+		var parentNode = null;
+		var divScrollBarCorner = null;
+		
+		var props = {};
+		
+		var operaMaxScrollBarSize = 17;
+		var macScrollBarSize = 15;
+		var macFFRegex = /[\s\S]*Macintosh[\s\S]*\) Gecko[\s\S]*/;
+		var isMacFF = macFFRegex.test(window.navigator && window.navigator.userAgent);
+		
+		var selectedItem = null;
+		var interval = null;
+		var delayInterval = null;
+		var mutationObserver = null;
+		var lastScrollPos = -1;
+		
+		var documentMouseMoveRef = null;
+		var documentMouseUpRef = null;
+		var documentTouchMoveRef = null;
+		var documentTouchEndRef = null;
+		
+		var setScrollWidth = function(width)
 		{
-			this.__enableOnDemandHierarchy = Boolean.parse(setting["enableOnDemandHierarchy"]);
-		}
-		if(this.__enableOnDemandHierarchy)
+			config.scrollWidth = width;
+			var item = props.horizontal;
+			item.inputSize = width;
+			setScrollElementSize(item);
+		};
+		
+		var setScrollHeight = function(height)
 		{
-			if(setting.hasOwnProperty("onDemandChildDetectionField"))
+			config.scrollHeight = height;
+			var item = props.vertical;
+			item.inputSize = height;
+			setScrollElementSize(item);
+		};
+		
+		var setScrollTop = function(scrollTop)
+		{
+			var item = props.vertical;
+			setScrollPos(item,scrollTop);
+		};
+		
+		var getScrollTop = function()
+		{
+			var item = props.vertical;
+			return item.element[item.scroll];
+		};
+		
+		var setScrollLeft = function(scrollLeft)
+		{
+			var item = props.horizontal;
+			setScrollPos(item,scrollLeft);
+		};
+		
+		var getScrollLeft = function()
+		{
+			var item = props.horizontal;
+			return item.element[item.scroll];
+		};
+		
+		var getVerticalScrollHeight = function()
+		{
+			var item = props.vertical;
+			return item.element[item.scrollSize];
+		};
+		
+		var getHorizontalScrollWidth = function()
+		{
+			var item = props.horizontal;
+			return item.element[item.scrollSize];
+		};
+		
+		var hasHorizontalScroller = function()
+		{
+			return hasScroll(props.horizontal);
+		};
+		
+		var hasVerticalScroller = function()
+		{
+			return hasScroll(props.vertical);
+		};
+		
+		var getHorizontalScroller = function()
+		{
+			var item = props.horizontal;
+			return item.container;
+		};
+		
+		var getVerticalScroller = function()
+		{
+			var item = props.vertical;
+			return item.container;
+		};
+		
+		var getHorizontalBar = function()
+		{
+			var item = props.horizontal;
+			return item.scroller;
+		};
+		
+		var getVertcialBar = function()
+		{
+			var item = props.vertical;
+			return item.scroller;
+		};
+		
+		var initialize = function()
+		{
+			util = new NSUtil();
+			setConfig();
+			setProps();
+			util.addStyleClass(config.element,"nsScrollerScrollable");
+			createComponent();
+			util.addEvent(config.element,"mousewheel",mouseWheelHandler);
+			util.addEvent(config.element,"scroll",bodyScrollHandler);
+			if(config.otherScrollableElement && config.otherScrollableElement.length > 0)
 			{
-				this.__onDemandChildDetectionField = setting["onDemandChildDetectionField"];
+				for(var count = 0;count < config.otherScrollableElement.length;count++)
+				{
+					var element = config.otherScrollableElement[count];
+					util.addEvent(element,"mousewheel",mouseWheelHandler);
+				}
 			}
-			if(setting.hasOwnProperty("onDemandChildFetchCallback"))
+			util.addStyleClass(config.element,"nsScrollerElement");
+			updateScrollBars();
+			util.addEvent(window,"resize",updateWithDelay);
+			addObserver();
+		};
+		
+		var setConfig = function()
+		{
+			if(!setting)
 			{
-				this.__onDemandChildFetchCallback = setting["onDemandChildFetchCallback"];
-				this.__onDemandChildFetchCallback = this.util.getFunction(this.__onDemandChildFetchCallback);
+				setting = {};
 			}
-			if(!this.__onDemandChildDetectionField)
+			config = {
+				parentElement : setting["parentElement"],
+				element : setting["element"],
+				otherScrollableElement : setting["otherScrollableElement"],//for Grid if we have left,center and right body
+				horizontalScrollButtons: setting["horizontalScrollButtons"] || {enable:false,leftHTML:null,rightHTML:null},
+				verticalScrollButtons: setting["verticalScrollButtons"] || {enable:false,topHTML:null,bottomHTML:null},
+				elementPosition: setting["elementPosition"] || "relative" ,// if content has fixable headers then use static (values: static,relative,absolute)
+				enableCustomHandler: Boolean.parse(setting["enableCustomHandler"]),
+				scrollWidth: setting["scrollWidth"],
+				scrollHeight: setting["scrollHeight"]
+			};
+			if(!config.element)
 			{
-				this.util.throwNSError("NSGrid","Value for onDemandChildDetectionField is not valid");
+				util.throwNSError("NSScroller","Element in setting is missing");
 			}
-			if(!this.__onDemandChildFetchCallback)
+			if(!config.parentElement)
 			{
-				this.util.throwNSError("NSGrid","Value for onDemandChildFetchCallback is not valid");
+				config.parentElement = config.element.parentNode;
 			}
-			if(this.__enableVirtualScroll || (this.__nsGrid.__enablePagination && this.__nsGrid.__isPaginationModeAuto))
+			parentNode = config.element.parentNode;
+			if(config.horizontalScrollButtons.enable)
 			{
-				this.util.warning("NSGrid","As VirtualScroll or Pagination Mode is true so OnDemandHierarchy will have no impact.");
+				if(!config.horizontalScrollButtons.leftHTML)
+				{
+					config.horizontalScrollButtons.leftHTML = '&#9668;';
+				}
+				if(!config.horizontalScrollButtons.rightHTML)
+				{
+					config.horizontalScrollButtons.rightHTML = '&#9658;';
+				}
 			}
-		}
-	};
+			if(config.verticalScrollButtons.enable)
+			{
+				if(!config.verticalScrollButtons.topHTML)
+				{
+					config.verticalScrollButtons.topHTML = '&#9650;';
+				}
+				if(!config.verticalScrollButtons.bottomHTML)
+				{
+					config.verticalScrollButtons.bottomHTML = '&#9660;';
+				}
+			}
+		};
+		
+		var setProps = function()
+		{
+			props = {
+				    vertical: {
+				        x: "Y",direction:"v", displayDirection:"vertical", pos: "top", 
+				        size: "height",crossSize: "width", crossMinSize: "min-width", crossMaxSize: "max-width",
+				        client: "clientHeight", crossClient: "clientWidth",
+				        scrollEdge: "scrollLeft",offset: "offsetHeight", crossOffset: "offsetWidth", offsetPos: "offsetTop",
+				        scroll: "scrollTop", scrollSize: "scrollHeight",barTopLimit:0,containerCSS:"nsScrollerVerticalContainer",
+				        scrollerCSS:"nsScrollerVerticalBar",buttonProp:"verticalScrollButtons",beforeButtonProp:"topHTML",
+				        afterButtonProp:"bottomHTML",beforeButtonCSS:"nsScrollerButtonUp",afterButtonCSS:"nsScrollerButtonDown",
+				        elementPosition:config.elementPosition,inputSize:config.scrollHeight
+				    },
+				    horizontal: {
+				        x: "X",direction:"h",displayDirection:"horizontal", pos: "left",
+				        size: "width",crossSize: "height", crossMinSize: "min-height", crossMaxSize: "max-height",
+				        client: "clientWidth", crossClient: "clientHeight",
+				        scrollEdge: "scrollTop",offset: "offsetWidth", crossOffset: "offsetHeight", offsetPos: "offsetLeft",
+				        scroll: "scrollLeft", scrollSize: "scrollWidth",barTopLimit:0,containerCSS:"nsScrollerHorizontal",
+				        scrollerCSS:"nsScrollerHorizontalBar",buttonProp:"horizontalScrollButtons",beforeButtonProp:"leftHTML",
+				        afterButtonProp:"rightHTML",beforeButtonCSS:"nsScrollerButtonLeft",afterButtonCSS:"nsScrollerButtonRight",
+				        elementPosition:config.elementPosition,inputSize:config.scrollWidth
+				    }
+			};
+		};
+		
+		var setScrollPos = function(item,scrollPos)
+		{
+			selectedItem = item;
+			if(selectedItem)
+			{
+				util.addEvent(selectedItem.element,"scroll",scrollableElementScrollHandler);
+				setScrollableItems(selectedItem,scrollPos);
+			}
+		};
+		
+		var applyStyle = function(item,on) 
+		{
+	        var overflow = on ? 'hidden' : null;
+	        var msOverflowStyle = on ? 'none' : null;
 	
-	NSHierarchicalGrid.prototype.propertyChange = function(attrName, oldVal, newVal, setProperty) 
-	{
-		var attributeName = attrName.toLowerCase();
-	};
+	        util.css(parentNode, {
+	            overflow: overflow,
+	            msOverflowStyle: msOverflowStyle,
+	            position: (item.elementPosition == 'static') ? '' : 'relative'
+	        });
 	
-	NSHierarchicalGrid.prototype.dataSource = function(source)
-	{
-		this.__nsGrid.__arrWrapper = this.__nsGrid.__dataSource.slice(0);
-		this.__nsGrid.__arrFilteredGroupedSource = this.__nsGrid.__arrWrapper.slice(0);
-		this.__setWrapperSource(this.__nsGrid.__arrWrapper,0,-1,0,true,true,true);
-		this.__nsGrid.__updateTotalRecords(this.__rowCounter);
-		if(this.__nsGrid.__enablePagination && this.__nsGrid.__isPaginationModeAuto)
-		{
-			if(this.__nsGrid.__isPaginationTypeScroll)
-			{
-				this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrFlatHierarchicalSource.slice(0);//this.__nsGrid.__arrFlatHierarchicalSource.slice(0,this.__nsGrid.__INFINITE_SCROLL_INITIAL_LOAD);
-				this.__nsGrid.__paginationFetchRecordCallBack = this.__addRowsforScrollPagination.bind(this);
-			}
-			else 
-			{
-				this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrFlatHierarchicalSource.slice(0,this.__nsGrid.__pageSize);
-				this.__nsGrid.__createPaginationControl(this.__nsGrid.__divOuterContainer);
-				this.__nsGrid.__paginationFetchRecordCallBack = this.__addRowsforPagePagination.bind(this);
-			}
-		}
-		else
-		{
-			this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrFlatHierarchicalSource.slice(0);//this.__nsGrid.__arrWrapper.slice(0);
-		}
-	};
+	        var scroll = on ? 'scroll' : null;
+	        var axis = item.direction == 'v' ? 'y' : 'x';
+	        var css = {};
 	
-	NSHierarchicalGrid.prototype.addItemsAsChildren = function(item,arrChildren)
-	{
-		if(item && arrChildren && arrChildren.length > 0)
+	        css['overflow-' + axis] = scroll;
+	        css['box-sizing'] = 'border-box';
+	        css.margin = '0';
+	        css.border = '0';
+	
+	        if(item.elementPosition == 'absolute') 
+	        {
+	        	css.position = 'absolute';
+	        	css.top = '0';
+	
+	            if (item.direction == 'h') 
+	            {
+	            	css.left = '0';
+	            } 
+	            else 
+	            {
+	            	css.bottom = '0';
+	            	css.right = item.rtl ? '0' : '';
+	            	css.left = item.rtl ? '' : '0';
+	            }
+	        }
+	        util.css(config.element,css);
+	    };
+	    
+	    var onScrollerContainerMouseDown = function(event) 
 		{
-			if(!item[this.__nsGrid.__childField])
+	    	event = util.getEvent(event);
+	    	var target = null;
+			if(util.hasStyleClass(event.target,"nsScrollerBarParent"))
 			{
-				item[this.__nsGrid.__childField] = [];
+				target = event.target.querySelector(".nsScrollerBar");
 			}
-			item[this.__nsGrid.__childField].push.apply(item[this.__nsGrid.__childField], arrChildren);
-			this.__setWrapperSource(this.__nsGrid.__arrWrapper,0,-1,0,true,false,false);
-			this.__nsGrid.__updateTotalRecords(this.__rowCounter);
-			if(!(this.__nsGrid.__enablePagination && this.__nsGrid.__isPaginationModeAuto))
+			setSelectedItem(event,target);
+			if(selectedItem)
 			{
-				this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrFlatHierarchicalSource.slice(0);
-				item[this.__nsGrid.__fieldRowVisible] = true;
-				item[this.__nsGrid.__fieldIsCollapsed] = false;
-		   		var row = this.__nsGrid.__getRowFromItem(item);
-		   		var rowIndex = this.__nsGrid.__getIndexByItem(item);
-		   		this.__nsGrid.__showHideRow(rowIndex,null,false);
+				var scroller = selectedItem.scroller;
+				var offsetX = event["offset" + selectedItem.x];
+				var xBar = scroller[selectedItem.offsetPos];
+	            var moveOffset = 0;
+	            if (offsetX < xBar) 
+	            {
+	            	moveOffset = -1;
+	            } 
+	            else if (offsetX > xBar + scroller[selectedItem.offset]) 
+	            {
+	            	moveOffset = 1;
+	            }
+	            var y = scrollableElementPosition(selectedItem) + moveOffset * 0.9 * config.element[selectedItem.client];
+	            scrollableElementPosition(selectedItem,y);
+			}
+		};
+		
+		var onScrollerMouseDown = function(event,scroller) 
+		{
+			setSelectedItem(event);
+			if(selectedItem)
+			{
+			    event.preventDefault();
+			    event.stopPropagation();
+			    if(selectedItem.activeCSS)
+			    {
+			    	util.addStyleClass(selectedItem.scroller,selectedItem.activeCSS);
+			    }
+			    var eventItem = {target:selectedItem.scroller,direction:selectedItem.displayDirection,scrollPos:selectedItem.element[selectedItem.scroll]};
+			    dispatchEvent(NSScroller.SCROLL_START,eventItem,eventItem);
+			}
+		};
+		
+		var setSelectedItem = function(event,target)
+		{
+			target = target ? target : event.target;
+			selectedItem = getItemByScroller(target);
+			if(selectedItem)
+			{
+				selectedItem.dragging = true;
+				selectedItem.scrollerPos = getCursorPosition(selectedItem,event) - selectedItem.barPos;
+			}
+		};
+		
+		var getItemByScroller = function(scroller)
+		{
+			for(var key in props)
+			{
+				var item = props[key];
+				if(item.scroller == scroller)
+				{
+					return item;
+				}
 			}
 			
-	   		console.log(this.__nsGrid.__arrFlatHierarchicalSource);
-		}
-	};
-	
-	NSHierarchicalGrid.prototype.__createBodyBody= function(dataSet,startIndex,endIndex)
-	{
-	    if(dataSet && dataSet.length > 0)
-	    {
-	    	for (var rowIndex = startIndex; rowIndex < endIndex; rowIndex++)
+			return null;
+		};
+		
+		var createComponent = function()
+		{
+			for(var key in props)
+			{
+				var item = props[key];
+				var container = createScroller(null,item.containerCSS,item.scrollerCSS);
+				var scroller = container.children[0];
+				var eleBefore = null;
+				var eleAfter = null;
+				var scrollerParent = container;
+				if(config[item.buttonProp]["enable"])
+				{
+					var eleBefore = createButton(item,item.beforeButtonCSS,config[item.buttonProp][item.beforeButtonProp]);
+					container.appendChild(eleBefore);
+					scrollerParent = util.createDiv(null,"nsScrollerBarParent-" + item.direction);
+					scrollerParent.appendChild(scroller);
+					container.appendChild(scrollerParent);
+					var eleAfter = createButton(item,item.afterButtonCSS,config[item.buttonProp][item.afterButtonProp]);
+					container.appendChild(eleAfter);
+					item.buttonBefore = eleBefore;
+					item.buttonAfter = eleAfter;
+				}
+				util.addStyleClass(scrollerParent,"nsScrollerBarParent");
+				config.parentElement.appendChild(container);
+				container.style[item.crossSize] = scroller[item.crossOffset] + "px";
+				var setting = {element:scroller,restriction:"parent",enableXAxis:(item.direction != "v"),enableYAxis:(item.direction == "v"),
+							   dragStartingCallback:onScrollerMouseDown,draggingCallback:docMouseMoveHandler,dragEndCallback:docMouseUpHandler};
+				var objDrag = new nsScrollerDraggable(setting);
+				//util.addEvent(scrollerParent,"mousedown",onScrollerContainerMouseDown);
+				//util.addEvent(scroller,"mousedown",onScrollerMouseDown);
+				var divScrollCause = util.createDiv(null);
+				divScrollCause.innerHTML = "&nbsp;";
+				var divScroll = util.createDiv(null);
+				var css = {};
+				css["position"] = "absolute";
+		        css["overflow-" + item.x.toLowerCase()] = "scroll";
+		        //css["left"] = "-9999px";
+		        //css["top"] = "-9999px";
+		        util.css(divScroll,css);
+				divScroll.appendChild(divScrollCause);
+				document.body.appendChild(divScroll);
+				item.scrollContainer = container;
+				item.container = scrollerParent;
+				item.scroller = scroller;
+				item.element = divScroll;
+				item.scrollableElementCause = divScrollCause;
+				item.objDrag = objDrag;
+				setScrollElementSize(item);
+			}
+			divScrollBarCorner = util.createDiv(null,"nsScrollBarCorner");
+			config.parentElement.appendChild(divScrollBarCorner);
+		};
+		
+		var createScroller = function(id,cssContainer,cssScroller)
+		{
+			cssContainer = cssContainer ? cssContainer : "";
+			cssScroller = cssScroller ? cssScroller : "";
+			var scrollContainer = util.createDiv(null,"nsScrollerContainer " + cssContainer);
+			var scroller = util.createDiv(null,"nsScrollerBar " + cssScroller);
+			scrollContainer.appendChild(scroller);
+			return scrollContainer;
+		};
+		
+		var createButton = function(item,css,html)
+		{
+			var div = util.createDiv(null,"nsScrollerControl nsScrollerControl-" + item.direction);
+			div.innerHTML = html;
+			util.addStyleClass(div,css);
+			//util.addEvent(div,"click",btnControlClickHandler);
+			util.addEvent(div,"mousedown",btnMouseDownHandler);
+			util.addEvent(div,"dblclick",btnMouseDownHandler);
+			util.addEvent(div,"mouseup",clearScroll);
+			util.addEvent(div,"mouseout",clearScroll);
+			return div;
+		};
+		
+		var btnMouseDownHandler = function(event)
+		{
+			btnControlClickHandler(event);
+			interval = setTimeout(function(){btnMouseDownHandler(event);}, 100);
+		};
+		
+		var clearScroll = function(event)
+		{
+			clearTimeout(interval);
+			interval = null;
+			lastScrollPos = -1;
+		};
+		
+		var btnControlClickHandler = function(event)
+		{
+			event = util.getEvent(event);
+			var target = event.target;
+			var parent = target.parentNode;
+			var scroller = parent.querySelector(".nsScrollerBar");
+			setSelectedItem(event,scroller);
+			if(selectedItem)
+			{
+				var isAdd = true;
+				if(util.hasStyleClass(target,selectedItem.beforeButtonCSS))
+				{
+					isAdd = false;
+				}
+				var oldPos = scrollableElementPosition(selectedItem);
+				var newPos = isAdd ? (oldPos + 30) : (oldPos - 30);
+				scrollableElementPosition(selectedItem,newPos);
+				//selectedItem = null;
+				event.preventDefault();
+				event.stopPropagation();
+			}
+		};
+		
+		var mouseWheelHandler = function(event)
+		{
+			event = util.getEvent(event);
+			var element = config.parentElement;
+			var verticalScroller = element.querySelector(".nsScrollerVerticalBar");
+			setSelectedItem(event,verticalScroller);
+			if(selectedItem)
+			{
+				util.addEvent(selectedItem.element,"scroll",scrollableElementScrollHandler);//selectedItem.objDrag.setElementPos(null,100);
+				selectedItem.element[selectedItem.scroll] += event["delta" + selectedItem.x];
+			}
+		};
+		
+		var scrollableElementScrollHandler = function(event)
+		{
+			event = util.getEvent(event);
+			if(selectedItem)
+			{
+				var item = selectedItem;
+				var element = item.element;
+				item["barPos"] = Math.round((element[item.offset]/element[item.scrollSize]) * element[item.scroll]);
+				setBarPosition(item, item["barPos"]);
+				util.removeEvent(item.element,"scroll",scrollableElementScrollHandler);
+			}
+		};
+		
+		var bodyScrollHandler = function(event)
+		{
+			event = util.getEvent(event);
+			if(!selectedItem)
+			{
+				var element = config.parentElement;
+				var verticalScroller = element.querySelector(".nsScrollerVerticalBar");
+				setSelectedItem(event,verticalScroller);
+			}
+			//scrollBody(selectedItem,event);
+		};
+		
+		var docMouseMoveHandler = function(event,scroller)
+		{
+			event = util.getEvent(event);
+			if(!selectedItem)
+			{
+				setSelectedItem(event,scroller);
+			}
+	        if(selectedItem)
+	        {
+	        	dragHandler(selectedItem,event);
+	        	scrollBody(selectedItem,event);
+	        }
+		};
+		
+		var docMouseUpHandler = function(event)
+		{
+			event = util.getEvent(event);
+		    if(selectedItem.activeCSS)
 		    {
-	    		var item = dataSet[rowIndex];
-	    		this.__createRow(item);
+		    	util.removeStyleClass(selectedItem.scroller,selectedItem.activeCSS);
 		    }
-	    }
-	};
-	
-	NSHierarchicalGrid.prototype.__setSourceForAsync= function()
-	{
-		this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrFlatHierarchicalSource.slice(0);
-	};
-	
-	NSHierarchicalGrid.prototype.__createRowAsync= function(item,index,array)
-	{
-		this.__createRow(item);
-	};
-	
-	NSHierarchicalGrid.prototype.__createBodyBodyVirtual= function(dataSet,totalRows,level)
-	{
-		if(dataSet && dataSet.length > 0)
-	    {
-	    	if(totalRows > dataSet.length)
-	    	{
-	    		totalRows = dataSet.length;
-	    	}
-	    	else if(this.__nsGrid.__enableVariableRowHeight)
-	    	{
-	    		totalRows = totalRows + this.__nsGrid.__extraRowCountForVariableHeight;
-	    	}
-	    	this.__createBodyBody(dataSet,0,totalRows);
-	    }
-	};
-	
-	NSHierarchicalGrid.prototype.__createBody = function()
-	{
-	};
-	
-	NSHierarchicalGrid.prototype.__checkForAdditionalColumns = function()
-	{
-	};
-	
-	NSHierarchicalGrid.prototype.__setMeasurement = function()
-	{
-	};
-	
-	NSHierarchicalGrid.prototype.__addSVGInPage = function(objSVG)
-	{
-		objSVG.addPath("svgArrowDown",this.__ARROW_EXPANDED_PATH,"0 0 16 16");
-		objSVG.addPath("svgArrowRight",this.__ARROW_COLLAPSE_PATH,"0 0 16 16");
-	};
-	
-	NSHierarchicalGrid.prototype.__setWrapperSource = function(source,offset,parentIndex,level,setFieldIndex,setIsCollapsed,setItemVisible)
-	{
-		if(source)
+		    updateScrollBars();
+		    var item = selectedItem;
+		    selectedItem = null;
+		    clearScroll();
+		    var eventItem = {target:item.scroller,direction:item.displayDirection,scrollPos:item.element[item.scroll]};
+		    dispatchEvent(NSScroller.SCROLL_END,eventItem,eventItem);
+		};
+		
+		var scrollBody = function(item,event)
 		{
-			if(level === 0)
-			{
-				if(!offset)
-				{
-					offset = 0;
-				}
-				this.__nsGrid.__arrFlatHierarchicalSource = [];
-				this.__rowCounter = offset;
-			}
-			var length = source.length;
-			var count = 0;
-			var item = null;
-			if(this.__nsGrid.__renderInCachedMode)
-			{
-				for (count = 0; count < length; count++) 
-				{
-					item = source[count];
-					this.__rowCounter++;
-					this.__nsGrid.__arrFlatHierarchicalSource.push(item);
-					this.__setRowItemProperty(item,parentIndex,level,setFieldIndex,setIsCollapsed,setItemVisible);
-					var colLength = this.__nsGrid.__columns.length;
-					var arrCellsText = [];
-					for (var colIndex = 0; colIndex < colLength; colIndex++)
-			        {
-			        	var colItem = this.__nsGrid.__columns[colIndex];
-			            var cellDiv = this.util.createDiv(null);
-			            this.__nsGrid.__addCellText(null,item,cellDiv,colItem,colIndex);
-			            arrCellsText.push(cellDiv);
-			        }
-					item[this.__nsGrid.__fieldCellText] = arrCellsText;
-				}
-			}
-			else
-			{
-				for (count = 0; count < length; count++) 
-				{
-					item = source[count];
-					this.__rowCounter++;
-					this.__nsGrid.__arrFlatHierarchicalSource.push(item);
-					this.__setRowItemProperty(item,parentIndex,level,setFieldIndex,setIsCollapsed,setItemVisible);
-				}
-			}
-		}
-	};
-	
-	/*useVisibleIndex flag is used when we want to use visible index,generally true for all cases except for expandCollapse all due to performance issues*/  
-	NSHierarchicalGrid.prototype.__resetDataInBody= function(fromIndex,toIndex,fromRowIndex,useVisibleIndex)
-	{
-		if(!fromRowIndex)
+			updateScrollPositions(item,false);
+		};
+		
+		var dragHandler = function(item,event)
 		{
-			fromRowIndex = 0;
-		}
-		var row = null;
-		var item = null;
-		var arrRows = this.__nsGrid.__tblCenterBodyBody.rows;
-		var rowLength = arrRows.length;
-		var length = this.__nsGrid.__arrFlatHierarchicalSource.length;
-		var indexCount = fromIndex;
-		var rowCount = fromRowIndex;
-		for(var count = fromIndex; count < length; count++)
+			 var relPos = barPositionToRelative(item,getCursorPosition(item,event) - item.scrollerPos);
+			 var subPos = item.element[item.scrollSize] - item.element[item.client];
+			 var scrollPos = relPos * subPos;
+			 //console.log(relPos + " * " + subPos + " = " + scrollPos);
+			 setScrollableItems(item,scrollPos);
+		};
+		
+		var setScrollableItems = function(item,scrollPos)
 		{
-			if(this.__nsGrid.__enableVirtualScroll && useVisibleIndex)
+			scrollPos = Math.round(scrollPos);
+			var maxValue = item.element[item.scrollSize] - item.element[item.client];
+			//console.log(scrollPos);
+			if(scrollPos < 0)
 			{
-				item = this.__nsGrid.__getVisibleItemByIndex(this.__nsGrid.__arrFlatHierarchicalSource,count);
+				scrollPos = 0;
 			}
-			else
+			if(scrollPos > maxValue)
 			{
-				item = this.__nsGrid.__arrFlatHierarchicalSource[count];
+				scrollPos = maxValue;
 			}
-			//breaking if item not found as if large data set is rendered and after collapse all the while scrolling after a while item is null still it goes to end of data set which are hidden
-			if(item)
+			if(lastScrollPos != scrollPos)
 			{
-				if(item[this.__nsGrid.__fieldRowVisible])
+				//console.log(scrollPos + " == " + item.element[item.scrollSize]);
+				var lastScrollPos = item.element[item.scroll];
+				item.element[item.scroll] = scrollPos;
+				if(!config.enableCustomHandler)
 				{
-					if(rowLength <= rowCount) // || indexCount > toIndex
+					config.element[item.scroll] = scrollPos;
+					if(config.otherScrollableElement && config.otherScrollableElement.length > 0)
 					{
-						break;
+						for(var count = 0;count < config.otherScrollableElement.length;count++)
+						{
+							var element = config.otherScrollableElement[count];
+							element[item.scroll] = scrollPos;
+						}
 					}
-					row = arrRows[rowCount];
-					this.__resetRow(row,item);
-					indexCount++;
-					rowCount++;
 				}
+				var eventItem = {target:item.scroller,direction:item.displayDirection,oldScrollPos:lastScrollPos,newScrollPos:scrollPos};
+				dispatchEvent(NSScroller.SCROLLING,eventItem,eventItem);
+			}
+			lastScrollPos = scrollPos;
+		};
+		
+		var getCursorPosition = function(item,event)
+		{
+	    	return event["client" + item.x] || ((event.touches || {})[0] || {})["page" + item.x];
+		};
+		
+		var updateScrollBars =  function()
+		{
+			for(var key in props)
+			{
+				var item = props[key];
+				applyStyle(item,true);
+				setScrollElementSize(item);
+				resizeHandler(item);
+				updateScrollPositions(item,true);
+			}
+			updateScrollControls();
+		};
+		
+		var resizeHandler = function(item)
+		{
+			var updatePos = function()
+			{
+				 var offset = item.element[item.crossOffset];
+	             var client = item.element[item.crossClient];
+	             var padding = 0;
+	             var oldPos, newPos;
+	             if (isMacFF) 
+	             {
+	             	padding = macScrollBarSize;
+	             }
+	             else if (client > 0 && offset === 0) 
+	             {
+	             	offset = client + operaMaxScrollBarSize;
+	             }
+	             if (offset) 
+	             {
+	            	 var delta = offset - client + padding;
+	            	 if (item.elementPosition == 'static') 
+	            	 {
+	                     oldPos = util.css(item.element,item.crossSize);
+	                     newPos = parentNode[item.crossClient] + delta + "px";
+	                     if (oldPos != newPos) 
+	                     {
+	                         setCrossSizes(item,item.element, newPos);
+	                     }
+	                 } 
+	            	 else
+	            	 {
+	            		 var styles = {};
+	                     var key = item.rtl ? 'Left' : 'Right';
+	                     if (item.direction == 'h') 
+	                     {
+	                         key = 'Bottom';
+	                     }
+	                     util.css(item.element, styles);
+	            	 }
+	            	 
+	             }
+	             item.resizeLastFire = getCurrentTime();
+			};
+			var container = item["container"];
+			var scroller = item["scroller"];
+			var scrollerSize =  item["scrollerSize"];
+			var barPos = item["barPos"];
+			var minPeriod = (item.resizeDebounce === undefined) ? 300 : item.resizeDebounce;
+		   	var delay = 0;
+		   	if (getCurrentTime() - item.resizeLastFire < minPeriod) 
+		   	{
+	            clearTimeout(item.resizePauseTimer);
+	            delay = minPeriod;
+	        }
+		   	if (delay) 
+		   	{
+		   		item.resizePauseTimer = setTimeout(updatePos, delay);
+	        } 
+		   	else 
+		   	{
+		   		updatePos();
+	        }
+		};
+		
+		var addObserver = function()
+		{
+			var mutationProp = { attributes: false, childList: true, subtree: true};
+			var callback = function(mutationsList, observer) 
+			{
+				for(var count = 0;count < mutationsList.length;count++)
+			    {
+			    	var mutation = mutationsList[count];
+			        if (mutation.type == 'childList') 
+			        {
+			        	updateWithDelay();
+			        }
+			    }
+			};
+			var mutationObserver = new MutationObserver(callback);
+			mutationObserver.observe(config.element,mutationProp);
+		};
+		
+		var updateWithDelay = function()
+		{
+			stopDelayInterval();
+			delayInterval = setInterval(function() {
+				updateScrollBars();
+				stopDelayInterval();
+	        }, 300); 
+		};
+		
+		var stopDelayInterval = function()
+		{
+			if(delayInterval)
+			{
+				clearInterval(delayInterval);
+				delayInterval = null;
+			}
+		};
+		
+		var setCrossSizes = function(item,element,size) 
+		{
+	        var styles = {};
+	        styles[item.crossSize] = size;
+	        styles[item.crossMinSize] = size;
+	        styles[item.crossMaxSize] = size;
+	        util.css(element, styles);
+	    };
+		
+		var getCurrentTime = function()
+		{
+			 return new Date().getTime();
+		};
+		
+		var updateScrollPositions = function(item,isReset,isSetBarPos)
+		{
+			checkScroll(item);
+			var container = item["container"];
+			var scroller = item["scroller"];
+			var scrollerSize =  item["scrollerSize"];
+			var barPos = item["barPos"];
+			var newBarSize = (container[item.client] - item.barTopLimit) *
+			item.element[item.client] / item.element[item.scrollSize];
+			console.log(item.displayDirection + " , " + container[item.client] + " , " + item.barTopLimit  + " , " + item.element[item.client] + " , " + item.element[item.scrollSize]);
+	        // Positioning bar
+	        if (isReset || parseInt(scrollerSize, 10) != parseInt(newBarSize, 10)) 
+	        {
+	            setScrollerSize(item,newBarSize);
+	            item["scrollerSize"] = newBarSize;
+	        }
+	        item["barPos"] = relativeToBarPosition(item,relativePosition(item));
+	        if(isSetBarPos)
+	        {
+	        	setBarPosition(item, item["barPos"]);
+	        }
+		};
+		
+		var setBarPosition = function(item,position)
+		{
+			var scroller = item["scroller"];
+			var sendItem = {deltaX:null,deltaY:null};
+			sendItem["delta" + item.x] = position - parseInt(scroller.style[item.pos]);
+			item.objDrag.setPosition(sendItem.deltaX,sendItem.deltaY);
+			var oldPos = scroller.style[item.pos];
+	        var newPos = position + "px";
+	        if (newPos && newPos != oldPos) 
+	        {
+	        	scroller.style[item.pos] = newPos;
+	        }
+		};
+		
+		var setScrollerSize = function(item,size) 
+		{
+			var scroller = item["scroller"];
+	    	var barMinSize = item.barMinSize || 20;
+	    	var newSize = size;
+	        if (newSize > 0 && newSize < barMinSize) 
+	        {
+	        	newSize = barMinSize;
+	        }
+	        if(scroller) 
+	        {
+	        	scroller.style[item.size] = parseInt(newSize, 10) + "px";
+	        }
+	    };
+	    
+	    var setScrollElementSize = function(item) 
+		{
+	    	var scrollCss = {};
+	    	//console.log(item.displayDirection + " , " + config.element[item.offset] + " , " + config.element[item.scrollSize]);
+	    	scrollCss[item.size] = config.element[item.offset] + "px";
+	    	util.css(item.element,scrollCss);
+	    	var causeCss = {};
+	    	if(util.isUndefinedOrNull(item.inputSize) || parseInt(item.inputSize) <= 0)
+	    	{
+	    		causeCss[item.size] = config.element[item.scrollSize] + "px";
+	    	}
+	    	else
+	    	{
+	    		causeCss[item.size] = parseInt(item.inputSize) + "px";
+	    	}
+	    	util.css(item.scrollableElementCause,causeCss);
+		};
+	    
+	    var relativePosition = function(item,position)
+	    {
+	    	var size = item.element[item.scrollSize] - item.element[item.client];
+	        var newPos;
+	        if(position) 
+	        {
+	        	newPos = scrollableElementPosition(item,position * size);
+	        } 
+	        else 
+	        {
+	        	newPos = scrollableElementPosition(item);
+	        }
+	        return newPos / (size || 1);
+	    };
+	    
+	    var scrollableElementPosition = function(item,x) 
+	    { 
+	        var ie = "page" + item.x + "Offset";
+	        var key = (item.element[ie]) ? ie : item.scroll;
+	        if (!util.isUndefined(x)) 
+	        {
+	        	if(key === item.scroll)
+	        	{
+	        		setScrollableItems(item,x);
+	        	}
+	        	else
+	        	{
+	        		item.element[key] = x;
+	        	}
+	        }
+	        return item.element[key];
+	    };
+	    
+	    var relativeToBarPosition = function(item,pos) 
+	    {
+	        return pos * getPos(item) + item.barTopLimit;
+	    };
+	    
+	    var barPositionToRelative = function(item,pos) 
+	    {
+	        return (pos - item.barTopLimit) / getPos(item);
+	    };
+	    
+	    var getPos = function(item)
+	    {
+	    	return item.container[item.client] - item.barTopLimit - item.scroller[item.offset];
+	    };
+		
+		var addDocumentHandler = function(moveHandler,endHandler)
+		{
+			if(!documentMouseMoveRef)
+			{
+				documentMouseMoveRef = moveHandler;
+				util.addEvent(document.documentElement,"mousemove",documentMouseMoveRef);
+				
+			}
+			if(!documentMouseUpRef)
+			{
+				documentMouseUpRef = endHandler;
+				util.addEvent(document.documentElement,"mouseup",documentMouseUpRef);
+			}
+			if(!documentTouchMoveRef)
+			{
+				documentTouchMoveRef = moveHandler;
+				util.addEvent(document.documentElement,"touchmove",documentTouchMoveRef);
+				
+			}
+			if(!documentTouchEndRef)
+			{
+				documentTouchEndRef = endHandler;
+				util.addEvent(document.documentElement,"touchend",documentTouchEndRef);
+			}
+		};
+		
+		var removeDocumentHandler = function()
+		{
+			if(documentMouseMoveRef)
+			{
+				util.removeEvent(document.documentElement,"mousemove",documentMouseMoveRef);
+				documentMouseMoveRef = null;
+			}
+			if(documentMouseUpRef)
+			{
+				util.removeEvent(document.documentElement,"mouseup",documentMouseUpRef);
+				documentMouseUpRef = null;
+			}
+			if(documentTouchMoveRef)
+			{
+				util.removeEvent(document.documentElement,"touchmove",documentTouchMoveRef);
+				documentTouchMoveRef = null;
+			}
+			if(documentTouchEndRef)
+			{
+				util.removeEvent(document.documentElement,"touchend",documentTouchEndRef);
+				documentTouchEndRef = null;
+			}
+		};
+		
+		var checkScroll = function(item)
+		{
+			var scrollContainer = item["scrollContainer"];
+			var scroller = item["scroller"];
+			var isOverflowing = hasScroll(item);
+			if(isOverflowing)
+			{
+				util.addStyleClass(config.element,"nsScrollerScrollable-" + item.direction);
+				util.removeStyleClass(scrollContainer,"nsScrollerHidden");
 			}
 			else
 			{
-				break;
+				util.removeStyleClass(config.element,"nsScrollerScrollable-" + item.direction);
+				util.addStyleClass(scrollContainer,"nsScrollerHidden");
 			}
-		}
-		for(var rowIndex = rowCount;rowIndex < rowLength;rowIndex++)
+		};
+		
+		var hasScroll = function(item)
 		{
-			row = arrRows[rowIndex];
-			row.style.display = "none";
-			row.setAttribute("ns-index",null);
-			row.setAttribute("ns-level",null);
-			row.setAttribute("ns-parent-index",null);
-		}
-	};
-	
-	NSHierarchicalGrid.prototype.__updateCellText = function(row,cell,item,colItem,rowIndex,colIndex)
-	{
-		if(cell && item && colItem)
+			var isOverflowing = item.element[item.client] < item.element[item.scrollSize];
+			return isOverflowing;
+		};
+		
+		var updateScrollControls = function()
 		{
-			this.util.removeAllChildren(cell);
-			var cellDiv = this.util.createDiv(null);
-			var divText = this.__setBodyCellProperty(row,cell,cellDiv,item,rowIndex,colItem,colIndex,item[this.__nsGrid.__fieldParentIndex],item[this.__nsGrid.__fieldRowLevel]);
-			//this.__nsGrid.__highlightDiv(divText,colIndex);
-			cell.appendChild(cellDiv);
-		}
-	};
-	
-	NSHierarchicalGrid.prototype.__getFlatSource = function()
-	{
-		return this.__nsGrid.__arrFlatHierarchicalSource;
-	};
-	
-	NSHierarchicalGrid.prototype.__isCellEditable = function(objColumn,item,cell,cellIndex,row,rowIndex)
-	{
-		return true;
-	};
-	
-	NSHierarchicalGrid.prototype.__isOnDemandHasChildren = function(item)
-	{
-		return (this.__enableOnDemandHierarchy && item[this.__onDemandChildDetectionField]);
-	};
-	
-	NSHierarchicalGrid.prototype.__handleOnDemandClick = function(item,event)
-	{
-		if(item && this.__isOnDemandHasChildren(item))
-		{
-			if(this.__onDemandChildFetchCallback)
+			var scrollPresent = isBothScrollPresent();
+			for(var key in props)
 			{
-				event = this.util.getEvent(event);
-				var rowLevel = item[this.__nsGrid.__fieldRowLevel];
-				var rowIndex = this.__nsGrid.__getIndexByItem(item);
-				this.__onDemandChildFetchCallback(item,rowIndex,rowLevel,event);
-			}
-		}
-	};
-	/********************************End of Common Functions for Grid ****************************************/
-	NSHierarchicalGrid.prototype.__createRow = function(item,itemIndex)
-	{
-		if(item && item[this.__nsGrid.__fieldRowVisible])
-		{
-			var row = document.createElement("TR");
-			item[this.__nsGrid.__fieldRowHtml] = row;
-			var index = item[this.__nsGrid.__fieldIndex];
-			var level = item[this.__nsGrid.__fieldRowLevel];
-			var parentIndex = item[this.__nsGrid.__fieldParentIndex];
-			row.setAttribute("ns-index",index);
-			row.setAttribute("ns-level",level);
-			if(item[this.__nsGrid.__fieldHasParent])
-		    {
-				row.setAttribute("ns-parent-index",parentIndex);
-		    }
-			this.__nsGrid.__setBodyRowProperty(row,item,index);
-			this.__nsGrid.__applyCustomClass(row,"bodyRow");
-			var colLength = this.__nsGrid.__columns.length;
-			for (var colIndex = 0; colIndex < colLength; colIndex++)
-		    {
-				var colItem = this.__nsGrid.__columns[colIndex];
-				var cell =  this.__nsGrid.__createBodyRowCell(row,colIndex,true);
-	            var cellDiv = cell.firstChild;
-	            var divText = this.__setBodyCellProperty(row,cell,cellDiv,item,index,colItem,colIndex,parentIndex,level);
-	            //this.__nsGrid.__highlightDiv(divText,colIndex);
-	            cell.appendChild(cellDiv);
-	            this.__nsGrid.__setBodyCellProperties.bind(this.__nsGrid)(cell);
-		    }
-			var addRow = true;
-			if(!this.util.isUndefinedOrNull(itemIndex) && itemIndex > 0 && this.__nsGrid.__tblCenterBodyBody.children 
-					&& this.__nsGrid.__tblCenterBodyBody.children.length >= itemIndex)
-			{
-				var prevRow = this.__nsGrid.__tblCenterBodyBody.children[itemIndex - 1]; //this.__nsGrid.__getRowByIndex(itemIndex);
-				if(prevRow)
+				var item = props[key];
+				var scrollContainer = item["scrollContainer"];
+				var container = item["container"];
+				var scroller = item["scroller"];
+				if(scrollPresent)
 				{
-					this.__nsGrid.__tblCenterBodyBody.insertBefore(row,prevRow);
-					addRow = false;
+					util.addStyleClass(scrollContainer,item.containerCSS + "-both");
+					util.addStyleClass(scrollContainer,"nsScrollerBarParent" + "-" + item.direction + "-both");
+					if(item.buttonAfter)
+					{
+						util.addStyleClass(item.buttonAfter,item.afterButtonCSS + "-both");
+					}
+				}
+				else
+				{
+					util.removeStyleClass(scrollContainer,item.containerCSS + "-both");
+					util.removeStyleClass(scrollContainer,"nsScrollerBarParent" + "-" + item.direction + "-both");
+					if(item.buttonAfter)
+					{
+						util.removeStyleClass(item.buttonAfter,item.afterButtonCSS + "-both");
+					}
 				}
 			}
-			if(addRow)
+			if(scrollPresent)
 			{
-				this.__nsGrid.__tblCenterBodyBody.appendChild(row);
-			}
-			this.__nsGrid.__createFixedBodyRow(row);
-		}
-	};
-	
-	NSHierarchicalGrid.prototype.__updateRow = function(row,item)
-	{
-		if(row && item)
-		{
-			var index = item[this.__nsGrid.__fieldIndex];
-			var level = item[this.__nsGrid.__fieldRowLevel];
-			var parentIndex = item[this.__nsGrid.__fieldParentIndex];
-			row.setAttribute("ns-index",index);
-			row.setAttribute("ns-level",level);
-			if(item[this.__nsGrid.__fieldHasParent])
-		    {
-				row.setAttribute("ns-parent-index",parentIndex);
-		    }
-			else
-			{
-				row.setAttribute("ns-parent-index",null);
-			}
-			if(item[this.__nsGrid.__fieldSelected])
-			{
-				this.util.addStyleClass(row,this.__nsGrid.__CLASS_SELECTED_ROW);
+				util.removeStyleClass(divScrollBarCorner,"nsScrollerHidden");
 			}
 			else
 			{
-				this.util.removeStyleClass(row,this.__nsGrid.__CLASS_SELECTED_ROW);
+				util.addStyleClass(divScrollBarCorner,"nsScrollerHidden");
 			}
-			var cells = row.cells;
-			for (var colIndex = 0; colIndex < this.__nsGrid.__columns.length; colIndex++)
-	        {
-				var cell = cells[colIndex];
-				var colItem = this.__nsGrid.__columns[colIndex];
-				this.__updateCellText(row,cell,item,colItem,index,colIndex);
-	        }
-		}
-	};
-	
-	NSHierarchicalGrid.prototype.__setRowItemProperty = function(item,parentIndex,level,setFieldIndex,setIsCollapsed,setItemVisible)
-	{
-		if(item)
+		};
+		
+		var isBothScrollPresent = function()
 		{
-			var totalRowCount = this.__rowCounter;
-			if(setFieldIndex || this.util.isUndefinedOrNull(item[this.__nsGrid.__fieldIndex]))
+			var arrScrollContainer = config.parentElement.querySelectorAll(".nsScrollerContainer");
+			var retValue = true;
+			for(var count = 0;count < arrScrollContainer.length;count++)
 			{
-				item[this.__nsGrid.__fieldIndex] = totalRowCount;
+				var scrollContainer = arrScrollContainer[count];
+				if(util.hasStyleClass(scrollContainer,"nsScrollerHidden"))
+				{
+					retValue = false;
+				}
 			}
-			item[this.__nsGrid.__fieldVisibleIndex] = totalRowCount;
-			item[this.__nsGrid.__fieldRowLevel] = level;
-			var hasChild = false;
-			if((item[this.__nsGrid.__childField] && item[this.__nsGrid.__childField].length > 0)  || (this.__isOnDemandHasChildren(item)))
-		    {
-		    	hasChild = true;
-		    	this.__setWrapperSource(item[this.__nsGrid.__childField],0,totalRowCount,level + 1,setFieldIndex,setIsCollapsed,setItemVisible);
-		    }
-			item[this.__nsGrid.__fieldParentIndex] = parentIndex;
-			if(parentIndex > -1)
-		    {
-				item[this.__nsGrid.__fieldHasParent] = true;
-		    }
-			else
-			{
-				item[this.__nsGrid.__fieldHasParent] = false;
-			}
-			item[this.__nsGrid.__fieldHasChild] = hasChild;
-			if(setItemVisible || this.util.isUndefinedOrNull(item[this.__nsGrid.__fieldRowVisible]))
-			{
-				item[this.__nsGrid.__fieldRowVisible] = true;
-			}
-			if(setIsCollapsed || this.util.isUndefinedOrNull(item[this.__nsGrid.__fieldIsCollapsed]))
-			{
-				item[this.__nsGrid.__fieldIsCollapsed] = this.__isOnDemandHasChildren(item);
-			}
-		}
-	};
-	
-	
-	NSHierarchicalGrid.prototype.__setBodyCellProperty = function(row,cell,cellDiv,item,currentIndex,colItem,colIndex,parentIndex,level)
-	{
-		var hierarchicalPadding = 0;
-		var divText = null;
-		if(colItem && colItem.hasOwnProperty("dataField") && colItem["dataField"])
+			return retValue;
+		};
+		
+		var remove = function()
 		{
-	        if(colIndex == 0 && ((item[this.__nsGrid.__childField]  && item[this.__nsGrid.__childField].length > 0) || (this.__isOnDemandHasChildren(item))))
-	        {
-	        	this.util.addStyleClass(cellDiv,this.__nsGrid.__CLASS_GROUP_CELL);
-	        	this.__nsGrid.__createArrow(item,currentIndex,cellDiv,item[this.__nsGrid.__fieldIsCollapsed]);
-	        	var cellText = this.util.createDiv(null,this.__nsGrid.__CLASS_CELL_CHILD);
-	        	cellText.style.verticalAlign = "top";
-	        	divText = cellText;
-	        	if(this.__nsGrid.__renderInCachedMode)
-	        	{
-	        		var arrCellsText = item[this.__nsGrid.__fieldCellText];
-	        		cellText.innerHTML = arrCellsText[colIndex].outerHTML;
-	        	}
-	        	else
-	        	{
-	        		this.__nsGrid.__addCellText(row,item,cellText,colItem,colIndex);
-	        	}
-	        	this.util.addStyleClass(cellText,"nsGroupCellText");
-	        	cellDiv.appendChild(cellText);
-	        }
-	        else
-	        {
-	        	this.util.addStyleClass(cellDiv,this.__nsGrid.__CLASS_CELL_CHILD);
-	        	if(this.__nsGrid.__renderInCachedMode)
-	        	{
-	        		var arrCellsText = item[this.__nsGrid.__fieldCellText];
-	        		cellDiv.innerHTML = arrCellsText[colIndex].outerHTML;
-	        	}
-	        	else
-	        	{
-	        		this.__nsGrid.__addCellText(row,item,cellDiv,colItem,colIndex);
-	        	}
-	        	divText = cellDiv;
-	        	//24 = 16(Arrow Width) + 6(Arrow Parent Padding) + 2(cellDiv horizontalGap between elements shown in debugger)
-	        	hierarchicalPadding = 24;
-	        }
-	        if(colIndex == 0)
-	        {
-	        	if(level === 0 || !this.__nsGrid.__showExpandCollapseIcon)
-	        	{
-	        		cell.style.paddingLeft = "1px";
-	        	}
-	        	else
-	        	{
-	        		var paddingLeft = (10 * level) + hierarchicalPadding;
-	        		cell.style.paddingLeft = paddingLeft + "px";
-	        	}
-	        }
-		}
-		this.__nsGrid.__addPriorityClassInCell(cell,colItem);
-		return divText;
-	};
-	
-	NSHierarchicalGrid.prototype.__createArrow = function(compArrow,objSVG,arrowID,isCollapsed)
-	{
-		 var svg = objSVG.addSVG(compArrow,arrowID + "svg",this.__CLASS_ARROW,null,null,null,null,null,null,true);
-		 this.util.addStyleClass(svg,this.__CLASS_ARROW + "Theme");
-		 if(isCollapsed)
-		 {
-			 objSVG.addUse(svg,arrowID + "use",null,"#svgArrowRight");
-		 }
-		 else
-		 {
-			 objSVG.addUse(svg,arrowID + "use",null,"#svgArrowDown");
-		 }
-	};
-	
-	NSHierarchicalGrid.prototype.__setArrowDirection = function(objSVG,useID,isCollapsed)
-	{
-		if(isCollapsed)
+			removeDocumentHandler();
+			util.removeEvent(window,"resize",updateWithDelay);
+			clearScroll();
+			if(mutationObserver)
+			{
+				mutationObserver.disconnect();
+			}
+		};
+		
+		var dispatchEvent = function(eventType,data,param,bubbles,cancelable)
 		{
-			objSVG.changeUseHref(useID,"#svgArrowRight");
-		}
-		else
+			util.dispatchEvent(config.element,eventType,data,param,bubbles,cancelable);
+		};
+		
+		var nsScrollerDraggable = function(setting)
 		{
-			objSVG.changeUseHref(useID,"#svgArrowDown");
-		}
+			var self = this;
+			var util = null;
+			var config = {};
+			var objVar = {};
+			var documentMouseMoveRef = null;
+			var documentMouseUpRef = null;
+			var documentTouchMoveRef = null;
+			var documentTouchEndRef = null;
+			
+			var initialize = function()
+			{
+				util = new NSUtil();
+				if(!setting)
+				{
+					setting = {};
+				}
+				config = {
+						element: setting["element"],
+						restriction: setting["restriction"],
+						enableXAxis: util.isUndefinedOrNull(setting["enableXAxis"]) ? true : Boolean.parse(setting["enableXAxis"]),
+						enableYAxis: util.isUndefinedOrNull(setting["enableYAxis"]) ? true : Boolean.parse(setting["enableYAxis"]),
+						xBoundaryElement: setting["xBoundaryElement"],
+						yBoundaryElement: setting["yBoundaryElement"],
+						context: setting["context"] || window,
+						document: setting["document"] || document,
+						body: setting["body"] || document.body,
+				};
+				if(!config.element)
+				{
+					util.throwNSError("NSScrollerDraggable","Element in setting is missing");
+				}
+				config.dragStartingCallback = util.getFunction(setting["dragStartingCallback"],config.context);
+				config.draggingCallback = util.getFunction(setting["draggingCallback"],config.context);
+				config.dragEndCallback = util.getFunction(setting["dragEndCallback"],config.context);
+				
+				if(config.restriction == "parent")
+				{
+					config.xBoundaryElement = config.element.parentNode;
+					config.yBoundaryElement = config.element.parentNode;
+				}
+				var position = util.getStyleValue(config.element,"position",true);
+				if(position != "relative" && position != "absolute")
+				{
+					config.element.style.position = "relative";
+				}
+				config.element.style.top = "0px";
+				config.element.style.left = "0px";
+				util.addEvent(config.element,"mousedown",elementMouseDownHandler);
+			};
+			
+			var elementMouseDownHandler = function(event)
+			{
+				event = util.getEvent(event);
+				objVar.dragging = true;
+				var rect = config.element.getBoundingClientRect();
+				objVar.initX = event.clientX - rect.left;
+				objVar.initY = event.clientY - rect.top;
+
+				objVar.initLeft = config.element.style.left;
+				objVar.initTop = config.element.style.top;
+				selection(false);
+				addDocumentHandler();
+				if(config.dragStartingCallback)
+				{
+					config.dragStartingCallback(event,config.element);
+				}
+			};
+			
+			var windowMouseMoveHandler = function(event)
+			{
+				if(objVar.dragging)
+				{
+					event = util.getEvent(event);
+					var rect = config.element.getBoundingClientRect();
+					var deltaX = event.clientX - (objVar.initX + rect.left);
+					var deltaY = event.clientY - (objVar.initY + rect.top);
+					setElementPos(deltaX,deltaY);
+					if(config.draggingCallback)
+					{
+						config.draggingCallback(event,config.element);
+					}
+				}
+			};
+			
+			var windowMouseUpHandler = function(event)
+			{
+				if (objVar.dragging) 
+				{
+					event = util.getEvent(event);
+					complete(event);
+					release();
+				}
+				removeDocumentHandler();
+			};
+			
+			var windowKeyDownHandler = function(event)
+			{
+				event = util.getEvent(event);
+				if (event.key === "Escape" && objVar.dragging) 
+				{
+					cancel();
+					release();
+				}
+			};
+			
+			var setElementPos = function(deltaX,deltaY)
+			{
+				var rect = config.element.getBoundingClientRect();
+				if (config.enableXAxis) 
+				{
+					var newLeft = parseInt(config.element.style.left) + deltaX;
+					if (config.xBoundaryElement) 
+					{
+						var boundaryRect = config.xBoundaryElement.getBoundingClientRect();
+						var dragDestination = rect.left + deltaX;
+						var notPastLeft = dragDestination >= boundaryRect.left;
+						var notPastRight = dragDestination <= (boundaryRect.right - rect.width);
+						
+						if (notPastLeft && notPastRight) 
+						{
+							config.element.style.left = newLeft + "px";
+						} 
+						else if (!notPastLeft) 
+						{
+							config.element.style.left = newLeft - (dragDestination - boundaryRect.left) + "px";
+						} 
+						else if (!notPastRight) 
+						{
+							config.element.style.left = newLeft - (dragDestination - boundaryRect.right + rect.width) + "px";
+						}
+					}
+					else 
+					{
+						config.element.style.left = newLeft + "px";
+					}
+				}
+				if (config.enableYAxis) 
+				{
+					var newTop = parseInt(config.element.style.top) + deltaY;
+					if (config.yBoundaryElement) 
+					{
+						var boundaryRect = config.yBoundaryElement.getBoundingClientRect();
+						var dragDestination = rect.top + deltaY;
+						var notPastTop = dragDestination >= boundaryRect.top;
+						var notPastBottom = dragDestination <= (boundaryRect.bottom - rect.height);
+
+						if (notPastTop && notPastBottom) 
+						{
+							config.element.style.top = newTop + "px";
+						} 
+						else if (!notPastTop) 
+						{
+							config.element.style.top = newTop - (dragDestination - boundaryRect.top) + "px";
+						} 
+						else if (!notPastBottom) 
+						{
+							config.element.style.top = newTop - (dragDestination - boundaryRect.bottom + rect.height) + "px";
+						}
+					} 
+					else 
+					{
+						config.element.style.top = newTop + "px";
+					}
+				}
+			};
+			
+			var selection = function(enable)
+			{
+				var setProp = function(value)
+				{
+					config.body.style.userSelect = value;
+					config.body.style.webkitUserSelect = value;
+					config.body.style.mozUserSelect = value;
+					config.body.style.msUserSelect = value;
+				};
+				if(enable)
+				{
+					util.removeEvent(config.document,"selectpos",disableSelectionHandler);
+					util.removeEvent(config.document,"selectstart",disableSelectionHandler);
+					setProp("");
+				}
+				else
+				{
+					util.addEvent(config.document,"selectpos",disableSelectionHandler);
+					util.addEvent(config.document,"selectstart",disableSelectionHandler);	
+					setProp("none");
+				}
+			};
+			
+			var disableSelectionHandler = function(event)
+			{
+				event = util.getEvent(event);
+				event.preventDefault();
+			};
+			
+			var addDocumentHandler = function()
+			{
+				if(!documentMouseMoveRef)
+				{
+					documentMouseMoveRef = windowMouseMoveHandler;
+					util.addEvent(config.context,"mousemove",documentMouseMoveRef);
+					
+				}
+				if(!documentMouseUpRef)
+				{
+					documentMouseUpRef = windowMouseUpHandler;
+					util.addEvent(config.context,"mouseup",documentMouseUpRef);
+				}
+				if(!documentTouchMoveRef)
+				{
+					documentTouchMoveRef = windowMouseMoveHandler;
+					util.addEvent(config.context,"touchmove",documentTouchMoveRef);
+					
+				}
+				if(!documentTouchEndRef)
+				{
+					documentTouchEndRef = windowMouseUpHandler;
+					util.addEvent(config.context,"touchend",documentTouchEndRef);
+				}
+			};
+			
+			var removeDocumentHandler = function()
+			{
+				if(documentMouseMoveRef)
+				{
+					util.removeEvent(config.context,"mousemove",documentMouseMoveRef);
+					documentMouseMoveRef = null;
+				}
+				if(documentMouseUpRef)
+				{
+					util.removeEvent(config.context,"mouseup",documentMouseUpRef);
+					documentMouseUpRef = null;
+				}
+				if(documentTouchMoveRef)
+				{
+					util.removeEvent(config.context,"touchmove",documentTouchMoveRef);
+					documentTouchMoveRef = null;
+				}
+				if(documentTouchEndRef)
+				{
+					util.removeEvent(config.context,"touchend",documentTouchEndRef);
+					documentTouchEndRef = null;
+				}
+			};
+			
+			var release = function()
+			{
+				selection(true);
+				objVar = {};
+			};
+			
+			var complete = function(event) 
+			{
+				if(config.dragEndCallback)
+				{
+					config.dragEndCallback(event,config.element);
+				}
+			};
+
+			var cancel = function() 
+			{
+				config.element.style.left = objVar.initLeft;
+				config.element.style.top = objVar.initTop;
+			};
+			
+			var remove = function()
+			{
+				util.removeEvent(config.element,"mousedown",elementMouseDownHandler);
+				removeDocumentHandler();
+			};
+			
+			var setPosition = function(deltaX,deltaY)
+			{
+				setElementPos(deltaX,deltaY);
+			};
+			
+			self.setPosition = setPosition;
+			self.remove = remove;
+			
+			initialize();
+		};
+		
+		self.setScrollWidth = setScrollWidth;
+		self.setScrollHeight = setScrollHeight;
+		self.setScrollTop = setScrollTop;
+		self.getScrollTop = getScrollTop;
+		self.setScrollLeft = setScrollLeft;
+		self.getScrollLeft = getScrollLeft;
+		self.getVerticalScrollHeight = getVerticalScrollHeight;
+		self.getHorizontalScrollWidth = getHorizontalScrollWidth;
+		self.hasHorizontalScroller = hasHorizontalScroller;
+		self.hasVerticalScroller = hasVerticalScroller;
+		self.getHorizontalScroller = getHorizontalScroller;
+		self.getVerticalScroller = getVerticalScroller;
+		self.getHorizontalBar = getHorizontalBar;
+		self.getVertcialBar = getVertcialBar;
+		self.remove = remove;
+		
+		NSScroller.SCROLL_START = "scrollStart";
+		NSScroller.SCROLLING = "scrolling";
+		NSScroller.SCROLL_END = "scrollEnd";
+		
+		initialize();
 	};
 	
-	NSHierarchicalGrid.prototype.__resetRow = function(row,item)
-	{
-		var index = item[this.__nsGrid.__fieldIndex];
-		row.style.display = "";
-		row.setAttribute("ns-index",index);
-		item[this.__nsGrid.__fieldRowHtml] = row;
-		this.__updateRow(row,item);
-	};
-	
-	NSHierarchicalGrid.prototype.__addRowsforScrollPagination = function(fromRecord,toRecord,pageSize)
-	{
-		console.log("In __addRowsforScrollPagination " + fromRecord + "," + toRecord + "," + pageSize);
-		var arrArray = this.__nsGrid.__arrFlatHierarchicalSource.slice(fromRecord,toRecord + 1); 
-		this.__nsGrid.__addRemoveRowCallInternal = true;
-		this.__nsGrid.addRows(arrArray);
-	};
-	
-	NSHierarchicalGrid.prototype.__addRowsforPagePagination = function(fromRecord,toRecord,pageSize)
-	{
-		//slice returns index range from fromRecord to toRecord - 1 hence adding 1 
-		//this.__nsGrid.__arrInternalSource = this.__nsGrid.__arrWrapper.slice(fromRecord,toRecord + 1);
-		this.__nsGrid.__resetDataInBody(fromRecord,toRecord);
-	};
-	
-	return NSHierarchicalGrid;
+	return NSScroller;
 })();
-nsModuleExport(this,"NSHierarchicalGrid",NSHierarchicalGrid);
+nsModuleExport(this,"NSScroller",NSScroller);
