@@ -1,1 +1,3173 @@
+		this.__setVirtualScroll_ScrollTop(0);
+var scrollPos = eventItem.scrollPos;
+this.__scroller.setScrollTop(scrollTop);
 
+function NSList(component,setting) 
+	{
+		//this.base.call(this);
+		this.ITEM_SELECTED = "itemSelected";
+		this.ITEM_UNSELECTED = "itemUnselected";
+		this.ITEM_NAVIGATED = "itemNavigated";
+		this.NAVIGATION_UP = "up";
+		this.NAVIGATION_DOWN = "down";
+		this.ITEM_DROPPING = "itemDropping";
+		this.ITEM_DROPPED = "itemDropped";
+		this.DRAG_STARTED = "dragStarted";
+		this.DRAGGING = "dragging";
+		this.DRAG_END = "dragEnd";
+		
+		this.__setting = setting;
+		this.__dataSource = null;
+		this.__labelField = "label";
+		this.__itemRenderer = null;
+		this.__templateID = null;
+		this.__setData = null;
+		this.__labelFunction = null;
+		this.__enableHierarchical = false;
+		this.__enableMouseHover = false;
+		this.__enableMouseHoverAnimation = false;
+		this.__disableHoverField = null;
+		this.__disableHoverFunction = null;
+		this.__enableKeyboardNavigation = false;
+		this.__enableMultipleSelection = false;
+		this.__enableCustomScrollBar = false;
+		this.__enableVirtualScroll = false;
+		this.__isDraggable = true;
+		this.__isDroppable = true;
+		this.__enableDragByHandle = false;
+		this.__dragHandlerClass = null;
+		this.__enableDragAfterHold = false;
+		this.__holdTime = 500;
+		this.__enableCloneMode = false;
+		this.__rowHeight = -1;
+		this.__noDataMessage = "No matching records found";
+		this.__enableContextMenu = false;
+		this.__enableVariableRowHeight = false;
+		this.__contextMenuProvider = null;
+		this.__contextMenuSetting = null;
+		this.__enableTruncateToFit = false;
+		this.__toolTipField = null;
+		this.__enableToolTipForTruncateText = false;
+		this.__toolTipRenderer = null;
+		
+		this.__arrWrapper = null;
+		this.__arrInternalSource = null;
+		this.__arrFlatHierarchicalSource = [];
+		
+		this.__divOuterContainer = null;
+		this.__divParentContainer = null;
+		this.__listContainer = null;
+		this.__scroller = null;
+		this.__scrollerSetting = {};
+		this.__customScrollBarSetting = {};
+		this.__customScrollBarTooltip = null;
+		
+		this.__template = null;
+		this.__currentIndex = -1;
+		this.__selectedIndex = -1;
+		this.__navigationIndex = -1;
+		this.__selectedItem = null;
+		this.__selectedItems = [];	
+		this.__selectedIndexes = [];
+		this.__lastNavigationDirection = null;
+		this.__orignalItemKey = [];
+		//for keyboard navigation
+		this.__pageSize = 0;
+		this.__scrollTarget = null;
+		this.__startArrayElement = -1;
+		this.__listItemHeight = 0;
+		//for Virtual Scroll
+		this.__virtualRowHeight = 0;
+		this.__rowCount = 0;
+		this.__scrollOffsetPosition = 0;
+		this.__lastScrollPosition = 0;
+		this.__divVirtualScrollParent = null;
+		this.__divVirtualScroller = null;
+		
+		this.__childField = "children";
+		this.__CLASS_GROUP_CELL = "nsListGroupCell";
+		this.__CLASS_CELL_CHILD = "nsListCellChild";
+		
+		//removing this.getID() as prefix as move functionality from one list to another would have different fields.
+		this.__fieldPrefix = "ns_field";
+		this.__fieldIndex =  this.__fieldPrefix + "_item_index";
+		this.__fieldVisibleIndex = this.__fieldPrefix + "_item_visible_index";
+		this.__fieldItem = this.__fieldPrefix + "_item";
+		this.__fieldDisableHover = this.__fieldPrefix + "_disableHover";
+		this.__fieldSelected = this.__fieldPrefix + "_selected";
+		this.__fieldHover = this.__fieldPrefix + "_hover";
+		
+		this.__fieldItemLevel = this.__fieldPrefix + "_item_level";
+		this.__fieldItemVisible = this.__fieldPrefix + "_item_visible";
+		this.__fieldParentIndex = this.__fieldPrefix + "_parent_index";
+		this.__fieldHasChild = this.__fieldPrefix + "_item_hasChild";
+		this.__fieldHasParent = this.__fieldPrefix + "_item_hasParent";
+		this.__fieldIsCollapsed = this.__fieldPrefix + "_item_isCollapsed";
+		this.__fieldItemArrow = this.__fieldPrefix + "_item_arrow";
+		
+		this.__isShiftPressed = false;
+		this.__isCtrlPressed = false;
+		
+		this.__objGrid = null;
+		this.__nsListFilter = null;
+		this.__nsListDragDrop = null;
+		this.__nsToolTipInElement = null;
+		
+		this.__keyDownRef = null;
+		this.__keyUpRef = null;
+		this.base.__setBaseComponent.call(this,component);
+	};
+	nsExtendPrototype(NSContainerBase,NSList);
+	NSList.prototype.constructor = NSList;
+	
+	NSList.prototype.initializeComponent = function() 
+	{
+		this.base.initializeComponent.call(this);
+		this.__setSetting();
+		this.__initializePluggins();
+	};
+	
+	NSList.prototype.setComponentProperties = function() 
+	{
+		this.base.setComponentProperties.call(this);
+		this.__objGrid.__addSVGInPage();
+		this.__setTemplate();
+		this.__objGrid.__initialize();
+		this.__addListenerForBody();
+		if(this.__dataSource)
+		{
+			this.dataSource(this.__dataSource);
+		}
+		if(!window["nsListMap"])
+		{
+			window["nsListMap"] = {};
+		}
+		window["nsListMap"][this.getID()] = this;
+	};
+	
+	NSList.prototype.propertyChange = function(attrName, oldVal, newVal, setProperty)
+	{
+		var attributeName = attrName.toLowerCase();
+		this.base.propertyChange.call(this,attrName, oldVal, newVal, setProperty);
+	};
+	
+	NSList.prototype.removeComponent = function() 
+	{
+		if(this.__keyDownRef)
+		{
+			this.util.removeEvent(document,"keydown",this.__keyDownRef);
+			this.__keyDownRef = null;
+		}
+		if(this.__keyUpRef)
+		{
+			this.util.removeEvent(document,"keyup",this.__keyUpRef);
+			this.__keyUpRef = null;
+		}
+		if(this.__scroller)
+		{
+			this.__scroller.__destroyElements();
+			this.__scroller = null;
+		}
+		this.base.removeComponent.call(this);
+	};
+	
+	NSList.prototype.componentResized = function(event) 
+	{
+		this.base.componentResized.call(this,event);
+	};
+	
+	NSList.prototype.expandAll = function()
+	{
+		if(this.__enableHierarchical)
+		{
+			this.__expandCollapseAll(false);
+		}
+	};
+	
+	NSList.prototype.collapseAll = function()
+	{
+		if(this.__enableHierarchical)
+		{
+			this.__expandCollapseAll(true);
+		}
+	};
+	
+	NSList.prototype.setContextMenuSetting = function(contextMenuSetting)
+	{
+		this.__contextMenuSetting = contextMenuSetting;
+	};
+	
+	NSList.prototype.__setSetting = function()
+	{
+		var setting = this.__setting;
+		if(setting)
+		{
+			if(setting.hasOwnProperty("enableHierarchical"))
+			{
+				this.__enableHierarchical = Boolean.parse(setting["enableHierarchical"]);
+			}
+			if(setting.hasOwnProperty("enableVirtualScroll"))
+			{
+				this.__enableVirtualScroll = Boolean.parse(setting["enableVirtualScroll"]);
+			}
+			if(setting.hasOwnProperty("enableDragDrop"))
+			{
+				if(!this.__enableVirtualScroll)
+				{
+					this.__enableDragDrop = Boolean.parse(setting["enableDragDrop"]);
+				}
+			}
+			if(setting.hasOwnProperty("isDraggable"))
+			{
+				this.__isDraggable = Boolean.parse(setting["isDraggable"]);
+			}
+			if(setting.hasOwnProperty("isDroppable"))
+			{
+				this.__isDroppable = Boolean.parse(setting["isDroppable"]);
+			}
+			if(setting.hasOwnProperty("enableDragByHandle"))
+			{
+				this.__enableDragByHandle = Boolean.parse(setting["enableDragByHandle"]);
+			}
+			if(setting.hasOwnProperty("dragHandlerClass"))
+			{
+				this.__dragHandlerClass = setting["dragHandlerClass"];
+			}
+			if(setting.hasOwnProperty("enableDragAfterHold"))
+			{
+				this.__enableDragAfterHold = Boolean.parse(setting["enableDragAfterHold"]);
+			}
+			if(setting.hasOwnProperty("holdTime"))
+			{
+				this.__holdTime = parseInt(setting["holdTime"]);
+			}
+			if(setting.hasOwnProperty("enableCloneMode"))
+			{
+				this.__enableCloneMode = Boolean.parse(setting["enableCloneMode"]);
+			}
+			if(setting.hasOwnProperty("labelField"))
+			{
+				this.__labelField = setting["labelField"];
+			}
+			if(setting.hasOwnProperty("itemRenderer"))
+			{
+				this.__itemRenderer = setting["itemRenderer"];
+				this.__itemRenderer = this.util.getFunction(this.__itemRenderer);
+			}
+			if(setting.hasOwnProperty("template"))
+			{
+				this.__templateID = setting["template"];
+			}
+			if(setting.hasOwnProperty("setData"))
+			{
+				this.__setData = setting["setData"];
+			}
+			if(setting.hasOwnProperty("labelFunction"))
+			{
+				this.__labelFunction = setting["labelFunction"];
+				this.__labelFunction = this.util.getFunction(this.__labelFunction);
+			}
+			if(setting.hasOwnProperty("enableMultipleSelection"))
+			{
+				this.__enableMultipleSelection =  Boolean.parse(setting["enableMultipleSelection"]);
+			}
+			if(setting.hasOwnProperty("enableCustomScrollBar"))
+			{
+				this.__enableCustomScrollBar =  Boolean.parse(setting["enableCustomScrollBar"]);
+			}
+			if(setting.hasOwnProperty("enableKeyboardNavigation"))
+			{
+				this.__enableKeyboardNavigation =  Boolean.parse(setting["enableKeyboardNavigation"]);
+			}
+			if(setting.hasOwnProperty("enableMouseHover"))
+			{
+				this.__enableMouseHover =  Boolean.parse(setting["enableMouseHover"]);
+			}
+			if(setting.hasOwnProperty("enableMouseHoverAnimation"))
+			{
+				this.__enableMouseHoverAnimation =  Boolean.parse(setting["enableMouseHoverAnimation"]);
+			}
+			if(setting.hasOwnProperty("disableHoverField"))
+			{
+				this.__disableHoverField = setting["disableHoverField"];
+			}
+			if(setting.hasOwnProperty("disableHoverFunction"))
+			{
+				this.__disableHoverFunction = setting["disableHoverFunction"];
+				this.__disableHoverFunction = this.util.getFunction(this.__disableHoverFunction);
+			}
+			if(setting.hasOwnProperty("rowHeight"))
+			{
+				this.__rowHeight =  parseInt(setting["rowHeight"]);
+			}
+			if(setting.hasOwnProperty("noDataMessage"))
+			{
+				this.__noDataMessage = setting["noDataMessage"];
+			}
+			if(setting.hasOwnProperty("dataSource"))
+			{
+				this.__dataSource = setting["dataSource"];
+			}
+			if(setting.hasOwnProperty("childField"))
+			{
+				this.__childField = setting["childField"];
+			}
+			if(setting.hasOwnProperty("enableContextMenu"))
+			{
+				this.__enableContextMenu = Boolean.parse(setting["enableContextMenu"]);
+			}
+			if(setting.hasOwnProperty("contextMenuProvider"))
+			{
+				this.__contextMenuProvider =  setting["contextMenuProvider"];
+				this.__contextMenuProvider = this.util.getFunction(this.__contextMenuProvider);
+			}
+			if(setting.hasOwnProperty("enableVariableRowHeight"))
+			{
+				this.__enableVariableRowHeight =  Boolean.parse(setting["enableVariableRowHeight"]);
+			}
+			if(setting.hasOwnProperty("customScrollBarSetting"))
+			{
+				this.__customScrollBarSetting =  setting["customScrollBarSetting"];
+			}
+			else
+			{
+				this.__customScrollBarSetting = {enableTooltip: false,toolTipLabelFunction: null,verticalScrollButtons: {enable: false},horizontalScrollButtons:{enable: false}};
+			}
+		}
+	};
+	
+	NSList.prototype.dataSource = function(source)
+	{
+		this.__dataSource = source;
+		if(this.__listContainer)
+		{
+			this.util.removeAllChildren(this.__listContainer);
+		}
+		else
+		{
+			this.__createStructure();
+		}
+		if(this.__dataSource && this.__dataSource.length > 0)
+		{
+			this.__orignalItemKey = Object.keys(this.__dataSource[0]);
+			this.__objGrid.dataSource();
+		}
+		else
+		{
+			this.__arrWrapper = [];
+			this.__arrInternalSource = [];
+			this.__updateTotalRecords(0);
+		}
+		/*if(this.__enableVirtualScroll)
+		{
+			//this.__updateItemsForVirtualMode();
+		}*/
+		this.__renderBody();
+		/*if(!this.__scroller)
+		{
+			this.__scrollTarget = this.__divOuterContainer;
+			if(this.__enableCustomScrollBar)
+			{
+				this.__divOuterContainer.style.overflow = "hidden";
+				this.__scroller = new NSScroller(this.__parentContainer);
+				this.__scrollTarget = this.__scroller.getChildContainer();
+			}
+		}*/
+	};
+	
+	NSList.prototype.getOrignalItem = function(item)
+	{
+		if(item && this.__orignalItemKey && this.__orignalItemKey.length > 0)
+		{
+			var retItem = {};
+			var key = null;
+			for(var count = 0;count < this.__orignalItemKey.length;count++)
+			{
+				key = this.__orignalItemKey[count];
+				retItem[key] = item[key];
+			}
+			return retItem;
+		}
+		return item;
+	};
+	
+	NSList.prototype.addItems = function(arrItem)
+	{
+		this.__addItem(arrItem);
+	};
+	
+	NSList.prototype.addItemsAsChildren = function(item,arrChildren)
+	{
+		this.__objGrid.addItemsAsChildren(item,arrChildren);
+	};
+	
+	NSList.prototype.removeItems = function(arrObject)
+	{
+		if(arrObject && arrObject.length > 0)
+		{
+			var arrIndex = [];
+			if(this.util.isNumber(arrObject[0]))
+			{
+				arrIndex = arrObject;
+			}
+			else
+			{
+				for (var count = 0;count < arrObject.length;count++)
+			    {
+					var item = arrObject[count];
+					if(item && item[this.__fieldIndex])
+					{
+						arrIndex.push(item[this.__fieldIndex]);
+					}
+			    }
+			}
+			arrIndex.sort();
+	   	 	for (var rowIndex = arrIndex.length - 1; rowIndex >= 0; rowIndex--)
+		    {
+	   	 		var index = arrIndex[rowIndex];
+	   	 		if(index > 0 && index < this.__arrInternalSource.length)
+	   	 		{
+		   	 		//if virtual scroll or Pagination of type Page is enabled then do not remove rows
+		   	 		if(!this.__enableVirtualScroll)
+		   	 		{
+		   	 			this.__listContainer.removeChild(this.__listContainer.childNodes[index]);
+		   	 		}
+		   	 		this.__arrInternalSource.splice(index, 1);
+		   	 		this.__arrWrapper.splice(index, 1);
+	   	 		}
+		    }
+		 	this.__updateTotalRecords();
+		}
+	};
+	
+	NSList.prototype.scrollToIndex = function(selectedIndex,animationRequired)
+	{
+		selectedIndex = parseInt(selectedIndex);
+		var source = this.__objGrid.__getFlatSource();
+		if(selectedIndex > -1 && source && selectedIndex < source.length)
+		{
+			var item = this.__getItemByIndex(selectedIndex);
+			if(item)
+			{
+				var targetDimension = -1;
+				var scrollTarget = null;
+				if(this.__enableVirtualScroll)
+				{
+					targetDimension = this.__virtualRowHeight * (selectedIndex - 1);
+					scrollTarget = this.__divVirtualScrollParent;
+					if(this.__enableCustomScrollBar)
+					{
+						this.__setVirtualScroll_ScrollTop(targetDimension);
+						return;
+					}
+				}
+				else
+				{
+					if(item[this.__fieldItem])
+					{
+						targetDimension = (item[this.__fieldItem].offsetTop);
+					}
+					scrollTarget = this.__scrollTarget;
+				}
+				if(animationRequired)
+				{
+					var animation = new this.util.animation(scrollTarget,[
+		       	  	    {
+		       	  	      time: 1,
+		       	  	      property:"scrollTop",
+		       	  	      target: targetDimension,
+		       	  	    }
+		       	  	]);
+		   	  	  	animation.animate();
+				}
+				else
+				{
+					scrollTarget.scrollTop = targetDimension;
+				}
+			}
+		}
+	};
+	
+	NSList.prototype.setSelectedItems = function(arrItems)
+	{
+		if(arrItems && arrItems.length > 0)
+		{
+			var source = this.__objGrid.__getFlatSource();
+			if(source)
+			{
+				this.__clearAllRowSelection(false);
+				var length = arrItems.length;
+				var item = null;
+				var index = -1;
+				for(var count = 0;count < length;count++)
+				{
+					item = arrItems[count];
+					index = this.__getIndexByItem(item);
+					if(index > -1 && source && index < source.length)
+					{
+						this.__setIndex(index,true);
+					}
+				}
+			}
+		}
+	};
+	
+	NSList.prototype.setSelectedItem = function(arrItems)
+	{
+		this.setSelectedItems([arrItems]);
+	};
+	
+	NSList.prototype.setSelectedIndexes = function(arrSelectedIndex)
+	{
+		if(arrSelectedIndex && arrSelectedIndex.length > 0)
+		{
+			var source = this.__objGrid.__getFlatSource();
+			if(source)
+			{
+				var length = arrSelectedIndex.length;
+				var index = -1;
+				for(var count = 0;count < length;count++)
+				{
+					index = arrSelectedIndex[count];
+					if(index > -1 && source && index < source.length)
+					{
+						this.__setIndex(index,true);
+					}
+				}
+			}
+		}
+	};
+	
+	NSList.prototype.setSelectedIndex = function(selectedIndex)
+	{
+		this.setSelectedIndexes([selectedIndex]);
+	};
+	
+	NSList.prototype.getSelectedIndex = function()
+	{
+		return this.__selectedIndex;
+	};
+	
+	NSList.prototype.getSelectedItem = function()
+	{
+		return this.__selectedItem;
+	};
+	
+	NSList.prototype.getSelectedIndexes = function()
+	{
+		return this.__selectedIndexes;
+	};
+	
+	NSList.prototype.getSelectedItems = function()
+	{
+		return this.__selectedItems;
+	};
+	
+	NSList.prototype.deselectAll = function()
+	{
+		this.__clearAllRowSelection(true);
+	};
+	
+	NSList.prototype.filter = function(strData,setting,enableHighlighting,recordLimit)
+	{
+		this.__nsListFilter.filter(strData,setting,enableHighlighting,recordLimit);
+	};
+	
+	NSList.prototype.resetFilter = function()
+	{
+		this.__nsListFilter.reset();
+	};
+	
+	NSList.prototype.updateListItemByIndex = function(index)
+	{
+		var item = this.__getItemByIndex(index);
+		if(item)
+		{
+			var listItem = this.__getListItemFromItem(item);
+			if(listItem)
+			{
+				var index = this.__getIndexByItem(item);
+				this.__updateListItemText(listItem,item,index);
+			}
+		}
+	};
+	
+	NSList.prototype.__highlightDiv = function(divText)
+	{
+		this.__nsListFilter.__highlightDiv(divText);
+	};
+	
+	NSList.prototype.__initializePluggins = function()
+	{
+		if(!this.__objGrid)
+		{
+			if(this.__enableHierarchical)
+			{
+				this.__objGrid = new NSHierarchicalList(this);
+			}
+			else
+			{
+				this.__objGrid = new NSFlatList(this);
+			}
+		}
+		if(!this.__nsListFilter)
+		{
+			this.__nsListFilter = new NSListFilter(this);
+			if(this.__enableDragDrop)
+			{
+				this.__nsListDragDrop = new NSListDragDrop(this);
+			}
+		}
+		this.__nsToolTipInElement = new this.util.nsToolTipInElement();
+	};
+	
+	NSList.prototype.__createStructure = function()
+	{
+		if(!this.__divOuterContainer)
+		{
+			this.__divOuterContainer = this.util.createDiv(this.getID() + "container","nsListOuterContainer");
+			this.__divOuterContainer.style.width = this.util.getStyleValue(this.__baseComponent,"width");
+			//this.__divOuterContainer.style.height = this.util.getStyleValue(this.__baseComponent,"height");
+			this.addChild(this.__divOuterContainer);
+			this.__divParentContainer = this.util.createDiv(this.getID() + "parentContainer","nsListParentContainer");
+			this.__divOuterContainer.appendChild(this.__divParentContainer);
+			this.__listContainer = this.util.createElement("ul",this.getID() + "list","nsListContainer");
+			this.__listContainer.style.minHeight = (this.__divOuterContainer.clientHeight - 10) + "px";
+			this.__divParentContainer.appendChild(this.__listContainer);
+			if(this.__enableVirtualScroll)
+			{
+				if(!this.__enableCustomScrollBar)
+				{
+					this.__divVirtualScrollParent = this.util.createDiv(this.getID()  + "scrollParent","nsListScrollerCauseParent");
+					this.__divVirtualScroller = this.util.createDiv(this.getID()  + "scroll","nsListScrollerCause");
+					this.__divVirtualScroller.innerHTML = "&nbsp;";
+					this.__divVirtualScrollParent.appendChild(this.__divVirtualScroller);
+					this.__divOuterContainer.appendChild(this.__divVirtualScrollParent);
+					this.util.addEvent(this.__divVirtualScrollParent,"scroll",this.__bodyScrollVirtualHandler.bind(this));
+					this.util.addEvent(this.__divParentContainer,"mousewheel",this.__bodyMousewheelVirtualHandler.bind(this));
+				}
+				this.util.addStyleClass(this.__divParentContainer,"nsListBodyContainerVirtual");
+			}
+			this.__createCustomScroller();
+		}
+	};
+
+	NSList.prototype.__renderBody = function()
+	{
+		this.__listContainer.scrollTop = 0;
+		this.util.removeAllChildren(this.__listContainer);
+		this.__navigationIndex = -1;
+		if(this.__enableContextMenu)
+		{
+			this.__initializeContextMenu();
+		}
+		if(this.__enableVirtualScroll)
+		{
+			this.__setVirtualMesaurement();
+			//this.__rowCount = Math.round(availableHeight/this.__virtualRowHeight) * 2;
+			this.__createListVirtual(this.__rowCount);
+		}
+		else
+		{
+			this.__createList(this.__arrInternalSource,0,this.__arrInternalSource.length);
+			//5 is offset for number of rows
+			var listItem = this.__getListItemByIndex(0);
+			if(listItem)
+			{
+				this.__listItemHeight = listItem.clientHeight;
+			}
+			this.__pageSize = (this.__divOuterContainer.clientHeight/this.__listItemHeight) - 5;
+			this.__startArrayElement = 0;
+		}
+		this.__setBodyMeasurement();
+		if(this.__nsListDragDrop)
+		{
+			this.__nsListDragDrop.initialize();
+		}
+	};
+	
+	NSList.prototype.__createCustomScroller = function()
+	{
+		if(this.__enableCustomScrollBar && !this.__scroller)
+		{
+			var setting = {element: this.__divOuterContainer,enableCustomHandler: true,verticalScrollButtons:this.__customScrollBarSetting.verticalScrollButtons,horizontalScrollButtons:this.__customScrollBarSetting.horizontalScrollButtons};
+			for (var key in setting) 
+			{ 
+				this.__scrollerSetting[key] = setting[key]; 
+			}
+			this.__scroller = new NSScroller(this.__scrollerSetting);
+			this.util.addEvent(this.__scrollerSetting.element,NSScroller.SCROLLING,this.__customScrollHandler.bind(this));
+			this.util.addEvent(this.__scrollerSetting.element,NSScroller.SCROLL_END,this.__customScrollEndHandler.bind(this));
+		}
+	};
+	
+	NSList.prototype.__customScrollHandler = function(event)
+	{
+		var self = this;
+		var virtualVerHandler = function()
+		{
+			self.__setVirtualScroll.bind(self)(scrollPos,true,scrollBar,position);
+		};
+		var dataRefreshVerHandler = function()
+		{
+			
+		};
+		var asyncLoadVerHandler = function()
+		{
+			
+		};
+		var paginationVerHandler = function()
+		{
+			
+		};
+		var normalVerHandler = function()
+		{
+			self.__divOuterContainer.scrollTop = scrollPos;
+			
+			var first,last;
+			var arrRows = self.__listContainer.querySelectorAll("li");
+			for(var count = 0;count < arrRows.length;count++)
+			{
+				var li = arrRows[count];
+				if(isInViewport(li))
+				{
+					first = li;
+					break;
+				}
+			}
+			for(;count < arrRows.length;count++)
+			{
+				var li = arrRows[count];
+				if(!isInViewport(li))
+				{
+					break;
+				}
+				last = li;
+			}
+			console.log(first,last);
+		};
+		var normalHorHandler = function()
+		{
+			self.__divOuterContainer.scrollLeft = scrollPos;
+		};
+		var isInViewport = function (elem) 
+		{
+			if(elem)
+			{
+				/*var distance = elem.getBoundingClientRect();
+				return (
+					distance.top >= 0 &&
+					distance.left >= 0 &&
+					distance.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+					distance.right <= (window.innerWidth || document.documentElement.clientWidth)
+				);*/
+				const rect = elem.getBoundingClientRect();
+			    const windowHeight = (window.innerHeight || document.documentElement.clientHeight);
+			    const windowWidth = (window.innerWidth || document.documentElement.clientWidth);
+
+			    const vertInView = (rect.top <= windowHeight) && ((rect.top + rect.height) >= 0);
+			    const horInView = (rect.left <= windowWidth) && ((rect.left + rect.width) >= 0);
+
+			    return (vertInView && horInView);
+			}
+			return false;
+		};
+		var objCondition = {virtualScroll:{eligible:this.__enableVirtualScroll,verHandler:virtualVerHandler,horHandler:normalHorHandler},
+							dataRefreshOnEnd:{eligible:this.__enableDataRefreshOnScrollEnd,verHandler:dataRefreshVerHandler,horHandler:normalHorHandler},
+							asyncLoad:{eligible:this.__enableAsyncLoadPagination,verHandler:asyncLoadVerHandler,horHandler:normalHorHandler},
+							pagination:{eligible:(this.__enablePagination && this.__isPaginationTypeScroll),verHandler:paginationVerHandler,horHandler:normalHorHandler},
+							normal:{eligible:true,verHandler:normalVerHandler,horHandler:normalHorHandler}
+						   };
+		var eventItem = event;
+		var direction = eventItem.direction;
+		var scrollPos = eventItem.scrollPos;
+		var oldScrollPos = eventItem.oldScrollPos;
+		var orignalEvent = eventItem.orignalEvent;
+		var scrollBar = eventItem.scrollBar;
+		var position = eventItem.absoluteScrollBarPos;
+		for(var key in objCondition)
+		{
+			var item = objCondition[key];
+			if(item.eligible)
+			{
+				if(direction == "vertical")
+				{
+					if(item.verHandler)
+					{
+						if(this.__customScrollBarSetting["enableTooltip"] && !this.__customScrollBarTooltip)
+						{
+							this.__customScrollBarTooltip = this.util.createElement("span",null,"tooltiptext tooltip-left");
+							document.body.appendChild(this.__customScrollBarTooltip);
+						}
+						item.verHandler();
+					}
+				}
+				else
+				{
+					if(item.horHandler)
+					{
+						item.horHandler();
+					}
+				}
+				break;
+			}
+		}
+	};
+	
+	NSList.prototype.__customScrollEndHandler = function(event)
+	{
+		if(this.__customScrollBarTooltip)
+		{
+			document.body.removeChild(this.__customScrollBarTooltip);
+			this.__customScrollBarTooltip = null;
+		}
+	};
+	
+	NSList.prototype.__customScrollTooltipPos = function(scrollbar,position,itemFrom,itemTo)
+	{
+		if(this.__customScrollBarTooltip)
+		{
+			var toolTip = this.__customScrollBarTooltip;
+			var css = {};
+			//5 for the triangle
+			css.left = (position.x - toolTip.offsetWidth - 5) + "px";
+			css.top = position.y + "px";
+			this.util.css(toolTip,css);
+			if(this.__customScrollBarSetting.toolTipLabelFunction)
+			{
+				toolTip.innerHTML = this.__customScrollBarSetting.toolTipLabelFunction(itemFrom,itemTo);
+			}
+			else
+			{
+				toolTip.innerHTML = "Showing Record from index " + itemFrom + " to " +  itemTo;
+			}
+		}
+		
+	};
+	
+	NSList.prototype.__setVirtualMesaurement = function()
+	{
+		this.__divOuterContainer.style.overflowY = "hidden";
+		this.__divParentContainer.style.position = "relative";
+		/*this.__listContainer.style.position = "absolute";
+		this.__listContainer.style.top = "0px";
+		this.__listContainer.style.left = "0px";*/
+		this.__divParentContainer.scrollTop = 0;
+		this.__setVirtualScroll_ScrollTop(0);
+		this.__setVirtualVariables(true);
+	};
+	
+	NSList.prototype.__setVirtualVariables = function(isReset)
+	{
+		var css = null;
+		if(this.__arrInternalSource && this.__arrInternalSource.length > 0)
+		{
+			var totalRecords = 0;
+			var scrollHeight = 0;
+			var virtualRowHeight = 0;
+			if(isReset)
+			{
+				var rect = this.__baseComponent.getBoundingClientRect();
+				var availableHeight = rect.height;
+				if(this.__rowHeight > 0)
+				{
+					this.__virtualRowHeight = this.__rowHeight;
+				}
+				else
+				{
+					this.__createList(this.__arrInternalSource,0,1);
+					var item = this.__arrInternalSource[0];
+					var listItem = item[this.__fieldItem];
+				    this.__virtualRowHeight = listItem.offsetHeight;
+				    listItem.parentNode.removeChild(listItem);
+				}
+				//Start of workaround for IE issue of limitation of scrollTop Value
+				//In IE 11 it is 1533917px 
+				//Logic is that this.__divCenterTableBodyContainer.scrollHeight gives max scrollTop Value hence if scrollHeight exceeds this.__divCenterTableBodyContainer.scrollHeight then reset scrollHeight value to this.__divCenterTableBodyContainer.scrollHeight
+				//and recalculate rowHeight (this.__virtualRowHeight) value;
+				scrollHeight = (this.__totalRecords * this.__virtualRowHeight);
+				this.__setVirtualScroll_Height(scrollHeight,true);
+				//if Custom scroll is there then te recalculation is not required
+				if(!this.__enableCustomScrollBar && this.__getVirtualScroll_ScrollHeight() < scrollHeight)
+				{
+					scrollHeight = this.__getVirtualScroll_ScrollHeight();
+					this.__virtualRowHeight = scrollHeight/this.__totalRecords;
+				}
+				//end of workaround for IE issue of limitation of scrollTop Value
+				this.__rowCount = Math.round(availableHeight/this.__virtualRowHeight) * 2;
+				this.__setVirtualScroll_Height(scrollHeight,true);
+				this.__lastScrollPosition = 0;
+				totalRecords = this.__totalRecords;
+				virtualRowHeight = this.__virtualRowHeight;
+			}
+			else
+			{
+				var listItem = this.__listContainer.children[0];
+				virtualRowHeight = listItem.offsetHeight;
+				totalRecords = this.__totalRecords;
+				if (this.__enableHierarchical) 
+				{
+                    totalRecords = this.__getAllVisibleItems();
+                }
+			}
+			scrollHeight = (totalRecords * virtualRowHeight);
+			this.__scrollOffsetPosition = virtualRowHeight;
+			//giving it a bit of padding
+			if(!this.__enableVariableRowHeight)
+			{
+				scrollHeight = scrollHeight + 50;
+			}
+			this.__setVirtualScroll_Height(scrollHeight,true);
+		}
+		else
+		{
+			this.__virtualRowHeight = 0;
+			this.__rowCount = 0;
+			this.__scrollOffsetPosition = 0;
+			this.__lastScrollPosition = 0;
+			css = {"height": "0px"};
+			this.__setVirtualScroll_Height(0,false);
+		}
+		var hasVerticalScrollbar= this.__hasVirtualScroll_VerticalScrollBar();
+		var scrollCSS = null;
+		if(hasVerticalScrollbar)
+		{
+			scrollCSS = {height: null};
+		}
+		else
+		{
+			scrollCSS = {height: this.__getVirtualScroll_ParentStyle()["max-height"]};
+		}
+		this.__setVirtualScroll_ParentStyle(scrollCSS);
+	};
+	
+	NSList.prototype.__updateItemsForVirtualMode = function()
+	{
+		var source = this.__objGrid.__getFlatSource();
+		if(source && source.length > 0)
+		{
+			var length = source.length;
+			var item = null;
+			for (var count = 0; count < length; count++) 
+			{
+				item = source[count];
+				this.__updateItem(item,count);
+			}
+		}
+	};
+	
+	NSList.prototype.__createListVirtual= function(totalRows)
+	{
+		var source = this.__arrInternalSource;
+		if(source && source.length > 0)
+		{
+	    	if(totalRows > source.length && !this.__objGrid.__enableOnDemandHierarchy)
+	    	{
+	    		totalRows = source.length;
+	    	}
+	    	else if(this.__enableVariableRowHeight)
+	    	{
+	    		totalRows = totalRows + 20;
+	    	}
+	    	this.__createList(source,0,totalRows);
+	    }
+		else
+		{
+			this.__createNoDataRow();
+		}
+	};
+	
+	NSList.prototype.__resetDataInBody = function(fromIndex,toIndex,fromRowIndex,useVisibleIndex)
+	{
+		this.__objGrid.__resetDataInBody(fromIndex,toIndex,fromRowIndex,useVisibleIndex);
+	};
+	
+	NSList.prototype.__bodyScrollVirtualHandler = function(event)
+	{
+		var target = this.util.getTarget(event);
+		var scrollPos = target.scrollTop;
+		this.__setVirtualScroll(scrollPos,false);
+	};
+	
+	NSList.prototype.__bodyMousewheelVirtualHandler = function(event)
+	{
+		event = this.util.getEvent(event);
+		this.util.preventDefault(event);
+		var delta = Math.max(-1, Math.min(1, (event.wheelDelta || -event.detail)));
+	    var scrollHeight = 3 * parseInt(this.__virtualRowHeight);
+	    var currentScrollPos = this.__getVirtualScroll_ScrollTop();
+	    var contentHeight = this.__getVirtualScroll_ClientHeight();
+	    //scroll-up
+	    if(delta === 1)
+	    {
+	        if((currentScrollPos - scrollHeight) < 0)
+	        {
+	        	this.__setVirtualScroll_ScrollTop(0);
+	        }
+	        else
+	        {
+	        	this.__setVirtualScroll_ScrollTop(currentScrollPos - scrollHeight);
+	        }
+	   }
+	   else
+	   {
+	        if((currentScrollPos + scrollHeight) > contentHeight)
+	        {
+	        	this.__setVirtualScroll_ScrollTop(contentHeight);
+	        }
+	        else
+	        {
+	        	this.__setVirtualScroll_ScrollTop(currentScrollPos + scrollHeight);
+	        }
+	   }
+	};
+	
+	NSList.prototype.__handleScrollEdgeScenarios = function()
+	{
+		if(this.__getVirtualScroll_ScrollHeight() - this.__getVirtualScroll_ScrollTop() === this.__getVirtualScroll_ParentClientHeight())
+		{
+			//this.__divParentContainer.scrollTop = this.__divParentContainer.scrollHeight;
+		}
+		if(this.__getVirtualScroll_ScrollTop() === 0)
+		{
+			this.__divParentContainer.scrollTop = 0;
+		}
+	};
+	
+	NSList.prototype.__setVirtualScroll = function(scrollPos,isCustomScrollBar,scrollBar,position)
+	{
+		if(this.__lastScrollPosition !== scrollPos)
+		{
+			var itemToBegin = Math.ceil(scrollPos/this.__virtualRowHeight);
+	    	var itemToLimit =  Math.ceil(itemToBegin + this.__rowCount);
+	        //console.log(itemToBegin + "," + itemToLimit);
+			this.__resetDataInBody(itemToBegin,itemToLimit);
+			if(isCustomScrollBar && this.__customScrollBarSetting["enableTooltip"])
+			{
+				this.__customScrollTooltipPos(scrollBar,position,itemToBegin,itemToLimit);
+			}
+			this.__handleScrollEdgeScenarios();
+		}
+		this.__lastScrollPosition = scrollPos;
+	};
+	
+	NSList.prototype.__virtualRowSelection = function()
+	{
+		if(this.__listContainer.children && this.__listContainer.children.length > 0 && this.__arrInternalSource)
+		{
+			var listItem = null;
+			var index = null;
+			var item = null;
+			for(var count = 0; count < this.__listContainer.children.length; count++) 
+			{
+				listItem = this.__listContainer.children[count];
+				index = this.__getIndexFromTarget(listItem);
+				item = this.__getItemByIndex(index);
+				if(item && this.__isMouseHoverAllowed(index))
+				{
+					if(item[this.__fieldSelected])
+					{
+						//DONOT REPLACE WITH __markRowSelected
+						this.util.addStyleClass(listItem,"nsListItemSelected"); 
+					}
+					else
+					{
+						//DONOT REPLACE WITH __markRowUnselected
+						this.util.removeStyleClass(listItem,"nsListItemSelected");
+					}
+				}
+			}
+		}
+	};
+	
+	NSList.prototype.__virtualRowHover = function()
+	{
+		if(this.__listContainer.children && this.__listContainer.children.length > 0 && this.__arrInternalSource)
+		{
+			var listItem = null;
+			var index = null;
+			var item = null;
+			for(var count = 0; count < this.__listContainer.children.length; count++) 
+			{
+				listItem = this.__listContainer.children[count];
+				index = this.__getIndexFromTarget(listItem);
+				item = this.__getItemByIndex(index);
+				(item && item[this.__fieldHover]) ? this.util.addStyleClass(listItem,"nsListItemHover") : this.util.removeStyleClass(listItem,"nsListItemHover");
+			}
+		}
+	};
+	
+	NSList.prototype.__setVirtualRowHoverField = function(indexToSet)
+	{
+		if(this.util.isUndefinedOrNull(indexToSet))
+		{
+			indexToSet = -1;
+		}
+		var source = this.__objGrid.__getFlatSource();
+		if(source)
+		{
+			var item = null;
+			for(var count = 0; count < source.length; count++) 
+			{
+				var item = source[count];
+				if(item)
+				{
+					item[this.__fieldHover] = (item[this.__fieldIndex] === indexToSet); 
+				}
+			}
+		}
+	};
+	
+	NSList.prototype.__setVirtualRowHover = function(indexToSet)
+	{
+		if(this.__enableVirtualScroll)
+		{
+			if(this.util.isUndefinedOrNull(indexToSet))
+			{
+				indexToSet = 0;
+			}
+			var item = this.__getVisibleItemByIndex(null,indexToSet);
+			if(item)
+			{
+				this.__navigationIndex = indexToSet;
+				var index = item[this.__fieldIndex];
+				this.__setVirtualRowHoverField(index);
+				this.__virtualRowHover();
+			}
+			
+		}
+	};
+	
+	NSList.prototype.__setRowHover = function(indexToSet)
+	{
+		if(this.util.isUndefinedOrNull(indexToSet))
+		{
+			indexToSet = 0;
+		}
+		if(this.__enableVirtualScroll)
+		{
+			this.__setVirtualRowHover(indexToSet);
+		}
+		else
+		{
+			if(this.util.isUndefinedOrNull(indexToSet))
+			{
+				indexToSet = 0;
+			}
+			this.__navigationIndex = indexToSet;
+			var listItem = this.__getListItemFromContainer(this.__navigationIndex);
+			this.util.addStyleClass(listItem,"nsListItemHover");
+		}
+	};
+	
+	NSList.prototype.__createNoDataRow = function()
+	{
+		var listItem = this.util.createElement("li",null,"nsListNoRecordsFound");
+		listItem.setAttribute("nsNoData","true");
+		var textNode = document.createTextNode(this.__noDataMessage);
+		listItem.appendChild(textNode);
+		this.__listContainer.appendChild(listItem);
+	};
+	
+	NSList.prototype.__setBodyMeasurement = function()
+	{
+		//this.__divParentContainer.style.height = this.__divOuterContainer.clientHeight + "px";
+		if(this.__enableVirtualScroll)
+		{
+			var viewPortHeight = this.__divParentContainer.clientHeight;
+			this.__setVirtualScroll_ParentStyle({"max-height": viewPortHeight + "px"});
+		}
+	};
+	
+	
+	NSList.prototype.__addListenerForBody = function()
+	{
+		if(!this.__keyDownRef)
+		{
+			this.__keyDownRef = this.__keyDownHandler.bind(this);
+			this.util.addEvent(document,"keydown",this.__keyDownRef);
+		}
+		if(!this.__keyUpRef)
+		{
+			this.__keyUpRef = this.__keyUpHandler.bind(this);
+			this.util.addEvent(document,"keyup",this.__keyUpRef);
+		}
+	};
+	
+	NSList.prototype.__createList = function(dataSet,startIndex,endIndex)
+	{
+		if(dataSet && dataSet.length > 0)
+	    {
+			this.__objGrid.__createList(dataSet,startIndex,endIndex);
+	    }
+		else
+		{
+			this.__createNoDataRow();
+		}
+	};
+	
+	NSList.prototype.__createListAt = function(item,index,isResetIndex)
+	{
+		if(item && index > -1)
+	    {
+			this.__updateItem(item,index,true,isResetIndex);
+			var listItem = this.__createListItem(item,false);
+			this.__listContainer.insertBefore(listItem, this.__listContainer.childNodes[index]);
+			return listItem;
+	    }
+		return null;
+	};
+	
+	NSList.prototype.__updateItem = function(item,index,isReset,isResetIndex)
+	{
+		if(item)
+		{
+			if(isResetIndex || !item.hasOwnProperty(this.__fieldIndex))
+			{
+				item[this.__fieldIndex] = index;
+			}
+			if(isReset || !item.hasOwnProperty(this.__fieldDisableHover))
+			{
+				item[this.__fieldDisableHover] = this.__isHoverDisabled(item);
+			}
+			if(isReset || !item.hasOwnProperty(this.__fieldSelected))
+			{
+				item[this.__fieldSelected] = false;
+			}
+		}
+	};
+	
+	NSList.prototype.__createListItem = function(item,isAdd)
+	{
+		if(item)
+		{
+			 if(this.util.isUndefined(isAdd) || isAdd === null)
+			 {
+				 isAdd = true;
+			 }
+			 var listItem = this.util.createElement("li",null,"nsListItem");
+			 this.__objGrid.__createListItem(listItem,item);
+			 if(this.__enableMouseHover)
+			 {
+				 this.util.addEvent(listItem,"mouseover",this.__itemMouseOverHandler.bind(this));
+				 this.util.addEvent(listItem,"mouseout",this.__itemMouseOutHandler.bind(this));
+				 if(this.__enableMouseHoverAnimation)
+				 {
+					 this.util.addStyleClass(listItem,"nsListItemAnimated");
+				 }
+				 else
+				 {
+					 this.util.addStyleClass(listItem,"nsListItemNormal");
+				 }
+			 }
+			 this.util.addEvent(listItem,"click",this.__itemClickHandler.bind(this));
+			 this.__setListItemProperties(listItem,item);
+			 if(isAdd)
+			 {
+				 this.__listContainer.appendChild(listItem);
+			 }
+			 return listItem;
+		}
+		return null;
+	};
+	
+	NSList.prototype.__setListItemProperties = function(listItem,item)
+	{
+		this.__objGrid.__setListItemProperties(listItem,item);
+	};
+	
+	NSList.prototype.__addCellText = function(listItem,item,div)
+	{
+		var toolTipText = null;
+		if(listItem && item && div)
+		{
+			if(this.__itemRenderer)
+			{
+				var objRenderer = this.__itemRenderer(item,this.__labelField,item[this.__fieldIndex],item[this.__fieldDisableHover],listItem);
+				if(objRenderer)
+				{
+					if(this.util.isString(objRenderer))
+					{
+						var compBodySpan = document.createElement("span");
+						compBodySpan.innerHTML = objRenderer;
+						div.appendChild(compBodySpan);
+					}
+					else
+					{
+						div.appendChild(objRenderer);
+					}
+				}
+			}
+			else if(this.__template)
+			{
+				div.appendChild(this.__template.cloneNode(true));
+				this.__setDataInTemplateRenderer(div,item,listItem);
+			}
+			else if(this.__labelFunction)
+			{
+				var text = this.__labelFunction(item,this.__labelField);
+				div.appendChild(document.createTextNode(text));
+			}
+			else if(item.hasOwnProperty(this.__labelField) && !this.util.isUndefined(item[this.__labelField]) && item[this.__labelField] != null)
+		    {
+				var text = item[this.__labelField];
+				div.appendChild(document.createTextNode(text));
+		    }
+			this.__highlightDiv(div);
+			if(this.__toolTipField)
+			{
+				toolTipText = item[this.__toolTipField];
+			}
+			else if(this.__toolTipRenderer)
+			{
+				toolTipText = this.__toolTipRenderer(item,this.__labelField,item[this.__fieldIndex],item[this.__fieldDisableHover],listItem);
+			}
+			if(this.__enableTruncateToFit)
+			{
+				this.util.addStyleClass(div,"nsListTruncateToFit");
+				//This condition is above so that toolTip and title are not set togeather
+				if(!toolTipText || toolTipText === "")
+				{
+					if(this.__enableToolTipForTruncateText)
+					{
+						toolTipText = div.textContent;
+					}
+					else
+					{
+						div.setAttribute("title",div.textContent);
+					}
+				}
+			}
+			if(toolTipText && toolTipText !== "")
+			{
+				this.__nsToolTipInElement.addToolTip(div,toolTipText);
+			}
+		}
+	};
+	
+	NSList.prototype.__setDataInTemplateRenderer = function(cellItem,data,listItem)
+	{
+		if(cellItem && this.__setData)
+		{
+			this.__setRendererProperties(cellItem);
+			this.__setRendererInData(cellItem,data,listItem);
+			//IE bug
+			cellItem.data = data;
+			if(this.util.isFunction(this.__setData))
+		    {
+				var strParam = "(cellItem,data,dataField,isDisabled,listItem)"; 
+		    	if(this.util.isString(this.__setData))
+		    	{
+		    		var base = this;
+		    		this.util.callFunctionFromString(this.__setData + strParam,function(paramValue){
+						if(paramValue === "cellItem")
+						{
+							return cellItem;
+						}
+						if(paramValue === "data")
+						{
+							return data;
+						}
+						if(paramValue === "dataField")
+						{
+							return base.__labelField;
+						}
+						if(paramValue === "isDisabled")
+						{
+							return data[base.__fieldDisableHover];
+						}
+						if(paramValue === "listItem")
+						{
+							return listItem;
+						}
+						return paramValue;
+					});
+		    	}
+		    	else
+		    	{
+		    		this.__setData(cellItem,data,this.__labelField,data[this.__fieldDisableHover],listItem);
+		    	}
+		    }
+		}
+	};
+	
+	NSList.prototype.__setRendererInData = function(cellItem,data,listItem)
+	{
+		if(cellItem)
+		{
+			var compChild = null;
+			for(var count = 0; count < cellItem.children.length; count++) 
+			{
+				compChild = cellItem.children[count];
+				if(compChild)
+				{
+					compChild.data = data;
+					compChild.listItem = listItem;
+				}
+				//IE 9 Bug,you got to assign it back
+				//listItem.children[count] = compChild;
+				this.__setRendererInData(compChild,data,listItem);
+			}
+		}
+	};
+	
+	NSList.prototype.__setRendererProperties = function(cellItem)
+	{
+		if(cellItem)
+		{
+			var compChild = null;
+			for(var count = 0; count < cellItem.children.length; count++) 
+			{
+				compChild = cellItem.children[count];
+				var grid = this;
+				Array.prototype.slice.call(compChild.attributes).forEach(function(attribute) 
+				{
+			        if(grid.util.isFunction(attribute.value))
+			        {
+			        	var newValue = attribute.value + "(this)";
+			        	compChild.removeAttribute(attribute.name);
+						compChild.setAttribute(attribute.name,newValue);
+			        }
+				});
+				if(compChild)
+				{
+					if(compChild.hasAttribute("accessor-name"))
+					{
+						cellItem[compChild.getAttribute("accessor-name")] = compChild;
+					}
+				}
+				this.__setRendererProperties(compChild);
+			}
+		}
+	};
+	
+	NSList.prototype.__setTemplate = function()
+	{
+		if(this.__templateID)
+		{
+			this.__template = this.util.getTemplate(this.__templateID);
+		}
+	};
+	
+	NSList.prototype.__isHoverDisabled = function(item)
+	{
+		if(this.__disableHoverField)
+		{
+			return Boolean.parse(item[this.__disableHoverField]);
+		}
+		if(this.__disableHoverFunction)
+		{
+			return Boolean.parse(this.__disableHoverFunction(item,this.__fieldIndex));
+		}
+		return false;
+	};
+	
+	NSList.prototype.__itemClickHandler = function(event)
+	{
+		event = this.util.getEvent(event);
+	    var target = this.util.getTarget(event);
+	    target = this.util.findParent(target,"li");
+	    var index = this.__getIndexFromTarget(target);
+	    this.__setIndex(index,false);
+	    this.__lastNavigationDirection = null;
+	};
+	
+	NSList.prototype.__setIndex = function(index,isMultiSelect)
+	{
+		if(index > -1)
+		{
+			isMultiSelect = Boolean.parse(isMultiSelect);
+			if (this.__isShiftPressed && this.__enableMultipleSelection)
+		    {
+		    	this.__multiSectionHandler(index);
+		    }
+		    else if(isMultiSelect || (this.__isCtrlPressed && this.__enableMultipleSelection))
+		    {
+		    	if(this.__isRowSelected(index))
+		    	{
+		    		this.__markRowUnselected(index);
+		    	}
+		    	else
+		    	{
+		    		this.__markRowSelected(index);
+		    	}
+		    }
+		    else
+		    {
+		    	this.__clearAllRowSelection(false);
+		    	this.__markRowSelected(index);
+		    } 
+		}
+	};
+	
+	NSList.prototype.__itemMouseOverHandler = function(event)
+	{
+		 var target = this.util.getTarget(event);
+	     target = this.util.findParent(target,"li");
+	     var index = this.__getIndexFromTarget(target);
+	     var item = this.__getItemByIndex(index);
+	     if(target && index > -1 && this.__isMouseHoverAllowed(index))
+	     {
+	    	 this.util.addStyleClass(target,"nsListItemHover");
+	    	 this.__navigationIndex = index;
+	    	 this.util.dispatchEvent(this.__baseComponent,this.ITEM_NAVIGATED,item,{index:this.__navigationIndex});
+	     }
+	};
+	
+	NSList.prototype.__itemMouseOutHandler = function(event)
+	{
+		 var target = this.util.getTarget(event);
+	     target = this.util.findParent(target,"li");
+	     if(target)
+	     {
+	    	 this.util.removeStyleClass(target,"nsListItemHover");
+	     }
+	};
+	
+	NSList.prototype.__keyDownHandler = function(event)
+	{
+		event = this.util.getEvent(event);
+		if(this.hasFocus())
+		{
+			this.__isShiftPressed = event.shiftKey;
+			this.__isCtrlPressed = event.ctrlKey;
+			var isShiftCtrlPressed = this.__isShiftPressed || this.__isCtrlPressed;
+			var keyCode = this.util.getKeyUnicode(event);
+			if(this.__enableKeyboardNavigation)
+			{
+				var source = this.__objGrid.__getFlatSource();
+				//key Up
+				if(keyCode === this.util.KEYCODE.UP && isShiftCtrlPressed && this.__enableMultipleSelection)
+				{
+					if(this.__lastNavigationDirection && this.__lastNavigationDirection === this.NAVIGATION_DOWN)
+					{
+						return this.__keyBoardSelectionHandler(event,this.NAVIGATION_UP);
+					}
+					if(this.__selectedIndex != 0)
+					{
+						this.__selectedIndex--;
+						this.__navigationIndex--;
+						while(!this.__isMouseHoverAllowed(this.__selectedIndex))
+						{
+							this.__selectedIndex--;
+							this.__navigationIndex--;
+						}
+						return this.__keyBoardSelectionHandler(event,this.NAVIGATION_UP);
+					}
+				}
+				//key down
+				else if(keyCode === this.util.KEYCODE.DOWN && isShiftCtrlPressed && this.__enableMultipleSelection)
+				{
+					if(this.__lastNavigationDirection && this.__lastNavigationDirection === this.NAVIGATION_UP)
+					{
+						return this.__keyBoardSelectionHandler(event,this.NAVIGATION_DOWN);
+					}
+					if(source && this.__selectedIndex != source.length - 1)
+					{
+						this.__selectedIndex++;
+						this.__navigationIndex++;
+						while(!this.__isMouseHoverAllowed(this.__selectedIndex))
+						{
+							this.__selectedIndex++;
+							this.__navigationIndex++;
+						}
+						return this.__keyBoardSelectionHandler(event,this.NAVIGATION_DOWN);
+					}
+				}
+				else if(keyCode === this.util.KEYCODE.UP)
+				{
+					if(source && this.__navigationIndex === -1)
+					{
+						this.__navigationIndex = source.length - 1;
+					}
+					if(this.__navigationIndex > 0)
+					{
+						return this.__keyBoardNavigationHandler(event,this.NAVIGATION_UP);
+					}
+				}
+				else if(keyCode === this.util.KEYCODE.DOWN)
+				{
+					/*if(this.__navigationIndex === -1)
+					{
+						this.__navigationIndex = 0;
+					}*/
+					if(source)//&& this.__navigationIndex < source.length
+					{
+						return this.__keyBoardNavigationHandler(event,this.NAVIGATION_DOWN);
+					}
+				}
+				else if(keyCode === this.util.KEYCODE.ENTER)
+				{
+					this.__clearAllRowSelection(false);
+					var listItem = this.__getkeyboardNavigationListItem();
+					if(listItem)
+					{
+						this.__markRowSelected(this.__getIndexFromTarget(listItem));
+					}
+				}
+			}
+			if(keyCode === this.util.KEYCODE.SHIFT)
+			{
+				this.util.makeBodyUnselectable();
+			}
+		}
+	};
+	
+	NSList.prototype.__keyUpHandler = function(event)
+	{
+		if(this.util.getKeyUnicode(event) === this.util.KEYCODE.CTRL)
+		{
+			this.__isCtrlPressed = false;
+		}
+		if(this.util.getKeyUnicode(event) === this.util.KEYCODE.SHIFT)
+		{
+			this.__isShiftPressed = false;
+			this.util.makeBodySelectable();
+		}
+	};
+	
+	NSList.prototype.__keyBoardNavigationHandler = function(event,direction)
+	{
+		var self = this;
+		var lastIndex = this.__navigationIndex;
+		var currentIndex = this.__navigationIndex;
+		(direction === this.NAVIGATION_UP) ? currentIndex--:currentIndex++;
+		while(!this.__isMouseHoverAllowed(currentIndex))
+		{
+			(direction === this.NAVIGATION_UP) ? currentIndex--:currentIndex++;
+		}
+		var endHandler = function()
+		{
+			self.__navigationIndex = currentIndex;
+			var listItem = self.__getkeyboardNavigationListItem();
+			var index = -1;
+			var item = null;
+			if(listItem)
+			{
+				var source = self.__objGrid.__getFlatSource();
+				index = self.__getIndexFromTarget(listItem);
+				item = self.__getItemByIndex(index, source);
+			}
+			self.util.dispatchEvent(self.__baseComponent,self.ITEM_NAVIGATED,item,{index:index});
+			self.__lastNavigationDirection = null;
+		};
+		if(this.__enableVirtualScroll)
+		{
+			
+			var virtualHandler = function()
+			{
+				//self.__setVirtualRowHover.call(self,index);
+				var item = self.__getVisibleItemByIndex.call(self,null,currentIndex);
+				if(item)
+				{
+					var index = item[self.__fieldIndex];
+					self.__setVirtualRowHoverField.call(self,index);
+					self.__virtualRowHover.call(self);
+					endHandler();
+				}
+			};
+			this.scrollToIndex(currentIndex,false);
+			
+			setTimeout(function()
+			{ 
+				virtualHandler();
+			},0);
+			//this.__setVirtualRowHover(currentIndex);
+		}
+		else
+		{
+			var listItem = this.__getListItemFromContainer(lastIndex - this.__startArrayElement);
+			var currentListItem = this.__getListItemFromContainer(currentIndex - this.__startArrayElement);
+			//var listItem = this.__getListItemByIndex(lastIndex - this.__startArrayElement);
+			//var currentListItem = this.__getListItemByIndex(currentIndex - this.__startArrayElement);
+			if(currentListItem)
+			{
+				this.util.removeStyleClass(listItem,"nsListItemHover");
+				this.util.addStyleClass(currentListItem,"nsListItemHover");
+				this.__refreshScrollPosition(currentListItem,direction);
+				endHandler();
+			}
+		}
+		
+		event.preventDefault();
+		return false;
+	};
+	
+	NSList.prototype.__keyBoardSelectionHandler = function(event,direction)
+	{
+		if(this.__isRowSelected(this.__selectedIndex))
+		{
+			this.__markRowUnselected(this.__selectedIndex);
+		}
+		else
+		{
+			this.__markRowSelected(this.__selectedIndex);
+		}
+		if(direction === this.NAVIGATION_DOWN)
+		{
+			if(this.__enableVirtualScroll)
+			{
+				this.scrollToIndex(this.__selectedIndex,false);
+			}
+			else if(Math.floor(this.__selectedIndex % this.__pageSize) === 0)
+			{
+				var listItem = this.__getListItemByIndex(this.__selectedIndex);
+				this.__refreshScrollPosition(listItem,this.NAVIGATION_DOWN);
+			}
+		}
+		else if(direction === this.NAVIGATION_UP)
+		{
+			if(this.__enableVirtualScroll)
+			{
+				this.scrollToIndex(this.__selectedIndex,false);
+			}
+			else
+			{
+				var listItem = this.__getListItemByIndex(this.__selectedIndex);
+				this.__refreshScrollPosition(listItem,this.NAVIGATION_UP);
+			}
+		}
+		this.__lastNavigationDirection = direction;
+		event.preventDefault();
+		return false;
+	};
+	
+	NSList.prototype.__refreshScrollPosition = function(listItem,direction)
+	{
+		if(!this.__isElementInView(listItem))
+		{
+			this.__scrollToListItem(listItem);
+		}
+	};
+	
+	NSList.prototype.__isElementInView = function(listItem)
+	{
+		var cellBottom = 0;
+	    var parentBottom = 0;
+	    var cellTop = 0;
+	    var parentTop = 0;
+		if(listItem)
+		{
+			var scrollParent = this.__divOuterContainer;
+			var listChild = listItem.querySelector(".nsListChild");
+			if(scrollParent && listChild)
+			{
+				var cellRect = listChild.getBoundingClientRect();
+	            parentTop = 0;
+	            var rectScrollParent = scrollParent.getBoundingClientRect();
+	            parentBottom = rectScrollParent.height;
+	            cellTop =  cellRect.top - rectScrollParent.top;
+	            cellBottom = cellTop + cellRect.height;
+			}
+		}
+		return cellBottom <= parentBottom && cellTop >= parentTop;
+	};
+	
+	NSList.prototype.__scrollToListItem = function(listItem)
+	{
+		if(listItem)
+		{
+			var rectCell = listItem.getBoundingClientRect();
+			var rectParentContainer = this.__divParentContainer.getBoundingClientRect();
+	        var scrollTop = rectCell.top - rectParentContainer.top;
+	        this.__divOuterContainer.scrollTop = scrollTop;
+		}
+	};
+	
+	NSList.prototype.__getkeyboardNavigationListItem = function()
+	{
+		var listItem = null;
+		if(this.__enableVirtualScroll)
+		{
+			listItem = this.__listContainer.querySelector(".nsListItemHover");
+		}
+		else
+		{
+			listItem = this.__getListItemFromContainer(this.__navigationIndex);
+		}
+		return listItem;
+	};
+	
+	NSList.prototype.__isMouseHoverAllowed = function(index)
+	{
+		var item = this.__getItemByIndex(index);
+		if(item)
+		{
+			return !item[this.__fieldDisableHover];
+		}
+		return true;
+	};
+	
+	NSList.prototype.__markRowSelected= function(index)
+	{
+		if(index > -1)
+	    {
+	        if(!this.__isRowSelected(index))
+	        {
+	        	this.__setMultiSelectedVars(index,true);
+	            this.__setValuesForSelectedRow(index);
+	        	if(this.__enableVirtualScroll)
+	        	{
+	        		this.__virtualRowSelection();
+	        	}
+	        	else
+	        	{
+	        		var listItem = this.__getListItemByIndex(index);
+	            	this.util.addStyleClass(listItem,"nsListItemSelected"); 
+	        	}
+	        }
+	    }
+	};
+	
+	NSList.prototype.__markRowUnselected = function(index)
+	{
+	    if(this.__isRowSelected(index) && this.__isMouseHoverAllowed(index))
+	    {
+	    	var isUnselected = this.__setMultiSelectedVars(index,false);
+	        if(isUnselected)
+	        {
+	        	this.__setValuesForUnselectedRow(index);
+	        }
+	        if(this.__enableVirtualScroll)
+	    	{
+	    		this.__virtualRowSelection();
+	    	}
+	    	else
+	    	{
+	    		var listItem = this.__getListItemByIndex(index);
+	    		this.util.removeStyleClass(listItem,"nsListItemSelected");
+	    	}
+	    }
+	};
+	
+	NSList.prototype.__setValuesForSelectedRow = function(index)
+	{
+		if(index > -1 && this.__isMouseHoverAllowed(index))
+		{
+			var item = this.__getItemByIndex(index);
+			if(item)
+			{
+				item[this.__fieldSelected] = true;
+			    this.__selectedIndex = index;
+			    this.__navigationIndex = index;
+			    this.util.dispatchEvent(this.__baseComponent,this.ITEM_SELECTED,item,{index:index});
+			}
+		}
+	};
+	
+	NSList.prototype.__setValuesForUnselectedRow = function(index)
+	{
+		if(index > -1 && this.__isMouseHoverAllowed(index))
+		{
+			var item = this.__getItemByIndex(index);
+			if(item)
+			{
+				item[this.__fieldSelected] = false;
+		    	this.util.dispatchEvent(this.__baseComponent,this.ITEM_UNSELECTED,item,{index:index});
+			}
+		}
+	};
+	
+	NSList.prototype.__clearAllRowSelection = function(setIndexVariables)
+	{
+		var size = this.__selectedIndexes.length;
+	    for (var count = size - 1; count >= 0 ; count--)
+	    {
+	    	var index = this.__selectedIndexes[count];
+	        this.__markRowUnselected(index);
+	    }
+	    this.__setMultiSelectedVars(-1,true);
+	    if(setIndexVariables)
+	    {
+	    	this.__selectedIndex = -1;
+	        this.__navigationIndex = -1;
+	    }
+	};
+	
+	NSList.prototype.__multiSectionHandler = function(lastIndex)
+	{
+		 if(lastIndex < 0)
+		 {
+			 return;
+		 }
+		 if (this.__selectedIndexes.length === 0)
+		 {
+			 this.__isRowSelected(lastIndex);
+		     return;
+		 }
+		 var firstIndex = this.__selectedIndexes[this.__selectedIndexes.length - 1];
+		 if(lastIndex === firstIndex)
+		 {
+			 this.__markRowUnselected(lastIndex);
+			 return;
+		 }
+		 var isDown = lastIndex > firstIndex;
+		 var isSelection = !this.__isRowSelected(lastIndex);
+		 var counter = firstIndex;
+		 do
+		 {
+			  counter = isDown ? (counter + 1) : (counter - 1);
+			  if (isSelection)
+			  {
+				  this.__markRowSelected(counter);
+			  }
+			  else
+			  {
+				  this.__markRowUnselected(counter);
+			  }
+		 }
+		 while(counter != lastIndex);	 
+	};
+	
+	NSList.prototype.__setMultiSelectedVars = function(index,add)
+	{
+		if(index === -1)
+		{
+			this.__selectedItems = [];	
+			this.__selectedIndexes = [];	
+		}
+		else if(add)
+		{
+			var data = this.__getItemByIndex(index);
+			this.__selectedItems.push(data);
+			this.__selectedIndexes.push(index);
+		}
+		else
+		{
+			var isUnselected = false;
+			for (var count= 0; count < this.__selectedIndexes.length ; count++)
+	        {
+	            if (this.__selectedIndexes[count] === index)
+	            {
+	                this.__selectedItems.splice(count,1);
+	                this.__selectedIndexes.splice(count,1);
+	                isUnselected = true;
+	                break;
+	            }
+	        }
+			return isUnselected;
+		}
+		
+		return true;
+	};
+	
+	NSList.prototype.__isRowSelected= function(index)
+	{
+	    if(index > -1)
+	    {
+	    	var item = this.__getItemByIndex(index);
+	    	if(item)
+	    	{
+	    		return item[this.__fieldSelected];
+	    	}
+	    }   
+	    return false;
+	};
+	
+	/******************************************************Start of Context Menu*************************************************************/
+	NSList.prototype.__initializeContextMenu = function()
+	{
+		//if(!this.__contextMenu)
+		//{
+			var contextMenuSetting = {parent:this.__listContainer,isContextMenu:true,createRunTime:true,sourceProvider:this.__getContextMenuDataProvider.bind(this),targetType:"LI"};
+			if(this.__contextMenuSetting)
+			{
+				for(var key in this.__contextMenuSetting)
+				{
+					//grid setting should not be overriden by the users
+					if(!contextMenuSetting[key])
+					{
+						contextMenuSetting[key] = this.__contextMenuSetting[key];
+					}
+				}
+			}
+			this.__contextMenu = new NSMenu(contextMenuSetting);
+		//}
+	};
+	
+	NSList.prototype.__getContextMenuDataProvider = function(listItem)
+	{
+		if(listItem)
+		{
+			listItem = this.util.findParent(listItem,"LI");
+			if(listItem)
+			{
+				var index = this.__getIndexFromTarget(listItem);
+				var item = this.__getItemByIndex(index);
+				if(item && this.__contextMenuProvider) 
+				{
+					return this.__contextMenuProvider(item,index);
+				}
+			}
+		}
+		return null;
+	};
+	/******************************************************End of Context Menu*************************************************************/
+	/******************************Custom Function *************************************/
+	NSList.prototype.__getIndexFromTarget = function(target)
+	{
+		if(target)
+		{
+			return parseInt(target.getAttribute("ns-index"));
+		}
+		return -1;
+	};
+	
+	NSList.prototype.__getListItemFromItem = function(item)
+	{
+		var listItem = null;
+		if(item)
+		{
+			listItem = item[this.__fieldItem];
+			var index = item[this.__fieldIndex];
+			//below case is true if row reference has been removed due to virtual scroll 
+			var listItemRawIndex = this.__getListItemRawIndex(listItem); 
+			if(!listItem || listItemRawIndex === -1)
+			{
+				var arrListItem = this.__listContainer.querySelectorAll('[ns-index="' + index + '"]');
+				if(arrListItem && arrListItem.length > 0)
+				{
+					listItem = arrListItem[0];
+				}
+			}
+		}
+		return listItem;
+	};
+	
+	NSList.prototype.__getListItemByIndex = function(index)
+	{
+		if(index > -1)
+	    {
+	    	var item = this.__getItemByIndex(index);
+	    	if(item)
+	    	{
+	    		return item[this.__fieldItem];
+	    	}
+	    }   
+		return null;
+	};
+	
+	NSList.prototype.__getListItemFromContainer = function(index)
+	{
+		if(this.__listContainer.children.length > index)
+		{
+			return this.__listContainer.children[index];
+		}
+		return null;
+	};
+	
+	NSList.prototype.__getItemByIndex = function(indexToFind,source)
+	{
+		if(!source)
+		{
+			source = this.__objGrid.__getFlatSource();
+		}
+		if(source && source.length > 0)
+		{
+			for(var count = 0;count < source.length;count++)
+			{
+				var item = source[count];
+				if(item && item[this.__fieldIndex] === indexToFind)
+				{
+					return item;
+				}
+			}
+		}
+		return null;
+	};
+	
+	NSList.prototype.__getIndexByItem = function(itemToFind,source)
+	{
+		if(!source)
+		{
+			source = this.__objGrid.__getFlatSource();
+		}
+		if(itemToFind && source && source.length > 0)
+		{
+			for(var count = 0;count < source.length;count++)
+			{
+				var item = source[count];
+				if(item && item[this.__fieldIndex] === itemToFind[this.__fieldIndex])
+				{
+					return item[this.__fieldIndex];
+				}
+			}
+		}
+		return -1;
+	};
+	
+	NSList.prototype.__addItem = function(arrItem,atIndex)
+	{
+		var flatSource = this.__objGrid.__getFlatSource();
+		if(this.util.isUndefined(atIndex) || atIndex === null)
+		{
+			atIndex = flatSource.length;
+		}
+		if(arrItem && arrItem.length > 0)
+		{
+			if(this.__listContainer && this.__listContainer.children && this.__listContainer.children.length > 0 && this.__listContainer.children.length < 3)
+			{
+				for(var count = 0;count < this.__listContainer.children.length;count++)
+				{
+					var listItem = this.__listContainer.children[count];
+					if(listItem.hasAttribute("nsNoData"))
+					{
+						this.__listContainer.removeChild(listItem);
+						break;
+					}
+				}
+			}
+			if(!this.__addRemoveRowCallInternal)
+	   	 	{
+				this.__objGrid.__setWrapperSource(arrItem,atIndex,-1,0,true);
+	   	 	};
+			var item = null;
+			var length = arrItem.length;
+			var index = -1;
+			for(var count = 0;count < length;count++)
+			{
+				item = arrItem[count];
+				index = atIndex + count;
+				if(item)
+				{
+					this.__dataSource.splice(index, 0, item);
+					this.__arrWrapper.splice(index, 0, item);
+					this.__arrInternalSource.splice(index, 0, item);
+				}
+			}
+			/*flatSource = this.__objGrid.__getFlatSource();
+			this.__updateSourceIndex(flatSource);*/
+			for(var count = 0;count < length;count++)
+			{
+				item = arrItem[count];
+				if(this.__enableVirtualScroll)
+				{
+					
+				}
+				else
+				{
+					this.__createListAt(item,item[this.__fieldIndex]);
+				}
+			}
+		}
+	};
+	
+	NSList.prototype.__moveItem = function(arrItem,toIndex)
+	{
+		if(arrItem && arrItem.length > 0 && !this.util.isUndefined(toIndex) && toIndex !== null)
+		{
+			var item = null;
+			var length = arrItem.length;
+			var index = -1;
+			var fromIndex = -1;
+			var listContainer = this.__listContainer;
+			var listItem = null;
+			for(var count = length - 1;count >= 0;count--)
+			{
+				item = arrItem[count];
+				index = toIndex + count;
+				if(item)
+				{
+					fromIndex = item[this.__fieldIndex];
+					this.util.moveArrayItem(this.__dataSource,fromIndex,index);
+					this.util.moveArrayItem(this.__arrWrapper,fromIndex,index);
+					this.util.moveArrayItem(this.__arrInternalSource,fromIndex,index);
+					if(this.__enableVirtualScroll)
+					{
+						
+					}
+					else
+					{
+						// donot use item[this.__fieldItem] for getting listItem as after de-serialization the reference get lost 
+						// hence getting the item back from dataSource
+						item = this.__getItemByIndex(fromIndex);
+						listItem = item[this.__fieldItem];
+						if(listItem)
+						{
+							if(listItem.parentNode === listContainer)
+							{
+								listContainer.removeChild(listItem);
+							}
+							index = (index === 0) ? index : (index - 1);
+							listContainer.insertBefore(listItem, listContainer.children[index]);
+						}
+					}
+				}
+			}
+		}
+	};
+	
+	NSList.prototype.__updateSourceIndex = function(source)
+	{
+		if(!source)
+		{
+			source = this.__getAllItems();
+		}
+		var item = null;
+		var listItem = null;
+		var length = source.length;
+		for(var count = 0;count < length;count++)
+		{
+			item = source[count];
+			var index = this.__enableHierarchical ? (count + 1) : count;
+			item[this.__fieldIndex] = index;
+			listItem = item[this.__fieldItem];
+			if(listItem && this.util.isElementOfType(listItem,"li"))
+			{
+				listItem.setAttribute("ns-index",index);
+				var compArrow = listItem.querySelector(".nsListArrow");
+				if(compArrow)
+				{
+					compArrow.setAttribute("ns-parent-row-count",index);
+					var arrowID = this.getID() + "compArrow" + index;
+					compArrow.setAttribute("id",arrowID);
+					var compSvg = compArrow.querySelector("svg");
+					if(compSvg)
+					{
+						var svgID = arrowID + "svg";
+						compSvg.setAttribute("id",svgID);
+					}
+					var compUse = compArrow.querySelector("use");
+					if(compUse)
+					{
+						var useID = arrowID + "use";
+						compUse.setAttribute("id",useID);
+					}
+				}
+			}
+		}
+	};
+	
+	NSList.prototype.__createArrow = function(item,parentRowCount,parentElement,isCollapsed)
+	{
+		 if(parentElement)
+		 {
+			 var cellArrowParent = this.util.createDiv(null,"nsListArrowParent");
+			 var arrowID = this.getID() + "compArrow" + parentRowCount;
+			 var compArrow = this.util.createDiv(arrowID,"nsListArrow");
+			 compArrow.style.paddingTop = "3px";
+			 compArrow.setAttribute("ns-parent-row-count",parentRowCount);
+			 
+			 var objSVG = new NSSvg();
+			 this.__objGrid.__createArrow(compArrow,objSVG,arrowID,isCollapsed);
+			 this.util.addEvent(compArrow,"click",this.__arrowClickHandler.bind(this));
+			 cellArrowParent.appendChild(compArrow);
+			 parentElement.appendChild(cellArrowParent);
+			 item[this.__fieldItemArrow] = compArrow;
+			 return compArrow;
+		 }
+		 return null;
+	};
+	
+	NSList.prototype.__setArrowDirection = function(compArrow,isCollapsed)
+	{
+		if(compArrow)
+		{
+			var objSVG = new NSSvg();
+			var useID = compArrow.getAttribute("id") + "use";
+			this.__objGrid.__setArrowDirection(objSVG,useID,isCollapsed);
+		}
+	};
+	
+	NSList.prototype.__isArrowCollapsed = function(compArrow)
+	{
+		if(compArrow && compArrow.hasAttribute("ns-parent-row-count"))
+		{
+			var rowIndex = parseInt(compArrow.getAttribute("ns-parent-row-count"));
+			var item = this.__getItemByIndex(rowIndex);
+			if(item)
+			{
+				return item[this.__fieldIsCollapsed];
+			}
+		}
+		return false;
+	};
+	
+	NSList.prototype.__arrowClickHandler = function(event)
+	{
+		event = this.util.getEvent(event);
+		var target = this.util.getTarget(event);
+		target = this.util.findParent(target,"DIV");
+		if(target && target.hasAttribute("ns-parent-row-count"))
+		{
+			var rowIndex = target.getAttribute("ns-parent-row-count");
+			var isCollapse = this.__isArrowCollapsed(target);
+			rowIndex = parseInt(rowIndex);
+			if(rowIndex > -1)
+			{
+				var item = this.__getItemByIndex(rowIndex);
+				if(item[this.__childField]  && item[this.__childField].length > 0)
+		        {
+					this.__showHideRow(rowIndex,target,!isCollapse);
+		        }
+				else 
+				{
+					this.__objGrid.__handleOnDemandClick(item,event);
+				}
+			}
+		}
+		event.stopImmediatePropagation();
+	};
+	
+	NSList.prototype.__expandCollapseAll = function(isCollapse)
+	{
+		if(!this.__enableVirtualScroll && this.__getTotalListItems() < this.__totalRecords)
+		{
+			this.util.warning("nsList","Please let all the items to render.");
+			return;
+		}
+		var dataSource = this.__arrInternalSource;
+		if(dataSource && dataSource.length > 0)
+		{
+			if(this.__enableVirtualScroll)
+			{
+				this.__expandCollapseAllVirtual(dataSource,isCollapse);
+			}
+			else
+			{
+				this.__expandCollapseAllNormal(dataSource,isCollapse);
+			}
+		}
+	};
+	
+	NSList.prototype.__expandCollapseAllNormal = function(dataSource,isCollapse)
+	{
+		for(var count = 0;count < dataSource.length;count++)
+		{
+			var item = dataSource[count];
+			//setting __fieldIsCollapsed here assuming that __showHideAllArrows() will be called after this function
+			item[this.__fieldIsCollapsed] = isCollapse;
+			if(parseInt(item[this.__fieldItemLevel]) > 0)
+			{
+				var row = item[this.__fieldItem];
+				if(isCollapse)
+				{
+					row.style.display = "none";
+					item[this.__fieldItemVisible] = false;
+				}
+				else
+				{
+					row.style.display = "";
+					item[this.__fieldItemVisible] = true;
+				}
+			}
+		}
+		this.__showHideAllArrows(isCollapse);
+	};
+	
+	NSList.prototype.__expandCollapseAllVirtual = function(dataSource,isCollapse)
+	{
+		for(var count = 0;count < dataSource.length;count++)
+		{
+			var item = dataSource[count];
+			//setting __fieldIsCollapsed here assuming that __showHideAllArrows() will be called after this function
+			item[this.__fieldIsCollapsed] = isCollapse;
+			if(parseInt(item[this.__fieldItemLevel]) > 0)
+			{
+				if(isCollapse)
+				{
+					item[this.__fieldItemVisible] = false;
+				}
+				else
+				{
+					item[this.__fieldItemVisible] = true;
+				}
+			}
+		}
+		this.__showHideAllArrows(isCollapse);
+		this.__updateVisibleIndex(null,0);
+		this.__resetDataInBody(0,dataSource.length,null,false);
+		this.__setVirtualVariables(false,true,isCollapse,false);
+	};
+	
+	NSList.prototype.__showHideRow = function(rowIndex,compArrow,isCollapse)
+	{
+		if(rowIndex > -1)
+		{
+			var item = this.__getItemByIndex(rowIndex);
+			if(!compArrow)
+			{
+				compArrow = this.__getArrow(item[this.__fieldIndex]);
+			}
+			var rowLevel = parseInt(item[this.__fieldItemLevel]);
+			var arrChildItems = [];
+			if(item && item[this.__fieldHasChild])
+			{
+				var startIndex = 0;
+				if(isCollapse)
+				{
+					arrChildItems = this.__arrInternalSource;
+					startIndex = rowIndex;
+				}
+				else
+				{
+					arrChildItems = this.__getImmediateChildItems(arrChildItems, item);
+				}
+				if(this.__enableVirtualScroll)
+				{
+					this.__showHideRowVirtual(item,arrChildItems,startIndex,rowLevel,isCollapse);
+				}
+				else
+				{
+					this.__showHideRowNormal(item,arrChildItems,startIndex,rowLevel,isCollapse);
+				}
+				this.__setArrowDirection(compArrow,isCollapse);
+				item[this.__fieldIsCollapsed] = isCollapse;
+			}
+		}
+	};
+	
+	NSList.prototype.__showHideRowNormal = function(item,arrChildItems,startIndex,rowLevel,isCollapse)
+	{
+		if(arrChildItems && arrChildItems.length > 0)
+		{
+			if(isCollapse)
+			{
+				var retIndex = this.__getActualIndex(arrChildItems,startIndex);
+				if(retIndex !== startIndex)
+				{
+					startIndex = (retIndex + 1);
+				}
+			}
+			var rowItem = null;
+			for(var count = startIndex;count < arrChildItems.length;count++)
+			{
+				rowItem = arrChildItems[count];
+				var row = rowItem[this.__fieldItem];
+				if(!row)
+				{
+					row = this.__createListAt(rowItem,rowItem[this.__fieldIndex] - 1,false);
+					rowItem[this.__fieldItem] = row;
+					this.__updateSourceIndex();
+				}
+				if(isCollapse)
+				{
+					if(rowLevel >= parseInt(rowItem[this.__fieldItemLevel]))
+					{
+						break;
+					}
+					row.style.display = "none";
+					rowItem[this.__fieldItemVisible] = false;
+					if(rowItem[this.__fieldHasChild])
+					{
+						rowItem[this.__fieldIsCollapsed] = true;
+						if(rowItem[this.__fieldItemArrow])
+						{
+							var divArrow = rowItem[this.__fieldItemArrow];
+							if(divArrow)
+							{
+								this.__setArrowDirection(divArrow,true);
+							}
+						}
+					}
+				}
+				else
+				{
+					row.style.display = "";
+					rowItem[this.__fieldItemVisible] = true;
+				}
+			}
+		}
+	};
+	
+	NSList.prototype.__showHideRowVirtual = function(item,arrChildItems,startIndex,rowLevel,isCollapse)
+	{
+		if(arrChildItems && arrChildItems.length > 0)
+		{
+			if(isCollapse)
+			{
+				var retIndex = this.__getActualIndex(arrChildItems,startIndex);
+				if(retIndex !== startIndex)
+				{
+					startIndex = (retIndex + 1);
+				}
+				/*//(startIndex + 1) as __fieldIndex starts from 1
+				if(arrChildItems.length < startIndex || arrChildItems[startIndex][this.__fieldIndex] !== (startIndex + 1))
+				{
+					for(var count = 0;count < arrChildItems.length;count++)
+					{
+						rowItem = arrChildItems[count];
+						if(rowItem[this.__fieldIndex] === startIndex)
+						{
+							startIndex = (count + 1);
+							break;
+						}
+					}
+				}*/
+			}
+			for(var count = startIndex;count < arrChildItems.length;count++)
+			{
+				var rowItem = arrChildItems[count];
+				if(isCollapse)
+				{
+					if(rowLevel >= parseInt(rowItem[this.__fieldItemLevel]))
+					{
+						break;
+					}
+					rowItem[this.__fieldItemVisible] = false;
+					if(rowItem[this.__fieldHasChild])
+					{
+						rowItem[this.__fieldIsCollapsed] = true;
+					}
+				}
+				else
+				{
+					rowItem[this.__fieldItemVisible] = true;
+				}
+			}
+			var arrRows = this.__listContainer.children;
+			var rowLength = arrRows.length;
+			var row = item[this.__fieldItem];
+			var index = item[this.__fieldIndex];
+			this.__updateVisibleIndex(null,index - 1);
+			var visibleIndex = item[this.__fieldVisibleIndex];
+			//to get actual rowIndex use __getListItemRawIndex and do +1 as index starts with 1
+			var listItemRawIndex = this.__getListItemRawIndex(row); 
+			listItemRawIndex = ((listItemRawIndex === -1) ? -1 : (listItemRawIndex + 1));
+			this.__resetDataInBody(visibleIndex,visibleIndex + rowLength,listItemRawIndex,true);
+			this.__setVirtualVariables(false,true,isCollapse,true);
+		}
+	};
+	
+	NSList.prototype.__showHideAllArrows = function(isCollapse)
+	{
+		var arrDivs = this.__getAllArrows();
+		if(arrDivs && arrDivs.length > 0)
+		{
+			for(var count = 0;count < arrDivs.length;count++)
+			{
+				var div = arrDivs[count];
+				if(div && div.hasAttribute("ns-parent-row-count"))
+				{
+					this.__setArrowDirection(div,isCollapse);
+				}
+			}
+		}
+	};
+	
+	NSList.prototype.__getAllItems = function()
+	{
+		return this.__objGrid.__getFlatSource();
+	};
+	
+	NSList.prototype.__updateListItemText = function(listItem,item,index)
+	{
+		return this.__objGrid.__updateListItemText(listItem,item,index);
+	};
+	
+	NSList.prototype.__getImmediateChildItems = function(arrItems,item)
+	{
+		if(!arrItems)
+		{
+			arrItems = [];
+		}
+		if(item && item[this.__fieldHasChild])
+		{
+			var arrChild = this.__arrInternalSource;
+			var rowLevel = parseInt(item[this.__fieldItemLevel]);
+			var startIndex = item[this.__fieldIndex];
+			var retIndex = this.__getActualIndex(arrChild,startIndex);
+			if(retIndex !== startIndex)
+			{
+				startIndex = (retIndex + 1);
+			}
+			var length = arrChild.length;
+			for(var count = startIndex;count < length;count++)
+			{
+				var itemChild = arrChild[count];
+				var childRowLevel = parseInt(itemChild[this.__fieldItemLevel]);
+				if(rowLevel >= childRowLevel)
+				{
+					break;
+				}
+				if((rowLevel + 1) === childRowLevel)
+				{
+					arrItems.push(itemChild);
+				}
+			}
+		}
+		return arrItems;
+	};
+	
+	//generally used for Filter condition
+	NSList.prototype.__getActualIndex = function(arrChild,startIndex,addCompareOne)
+	{
+		//(startIndex + 1) as __fieldIndex starts from 1
+		if(arrChild && arrChild.length < startIndex || arrChild[startIndex][this.__fieldIndex] !== (startIndex + 1))
+		{
+			var compareIndex = startIndex;
+			if(addCompareOne)
+			{
+				compareIndex += 1;
+			}
+			var rowItem = null;
+			for(var count = 0;count < arrChild.length;count++)
+			{
+				rowItem = arrChild[count];
+				if(rowItem[this.__fieldIndex] === compareIndex)
+				{
+					return count;
+				}
+			}
+		}
+		return startIndex;
+	};
+	
+	
+	NSList.prototype.__getAllChildItems = function(arrItems,item)
+	{
+		if(!arrItems)
+		{
+			arrItems = [];
+		}
+		if(item && item[this.__fieldHasChild])
+		{
+			var arrChild = this.__arrInternalSource;
+			var rowLevel = parseInt(item[this.__fieldItemLevel]);
+			var startIndex = item[this.__fieldIndex];
+			var length = arrChild.length;
+			for(var count = startIndex;count < length;count++)
+			{
+				var itemChild = arrChild[count];
+				if(rowLevel >= parseInt(itemChild[this.__fieldItemLevel]))
+				{
+					break;
+				}
+				arrItems.push(itemChild);
+			}
+		}
+		return arrItems;
+	};
+	
+	NSList.prototype.__getAllVisibleItems = function()
+	{
+		var totalRecords = 0;
+		var arrItems = this.__getAllItems();
+		if(arrItems && arrItems.length > 0)
+		{
+			for(var count = 0;count < arrItems.length;count++)
+			{
+				var item = arrItems[count];
+				if(item && item[this.__fieldItemVisible])
+				{
+					totalRecords += 1;
+				}
+			}
+		}
+		return totalRecords;
+	};
+	
+	NSList.prototype.__getFirstVisibleItemBeforeIndex = function(itemIndex)
+	{
+		var arrItems = this.__getAllItems();
+		if(arrItems && arrItems.length > 0)
+		{
+			var retIndex = this.__getActualIndex(arrItems,itemIndex);
+			if(retIndex !== itemIndex)
+			{
+				itemIndex = (retIndex + 1);
+			}
+			for(var count = itemIndex;count >= 0;count--)
+			{
+				var item = arrItems[count];
+				if(item && item[this.__fieldItemVisible] && item[this.__fieldVisibleIndex] > -1)
+				{
+					return item;
+				}
+			}
+		}
+		return null;
+	};
+	
+	NSList.prototype.__getVisibleItemByIndex = function(source,index)
+	{
+		var arrItems = source;
+		if(!arrItems)
+		{
+			arrItems = this.__getAllItems();
+		}
+		if(arrItems && arrItems.length > 0)
+		{
+			var self = this; 
+			var findItem = function(itemCompare)
+			{
+				 return (itemCompare[self.__fieldVisibleIndex] === (index + 1));
+			};
+			return arrItems.find(findItem);
+		}
+		return null;
+	};
+	
+	NSList.prototype.__updateVisibleIndex = function(source,fromIndex)
+	{
+		var arrItems = source;
+		if(!arrItems)
+		{
+			arrItems = this.__getAllItems();
+		}
+		if(this.util.isUndefinedOrNull(fromIndex))
+		{
+			fromIndex = 0;
+		}
+		if(arrItems && arrItems.length > 0)
+		{
+			var visibleRowIndex = 1;
+			if(fromIndex > 0)
+			{
+				var visibleItem = this.__getFirstVisibleItemBeforeIndex(fromIndex);
+				if(visibleItem)
+				{
+					visibleRowIndex = visibleItem[this.__fieldVisibleIndex];
+					fromIndex = visibleItem[this.__fieldIndex] - 1;
+					var retIndex = this.__getActualIndex(arrItems,fromIndex,true);
+					if(retIndex !== fromIndex)
+					{
+						fromIndex = retIndex;
+					}
+				}
+			}
+			var length = arrItems.length;
+			var item = null;
+			for(var count = fromIndex; count < length; count++)
+			{
+				item = arrItems[count];
+				if(item)
+				{
+					if(item[this.__fieldItemVisible])
+					{
+						item[this.__fieldVisibleIndex] = visibleRowIndex;
+						visibleRowIndex++;
+					}
+					else
+					{
+						item[this.__fieldVisibleIndex] = -1;
+					}
+				}
+			}
+		}
+	};
+	
+	NSList.prototype.__updateVisibleIndexByListItem = function(source,arrAllItems)
+	{
+		if(source)
+		{
+			var arrItems = arrAllItems;
+			if(!arrItems)
+			{
+				arrItems = this.__getAllItems();
+			}
+			var length = source.length;
+			var item = null;
+			var objVisibleIndex = {};
+			for(var count = 0; count < length; count++)
+			{
+				item = source[count];
+				if(item)
+				{
+					var index = item[this.__fieldIndex];
+					objVisibleIndex[index] = "NSList";
+				}
+			}
+			if(arrItems && arrItems.length > 0)
+			{
+				length = arrItems.length;
+				item = null;
+				var visibleRowIndex = 1;
+				for(var count = 0; count < length; count++)
+				{
+					item = arrItems[count];
+					var index = item[this.__fieldIndex];
+					if(this.util.isUndefinedOrNull(objVisibleIndex[index]))
+					{
+						item[this.__fieldVisibleIndex] = -1;
+						item[this.__fieldItemVisible] = false;
+					}
+					else
+					{
+						item[this.__fieldVisibleIndex] = visibleRowIndex;
+						item[this.__fieldItemVisible] = true;
+						visibleRowIndex++;
+					}
+				}
+			}
+			
+		}
+		/*var arrItems = source;
+		if(!arrItems)
+		{
+			arrItems = this.__getAllItems();
+		}
+		var arrRows = this.__listContainer.children;
+		if(arrItems && arrItems.length > 0 && arrRows && arrRows.length > 0)
+		{
+			//below technique is used for not using array to avoid a loop
+			var objVisibleIndex = {};
+			for(var count = 0;count < arrRows.length;count++)
+			{
+				var index = this.__getIndexFromTarget(arrRows[count]);
+				objVisibleIndex[index] = "NSList";
+			}
+			var length = arrItems.length;
+			var item = null;
+			var visibleRowIndex = 1;
+			for(var count = 0; count < length; count++)
+			{
+				item = arrItems[count];
+				if(item)
+				{
+					var index = item[this.__fieldIndex];
+					if(item[this.__fieldItemVisible] || !this.util.isUndefinedOrNull(objVisibleIndex[index]))
+					{
+						item[this.__fieldVisibleIndex] = visibleRowIndex;
+						visibleRowIndex++;
+					}
+					else
+					{
+						item[this.__fieldVisibleIndex] = -1;
+					}
+				}
+			}
+		}*/
+	};
+	
+	NSList.prototype.__updateIndexForAllItems = function(source)
+	{
+		if(!source)
+		{
+			source = this.__getAllItems();
+		}
+		var length = source.length;
+		var item = null;
+		for(var count = 0; count < length; count++)
+		{
+			item = source[count];
+			if(item)
+			{
+				item[this.__fieldIndex] = count;
+			}
+		}
+	};
+	
+	NSList.prototype.__getArrow = function(rowCount)
+	{
+		var arrDivs = this.__getAllArrows();
+		if(arrDivs && arrDivs.length > 0)
+		{
+			for(var count = 0;count < arrDivs.length;count++)
+			{
+				var div = arrDivs[count];
+				if(div && div.hasAttribute("ns-parent-row-count"))
+				{
+					var rowParentCount = div.getAttribute("ns-parent-row-count");
+					if(rowParentCount && rowParentCount == rowCount)
+					{
+						return div;
+					}
+				}
+			}
+		}
+		return null;
+	};
+	
+	NSList.prototype.__getAllArrows = function(divParent)
+	{
+		if(!divParent)
+		{
+			divParent = this.__listContainer;
+		}
+		return divParent.querySelectorAll(".nsListArrow");
+	};
+	
+	NSList.prototype.__getTotalListItems = function()
+	{
+		if(this.__listContainer && this.__listContainer.children)
+		{
+			return this.__listContainer.children.length;
+		}
+		return 0;
+	};
+	
+	NSList.prototype.__updateTotalRecords = function(totalCount)
+	{
+		if(this.util.isUndefined(totalCount) || totalCount === null)
+		{
+			totalCount = this.__arrInternalSource.length; 
+		}
+		this.__totalRecords = totalCount;
+	};
+	
+	NSList.prototype.__getListItemRawIndex = function(listItem)
+	{
+		if(listItem && listItem.parentNode)
+		{
+			var index = [].slice.call(listItem.parentNode.children).indexOf(listItem);
+			return index;
+		}
+		return -1;
+	};
+	
+	NSList.prototype.__checkForVirtualMode = function()
+	{
+		if(this.__enableVirtualScroll)
+		{
+			/*if(this.__enableHierarchical || this.__enableGrouping)
+			{
+				this.__enableVirtualScroll = false;
+			}*/
+			if(this.__enablePagination)
+			{
+				this.__enableVirtualScroll = false;
+			}
+		}
+	};
+	
+	NSList.prototype.__setVirtualScroll_ScrollTop = function(scrollTop)
+	{
+		if(this.__enableCustomScrollBar)
+		{
+			if(this.__scroller)
+			{
+				this.__scroller.setScrollTop(scrollTop);
+			}
+		}
+		else
+		{
+			this.__divVirtualScrollParent.scrollTop = scrollTop;
+		}
+	};
+	
+	NSList.prototype.__getVirtualScroll_ScrollTop = function()
+	{
+		var scrollTop = -1;
+		if(this.__enableCustomScrollBar)
+		{
+			if(this.__scroller)
+			{
+				scrollTop = this.__scroller.getScrollTop();
+			}
+		}
+		else
+		{
+			scrollTop = this.__divVirtualScrollParent.scrollTop;
+		}
+		return scrollTop;
+	};
+	
+	NSList.prototype.__getVirtualScroll_ScrollHeight = function()
+	{
+		var scrollHeight = -1;
+		if(this.__enableCustomScrollBar)
+		{
+			if(this.__scroller)
+			{
+				scrollHeight = this.__scroller.getVerticalScroller().scrollHeight;
+			}
+		}
+		else
+		{
+			scrollHeight = this.__divVirtualScrollParent.scrollHeight;
+		}
+		return scrollHeight;
+	};
+	
+	NSList.prototype.__getVirtualScroll_ParentClientHeight = function()
+	{
+		var clientHeight = -1;
+		if(this.__enableCustomScrollBar)
+		{
+			if(this.__scroller)
+			{
+				clientHeight = this.__scroller.getVerticalScroller().clientHeight;
+			}
+		}
+		else
+		{
+			clientHeight = this.__divVirtualScrollParent.clientHeight;
+		}
+		return clientHeight;
+	};
+	
+	NSList.prototype.__hasVirtualScroll_VerticalScrollBar = function()
+	{
+		var hasVerticalScrollbar = false;
+		if(this.__enableCustomScrollBar)
+		{
+			if(this.__scroller)
+			{
+				hasVerticalScrollbar = this.__scroller.hasVerticalScroller();
+			}
+		}
+		else
+		{
+			hasVerticalScrollbar = this.__divVirtualScrollParent.scrollHeight > this.__divVirtualScrollParent.clientHeight;
+		}
+		return hasVerticalScrollbar;
+	};
+	
+	NSList.prototype.__setVirtualScroll_ParentStyle = function(css)
+	{
+		if(this.__enableCustomScrollBar)
+		{
+			if(this.__scroller)
+			{
+				//this.util.css(this.__scroller.getVerticalScroller(),css);
+			}
+		}
+		else
+		{
+			this.util.css(this.__divVirtualScrollParent,css);
+		}
+	};
+	
+	NSList.prototype.__getVirtualScroll_ParentStyle = function()
+	{
+		var css = null;
+		if(this.__enableCustomScrollBar)
+		{
+			if(this.__scroller)
+			{
+				css = {};
+				//css = this.__scroller.getVerticalScroller()["style"];
+			}
+		}
+		else
+		{
+			css = this.__divVirtualScrollParent["style"];
+		}
+		return css;
+	};
+	
+	NSList.prototype.__getVirtualScroll_ParentClientRect = function()
+	{
+		var rect = null;
+		if(this.__enableCustomScrollBar)
+		{
+			if(this.__scroller)
+			{
+				rect = this.__scroller.getVerticalScroller().clientHeight;
+			}
+		}
+		else
+		{
+			rect = this.__divVirtualScrollParent.getBoundingClientRect();
+		}
+		return rect;
+	};
+	
+	NSList.prototype.__setVirtualScroll_Height = function(scrollHeight,setMaxHeight)
+	{
+		if(this.__enableCustomScrollBar)
+		{
+			if(this.__scroller)
+			{
+				this.__scroller.setScrollHeight(scrollHeight);
+			}
+			else
+			{
+				this.__scrollerSetting.scrollHeight = scrollHeight; 
+			}
+		}
+		else
+		{
+			var css = {"height": scrollHeight + "px"};
+			if(setMaxHeight)
+			{
+				css["max-height"] = scrollHeight + "px";
+			}
+			this.util.css(this.__divVirtualScroller,css);
+		}
+	};
+	
+	NSList.prototype.__getVirtualScroll_ClientHeight = function()
+	{
+		var clientHeight = -1;
+		if(this.__enableCustomScrollBar)
+		{
+			if(this.__scroller)
+			{
+				clientHeight = this.__scroller.getVertcialBar().clientHeight;
+			}
+		}
+		else
+		{
+			clientHeight = this.__divVirtualScroller.clientHeight;
+		}
+		return clientHeight;
+	};
+  
+  
+  if(window.URL && window.URL.revokeObjectURL)
+				    {
+				    	window.URL.revokeObjectURL(hrefvalue);
+				    }
+            
+  var mouseWheelEndInterval = null;
+  dispatchScrollStartEvent(selectedItem,event);
+  dispatchScrollingEvent(selectedItem,newPos,oldPos,event);
+				mouseWheelEndEvent(selectedItem,event);
+        
+        var mouseWheelEndEvent = function(item,event)
+		{
+			if(mouseWheelEndInterval)
+			{
+				clearInterval(mouseWheelEndInterval);
+				mouseWheelEndInterval = null;
+				mouseWheelEndInterval = setInterval(function() {
+					dispatchScrollEndEvent(item,event);
+		        }, 300); 
+			}
+		};
+    dispatchScrollEndEvent(item,event);
+    
+    dispatchScrollingEvent(selectedItem,newPos,oldPos,event);
+	        	dispatchScrollEndEvent(selectedItem,event);
+            
+            var extraOffset = isBothScrollPresent() ? 16 : 0;
+			var newBarSize = (container[item.client] - item.barTopLimit) * (item.element[item.client] / item.element[item.scrollSize]);
+			/*if(config[item.buttonProp]["enable"])
+			{
+				
+			}*/
+			if((newBarSize - extraOffset) > 0)
+			{
+				newBarSize = newBarSize - extraOffset;
+			}
+      var dispatchScrollStartEvent = function(item,event)
+		{
+			var eventItem = getEventItem(item,event);
+			dispatchEvent(NSScroller.SCROLL_START,eventItem,eventItem);
+		};
+		
+		var dispatchScrollingEvent = function(item,newScrollPos,oldScrollPos,event)
+		{
+			var eventItem = getEventItem(item,event || window.event,{oldScrollPos:oldScrollPos,scrollPos:newScrollPos}); 
+			dispatchEvent(NSScroller.SCROLLING,eventItem,eventItem);
+		};
+    
+    var dispatchScrollEndEvent = function(item,event)
+		{
+			var eventItem = getEventItem(item,event); 
+		    dispatchEvent(NSScroller.SCROLL_END,eventItem,eventItem);
+		};
+		
+		var getEventItem = function(item,event,objExtraProp)
+		{
+			var position = getAbsoluteElementPosition(item.scroller);
+			var eventItem = {scroller:item.container,scrollBar:item.scroller,direction:item.displayDirection,scrollPos:item.element[item.scroll],orignalEvent: event,absoluteScrollBarPos: position};
+			if(objExtraProp)
+			{
+				for(var key in objExtraProp)
+				{
+					eventItem[key] = objExtraProp[key];
+				}
+			}
+			return eventItem;
+		};
+    
+    var getAbsoluteElementPosition = function(element) 
+		{
+			var position = {x:0,y:0};
+			var rec = element.getBoundingClientRect();
+			position = {y: rec.top + window.scrollY, x: rec.left + window.scrollX};
+			return position;
+		};
