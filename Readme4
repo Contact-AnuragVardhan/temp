@@ -1,1 +1,13 @@
 
+var headerStyle = {pattern: {color: '#00FF00'},
+					   horizontal: 'center'}; 
+	var style = {border: {color: '#FF0000', style: 'thin'},
+				 pattern:{color: '#00FF00'}
+				};
+	var arrColumns = [{headerText:"Id",dataField:"id",width:5,type:"number",style: style},
+	                  {headerText:"Id Int",dataField:"id",width:10,type:"integer"},
+	                  {headerText:"Id Double",dataField:"id",width:10,type:"double"},
+	                  {headerText:"Country",dataField:"country",width:10},
+	                  {headerText:"Date",dataField:"date",width:30,type:'date'},
+	                  {headerText:"Time",dataField:"date",width:30,type:'time'},
+	                  {headerText:"Date Time",dataField:"date",width:30,type:'date',style: {format: '[$-409]m/d/yy\ h:mm\ AM/PM;@'}}];
