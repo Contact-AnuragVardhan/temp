@@ -1,13 +1,30 @@
-
-var headerStyle = {pattern: {color: '#00FF00'},
-					   horizontal: 'center'}; 
-	var style = {border: {color: '#FF0000', style: 'thin'},
-				 pattern:{color: '#00FF00'}
-				};
-	var arrColumns = [{headerText:"Id",dataField:"id",width:5,type:"number",style: style},
-	                  {headerText:"Id Int",dataField:"id",width:10,type:"integer"},
-	                  {headerText:"Id Double",dataField:"id",width:10,type:"double"},
-	                  {headerText:"Country",dataField:"country",width:10},
-	                  {headerText:"Date",dataField:"date",width:30,type:'date'},
-	                  {headerText:"Time",dataField:"date",width:30,type:'time'},
-	                  {headerText:"Date Time",dataField:"date",width:30,type:'date',style: {format: '[$-409]m/d/yy\ h:mm\ AM/PM;@'}}];
+var spanStyle = {horizontal: 'center',vertical: 'center'};
+for(var count = 0;count < 10;count++)
+	{
+		item = {id: count,country: 'UK'};
+		if((count % 2) === 0)
+		{
+			item["country"] = "US";
+		}
+		if(count == 0)
+		{
+			item["country"] = {value: "US",rowspan: 2,style: spanStyle};
+		}
+		if(count === 3)
+	    {
+	    	item["country"] = {value: "US",style: cellStyle};
+	    }
+		var date = new Date();
+	    date.setFullYear(2015, Math.floor(Math.random() * 12), Math.floor(Math.random() * 27));
+	    date.setHours(Math.floor(Math.random()*23), Math.floor(Math.random()*59), Math.floor(Math.random()*59), 0);
+	    item["date"] = date;
+	    if(count == 1)
+		{
+			item["date"] = {value: date,colspan: 3,style: spanStyle};
+		}
+		arrItems.push(item);
+	}
+	var objRow = {2:{height:30,style: rowStyle}};
+	var arrSheet=[{name:"Sheet 1",title:"This is a demo sheet",dataSource:arrItems,columns: arrColumns,rowProperties: objRow,headerStyle: headerStyle1},
+				  {name:"Sheet 2",dataSource:arrItems,columns: arrColumns,headerStyle: headerStyle2}];
+	var setting = {fileName:"temp",sheets:arrSheet};
