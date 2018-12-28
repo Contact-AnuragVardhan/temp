@@ -1,1 +1,44 @@
+var objRow = {2:{height:30,style: rowStyle}};
+	var viewAttribute = {zoomScale: 200};
+	var printSetUp = {orientation:'landscape',margin:{right: 1}};
+	var arrSheet=[{name:"Sheet 1",title:"This is a demo sheet",dataSource:getSheetData(10,true),columns: arrColumns,rowProperties: objRow,headerStyle: headerStyle1,viewAttribute: viewAttribute},
+				  {name:"Sheet 2",dataSource:getSheetData(10,false),columns: arrColumns,headerStyle: headerStyle2,freeze: {col: 1,row: 2},printSetUp: printSetUp}];
+	var setting = {fileName:"temp",sheets:arrSheet};
+	var xlsxExport = new NSXlsxExport(setting);
+	xlsxExport.process();
+};
+
+var getSheetData = function(length,isSpanReq)
+{
+	var cellStyle = {font: {color: '#E90AF5'}};
+	var spanStyle = {horizontal: 'center',vertical: 'center'};
+	var arrItems = [];
+	for(var count = 0;count < length;count++)
+	{
+		item = {id: count,country: 'UK'};
+		if((count % 2) === 0)
+		{
+			item["country"] = "US";
+		}
+		if(count == 0 && isSpanReq)
+		{
+			item["country"] = {value: "US",rowspan: 2,style: spanStyle};
+		}
+		if(count === 3)
+	    {
+	    	item["country"] = {value: "US",style: cellStyle};
+	    }
+		var date = new Date();
+	    date.setFullYear(2015, Math.floor(Math.random() * 12), Math.floor(Math.random() * 27));
+	    date.setHours(Math.floor(Math.random()*23), Math.floor(Math.random()*59), Math.floor(Math.random()*59), 0);
+	    item["date"] = date;
+	    if(count == 1 && isSpanReq)
+		{
+			item["date"] = {value: date,colspan: 3,style: spanStyle};
+		}
+		arrItems.push(item);
+		
+	}
+	return arrItems;
+}
 
