@@ -1,1 +1,167 @@
+package com.org.util;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+
+public class FileMerger 
+{
+	protected static final String JS = "js";
+	protected static final String CSS = "css";
+	
+	protected static final char LINE_FEED = '\n';
+    protected static final char CARRIAGE_RETURN = '\r';
+    protected static final char SPACE = ' ';
+    protected static final char TAB = '\t';
+    
+    protected String currentScript = "";
+    protected StringBuffer outputBuffer;
+    protected int pos;
+    protected char ch;
+    protected char lastAppend;
+    protected boolean endReached;
+    protected boolean contentAppendedAfterLastIdentifier = true;
+    protected boolean includeNewFile;
+    
+    public boolean getIncludeNewFile() {
+		return includeNewFile;
+	}
+
+	public void setIncludeNewFile(boolean includeNewFile) {
+		this.includeNewFile = includeNewFile;
+	}
+
+	public void compressFiles(String[] arrInputFile,String outputFile) throws Exception
+	{
+    	if(arrInputFile != null && arrInputFile.length > 0 && outputFile != null)
+		{
+    		String fileType = "";
+    		String separator = "\\";
+    		String outputDirPath = outputFile.substring(0,outputFile.lastIndexOf(separator));
+    		String outputFileName = outputFile.substring(outputFile.lastIndexOf(separator) + separator.length());
+    		String tempDirPath = outputDirPath + separator + "temp";
+    		if(outputFile.endsWith(JS))
+    		{
+    			fileType = JS;
+    		}
+    		else if(outputFile.endsWith(CSS))
+    		{
+    			fileType = CSS;
+    		}
+    		StringBuilder outputScript = new StringBuilder();
+    		for (String filename : arrInputFile)
+ 		    {
+    			if(filename != null && filename.length() > 0)
+    			{
+    				String inputScript = "";
+    				if(JS.equals(fileType))
+    				{
+    					inputScript = readFile(filename);
+    					String tempPath = tempDirPath + separator + outputFileName;
+    					File file = new File(tempPath);
+    		    		file.getParentFile().mkdirs();
+    		    		FileWriter outputFileWriter = new FileWriter(file);
+    				    outputFileWriter.write(inputScript);
+    				    outputFileWriter.close();
+    				    JSMinifier objJS = new JSMinifier();
+    				    inputScript = objJS.process(tempPath);
+    				}
+    				else
+    				{
+    					CSSMinifier objCSS = new CSSMinifier();
+    				    inputScript = objCSS.process(filename);
+         		    	//inputScript = compressScript(inputScript);
+    				}
+     		    	//inputScript = inputScript.replaceAll("\\r", "").replaceAll("\\n", "");
+     		    	//outputScript.append("\n\r" + "/*********" + filename + "**********/" + "\n\r");
+     		    	outputScript.append(inputScript);
+    			}
+    			else
+    			{
+    				System.out.println("File Name is empty with array " + arrInputFile.toString() + " and outputFile " + outputFile);
+    			}
+ 		    }
+    		deleteDirectory(tempDirPath);
+    		File file = new File(outputFile);
+    		file.getParentFile().mkdirs();
+    		FileWriter outputFileWriter = new FileWriter(file);
+		    outputFileWriter.write(outputScript.toString());
+		    outputFileWriter.close();
+		}
+	}
+	
+	public void deleteDirectory(String directoryFilePath) throws IOException
+	{
+		File file = new File(directoryFilePath);
+	    if(file.exists())
+	    {
+	        do
+	        {
+	        	deleteFile(file);
+	        }
+	        while(file.exists());
+	    }
+	    else
+	    {
+	        //System.out.println("File or Folder not found : " + directoryFilePath);
+	    }
+	}
+	
+	private void deleteFile(File file)
+	{
+	    if(file.isDirectory())
+	    {
+	        String fileList[] = file.list();
+	        if(fileList.length == 0)
+	        {
+	            //System.out.println("Deleting Directory : "+file.getPath());
+	            file.delete();
+	        }
+	        else
+	        {
+	            int size = fileList.length;
+	            for(int i = 0 ; i < size ; i++)
+	            {
+	                String fileName = fileList[i];
+	                //System.out.println("File path : "+file.getPath()+" and name :"+fileName);
+	                String fullPath = file.getPath()+"/"+fileName;
+	                File fileOrFolder = new File(fullPath);
+	                //System.out.println("Full Path :" + fileOrFolder.getPath());
+	                deleteFile(fileOrFolder);
+	            }
+	        }
+	    }
+	    else
+	    {
+	        //System.out.println("Deleting file : "+file.getPath());
+	        file.delete();
+	    }
+	}
+    
+    public String readFile(String fileName) 
+    {    
+        File file = new File(fileName);    
+        char[] buffer = null;    
+        try 
+        {    
+            BufferedReader bufferedReader = new BufferedReader(new FileReader(file));    
+            buffer = new char[(int)file.length()];    
+            int i = 0;    
+            int c = bufferedReader.read();    
+            while (c != -1) 
+            {    
+                buffer[i++] = (char)c;    
+                c = bufferedReader.read();    
+            }    
+        } 
+        catch (IOException e) 
+        {    
+            e.printStackTrace();    
+        }    
+        return new String(buffer);    
+    }
+    
+}
 
