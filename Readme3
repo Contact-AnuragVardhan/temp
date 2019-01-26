@@ -1,1 +1,36 @@
+	<script src="http://localhost:8080/JSLib/lib/com/org/util/nsUtil.js"></script>
+	<script src="http://localhost:8080/JSLib/lib/com/org/util/nsEvent.js"></script>
+	<script src="http://localhost:8080/JSLib/lib/com/org/util/nsAjax.js"></script>
+	<script src="http://localhost:8080/JSLib/lib/com/org/util/nsBinding.js"></script>
+	<script src="http://localhost:8080/JSLib/lib/com/org/util/nsRouter.js"></script>
+	<script src="http://localhost:8080/JSLib/lib/com/org/util/framework/nsModel.js"></script>
+	<script src="http://localhost:8080/JSLib/lib/com/org/util/framework/nsController.js"></script>
+	<script src="http://localhost:8080/JSLib/lib/com/org/util/framework/nsMVC.js"></script>
+data-ns-container
+data-ns-route-container
 
+nsMvc = new NSMvc(arrRoute,setting);
+		nsMvc.addController("controllerAbout",function(model)
+	    {
+	    	console.log("In controllerAbout");
+	    });
+		nsMvc.addController("childLevel1Controller",function(model)
+	    {
+	    	console.log("In childLevel1Controller");
+	    	model.fieldLevel1 = "fieldLevel1";
+	    });
+		nsMvc.addController("childLevel2Controller",function(model)
+	    {
+	    	console.log("In childLevel2Controller");
+	    	model.fieldLevel2 = "fieldLevel2";
+	    });
+      
+      model["changeDisplay"] = function(event)
+    	{
+    		model["tempName"]["show"] = !model["tempName"]["show"];
+    	}
+      
+      data-nsbind-show="{{tempName.show}}"
+      
+       <ns-include url="childJSP/child1.jsp" controller="childLevel1Controller">
+	</ns-include>
