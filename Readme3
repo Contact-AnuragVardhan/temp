@@ -1,1 +1,535 @@
+"use strict";
+var NSController = (function()
+{
+	function NSController(callback) 
+	{
+		var self = this;
+		var element = null;
+		var nsModel = null;
+		var compareModel = null;
+		var nsBind = null;
+		var childController = [];
+		
+		var initialize = function()
+		{
+			nsModel = new NSModel();
+			compareModel = new NSModel();
+		};
+		
+		var addChildCallbacks = function(arrCallback)
+		{
+			if(arrCallback)
+			{
+				childController = arrCallback;
+			}
+		};
+		
+		var process = function(argElement)
+		{
+			element = argElement;
+			if(element && callback)
+			{
+				callback(nsModel);
+				if(childController && childController.length > 0)
+				{
+					for(var index in childController)
+					{
+						childController[index](nsModel);
+					}
+				}
+				if(nsModel)
+				{
+					for(var key in nsModel)
+					{
+						if(!compareModel[key] && typeof nsModel[key] === "function")
+						{
+							injectFunction(nsModel,key,nsModel);
+						}
+					}
+				}
+				//if(!nsBind)
+				//{
+				nsBind = new NSBinding(element,nsModel);
+				//}
+			}
+		};
+		
+		var injectFunction = function(model,key,context)
+		{
+			if(model[key])
+			{
+				model[key] = (function() 
+				{
+				    var cachedFunction = model[key];
+				    return function() 
+				    {
+				    	preFunctionCall(cachedFunction,arguments);
+				    	var retValue = cachedFunction.apply(context,arguments);
+				        postFunctionCall(cachedFunction,arguments);
+				        return retValue;
+				    };
+				}());
+			}
+		};
+		
+		var preFunctionCall = function(funct,funcArguments)
+		{
+			console.debug("starting ...");
+			console.debug(funct.toString);
+		};
+		
+		var postFunctionCall = function(funct,funcArguments)
+		{
+			console.debug("ending ...");
+			console.debug(funct.toString);
+		};
+		
+		initialize();
+		
+		self.addChildCallbacks = addChildCallbacks;
+		self.process = process;
+	};
+	
+	return NSController;
+})();
+nsModuleExport(this,"NSController",NSController);
 
+"use strict";
+var NSModel = (function()
+{
+	function NSModel() 
+	{
+		var self = this;
+		var nsEvent = null;
+		var ajax = null; 
+		
+		var initialize = function()
+		{
+			nsEvent = new NSEvent();
+			ajax = new NSAjax();
+		};
+		
+		var addEventListener  = function(event,callback)
+		{
+			return nsEvent.addListener(event,callback);
+		};
+		
+		var removeEventListener = function(event,callback)
+		{
+			return nsEvent.removeListener(event,callback);
+		};
+		
+		var hasEventListener = function(event,callback)
+		{
+			return nsEvent.hasListener(event,callback);
+		};
+		
+		var dispatchEvent = function(event,details)
+		{
+			return nsEvent.dispatch(event,details);
+		}; 
+		
+		initialize();
+		
+		self.addEventListener = addEventListener;
+		self.removeEventListener = removeEventListener;
+		self.hasEventListener = hasEventListener;
+		self.dispatchEvent = dispatchEvent;
+		self.ajax = ajax;
+	};
+	
+	return NSModel;
+})();
+nsModuleExport(this,"NSModel",NSModel);
+
+"use strict";
+var NSMvc = (function()
+{
+	function NSMvc(arrRoute,setting) 
+	{
+		this.util = new NSUtil();
+		this.__arrRoute = arrRoute ? arrRoute : [];
+		this.__setting = setting;
+		this.__mainContainer = null;
+		this.__routeContainer = null;
+		this.__registeredController = null;
+		this.__mapController = {};
+		
+		this.__routeHandlerRef = null;
+		this.__initialize();
+	};
+
+	NSMvc.prototype.__initialize = function()
+	{
+		if(this.__setting)
+		{
+			this.__registeredController = {};
+			this.__mainContainer = this.__setting["mainContainer"] ? this.util.getElement(this.__setting["mainContainer"]) : null;
+			if(!this.__mainContainer)
+			{
+				this.__mainContainer = (document.querySelector("[data-ns-container]") || document.querySelector("[ns-container]"));
+			}
+			this.__routeContainer = this.__setting["routeContainer"] ? this.util.getElement(this.__setting["routeContainer"]) : null;
+			if(!this.__routeContainer)
+			{
+				this.__routeContainer = (document.querySelector("[data-ns-route-container]") || document.querySelector("[ns-route-container]"));
+			}
+			if(this.__arrRoute && this.__arrRoute.length > 0)
+			{
+				this.__routeHandlerRef = this.__routeHandler.bind(this);
+				var item = {};
+				var length = this.__arrRoute.length;
+				for(var count = 0;count < length;count++)
+				{
+					item = this.__arrRoute[count];
+					item["handler"] = this.__routeHandlerRef;
+				}
+			}
+			this.__router = new NSRouter(this.__arrRoute, this.__setting);
+			if(this.__mainContainer && this.__setting["mainController"])
+			{
+				this.__processController.call(this,"__mainContainer",this.__setting["mainController"],this.__mainContainer);
+			}
+		}
+	};
+	
+	NSMvc.prototype.addController = function(name,callback)
+	{
+		if(name && callback && this.util.isFunction(callback))
+		{
+			this.__registeredController[name] = callback;
+		}
+	};
+
+	NSMvc.prototype.addRoute = function(item)
+	{
+		if(item)
+		{
+			item["handler"] = this.__routeHandlerRef;
+			this.__router.addRoute(item);
+		}
+	};
+
+	NSMvc.prototype.removeRoute = function(param) 
+	{
+		this.__router.removeRoute(param);
+	};
+
+	NSMvc.prototype.reset = function()
+	{
+		this.__router.reset();
+	};
+
+	NSMvc.prototype.getCurrentRoute = function() 
+	{
+		return this.__router.getCurrentRoute();
+	};
+
+	NSMvc.prototype.callRoute = function(route)
+	{
+		this.__router.callRoute(route);
+	};
+
+	NSMvc.prototype.routeTo = function(route) 
+	{
+		this.__router.routeTo(route);
+	};
+
+	NSMvc.prototype.__routeHandler = function(item) 
+	{
+		if(item)
+		{
+			var self = this;
+			var route = item["route"];
+			var childElement = null;
+			var process = function()
+			{
+				self.__routeContainer.innerHTML = "";
+				if(childElement)
+				{
+					self.__routeContainer.appendChild(childElement);
+				}
+				self.__processController.call(self,route,item["controller"],childElement);
+			};
+			if(this.__routeContainer)
+			{
+				if(item["templateUrl"])
+				{
+					var templateLoadHandler = function(templateText)
+					{
+						if(templateText)
+						{
+							childElement = self.__getElementFromText(templateText);
+							process();
+						}
+						else
+						{
+							console.error(item["templateUrl"] + " was not loaded.Please check the URL");
+						}
+					};
+					var templateErrorHandler = function(errorText)
+					{
+						console.error(item["templateUrl"] + " was not loaded.Please check the URL");
+					};
+					this.util.getTemplateFromURL(item["templateUrl"],templateLoadHandler,templateErrorHandler);
+				}
+				if(item["templateId"])
+				{
+					var template = this.util.getTemplate(item["templateId"]);
+					if(template)
+					{
+						childElement = template.cloneNode(true);
+						process();
+					}
+				}
+				else if(item["template"])
+				{
+					childElement = this.__getElementFromText(item["template"]);
+					process();
+				}
+			}
+		}
+	};
+	
+	NSMvc.prototype.__processElement = function(element,arrController)
+	{
+		if(element)
+		{
+			var isContinue = true;
+			var childElement = null;
+			var url = null;
+			var controller = null;
+			var templateLoadHandler = function(templateText)
+			{
+				if(templateText)
+				{
+					childElement = self.__getElementFromText(templateText);
+					isContinue = false;
+				}
+				else
+				{
+					console.warn(item["templateUrl"] + " was not loaded.Please check the URL");
+					isContinue = false;
+				}
+			};
+			var templateErrorHandler = function(errorText)
+			{
+				console.warn(item["templateUrl"] + " was not loaded.Please check the URL");
+				isContinue = false;
+			};
+			
+			if(!arrController)
+			{
+				arrController = [];
+			}
+			var arrInclude = element.querySelectorAll("ns-include");
+			if(arrInclude && arrInclude.length > 0)
+			{
+				for(var index in arrInclude)
+				{
+					var nsInclude = arrInclude[index];
+					url = nsInclude.getAttribute("url");
+					var controllerName = nsInclude.getAttribute("controller");
+					controller = this.__registeredController[controllerName];
+					isContinue = true;
+					childElement = null;
+					this.util.getTemplateFromURL(url,templateLoadHandler,templateErrorHandler);
+					while(isContinue)
+					{
+						console.debug("Waiting for loading url::" + url);
+					}
+					if(childElement)
+					{
+						element.replaceChild(childElement,nsInclude);
+						if(controller)
+						{
+							arrController.push(controller);
+						}
+						this.__processElement(childElement,arrController);
+					}
+				}
+			}
+		}
+		return arrController;
+	};
+
+	NSMvc.prototype.__processController = function(controllerName,controller,childElement)
+	{
+		var self = this;
+		if(self.util.isString(controller))
+		{
+			controller = self.__registeredController[controllerName];
+		}
+		var arrCallbacks = this.__processElement(childElement);
+		if(!self.__mapController[controllerName] && controller)
+		{
+			self.__mapController[controllerName] = new NSController(controller); 
+		}
+		if(self.__mapController[controllerName])
+		{
+			self.__mapController[controllerName].addChildCallbacks(arrCallbacks);
+			self.__mapController[controllerName].process(childElement);
+		}
+	};
+
+	NSMvc.prototype.__getElementFromText = function(htmlText)
+	{
+		if(htmlText)
+		{
+			var div = document.createElement("div");
+			div.innerHTML = htmlText;
+			if(div["childNodes"] && div["childNodes"].length > 1)
+			{
+				return div;
+			}
+			return div.firstChild;
+		}
+		return null;
+	};
+	
+	return NSMvc;
+})();
+nsModuleExport(this,"NSMvc",NSMvc);
+
+"use strict";
+var NSService = (function()
+{
+	function NSService(callback) 
+	{
+		this.__callback = callback;
+		this.__ajax = null;
+		this.__initialize();
+		return this.__callback;
+	};
+	
+	NSService.prototype.__initialize = function()
+	{
+		if(!this.__ajax)
+		{
+			this.__ajax = new this.nsAjax();
+		}
+		if(this.__callback)
+		{
+			this.__callback = new this.__callback();
+			this.__callback["ajax"] = this.__ajax;
+		}
+	};
+	
+	NSService.prototype.nsAjax = function()
+	{
+		var self = this;
+		this.__getRequest = function() 
+		{
+			if (window.ActiveXObject)
+			{
+				return new ActiveXObject('Microsoft.XMLHTTP');
+			}
+			else if (window.XMLHttpRequest)
+			{
+				return new XMLHttpRequest();
+			}
+			return false;
+		};
+		
+		this.__getParam = function(data)
+		{
+			var strParam = "";
+			var param = data;
+			for(var paramKey in param)
+			{
+				if(param[paramKey])
+				{
+					strParam += "&" + paramKey + "=" + param[paramKey];
+				}
+			}
+			if(strParam && strParam.length > 1)
+			{
+				strParam = strParam.substring(1);
+			}
+			return strParam;
+		};
+		
+		this.__defaultSuccessHandler = function(successHandler,request)
+		{
+			if(successHandler)
+			{
+				var responseData = request.responseText;
+	            var responseJson = responseData ? JSON.parse(responseData) : responseData;
+				successHandler(responseJson);
+			}
+		};
+		
+		this.__defaultErrorHandler = function(errorHandler,request)
+		{
+			if(errorHandler)
+			{
+				errorHandler(request);
+			}
+		};
+		
+		this.processRequest = function(methodType,url,data)
+		{
+			var objPromise = new Promise(function(resolve,reject)
+			{
+				var request = self.__getRequest();
+				if(request) 
+				{
+					var strParam = null;
+					if (methodType.toUpperCase() === "POST") 
+					{
+						request.open("POST",url, true);
+						request.setRequestHeader("Content-Type", "application/json");
+						//request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+						if(data)
+						{
+							strParam = JSON.stringify(data);
+						}
+					} 
+					else 
+					{
+						strParam = self.__getParam(data);
+						if(strParam && strParam != "")
+						{
+							url += "?" + strParam;
+							//so that send method sends as null for GET
+							strParam = null;
+						}
+						request.open("GET",url, true);
+					}
+					request.onreadystatechange = function()
+			        {
+			           if (request.readyState === 4)
+			           {
+			              if (request.status === 200)
+			              {
+			                 self.__defaultSuccessHandler(resolve,request);
+			              } 
+			              else 
+			              {
+			            	  self.__defaultErrorHandler(reject,request);
+			              }
+			           }
+			           else 
+			           {
+			              console.log("request processing going on");
+			           }
+				    };
+					//request.responseType = "JSON";
+					request.send(strParam);
+				}
+	   		});
+	   		return objPromise;
+		}; 		
+		this.post = function(url,data)
+		{
+			return self.processRequest("POST",url,data);
+		};
+		this.get = function(url,data)
+		{
+			return self.processRequest("GET",url,data);
+		};
+	};
+	
+	return NSService;
+})();
+nsModuleExport(this,"NSService",NSService);
