@@ -1,1 +1,128 @@
+NSRouter.prototype.routeTo = function(route) 
+	{
+		route = route ? route : "";
+		var paramRoute = this.__addSlashes(route);
+		//route = paramRoute;
+		var cancelled = this.__dispatchEvent(NSRouter.NavigationStart,{route: paramRoute},{route: paramRoute},null,true);
+		if(cancelled)
+		{
+			this.__dispatchEvent(NSRouter.NavigationCancelled,{route: paramRoute},{route: paramRoute});
+		}
+		else 
+		{
+			if(this.__mode === "history")
+			{
+				history.pushState(null, null, this.__root + this.__removeSlashes(route));
+			} 
+			else 
+			{
+				//window.location.href.match(/#(.*)$/);
+				if(this.getCurrentRoute()=== this.__removeSlashes(route))
+				{
+					this.callRoute(route);
+				}
+				else
+				{
+					window.location.href = window.location.href.replace(/#(.*)$/, '') + '#' + route;
+				}
+			}
+		}
+		this.__dispatchEvent(NSRouter.NavigationEnd,{route: paramRoute},{route: paramRoute});
+	};
+	
+	NSRouter.prototype.__hashChangeListener = function(event)
+	{
+		// Current route url (getting rid of '#' in hash as well):
+		var url = location.hash || "/";
+		if(url)
+		{
+			if(url.charAt(0) === "#")
+			{
+				url = url.substring(1);
+			}
+			if(url.charAt(0) != "/")
+			{
+				url = "/" + url;
+			}
+		}
+	    this.callRoute(url);
+	    //console.log(url);
+	};
+	
+	NSRouter.prototype.__isPushStateAvailable = function() 
+	{
+		  return !!(typeof window !== 'undefined' && window.history && window.history.pushState);
+	};
+	
+	NSRouter.prototype.__removeSlashes = function(path)
+	{
+		return path.toString().replace(/\/$/, "").replace(/^\/+/, "");
+	};
+	
+	NSRouter.prototype.__addSlashes = function(path)
+	{
+		return (!path || path.charAt(0) === "/") ? path : "/" + path;
+	};
+	
+	NSRouter.prototype.__dispatchEvent = function(eventType,data,param,bubbles,cancelable)
+	{
+		return this.util.dispatchEvent(window,eventType,data,param,bubbles,cancelable);
+	};
+	
+	NSRouter.NavigationStart = "navigationStart";
+	NSRouter.NavigationEnd = "navigationEnd";
+	NSRouter.NavigationCancelled = "navigationCancelled";
+	NSRouter.NavigationError = "navigationError";
+  
+  formatMessageBox(nsAlert);
+  formatMessageBox(nsConfirm);
+  formatMessageBox(nsCustom);
+  
+  (function () {
+	  if (document.scrollingElement) {
+	    return
+	  }
+	  var element = null
+	  function scrollingElement () {
+	    if (element) {
+	      return element
+	    } else if (document.body.scrollTop) {
+	      // speed up if scrollTop > 0
+	      return (element = document.body)
+	    }
+	    var iframe = document.createElement('iframe')
+	    iframe.style.height = '1px'
+	    document.documentElement.appendChild(iframe)
+	    var doc = iframe.contentWindow.document
+	    doc.write('<!DOCTYPE html><div style="height:9999em">x</div>')
+	    doc.close()
+	    var isCompliant = doc.documentElement.scrollHeight > doc.body.scrollHeight
+	    iframe.parentNode.removeChild(iframe)
+	    return (element = isCompliant ? document.documentElement : document.body)
+	  }
+	  Object.defineProperty(document, 'scrollingElement', {
+	    get: scrollingElement
+	  })
+})();
 
+var dispatch = function(event, details)
+		{
+			var retValue = true;
+			if (objEvents[event]) 
+			{
+				for(var index = 0;index < objEvents[event].listeners.length;index++)
+				{
+					var listener = objEvents[event].listeners[index];
+					retValue = listener({type: event},details);
+					if(retValue !== undefined && retValue !== null && retValue == false)
+					{
+						return false;
+					}
+				}
+		    }
+			else
+			{
+				console.log("The event: " + event + " does not exist");
+			}
+			return true;
+		}; 
