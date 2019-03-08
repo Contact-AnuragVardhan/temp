@@ -1,1 +1,200 @@
 
+this.__customScrollBarSetting = {};
+		//Custom Scrollbar Tooltip
+		this.__enableScrollBarTip = false;
+		this.__scrollBarTipLabelFunction = null;
+		this.__divScrollTipContainer = null;
+		this.__divScrollTipText = null;
+		this.__scrollTipInterval = null;
+    
+    if(this.hasAttribute("customScrollBarSetting"))
+			{
+				this.__customScrollBarSetting = this.getAttribute("customScrollBarSetting");
+			}
+			else
+			{
+				this.__customScrollBarSetting = {verticalScrollButtons: {enable: true},horizontalScrollButtons:{enable: true}};
+			}
+			if(this.__enableVirtualScroll)
+			{
+				if(this.hasAttribute("enableScrollBarTip"))
+				{
+					this.__enableScrollBarTip =  Boolean.parse(this.getAttribute("enableScrollBarTip"));
+				}
+				if(this.hasAttribute("scrollBarTipLabelFunction"))
+				{
+					this.__scrollBarTipLabelFunction = this.getAttribute("scrollBarTipLabelFunction");
+					this.__scrollBarTipLabelFunction = this.util.getFunction(this.__scrollBarTipLabelFunction);
+				}
+			}
+      
+      this.__createScrollTip();
+      var setting = {element: this.__divCenterTableBodyContainer,enableCustomHandler: true,verticalScrollButtons:this.__customScrollBarSetting.verticalScrollButtons,horizontalScrollButtons:this.__customScrollBarSetting.horizontalScrollButtons};
+      
+      NSGrid.prototype.__createScrollTip = function() 
+	{
+		if(this.__enableScrollBarTip && !this.__divScrollTipContainer)
+		{
+			this.__divScrollTipContainer = this.util.createDiv(this.getID() + "ScrollTipContainer","nsGridScrollTipContainer");
+			this.__divScrollTipText = this.util.createDiv(this.getID() + "ScrollTipText","nsGridScrollTipText");
+			this.__divScrollTipContainer.appendChild(this.__divScrollTipText);
+			var divTri = this.util.createDiv(this.getID() + "ScrollTipTriangle","nsGridScrollTipTriangle");
+			this.__divScrollTipContainer.appendChild(divTri);
+			this.addChild(this.__divScrollTipContainer);
+		}
+	};
+	NSGrid.prototype.__handleScrollTip = function(displayTime,fromIndex,toIndex) 
+	{
+		if(this.__enableScrollBarTip && this.__divScrollTipContainer)
+		{
+			var self = this;
+			var source = this.getFilteredData();
+			fromIndex = (fromIndex >= source.length) ? (source.length - 1) : fromIndex;
+			toIndex = (toIndex >= source.length) ? (source.length - 1) : toIndex;
+			var itemFrom = this.__getItemByIndex(fromIndex, source);
+			var itemTo = this.__getItemByIndex(toIndex, source);
+			if(!itemFrom || !itemTo)
+			{
+				return;
+			}
+			var text = "Showing " + this.util.toCamelCase(this.__rowKeyField,true) + " from " + itemFrom[this.__rowKeyField] + " to " + itemTo[this.__rowKeyField];
+			if(this.__scrollBarTipLabelFunction)
+			{
+				text = this.__scrollBarTipLabelFunction(itemFrom,itemTo);
+			}
+			this.__divScrollTipText.innerHTML = text;
+			var divScrollTip = this.__divScrollTipContainer;
+		    var rectTip = divScrollTip.getBoundingClientRect();
+		    var rect = this.__getVirtualScroll_ClientRect();
+		    divScrollTip.style.opacity = 1;
+		    if(this.__enableCustomScrollBar)
+		    {
+		    	divScrollTip.style.left = (rect.left - rectTip.width) + "px";
+		    	divScrollTip.style.top = (rect.top - (rectTip.height/2) + (rect.height/2)) + 'px';
+		    }
+		    else
+		    {
+		    	 var scrollY = this.__divVirtualScrollParent.scrollTop;
+		    	 var scrollHeight = this.__divVirtualScrollParent.scrollHeight;
+		    	 var clientHeight  = this.__divVirtualScrollParent.clientHeight ;
+		    	 var percent = scrollY / (scrollHeight - clientHeight);
+		    	 var rectScrollerParent = this.__divVirtualScrollParent.getBoundingClientRect();
+		    	 divScrollTip.style.left = (rect.left - rectTip.width) + "px";
+		    	 divScrollTip.style.top = (rectScrollerParent.top + (percent * (clientHeight - divScrollTip.offsetHeight))) + 'px';
+		    }
+		    clearTimeout(self.__scrollTipInterval);
+		    
+		    this.__scrollTipInterval = setTimeout(function(){
+		    	divScrollTip.style.opacity = 0;
+		      self.__scrollTipInterval = undefined;
+		    }, displayTime);
+		}
+	};
+  
+  this.__handleScrollTip(1000,this.__lastItemBegin,this.__lastItemEnd);
+  
+  this.__scroller.getVerticalScroller().getBoundingClientRect();
+  NSGrid.prototype.__getVirtualScroll_ClientRect = function()
+	{
+		var rect = null;
+		if(this.__enableCustomScrollBar)
+		{
+			if(this.__scroller)
+			{
+				rect = this.__scroller.getVertcialBar().getBoundingClientRect();
+			}
+		}
+		else
+		{
+			rect = this.__divVirtualScroller.getBoundingClientRect();
+		}
+		return rect;
+	};
+  
+  NSNavigation.prototype.getItemByField = function(field,value,source)
+	{
+		return this.__getItemByField(field,value,source);
+	};
+	NSNavigation.prototype.__getItemByField = function(field,value,source)
+	{
+		var arrSource = [];
+		if(source)
+		{
+			if(this.util.isArray(source))
+			{
+				arrSource = source;
+			}
+			else
+			{
+				arrSource = [source];
+			}
+		}
+		else
+		{
+			arrSource = this.__config.dataSource;
+		}
+		if(arrSource && arrSource.length > 0)
+		{
+			var item = null;
+			for(var count = 0;count < arrSource.length;count++)
+			{
+				item = arrSource[count];
+				if(item[field] == value)
+				{
+					return item;
+				}
+				if(item[this.__config.childField] && item[this.__config.childField].length > 0)
+				{
+					var retItem = this.__getItemByField(field,value,item[this.__config.childField]);
+					if(retItem)
+					{
+						return retItem;
+					}
+				}
+			}
+		}
+		return null;
+	};
+  
+  .nsGridScrollTipContainer 
+{
+	  pointer-events: none;
+	  position: absolute;
+	  opacity: 0;
+	  z-index: 1000;
+}
+.nsGridScrollTipContainer .nsGridScrollTipText 
+{
+	  border-radius: 5px;
+	  color: white;
+	  float: left;
+	  font-family: sans-serif;
+	  font-size: 12px;
+	  font-weight: bold;
+	  line-height: 48px;
+	  text-align: center;
+}
+.nsGridScrollTipContainer .nsGridScrollTipTriangle 
+{
+	  border-bottom: 6px solid transparent;
+	  border-left: 8px solid black;
+	  border-top: 6px solid transparent;
+	  display: inline;
+	  float: left;
+	  height: 0;
+	  margin-top: 18px;
+	  width: 0;
+}
+
+.nsGridScrollTipContainer .nsGridScrollTipText 
+{
+	background-color: black;
+	text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.8);
+}
+
+.nsGridScrollTipContainer .nsGridScrollTipTriangle 
+{
+	border-left: 8px solid black;
+}
+	        	var name = (value.constructor && value.constructor.name) ? value.constructor.name : printedObjectKeys[printedObjIndex];
+	            return "(see " + name.toLowerCase() + " with key " + printedObjectKeys[printedObjIndex] + ")";
