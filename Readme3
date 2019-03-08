@@ -1,1 +1,6 @@
-
+if(itemChild && itemChild.controller)
+						{
+							itemChild.controller(model,util,itemChild.uid);
+						}
+            
+            element.style.display = "";
