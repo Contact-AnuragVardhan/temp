@@ -1,35 +1,18 @@
-<script src="../lib/com/org/util/nsAjax.js"></script>
+this.util.addEvent(this.__txtSearch,"click",this.__txtSearchFocusHandler.bind(this));
 
-var ajax = new NSAjax();
-					ajax.get("/JSLib/hierarchicalFirstLevelData",{datalength: "10"},{dataType:"json"}).then(
-							function(result) 
-							{
-								console.log(result);
-								getParentData(result);
-							},
-							function(error) 
-							{ 
-								/* handle an error */ 
-							}
-					);
-					
-					var ajax = new NSAjax();
-					ajax.get("/JSLib/hierarchicalNonFirstLevelData",{datalength: "10",parentid:item.id},{dataType:"json"}).then(
-							function(data) 
-							{
-								console.log(data);
-								if(data && data.length > 0)
-								{
-									nsServerHierarchical.addItemsAsChildren(item,data);
-								}
-								else
-								{
-									item.hasChildren = false;
-									nsServerHierarchical.updateListItemByIndex(rowIndex);
-								}
-							},
-							function(error) 
-							{ 
-								/* handle an error */ 
-							}
-					);
+NSMultiSelectDropdown.prototype.__txtSearchFocusHandler = function(event)
+	{
+		event = this.util.getEvent(event);
+		event.stopPropagation();
+	};
+	
+	.listCon .text
+			{
+				width: calc(100% - 15px);
+			    white-space: nowrap;
+			    overflow: hidden;
+			    text-overflow: ellipsis;
+			}
+			var div = util.createDiv(null,"text");
+	                div.appendChild(document.createTextNode(arrTexts[count]));
+	                li.appendChild(div);
