@@ -1,637 +1,800 @@
-self.util.addEvent(select,"click",self.__dropDownClickHandler.bind(self));
-event.stopPropagation();
-NSCalendar.prototype.__dropDownChangeHandler = function(event)
+	NSDatePicker.prototype.getText = function() 
 	{
-		event = this.util.getEvent(event);
-		var month = this.__cmbMonth.selectedIndex; 
-		var year = this.__cmbYear.options[this.__cmbYear.selectedIndex].value;
-		var date = this.__getDateObject(year,month,1);
-		this.__updateDays(date);
-		event.stopPropagation();
+		return this.__txtBox.value;
 	};
 	
-	NSCalendar.prototype.__dropDownClickHandler = function(event)
+NSGrid.prototype.__setHeaderSortFunctionForItem = function(colItem,dataSource)
 	{
-		event = this.util.getEvent(event);
-		event.stopPropagation();
-	};
-  
-var NSDatePicker = (function()
-{
-	function NSDatePicker(component,setting) 
-	{
-		this.__setting = setting;
-		
-		this.__context = window;
-		this.__dateOutputFormat = "MM/dd/yyyy";
-		this.__placeHolder = null;
-		this.__buttonHtml = null;
-		this.__enableTextBoxDisabled = false;
-		this.__customClass = {container:null,textInput:null,button:null,calContainer:null,calHeaderContainer:null,calPrevButton:null,calNextButton:null,calMonthDropdown:null,calYearDropdown:null,calWeekContainer:null,calWeek:null,calDayContainer:null,calDay:null,calFooterContainer:null};
-		this.__calendarPos = null;
-		
-		this.__divContainer = null;
-		this.__txtBox = null;
-		this.__btnActivate = null;
-		this.__divCalContainer = null;
-		this.__nsPopUp = null;
-		this.__maxZIndex = 0;
-		
-		this.__nsCalendar = null;
-		
-		this.__documentMouseDownRef = null;
-		
-		this.base.__setBaseComponent.call(this,component);
-	};
-	nsExtendPrototype(NSContainerBase,NSDatePicker);
-	NSDatePicker.prototype.constructor = NSDatePicker;
-	
-	NSDatePicker.prototype.initializeComponent = function() 
-	{
-		this.base.initializeComponent.call(this);
-		this.__setSetting();
-		this.__initDefault();
-		this.__createComponent();
-		this.__maxZIndex = this.util.getMaxZIndex();
-	};
-	
-	NSDatePicker.prototype.setComponentProperties = function() 
-	{
-		this.base.setComponentProperties.call(this);
-	};
-	
-	NSDatePicker.prototype.propertyChange = function(attrName, oldVal, newVal, setProperty)
-	{
-		var attributeName = attrName.toLowerCase();
-		this.base.propertyChange.call(this,attrName, oldVal, newVal, setProperty);
-	};
-	
-	NSDatePicker.prototype.removeComponent = function() 
-	{
-		this.__removeDocumentMosueHandler();
-		this.__removePopUp();
-		this.base.removeComponent.call(this);
-	};
-	
-	NSDatePicker.prototype.componentResized = function(event) 
-	{
-		this.__hideCalendar();
-		this.base.componentResized.call(this,event);
-	};
-	
-	NSDatePicker.prototype.getSelectedDate = function() 
-	{
-		if(this.__nsCalendar)
+		if(colItem)
 		{
-			return this.__nsCalendar.getSelectedDate();
-		}
-		return null;
-	};
-	
-	NSDatePicker.prototype.getSelectedDateAsString = function(format) 
-	{
-		if(this.__nsCalendar)
-		{
-			return this.__nsCalendar.getSelectedDateAsString(format);
-		}
-		return null;
-	};
-	
-	NSDatePicker.prototype.setSelectedDate = function(date,format,fireEvent) 
-	{
-		if(this.__nsCalendar)
-		{
-			this.__nsCalendar.setSelectedDate(date,format,fireEvent);
-		}
-		if(!date)
-		{
-			this.__txtBox.value = "";
-		}
-	};
-	
-	NSDatePicker.prototype.setYear = function(year) 
-	{
-		if(this.__nsCalendar)
-		{
-			this.__nsCalendar.setYear(year);
-		}
-	};
-	
-	NSDatePicker.prototype.setMonth = function(month) 
-	{
-		if(this.__nsCalendar)
-		{
-			this.__nsCalendar.setMonth(month);
-		}
-	};
-	
-	NSDatePicker.prototype.reset = function() 
-	{
-		if(this.__nsCalendar)
-		{
-			this.__nsCalendar.reset();
-		}
-		this.__setTextInput();
-	};
-	
-	NSDatePicker.prototype.setTodayDate = function() 
-	{
-		if(this.__nsCalendar)
-		{
-			this.__nsCalendar.setTodayDate();
-		}
-		//this.__setTextInput(new Date());
-	};
-	
-	NSDatePicker.prototype.showCalendar = function() 
-	{
-		this.__showCalendar();
-	};
-	
-	NSDatePicker.prototype.closeCalendar = function() 
-	{
-		this.__hideCalendar();
-	};
-	
-	NSDatePicker.prototype.toggleCalendarVisibility = function() 
-	{
-		this.__toggleCalendarVisibility();
-	};
-	
-	NSDatePicker.prototype.getCalendar = function() 
-	{
-		return this.__nsCalendar;
-	};
-	
-	NSDatePicker.prototype.getTextBox = function() 
-	{
-		return this.__txtBox;
-	};
-	
-	NSDatePicker.prototype.__setSetting = function()
-	{
-		if(!this.__setting)
-		{
-			this.__setting = {};
-		}
-		var setting = this.__setting;
-		if(setting)
-		{
-			if(setting.hasOwnProperty("context"))
-			{
-				this.__context = setting["context"];
-			}
-			if(setting.hasOwnProperty("dateOutputFormat"))
-			{
-				this.__dateOutputFormat = setting["dateOutputFormat"];
-			}
-			if(setting.hasOwnProperty("placeHolder"))
-			{
-				this.__placeHolder = setting["placeHolder"];
-			}
-			if(setting.hasOwnProperty("buttonHtml"))
-			{
-				this.__buttonHtml = setting["buttonHtml"];
-			}
-			if(setting.hasOwnProperty("enableTextBoxDisabled"))
-			{
-				this.__enableTextBoxDisabled = Boolean.parse(setting["enableTextBoxDisabled"]);
-			}
-			if(setting.hasOwnProperty("calendarPos"))
-			{
-				this.__calendarPos = setting["calendarPos"];
-			}
-			else
-			{
-				this.__calendarPos = this.util.POS_BOTTOMRIGHT;
-			}
-			if(setting.hasOwnProperty("theme"))
-			{
-				this.__theme = setting["theme"];
-			}
-			var customClass = {};
-			if(setting.hasOwnProperty("customClass"))
-			{
-				customClass = setting["customClass"];
-			}
-			if(!customClass)
-			{
-				customClass = {};
-			}
-			for(var prop in this.__customClass)
-			{
-				this.__customClass[prop] = (customClass[prop] || null);
-			}
-		}
-	};
-	
-	NSDatePicker.prototype.__initDefault = function()
-	{
-		if(!this.__buttonHtml)
-		{
-			this.__buttonHtml = "<svg version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" \r\n" + 
-								"	 width=\"16px\" height=\"16px\" viewBox=\"0 0 36.447 36.447\" >\r\n" + 
-								"<g>\r\n" + 
-								"	<g>\r\n" + 
-								"		<path d=\"M30.224,3.948h-1.098V2.75c0-1.517-1.197-2.75-2.67-2.75c-1.474,0-2.67,1.233-2.67,2.75v1.197h-2.74V2.75\r\n" + 
-								"			c0-1.517-1.197-2.75-2.67-2.75c-1.473,0-2.67,1.233-2.67,2.75v1.197h-2.74V2.75c0-1.517-1.197-2.75-2.67-2.75\r\n" + 
-								"			c-1.473,0-2.67,1.233-2.67,2.75v1.197H6.224c-2.343,0-4.25,1.907-4.25,4.25v24c0,2.343,1.907,4.25,4.25,4.25h24\r\n" + 
-								"			c2.344,0,4.25-1.907,4.25-4.25v-24C34.474,5.855,32.567,3.948,30.224,3.948z M25.286,2.75c0-0.689,0.525-1.25,1.17-1.25\r\n" + 
-								"			c0.646,0,1.17,0.561,1.17,1.25v4.896c0,0.689-0.524,1.25-1.17,1.25c-0.645,0-1.17-0.561-1.17-1.25V2.75z M17.206,2.75\r\n" + 
-								"			c0-0.689,0.525-1.25,1.17-1.25s1.17,0.561,1.17,1.25v4.896c0,0.689-0.525,1.25-1.17,1.25s-1.17-0.561-1.17-1.25V2.75z M9.125,2.75\r\n" + 
-								"			c0-0.689,0.525-1.25,1.17-1.25s1.17,0.561,1.17,1.25v4.896c0,0.689-0.525,1.25-1.17,1.25s-1.17-0.561-1.17-1.25V2.75z\r\n" + 
-								"			 M31.974,32.198c0,0.965-0.785,1.75-1.75,1.75h-24c-0.965,0-1.75-0.785-1.75-1.75v-22h27.5V32.198z\"/>\r\n" + 
-								"		<rect x=\"6.724\" y=\"14.626\" width=\"4.595\" height=\"4.089\"/>\r\n" + 
-								"		<rect x=\"12.857\" y=\"14.626\" width=\"4.596\" height=\"4.089\"/>\r\n" + 
-								"		<rect x=\"18.995\" y=\"14.626\" width=\"4.595\" height=\"4.089\"/>\r\n" + 
-								"		<rect x=\"25.128\" y=\"14.626\" width=\"4.596\" height=\"4.089\"/>\r\n" + 
-								"		<rect x=\"6.724\" y=\"20.084\" width=\"4.595\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"12.857\" y=\"20.084\" width=\"4.596\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"18.995\" y=\"20.084\" width=\"4.595\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"25.128\" y=\"20.084\" width=\"4.596\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"6.724\" y=\"25.54\" width=\"4.595\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"12.857\" y=\"25.54\" width=\"4.596\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"18.995\" y=\"25.54\" width=\"4.595\" height=\"4.086\"/>\r\n" + 
-								"		<rect x=\"25.128\" y=\"25.54\" width=\"4.596\" height=\"4.086\"/>\r\n" + 
-								"	</g>\r\n" + 
-								"</g>\r\n" + 
-								"</svg>";
-		}
-	};
-	
-	NSDatePicker.prototype.__createComponent = function()
-	{
-		this.util.addStyleClass(this.__baseComponent,"nsDatePicker");
-		this.__applyTheme(this.__baseComponent,"nsDatePicker");
-		this.__divContainer = this.util.createDiv(this.getID() + "container","nsDatePickerContainer");
-		this.__applyCustomClass(this.__divContainer,"container");
-		this.__baseComponent.appendChild(this.__divContainer);
-		this.__txtBox = this.util.createElement("input",this.getID() + "input","nsDatePickerTextBox");
-		this.__txtBox.setAttribute("type","search");
-		this.__applyCustomClass(this.__txtBox,"textInput");
-		if(this.__placeHolder)
-		{
-			this.__txtBox.setAttribute("placeholder",this.__placeHolder);
-		}
-		if(this.__enableTextBoxDisabled)
-		{
-			this.__txtBox.setAttribute("readOnly",true);
-			this.util.addStyleClass(this.__txtBox,"nsDatePickerTextBoxDisabled");
-		}
-		else
-		{
-			this.util.addEvent(this.__txtBox,"input",this.__txtBoxKeyHandler.bind(this));
-		}
-		this.__divContainer.appendChild(this.__txtBox);
-		this.__btnActivate = this.util.createElement("button",this.getID() + "button","nsDatePickerButton");
-		this.__applyCustomClass(this.__txtBox,"button");
-		this.__btnActivate.innerHTML = this.__buttonHtml;
-		this.util.addEvent(this.__btnActivate,"click",this.__btnActivateClickHandler.bind(this));
-		this.__divContainer.appendChild(this.__btnActivate);
-		var popUpSetting = {type:"div",width:null,position:this.__calendarPos,closeOnOutsideClick:false};
-		this.__nsPopUp = new this.util.nsPopUp(popUpSetting);
-		this.__nsPopUp.create();
-		this.__divCalContainer = this.__nsPopUp.getPopUp();
-		/*this.__divCalContainer = this.util.createDiv(this.getID() + "calContainer","nsDatePickerCalContainer");
-		this.__divContainer.appendChild(this.__divCalContainer);*/
-		this.__createCalendar(this.__divCalContainer);
-		if(this.getSelectedDate())
-		{
-			this.__setTextInput(this.getSelectedDate());
-		}
-	};
-	
-	NSDatePicker.prototype.__createCalendar = function(parent)
-	{
-		if(!this.__nsCalendar)
-		{
-			var setting =  this.util.cloneObject(this.__setting);
-			setting.customClass = {};
-			for(var prop in this.__customClass)
-			{
-				if(prop.startsWith("cal"))
+			if(colItem.hasOwnProperty("sortField") && colItem["sortField"] && colItem.hasOwnProperty("sortable") && colItem["sortable"] === true)
+	    	{
+				//In case of addColumn() dataSource will be null 
+				if(!dataSource)
 				{
-					var tempProp = prop.substring(3);
-					tempProp = tempProp.charAt(0).toLowerCase() + tempProp.slice(1);
-					setting.customClass[tempProp] = this.__customClass[prop];
+					dataSource = this.__getAllItems();
 				}
+	    		var item = null;
+	    		for(var count = 0; count < dataSource.length; count++)
+	            {
+	                 item = dataSource[count][colItem["sortField"]];
+	                 if(!this.util.isUndefined(item) && item != null && item != "")
+	                 {
+	                	 break;
+	                 }
+	            }
+	    		if(!this.util.isUndefined(item) && item != null && item != "")
+	            {
+	            	colItem.sortFunction = this.__nsGridSort.determineSortFunction(item);
+	            }
+	            else
+	            {
+	            	colItem.sortFunction = "__sortCaseInsensitive";
+	            }
+	    	}
+		}
+	};
+	
+	dragEndHandler
+	
+	if(!this.util.isUndefinedOrNull(arrItems))
+	this.__update();
+	var sourceLength = (this.__config.dataSource && this.__config.dataSource.length) ? this.__config.dataSource.length : 0;
+	
+	var docSetting = {appType:"doc",extension:"doc",event:setting.event,orientation:setting.orientation,element:setting.element,pageBreakTag:setting.pageBreakTag,extraCss:setting.extraCss,headerFooterStartHtml:setting.headerFooterStartHtml,headerFooterEndHtml:setting.headerFooterEndHtml};
+	var docSetting = {appType:"doc",element:setting.element,pageBreakTag:setting.pageBreakTag,extraCss:setting.extraCss,headerFooterStartHtml:setting.headerFooterStartHtml,headerFooterEndHtml:setting.headerFooterEndHtml};
+	
+			var extraCss = setting.extraCss ? setting.extraCss : "";
+	    var headerFooterStartHtml = setting.headerFooterStartHtml ? setting.headerFooterStartHtml : "";
+	    var headerFooterEndHtml = setting.headerFooterEndHtml ? setting.headerFooterEndHtml : "";
+if(outerHTML)
+		{
+			objValue.style = (objValue.style) ? objValue.style : "";
+			htmlText = '<html  xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:' + appType +'" xmlns="http://www.w3.org/TR/REC-html40">';
+			htmlText += '<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">';
+			htmlText +='<!--[if gte mso 9]><xml>';
+			htmlText += objValue.header;
+			htmlText += '</xml><![endif]-->';
+		    //htmlText +="<o:shapedefaults v:ext=\"edit\" spidmax=\"1026\"/>";
+			htmlText += '<style>' + objValue.style + extraCss + '.header{mso-style-parent:style0;color:white;font-size:10.0pt;font-weight:700;font-family:Tahoma, sans-serif;mso-font-charset:0;text-align:center;background:gray;mso-pattern:black none;}</style>';
+			htmlText += '</head>';
+			htmlText += '<body link="blue" vlink="purple">';
+			htmlText += headerFooterStartHtml + objValue.html + headerFooterEndHtml;
+			htmlText += '</body></html>';
+		}
+		
+		this.__nsGrid.resetFilters();
+		
+		for(var count = 0;count < arrSelected.length;count++)
+							{
+								if(arrSelected[count].id == selectedIndex)
+								{
+									arrSelected.splice(count,1);
+									break;
+								}
+							}
+							
+							
+	 "use strict";
+var NSTableRowMover = (function()
+{
+	function NSTableRowMover(setting) 
+	{
+		this.util = new NSUtil();
+		
+		this.__id = null;
+		this.__setting = setting;
+		this.__config = null;
+		
+		this.__currentRow = null;
+		this.__targetRow = null;
+		this.__rowMouseOffset = null;
+		this.__lastYPos = 0;
+		this.__oldIndex = -1;
+		this.__touchSupport = false;
+		this.__touchID = null;
+		this.__divGhost = null;
+		this.__verticalOffset = 0;
+		this.__rowIndex = 0;
+		this.__mapRowIndex = {};
+		
+		this.__divMovable = null;
+		this.__lastVisitedRow = null;
+		
+		this.__mouseMoveRef = null;
+		this.__documentMouseUpRef = null;
+		
+		this.__initialize();
+	}
+	
+	NSTableRowMover.prototype.remove = function() 
+	{ 
+		this.__removeDocumentEvents();
+	};
+	
+	NSTableRowMover.prototype.processRows = function() 
+	{ 
+		this.__processRows();
+	};
+	
+	NSTableRowMover.prototype.__initialize = function()
+	{
+		if(this.__setting)
+		{
+			this.__config = {
+					table: this.__setting["table"] || null,
+					isSameTableMove: (this.util.isUndefined(this.__setting["isSameTableMove"]) || this.__setting["isSameTableMove"] === null) ? true : Boolean.parse(this.__setting["isSameTableMove"]),
+					droppableTable: this.__setting["droppableTable"] || null,
+					handler: this.__setting["handler"] || null,
+					dragStartHandler: (this.__setting["dragStartHandler"] ? this.util.getFunction(this.__setting["dragStartHandler"]) : null),
+					dragHandler: (this.__setting["dropHandler"] ? this.util.getFunction(this.__setting["dropHandler"]) : null),
+					dragEndHandler: (this.__setting["dragEndHandler"] ? this.util.getFunction(this.__setting["dragEndHandler"]) : null),
+					customClass: this.__setting["customClass"] || {table: null,dragRow: null},
+					enableAnimation: Boolean.parse(this.__setting["enableAnimation"]),
+					enableMovingText: Boolean.parse(this.__setting["enableMovingText"]),
+					movingTextCallback: (this.__setting["movingTextCallback"] ? this.util.getFunction(this.__setting["movingTextCallback"]) : null),
+			};
+			if(this.__config.table)
+			{
+				this.__processTableForAnimation();
+				this.__touchSupport = !!("ontouchstart" in document);
+				this.__processRows();
 			}
-			this.__nsCalendar = new NSCalendar(parent,setting);
-			this.util.addEvent(parent,NSCalendar.DATE_SELECTED,this.__dateSelectedHandler.bind(this));
 		}
 	};
 	
-	NSDatePicker.prototype.__btnActivateClickHandler = function(event)
+	NSTableRowMover.prototype.__processRows = function() 
 	{
-		this.__toggleCalendarVisibility(event);
-	};
-	
-	NSDatePicker.prototype.__txtBoxKeyHandler = function(event)
-	{
-		var strDate = this.__txtBox.value;
-		var nsDateUtil = new NSDateUtil(); 
-		var date = nsDateUtil.parseString(strDate,this.__dateOutputFormat);
-		if(date)
+		if(this.__config.enableAnimation)
 		{
-			this.__nsCalendar.setSelectedDate(date);
+			this.__verticalOffset = 0;
+			this.__rowIndex = 0;
 		}
-		else
+		if(this.__config.table.tHead && this.__config.table.tHead.rows)
 		{
-			this.__nsCalendar.setSelectedDate(null,null,false);
+			var rows = this.__config.table.tHead.rows;
+			for (var count = 0; count < rows.length; count++) 
+	        {
+	        	var row = rows[count];
+	        	row.setAttribute("nsDropAllowed",false);
+	        	this.__makeRowAbsolute(row);
+	        }
 		}
-		this.util.dispatchEvent(this.__baseComponent,NSDatePicker.INPUT_CHANGE,strDate,{date:date,value:strDate});
+		var rows = this.__config.table.tBodies[0].rows;
+        for (var count = 0; count < rows.length; count++) 
+        {
+        	var row = rows[count];
+        	var dragAllowed = true;
+    		if(this.util.hasAttribute(row,"nsDragAllowed"))
+    		{
+    			dragAllowed = Boolean.parse(this.util.getAttribute(row,"nsDragAllowed"));
+    		}
+			if (dragAllowed) 
+			{ 
+				this.__makeRowDraggable(row);
+			}
+        }
 	};
 	
-	NSDatePicker.prototype.__documentMouseDownHandler = function(event)
+	NSTableRowMover.prototype.__processTableForAnimation = function() 
 	{
-		var target = this.util.getTarget(event);
-		var parent = this.util.findParentBySelector(target,".nsDatePickerContainer") || this.util.findParentBySelector(target,".nsCalendar");
-		if(!parent)
+		if(this.__config.enableAnimation)
 		{
-			this.__hideCalendar();
+			this.__config.table.style.position = "relative";
 		}
 	};
 	
-	NSDatePicker.prototype.__dateSelectedHandler = function(event)
+	NSTableRowMover.prototype.__rowMouseDownHandler= function(event)
 	{
-		var selectedDate = event.detail;
-		this.__setTextInput(selectedDate);
-		this.__hideCalendar();
-		this.util.dispatchEvent(this.__baseComponent,NSDatePicker.DATE_SELECTED,selectedDate,{date:selectedDate});
-	};
-	
-	NSDatePicker.prototype.__setTextInput = function(date)
-	{
-		if(date)
-		{
-			var nsDateUtil = new NSDateUtil(); 
-			this.__txtBox.value = nsDateUtil.format(date,this.__dateOutputFormat);
-		}
-		else
-		{
-			this.__txtBox.value = "";
-		}
-	};
-	
-	NSDatePicker.prototype.__toggleCalendarVisibility = function(event)
-	{
-		if(this.__isCalendarVisible())
-		{
-			this.__hideCalendar(event);
-		}
-		else
-		{
-			this.__showCalendar(event);
-		}
-	};
-	
-	NSDatePicker.prototype.__showCalendar = function(event)
-	{
-		this.__nsCalendar.__clearCellSelectionExceptSelected();
-		//this.util.addStyleClass(this.__divCalContainer,"nsDatePickerCalContainerVisible");
-		this.__nsPopUp.show();
-		this.__nsPopUp.placePopUp(this.__divContainer);
-		this.__addDocumentMosueHandler();
-		this.__divCalContainer.style.zIndex = (this.__maxZIndex > 0) ? this.__maxZIndex : 9999;
-		this.util.dispatchEvent(this.__baseComponent,NSDatePicker.CALENDAR_OPENED);
-	};
-	
-	NSDatePicker.prototype.__hideCalendar = function(event)
-	{
-		//this.util.removeStyleClass(this.__divCalContainer,"nsDatePickerCalContainerVisible");
-		this.__nsPopUp.hide();
-		this.__removeDocumentMosueHandler();
-		this.util.dispatchEvent(this.__baseComponent,NSDatePicker.CALENDAR_CLOSED);
-	};
-	
-	NSDatePicker.prototype.__addDocumentMosueHandler = function()
-	{
-		if(!this.__documentMouseDownRef)
-		{
-			this.__documentMouseDownRef = this.__documentMouseDownHandler.bind(this);
-			this.util.addEvent(document,"mousedown",this.__documentMouseDownRef);
-		}
-	};
-	
-	NSDatePicker.prototype.__removeDocumentMosueHandler = function()
-	{
-		if(this.__documentMouseDownRef)
-		{
-			this.util.removeEvent(document,"mousedown",this.__documentMouseDownRef);
-			this.__documentMouseDownRef = null;
-		}
-	};
-	
-	NSDatePicker.prototype.__isCalendarVisible = function()
-	{
-		return this.util.hasStyleClass(this.__divCalContainer,"nsDatePickerCalContainerVisible");
-	};
-	
-	NSDatePicker.prototype.__applyCustomClass = function(element,type)
-	{
-		if(element && type && this.__customClass[type])
-		{
-			this.util.addStyleClass(element,this.__customClass[type]);
-		}
-	};
-	
-	NSDatePicker.prototype.__removePopUp = function()
-	{
-		if(this.__nsPopUp)
-		{
-			this.__nsPopUp.remove();
-			this.__nsPopUp = null;
-		}
-	};
-	
-	NSDatePicker.CALENDAR_OPENED = "calendarOpened";
-	NSDatePicker.CALENDAR_CLOSED = "calendarClosed";
-	NSDatePicker.DATE_SELECTED = "dateSelected";
-	NSDatePicker.INPUT_CHANGE = "inputChange";
-	
-	return NSDatePicker;
-})();
-nsModuleExport(this,"NSDatePicker",NSDatePicker);
-
-else if(setting.type === "date" && filter)
+		event = this.util.getEvent(event);
+	    var target = this.util.getTarget(event);
+	    target = this.util.findParent(target,"TR");
+	    var offset = this.util.getMouseOffset(event,target);
+	    var posEvent = this.util.getEventPosition(event);
+        this.__mouseStartEvent = event;
+	    if(this.__dragStart(target,offset,posEvent))
 	    {
-	        return this.__filterDate(item,filter,setting);
+	    	event.preventDefault();
 	    }
-      
-      NSFilter.prototype.__filterDate= function(value,searchParam,setting)
+	};
+	
+	NSTableRowMover.prototype.__rowTouchStartHandler= function(event)
+	{
+		if(event.touches.length === 1) 
+		{
+			var touch = event.touches[0];
+	        this.__touchStart = touch;
+			this.__touchID = touch.identifier;
+            target = document.elementFromPoint(touch.clientX, touch.clientY);
+		    target = this.util.findParent(target,"TR");
+		    var offset = this.util.getMouseOffset(touch,target);
+		    var posEvent = this.util.getEventPosition(touch);
+		    if(this.__dragStart(target,offset,posEvent))
+		    {
+		    	 if(event.preventDefault) 
+		    	 {
+		    		 event.preventDefault();
+	             } 
+		    	 else 
+		    	 {
+		    		 event.returnValue = false;
+	             }
+		    	 return false;
+		    }
+		}
+		 return true;
+	};
+	
+	NSTableRowMover.prototype.__mouseMoveHandler = function(event)
+	{
+		if(this.__currentRow)
+		{
+			event = this.util.getEvent(event);
+			var mousePosition = this.util.getEventPosition(event);
+			var target = this.util.getTarget(event);
+			var posEvent = this.util.getEventPosition(event);
+			if(this.__dragging(target,mousePosition,posEvent,event,this.__mouseStartEvent))
+			{
+				 event.preventDefault();
+			}
+		}
+	};
+	
+	NSTableRowMover.prototype.__touchMoveHandler = function(event)
+	{
+		if(event.touches.length === 1 && this.__currentRow) 
+		{
+			var touch = event.touches[0];
+            var target = document.elementFromPoint(touch.clientX, touch.clientY);
+            var position = this.util.getEventPosition(touch);
+ 		    var posEvent = this.util.getEventPosition(touch);
+ 		    if(this.__dragging(target,position,posEvent,touch,this.__touchStart))
+			{
+ 		    	 if(event.preventDefault) 
+		    	 {
+		    		 event.preventDefault();
+	             } 
+		    	 else 
+		    	 {
+		    		 event.returnValue = false;
+	             }
+			}
+		}
+	};
+	
+	NSTableRowMover.prototype.__documentMouseUpHandler = function(event)
+	{
+		if(this.__currentRow) 
+	    {
+			event = this.util.getEvent(event);
+			var mousePosition = this.util.getEventPosition(event);
+			this.__dragEnd(mousePosition);
+	    }
+	};
+	
+	NSTableRowMover.prototype.__documentTouchUpHandler = function(event)
+	{
+		if(event.touches.length === 1 && this.__currentRow) 
+		{
+			var touch = event.touches[0];
+            var position = this.util.getEventPosition(touch);
+            this.__dragEnd(position);
+		}
+	};
+	
+	NSTableRowMover.prototype.__dragStart = function(target,offset,posEvent) 
+	{
+		this.__currentRow = target;
+	    this.__rowMouseOffset = offset;
+	    this.util.makeBodyUnselectable();
+	    if(this.__currentRow)
+	    {
+	    	this.__oldIndex = this.__currentRow.rowIndex;
+	    	if(this.__config.dragStartHandler)
+            {
+            	this.__config.dragStartHandler(this.__currentRow,{targetTable: this.__config.table,targetRow: this.__currentRow,oldIndex:this.__oldIndex});
+            }
+	    	this.__applyCustomClass(this.__config.table,"table",null);
+	    	this.__applyCustomClass(this.__currentRow,"dragRow","nsDraggingRow");
+			if(!this.__config.isSameTableMove)
+			{
+				this.__divMovable = this.util.createDiv(this.__getID() + "clonedRow", "nsDraggableCloneRow");
+				var table = document.createElement("table");
+				var body = document.createElement("tbody");
+				var row = this.__currentRow.cloneNode(true);
+				body.appendChild(row);
+				table.appendChild(body);
+				this.__divMovable.appendChild(table);
+				document.body.appendChild(this.__divMovable);
+				this.__setDivMovablePosition(posEvent);
+			}
+			this.__addDocumentEvents();
+			this.__createGhost(this.__currentRow);
+			return true;
+	    }
+	    return false;
+	};
+	
+	NSTableRowMover.prototype.__dragging = function(target,position,posEvent,event,startEvent) 
+	{
+		if(this.__currentRow)
+		{
+			var yPos = position.top - this.__rowMouseOffset.y;
+	        if(yPos != this.__lastYPos) 
+	        {
+	            var movingDown = yPos > this.__lastYPos;
+	            this.__lastYPos = yPos;
+	            if(this.__config.isSameTableMove) 
+	            {
+	            	this.__targetRow = this.util.findParent(target,"TR");
+	            	var isAppendChild = false;
+	            	var moveRow = null;
+		            if(this.__targetRow && this.__currentRow != this.__targetRow) 
+		            {
+		            	this.__positionGhost(event);
+		            	moveRow = this.__targetRow;
+		            	if(this.__config.enableAnimation)
+	                	{
+		                	if(this.__isRowDropable(moveRow,this.__currentRow))
+		                	{
+				            	var currentProp = this.__currentRow.getAttribute("data-rowMover-id");
+				            	var targetProp = this.__targetRow.getAttribute("data-rowMover-id");
+				                var currentValue = this.__mapRowIndex[currentProp].top;
+				                var targetValue = this.__mapRowIndex[targetProp].top;
+				                this.__currentRow.style.transform = "translateY(" + targetValue + "px)";
+				                this.__targetRow.style.transform = "translateY(" + currentValue + "px)";
+				                this.__mapRowIndex[currentProp].top = targetValue;
+				                this.__mapRowIndex[targetProp].top = currentValue;
+		                	}
+	                	}
+		            	else
+		            	{
+			                if (movingDown) 
+			                {
+			                	if(this.__targetRow.nextSibling)
+			                	{
+			                		moveRow = this.__targetRow.nextSibling;
+			                	}
+			                	else
+			                	{
+			                		moveRow = this.__currentRow;
+			                		isAppendChild = true;
+			                	}
+			                } 
+			                else if (!movingDown) 
+			                {
+			                	moveRow = this.__targetRow;
+			                }
+			                if(moveRow)
+			                {
+			                	if(this.__isRowDropable(moveRow,this.__currentRow))
+			                	{
+				                	if(this.__config.enableAnimation)
+				                	{
+						            	var currentProp = this.__currentRow.getAttribute("data-rowMover-id");
+						            	var targetProp = this.__targetRow.getAttribute("data-rowMover-id");
+						                var currentValue = this.__mapRowIndex[currentProp].top;
+						                var targetValue = this.__mapRowIndex[targetProp].top;
+						                this.__currentRow.style.transform = "translateY(" + targetValue + "px)";
+						                this.__targetRow.style.transform = "translateY(" + currentValue + "px)";
+						                this.__mapRowIndex[currentProp].top = targetValue;
+						                this.__mapRowIndex[targetProp].top = currentValue;
+				                	}
+				                	else
+				                	{
+				                		var parent = this.__targetRow.parentNode;
+				                		if(isAppendChild)
+				                		{
+				                			parent.appendChild(moveRow);
+				                		}
+				                		else
+				                		{
+				                			parent.insertBefore(this.__currentRow,moveRow);
+				                		}
+					                }
+				                }
+			                }
+		            	}
+		            	if(moveRow && this.__config.dragHandler)
+	    	            {
+	    	            	this.__config.dragHandler(this.__currentRow,{targetTable: this.__config.table,targetRow: moveRow,oldIndex:this.__oldIndex,newIndex:moveRow.rowIndex});
+	    	            }
+		            }
+	            }
+	            else if(this.__divMovable)
+	            {
+	            	if(this.__lastVisitedRow)
+	            	{
+	            		this.util.removeStyleClass(this.__lastVisitedRow,"nsDottedRow");
+	            		this.__lastVisitedRow = null;
+	            	}
+	            	this.__setDivMovablePosition(posEvent);
+	            	this.__divMovable.style.display = "none";
+	        		var target = document.elementFromPoint(position.left,position.top);
+	        		//for Opera
+	        		if (target.nodeType === 3) 
+	        		{ 
+	        			target = target.parentNode;
+	        		}
+	        		var targetTable = this.util.findChild(target,"TABLE");
+	        		if(!targetTable)
+	        		{
+	        			targetTable = this.util.findParent(target,"TABLE");
+	        		}
+	        		if(targetTable && targetTable.id != this.__config.table.id)
+	        		{
+	        			var targetRow = this.__findDroppableRow(targetTable,mousePosition.top);
+	        			if(targetRow)
+	        			{
+	        				if(this.__config.dragHandler)
+		    	            {
+		    	            	this.__config.dragHandler(this.__currentRow,{targetTable: targetTable,targetRow: targetRow,oldIndex:this.__oldIndex,newIndex:targetRow.rowIndex});
+		    	            }
+		            		this.util.addStyleClass(targetRow,"nsDottedRow");
+		            		this.__lastVisitedRow = targetRow;
+	        			}
+	        		}
+	        		this.__divMovable.style.display = "";
+	            }
+	            return true;
+	        }
+		}
+		return false;
+	};
+	
+	NSTableRowMover.prototype.__dragEnd = function(position) 
+	{
+		this.__removeDocumentEvents();
+	    if(this.__currentRow) 
+	    {
+	    	var droppedRow = this.__currentRow;
+	    	this.__removeCustomClass(this.__config.table,"table",null);
+	    	this.__removeCustomClass(this.__currentRow,"dragRow","nsDraggingRow");
+	    	if(this.__config.isSameTableMove)
+	    	{
+	            if(this.__config.dragEndHandler)
+	            {
+	            	this.__config.dragEndHandler(this.__currentRow,{targetTable: this.__config.table,targetRow: this.__targetRow,oldIndex:this.__oldIndex,newIndex:this.__currentRow.rowIndex});
+	            }
+	    	}
+	    	else if(this.__divMovable)
+	        {
+	    		this.__divMovable.style.display = "none";
+	    		var target = document.elementFromPoint(position.left,position.top);
+	    		//for Opera
+	    		if (target.nodeType === 3) 
+	    		{ 
+	    			target = target.parentNode;
+	    		}
+	    		var targetTable = this.util.findChild(target,"TABLE");
+	    		if(!targetTable)
+	    		{
+	    			targetTable = this.util.findParent(target,"TABLE");
+	    		}
+	    		var targetRow = this.__findDroppableRow(targetTable,position.top);
+	    		if(this.__lastVisitedRow)
+	        	{
+	        		this.util.removeStyleClass(this.__lastVisitedRow,"nsDottedRow");
+	        		this.__lastVisitedRow = null;
+	        	}
+	    		this.__divMovable.parentNode.removeChild(this.__divMovable);
+	    		this.__divMovable = null;
+	    		if(this.__config.dragEndHandler)
+	            {
+	            	this.__config.dragEndHandler(this.__currentRow,{targetTable: targetTable,targetRow: targetRow,oldIndex:this.__oldIndex,newIndex:this.__currentRow.rowIndex});
+	            }
+	    	}
+	        this.__currentRow = null;
+	        this.__oldIndex = -1;
+	        this.__removeGhost();
+	        this.util.makeBodySelectable();
+	        return true;
+	    }
+	    return false;
+	};
+	
+	NSTableRowMover.prototype.__getComputedTranslateXY = function(obj)
+	{
+		const transArr = [];
+	    if(!window.getComputedStyle) return;
+	    const style = window.getComputedStyle(obj),
+	        transform = style.transform || style.webkitTransform || style.mozTransform;
+	    let mat = transform.match(/^matrix3d\((.+)\)$/);    
+	    if(mat) return parseFloat(mat[1].split(', ')[13]);
+	    mat = transform.match(/^matrix\((.+)\)$/);
+	    mat ? transArr.push(parseFloat(mat[1].split(', ')[4])) : 0;
+	    mat ? transArr.push(parseFloat(mat[1].split(', ')[5])) : 0;
+	    console.log(transArr);
+	    return transArr;
+	}
+	
+	NSTableRowMover.prototype.__makeRowDraggable = function(row) 
+	{
+	    if(row)
+	    {
+	    	this.__makeRowAbsolute(row);
+	    	if(!this.util.hasStyleClass(row,"nsDraggableRow"))
+	    	{
+	    		if(this.__config.handler)
+		    	{
+		    		var handler = row.querySelector(this.__config.handler);
+		    		if(handler)
+		    		{
+		    			if(this.__touchSupport)
+				    	{
+				    		this.util.addEvent(handler,"touchstart",this.__rowTouchStartHandler.bind(this));
+				    	}
+				    	else
+				    	{
+				    		this.util.addEvent(handler,"mousedown",this.__rowMouseDownHandler.bind(this));
+				    	}
+		    		}
+		    	}
+		    	else
+		    	{
+		    		if(this.__touchSupport)
+			    	{
+			    		this.util.addEvent(row,"touchstart",this.__rowTouchStartHandler.bind(this));
+			    	}
+			    	else
+			    	{
+			    		this.util.addEvent(row,"mousedown",this.__rowMouseDownHandler.bind(this));
+			    	}
+		    	}
+	    		this.util.addStyleClass(row,"nsDraggableRow");
+	    	}
+	    }
+	};
+	
+	NSTableRowMover.prototype.__makeRowAbsolute = function(row) 
+	{
+		var rect = row.getBoundingClientRect();
+        console.log(row.clientHeight + " == " + rect.height);
+		if(this.__config.enableAnimation)
+		{
+			var rowID = "row-" + (this.__rowIndex++);
+			this.util.addStyleClass(row,"nsTableRowMoverAnimation");
+			row.setAttribute("data-rowMover-id",rowID);
+			row.style.transform = "translateY(" + this.__verticalOffset + "px)";
+			this.__mapRowIndex[rowID] = {top: this.__verticalOffset};
+			this.__verticalOffset += this.util.getOuterHeight(row);
+		}
+	};
+	
+	NSTableRowMover.prototype.__isRowDropable = function(row,movingRow) 
 	{
 		var retValue = false;
-		var self = this;
-		var matchValue = function(compareValue,opt)
+		if(row && this.util.isElement(row) && this.util.isElementOfType(row,"TR"))
 		{
-			var compValue = false;
-			if(self.util.isUndefinedOrNull(value))
+			retValue = true;
+			if(this.util.hasAttribute(row,"nsDropAllowed"))
 			{
-				compValue = false;
-			}
-			else
-			{
-				var newVal = self.__getDate(value,setting.cellFormat);
-				if(newVal)
-				{
-					newVal.setHours(0, 0, 0, 0);
-					compareValue.setHours(0, 0, 0, 0);
-					switch(opt)
-					{
-						case "equals":
-							if (compareValue.getTime() === newVal.getTime()) 
-							{
-								compValue = true;
-				            }
-						break;
-						case "greaterThan":
-							if (compareValue.getTime() < newVal.getTime()) 
-							{
-								compValue = true;
-				            }
-						break;
-						case "lessThan":
-							if (compareValue.getTime() > newVal.getTime()) 
-							{
-								compValue = true;
-				            }
-						break;
-						case "notEqual":
-							if (compareValue.getTime() != newVal.getTime()) 
-							{
-								compValue = true;
-				            }
-						break;
-					}
-				}
-				else
-				{
-					self.util.warning("NSFilter",value + " cannot be converted to date Object for given cell format");
-					compValue = false;
-				}
-			}
-			return compValue;
-		};
-		var processDate = function(date,type)
-		{
-			var compValue = false;
-			if(date && matchType1)
-			{
-				if(!date || !Object.prototype.toString.call(date) === '[object Date]')
-				{
-					compValue = true;
-				}
-				else if(setting.comparator)
-				{
-					compValue = setting.comparator(value,date,setting);
-				}
-				else
-				{
-					compValue = matchValue(date,type);
-				}
-			}
-			return compValue;
-		};
-		if(setting.matchType1 || setting.matchType2)
-		{
-			var matchType1 = setting.matchType1;
-			var firstDate = setting.firstDate;
-			var operation = setting.operation;
-			var matchType2 = setting.matchType2;
-			var secondDate = setting.secondDate;
-			if(this.util.isUndefinedOrNull(value))
-			{
-				retValue = false;
-			}
-			else if(firstDate && secondDate && matchType1 && matchType2 && operation)
-			{
-				var firstVal = processDate(firstDate,matchType1);
-				var secondVal = processDate(secondDate,matchType2);
-				switch(operation)
-				{
-					case "and":
-						retValue = (firstVal && secondVal);
-					break;
-					case "or":
-						retValue = (firstVal || secondVal);
-					break;
-				}
-			}
-			else if(firstDate && matchType1)
-			{
-				retValue = processDate(firstDate,matchType1);
-			}
-			else if(secondDate && matchType2)
-			{
-				retValue = processDate(secondDate,matchType2);
-			}
-			else
-			{
-				retValue = true;
-			}
-		}
-		else
-		{
-			if(!searchParam || !Object.prototype.toString.call(searchParam) === '[object Date]')
-			{
-				retValue = true;
-			}
-			else if(setting.comparator)
-			{
-				retValue = setting.comparator(value,searchParam,setting);
-			}
-			else if(this.util.isUndefinedOrNull(value))
-			{
-				retValue = false;
-			}
-			else
-			{
-				retValue = matchValue(searchParam,"equals");
+				retValue = Boolean.parse(this.util.getAttribute(row,"nsDropAllowed"));
 			}
 		}
 		return retValue;
 	};
-  
-  	//ref from : https://stackoverflow.com/questions/7445328/check-if-a-string-is-a-date-value
-	NSFilter.prototype.__getDate = function(value,arrFormat) 
+	
+	NSTableRowMover.prototype.__findDroppableRow = function(table,yPos) 
 	{
-		if(value)
+		if(table && table.tBodies && table.tBodies.length > 0)
 		{
-			var dateFormat;
-		    if (Object.prototype.toString.call(value) === '[object Date]') 
-		    {
-		        return value;
-		    }
-		    if(arrFormat)
-		    {
-		    	var dateUtil = new NSDateUtil();
-		    	if(!this.util.isArray(arrFormat))
-		    	{
-		    		arrFormat = [arrFormat];
-		    	}
-		    	for(var count = 0;count < arrFormat.length;count++)
-		    	{
-		    		var format = arrFormat[count];
-		    		var date = dateUtil.parseString(value,format);
-		    		if(date)
-		    		{
-		    			return date;
-		    		}
-		    	}
-		    }
-		    else
-		    {
-		    	if (typeof value.replace === 'function') 
-			    {
-			        value.replace(/^\s+|\s+$/gm, '');
-			    }
-			    dateFormat = /(^\d{1,4}[\.|\\/|-]\d{1,2}[\.|\\/|-]\d{1,4})(\s*(?:0?[1-9]:[0-5]|1(?=[012])\d:[0-5])\d\s*[ap]m)?$/;
-			    if(dateFormat.test(value))
-			    {
-			    	return new Date(value);//Date.parse(value);
-			    }
-		    }
+			var rows = table.tBodies[0].rows;
+			for (var count = 0; count < rows.length; count++) 
+			{
+				var row = rows[count];
+				var dropAllowed = true;
+				if(row.getAttribute("nsDropAllowed"))
+				{
+					dropAllowed = Boolean.parse(row.getAttribute("nsDropAllowed"));
+				}
+				if(dropAllowed) 
+				{
+					var offset = this.util.getCumulativeOffset(row);
+					var rowHeight = parseInt(row.offsetHeight)/2;
+					if (row.offsetHeight === 0) 
+					{
+						offset = this.util.getCumulativeOffset(row.firstChild);
+						rowHeight = parseInt(row.firstChild.offsetHeight)/2;
+					}
+					//console.log("yPos::" + yPos + ",offset.y::" + offset.y + ",rowHeight::" + rowHeight);
+					// Because we always have to insert before, we need to offset the height a bit
+					if ((yPos > offset.y - rowHeight) && (yPos < (offset.y + rowHeight))) 
+					{
+						return row;
+					}
+					else
+					{
+						console.log(row.innerText);
+					}
+				}
+			}
 		}
-	    return null;
+		return null;
 	};
 	
+	NSTableRowMover.prototype.__setDivMovablePosition = function(posEvent)
+	{
+		if(this.__divMovable)
+	    {
+	    	this.__divMovable.style.left = posEvent.left + "px";
+	    	this.__divMovable.style.top = posEvent.top + "px";
+	    }
+	};
+	
+	NSTableRowMover.prototype.__addDocumentEvents = function()
+	{
+		if(this.__touchSupport)
+		{
+			if(!this.__mouseMoveRef)
+			{
+				this.__mouseMoveRef = this.__touchMoveHandler.bind(this);
+				if(this.__config.isSameTableMove)
+				{
+					this.util.addEvent(this.__config.table,"touchmove",this.__mouseMoveRef);
+				}
+				else
+				{
+					this.util.addEvent(document,"touchmove",this.__mouseMoveRef);
+				}
+			}
+			if(!this.__documentMouseUpRef)
+			{
+				this.__documentMouseUpRef = this.__documentTouchUpHandler.bind(this);
+				this.util.addEvent(document,"touchend",this.__documentMouseUpRef);
+			}
+		}
+		else
+		{
+			if(!this.__mouseMoveRef)
+			{
+				this.__mouseMoveRef = this.__mouseMoveHandler.bind(this);
+				if(this.__config.isSameTableMove)
+				{
+					this.util.addEvent(this.__config.table,"mousemove",this.__mouseMoveRef);
+				}
+				else
+				{
+					this.util.addEvent(document,"mousemove",this.__mouseMoveRef);
+				}
+			}
+			if(!this.__documentMouseUpRef)
+			{
+				this.__documentMouseUpRef = this.__documentMouseUpHandler.bind(this);
+				this.util.addEvent(document,"mouseup",this.__documentMouseUpRef);
+			}
+		}
+	};
+	
+	NSTableRowMover.prototype.__removeDocumentEvents = function()
+	{
+		if(this.__mouseMoveRef)
+		{
+			this.util.removeEvent(this.__config.table,"mousemove",this.__mouseMoveRef);
+			this.util.removeEvent(document,"mousemove",this.__mouseMoveRef);
+			this.__mouseMoveRef = null;
+		}
+		if(this.__documentMouseUpRef)
+		{
+			this.util.removeEvent(document,"mouseup",this.__documentMouseUpRef);
+			this.__documentMouseUpRef = null;
+		}
+	};
+	
+	NSTableRowMover.prototype.__createGhost = function(row)
+	{
+		if(this.__config.enableMovingText && !this.__divGhost)
+		{
+			var html = this.__config.movingTextCallback ? this.__config.movingTextCallback(row) : row.cells[0].innerText;
+			this.__divGhost = this.util.createDiv(null,"nsTableRowMoverGhost");
+			this.__divGhost.innerHTML = html;
+	        this.__divGhost.style.height = '25px';
+	        this.__divGhost.style.top = '20px';
+	        this.__divGhost.style.left = '20px';
+	        document.body.appendChild(this.__divGhost);
+		}
+	};
+	
+	NSTableRowMover.prototype.__removeGhost = function() 
+	{
+        if (this.__divGhost && this.__divGhost.parentNode) 
+        {
+        	this.__divGhost.parentNode.removeChild(this.__divGhost);
+        }
+        this.__divGhost = null;
+    };
+    
+    NSTableRowMover.prototype.__positionGhost = function(event) 
+	{
+    	if(this.__divGhost)
+    	{
+    		event = this.util.getEvent(event);
+        	var ghostRect = this.__divGhost.getBoundingClientRect();
+            var ghostHeight = ghostRect.height;
+            var bodyDimension = this.util.getBodyDimension(); 
+            var browserWidth = bodyDimension.width - 2;
+            var browserHeight = bodyDimension.height - 2;
+            var top = event.pageY - (ghostHeight / 2);
+            var left = event.pageX - 30;
+            var windowScrollY = window.pageYOffset || document.documentElement.scrollTop;
+            var windowScrollX = window.pageXOffset || document.documentElement.scrollLeft;
+            if (browserWidth > 0) 
+            {
+                if ((left + this.__divGhost.clientWidth) > (browserWidth + windowScrollX)) 
+                {
+                    left = browserWidth + windowScrollX - this.__divGhost.clientWidth;
+                }
+            }
+            if (left < 0) 
+            {
+                left = 0;
+            }
+            if (browserHeight > 0) 
+            {
+                if ((top + this.__divGhost.clientHeight) > (browserHeight + windowScrollY)) 
+                {
+                    top = browserHeight + windowScrollY - this.__divGhost.clientHeight;
+                }
+            }
+            if (top < 0) 
+            {
+                top = 0;
+            }
+            this.__divGhost.style.left = left + 'px';
+            this.__divGhost.style.top = top + 'px';
+    	}
+	};
+	
+	NSTableRowMover.prototype.__applyCustomClass = function(element,type,defaultValue)
+	{
+		if(element)
+		{
+			if(type && this.__config.customClass[type])
+			{
+				this.util.addStyleClass(element,this.__config.customClass[type]);
+			}
+			else if(defaultValue)
+			{
+				this.util.addStyleClass(element,defaultValue);
+			}
+		}
+	};
+	
+	NSTableRowMover.prototype.__removeCustomClass = function(element,type,defaultValue)
+	{
+		if(element)
+		{
+			if(type && this.__config.customClass[type])
+			{
+				this.util.removeStyleClass(element,this.__config.customClass[type]);
+			}
+			else if(defaultValue)
+			{
+				this.util.removeStyleClass(element,defaultValue);
+			}
+		}
+	};
+	
+	NSTableRowMover.prototype.__getID = function()
+	{
+		if(!this.__id)
+		{
+			if(this.__config.table.hasAttribute("id"))
+			{
+				this.__id = this.__config.table.getAttribute("id");
+			}
+			else if(this.__config.table.hasAttribute("name"))
+			{
+				this.__id = this.__config.table.getAttribute("name");
+			}
+			else
+			{
+				this.__id = "comp" + this.util.getUniqueId();
+			}
+		}
+		return this.__id;
+	};
+	
+	return NSTableRowMover;
+})();
+nsModuleExport(this,"NSTableRowMover",NSTableRowMover);
