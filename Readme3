@@ -1,1 +1,155 @@
+package com.org;
+
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+public class CreatePackageJson 
+{
+	private final String basePath = "C:\\Temp\\Anurag\\Workspace\\JSLib\\src\\main\\webapp\\package";
+	
+	private final String newLineChar = "\r\n";
+	
+	private final String tabLineChar = "\t";
+	
+	public static void main(String[] args) 
+	{
+		try
+		{
+			CreatePackageJson objCreatePackageJson = new CreatePackageJson();
+			objCreatePackageJson.create();
+		}
+		catch(Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}
+	
+	public void create() throws Exception
+	{
+		createBaseFiles();
+		createGridFile();
+	}
+	
+	private void createBaseFiles() throws Exception
+	{
+		String json = getJSON("nsUtil","0.0.2","nsContainerBase","nsUtil",new String[]{"nsUtil.min.js"},null,"NSUtil Class",null);
+		createFile("nsUtil",json);
+		json = getJSON("nsContainerBase","0.0.2","nsContainerBase","nsContainerBase",new String[]{"nsContainerBase.min.js"},null,"NSComponent Base Class",null);
+		createFile("nsContainerBase",json);
+		json = getJSON("nsSVG","0.0.2","nsSVG","nsSVG",new String[]{"nsSVG.min.js"},null,"NSSVG Class",null);
+		createFile("nsSVG",json);
+		json = getJSON("nsPluggins","0.0.2","nsPluggins","nsPluggins",new String[]{"nsPluggins.min.js"},null,"NSPluggins Class",null);
+		createFile("nsPluggins",json);
+		json = getJSON("nsPinTip","0.0.2","nsPinTip","nsPinTip",new String[]{"nsPinTip.min.js"},null,"NSPinTip Class",null);
+		createFile("nsPinTip",json);
+		json = getJSON("nsConsole","0.0.2","nsConsole","nsConsole",new String[]{"nsConsole.min.js"},null,"NSConsole Class",null);
+		createFile("nsConsole",json);
+		json = getJSON("nsDateUtil","0.0.2","nsDateUtil","nsDateUtil",new String[]{"nsDateUtil.min.js"},null,"NSDateUtil Class",null);
+		createFile("nsDateUtil",json);
+	}
+	
+	private void createGridFile() throws Exception
+	{
+		String json = getJSON("nsGrid","0.0.2","nsGrid","nsGrid",new String[]{"nsGrid.min.js","nsGrid.min.css"},getDependencies(),"NSGrid Class",null);
+		createFile("nsGrid",json);
+	}
+	
+	private Map<String,String> getDependencies()
+	{
+		Map<String,String> mapDependencies = new HashMap<String, String>();
+		mapDependencies.put("nsUtil", "0.0.2");
+		mapDependencies.put("nsContainerBase", "0.0.2");
+		mapDependencies.put("nsSVG", "0.0.2");
+		mapDependencies.put("nsPluggins", "0.0.2");
+		mapDependencies.put("nsDateUtil", "0.0.2");
+		
+		return mapDependencies;
+	}
+	
+	private void createFile(String compName,String content) throws IOException
+	{
+		String filePath = getFilePath(compName);
+		FileOutputStream outputStream = new FileOutputStream(filePath);
+	    byte[] strToBytes = content.getBytes();
+	    outputStream.write(strToBytes);
+	    outputStream.close();
+	}
+	
+	private String getJSON(String repository,String version,String title,String mainFile,String[] files,Map<String,String> dependencies,String description,String[] keywords)
+	{
+		StringBuilder str = new StringBuilder();
+		str.append("{" + newLineChar);
+		setKeyValue(str,"name",repository);
+		setKeyValue(str,"version",version);
+		setKeyValue(str,"title",title);
+		setKeyValue(str,"main",mainFile);
+		setKeyValueArray(str,"files",files);
+		setKeyValueMap(str,"dependencies",dependencies);
+		setKeyValue(str,"description",description);
+		setKeyValueArray(str,"keywords",keywords);
+		str.append("}" + newLineChar);
+		
+		return str.toString();
+	}
+	
+	private void setKeyValueMap(StringBuilder str,String key,Map<String,String> mapValue)
+	{
+		if(mapValue != null && mapValue.size() > 0)
+		{
+			String finalVal = "";
+			for (Map.Entry<String,String> entry : mapValue.entrySet())  
+			{
+				finalVal += tabLineChar + tabLineChar  + getReplaceString(entry.getKey()) + ": " + getReplaceString(entry.getValue())  + "," + newLineChar;
+			}
+			finalVal = "{" + newLineChar + finalVal + tabLineChar +"}";
+			
+			setKeyValueWithoutReplace(str,key,finalVal);
+		}
+	}
+	
+	private void setKeyValueArray(StringBuilder str,String key,String[] arrValue)
+	{
+		if(arrValue != null && arrValue.length > 0)
+		{
+			String finalVal = "";
+			for(String value: arrValue)
+			{
+				finalVal += tabLineChar + tabLineChar + getReplaceString(value) + "," + newLineChar;
+			}
+			finalVal = "[" + newLineChar + finalVal + tabLineChar +"]";
+			setKeyValueWithoutReplace(str,key,finalVal);
+		}
+	}
+	
+	private void setKeyValue(StringBuilder str,String key,String value)
+	{
+		if(value != null && value.length() > 0)
+		{
+			String val = tabLineChar + getReplaceString(key) + ": " + getReplaceString(value) + "," + newLineChar;
+			str.append(val);
+		}
+	}
+	
+	private void setKeyValueWithoutReplace(StringBuilder str,String key,String value)
+	{
+		if(value != null && value.length() > 0)
+		{
+			String val = tabLineChar + getReplaceString(key) + ": " + value + "," + newLineChar;
+			str.append(val);
+		}
+	}
+	
+	private String getReplaceString(String str)
+	{
+		return "\"" + str + "\"";
+	}
+	
+	private String getFilePath(String compName)
+	{
+		return basePath + "\\" + compName + "\\package.json";
+	}
+
+}
 
