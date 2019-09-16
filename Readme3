@@ -1,13 +1,1 @@
-var offset = {};
 
-if(this.isValidDate(date)) 
-
-else
-			{
-				console.log(date + "is invalid");
-			}
-
-this.isValidDate = function(date) 
-		{
-			  return date && Object.prototype.toString.call(date) === "[object Date]" && !isNaN(date);
-		};
