@@ -1,1 +1,27 @@
+import {NgModule,ModuleWithProviders} from '@angular/core';
+import {ANALYZE_FOR_ENTRY_COMPONENTS} from '@angular/core';
+
+import { NSGridComponent } from './nsGrid.component';
+
+@NgModule({
+    imports: [],
+    declarations: [
+        NSGridComponent
+    ],
+    exports: [
+        NSGridComponent
+    ]
+})
+
+export class NSGridModule 
+{
+    static forRoot(components:any= []): ModuleWithProviders {
+        return {
+            ngModule: NSGridModule,
+            providers: [
+                {provide: ANALYZE_FOR_ENTRY_COMPONENTS, useValue: components, multi: true}
+            ],
+        };
+    }
+}
 
