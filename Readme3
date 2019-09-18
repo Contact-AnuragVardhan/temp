@@ -1,1 +1,3 @@
-
+ng new ns-components-angular --create-application=false
+cd ns-components-angular
+ng generate library ns-grid-angular
