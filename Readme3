@@ -1,1 +1,326 @@
+this.__enableColumnSetting = false;
 
+this.__icons = {menu:null,filter:null,sortAscending:null,sortDescending:null,columnMove:null,exportButton:null,columnSetting:null,rowExpanded:null,rowCollapsed:null};
+		this.__nsGridEditor = null;
+		this.__nsPopUpColumnSetting = null;
+    
+    if(this.hasAttribute("enableColumnSetting"))
+			{
+				this.__enableColumnSetting =  Boolean.parse(this.getAttribute("enableColumnSetting"));
+			}
+      
+      if(this.__nsPopUpColumnSetting)
+		{
+			this.__nsPopUpColumnSetting.remove();
+			this.__nsPopUpColumnSetting = null;
+		}
+    
+    var isColumnFixed = this.__isColumnFixed(index);
+			if(!isColumnFixed)
+			{
+				if(objColumn.hasOwnProperty("hideable"))
+				{
+					objColumn["hideable"] = Boolean.parse(objColumn["hideable"]);
+				}
+				else
+				{
+					objColumn["hideable"] = true;
+				}
+			}
+			else
+			{
+				objColumn["hideable"] = false;
+			}
+      
+      if(parentElement && ((this.__title && this.__title.length > 0) || this.__enableExport || this.__enableColumnSetting))
+
+var spanRight = document.createElement("span");
+			spanRight.style.float = "right";
+			divTitleBar.appendChild(spanRight);
+			if(this.__enableColumnSetting)
+			{
+				var spanExport = document.createElement("span");
+				spanExport.style.cursor = "pointer";
+				if(this.__icons.columnSetting)
+				{
+					spanExport.innerHTML = this.__icons.columnSetting;
+				}
+				else
+				{
+					var objSVG = new NSSvg();
+					var exportID = new NSSvgShapes().__COLUMNSETTING_ICON_ID;
+					var svg = objSVG.addSVG(spanExport,exportID + "exportsvg","nsColumnSetting");
+					this.util.addStyleClass(svg,"nsColumnSettingTheme");
+					objSVG.addUse(svg,exportID + "use",null,"#" + exportID);
+				}
+				spanRight.appendChild(spanExport);
+				var self = this;
+				this.util.addEvent(spanExport,"click",function(event){
+					self.__createColumnSettingUI.call(self,spanExport,event);
+				});
+			}
+			if(this.__enableExport)
+			{
+				var spanExport = document.createElement("span");
+				spanExport.style.paddingLeft = "5px";
+				spanExport.style.cursor = "pointer";
+				if(this.__icons.exportButton)
+				{
+					spanExport.innerHTML = this.__icons.exportButton;
+				}
+				else
+				{
+					var objSVG = new NSSvg();
+					var exportID = new NSSvgShapes().__EXPORT_ICON_ID;
+					var svg = objSVG.addSVG(spanExport,exportID + "exportsvg","nsExportIcon");
+					this.util.addStyleClass(svg,"nsExportIconTheme");
+					objSVG.addUse(svg,exportID + "use",null,"#" + exportID);
+				}
+				spanRight.appendChild(spanExport);
+				if(!this.__exportMenu)
+				{
+					var exportMenuSetting = {parent:spanExport,dataSource:this.__exportMenuDataSource,isContextMenu:false,createRunTime:false,eventType:"click",defaultHandler:this.__exportHandler.bind(this),
+							position:this.util.POS_BOTTOMLEFT};
+					this.__exportMenu = new NSMenu(exportMenuSetting);
+				}
+			}
+			parentElement.appendChild(divTitleBar);
+			return divTitleBar;
+      
+      NSGrid.prototype.__createColumnSettingUI = function(parentElement,event)
+	{
+		if(!this.__nsPopUpColumnSetting)
+		{
+			var self = this;
+			var itemRenderer = function(item,labelField,fieldIndex,isDisabled,listItem)
+			{
+				if(item)
+				{
+					var divRenderer = self.util.createElement("span",null,"nsFilterListRenderer");
+					var label = self.util.createElement("label");
+					var checkBox = self.util.createElement("input",null,"nsFilterListRendererCheckBox");
+					checkBox.setAttribute("type","checkbox");
+					var visible = item[this.__fieldColVisible];
+					if(self.util.isUndefinedOrNull(visible))
+					{
+						visible = true;
+					}
+					checkBox.checked = visible;
+					this.util.addEvent(checkBox,"click",checkBoxClickHandler.bind(self,item));
+					label.style.fontWeight = "400";
+					label.style.cursor = "pointer";
+					checkBox.style.marginRight = "5px";
+					label.appendChild(checkBox);
+					label.appendChild(document.createTextNode(item["headerText"] || item["dataField"]));
+					divRenderer.appendChild(label);
+					return divRenderer;
+				}
+				return null;
+			};
+			
+			var checkBoxClickHandler = function(item,event)
+			{
+				var target = self.util.getTarget(event);
+				var checked = target.checked;
+				var index = this.__getColumnIndexByObject(item);
+				var counter = 0;
+				for(var count = 0;count < arrSource.length;count++)
+				{
+					if(self.util.isUndefinedOrNull(arrSource[count][this.__fieldColVisible]) || arrSource[count][this.__fieldColVisible])
+					{
+						counter++;
+					}
+				}
+				var strMsg = "Atleast 1 Column should be selected in Column Configuration";
+				if(counter == 1 && !checked)
+				{
+					target.checked = !checked;
+					console.log(strMsg);
+					return;
+				}
+				item[this.__fieldColVisible] = checked;
+				this.__setColumnVisibility(index,checked,item);
+				if(checked)
+				{
+					self.__alignTables(true);
+					self.__setFixedCellsPosition();
+				}
+			};
+			var popUpSetting = {id:this.getID() + "columnSettingContainer",type:"div",width:275,position:this.util.POS_BOTTOMLEFT,closeOnOutsideClick:true,hideOrRemoveOnOutsideClick:"hide",closeRequired:true};
+			this.__nsPopUpColumnSetting = new this.util.nsPopUp(popUpSetting);
+			this.__nsPopUpColumnSetting.create();
+			var popUp = this.__nsPopUpColumnSetting.getPopUp();
+			var self = this;
+			this.util.addEvent(popUp,"click",function(event){
+				event = self.util.getEvent(event);
+				event.stopImmediatePropagation();
+			});
+			var divList = this.util.createDiv();
+			var lstColumn = this.util.createElement("div",null,"nsFilterList");
+			lstColumn.style.height = "300px";
+			divList.appendChild(lstColumn);
+			popUp.appendChild(divList);
+			var arrSource = this.__getColumnSettingSource();
+			var setting = {labelField:"label",enableVirtualScroll:false,enableDragDrop:false,enableDragByHandle:false,enableMultipleSelection:true,enableKeyboardNavigation:false,
+					   customScrollerRequired:false,enableMouseHover:true,enableMouseHoverAnimation:false,itemRenderer:itemRenderer.bind(this)};
+			setting["dataSource"] = arrSource;
+			var objNSList = new NSList(lstColumn,setting);
+		}
+		this.__nsPopUpColumnSetting.show();
+		this.__nsPopUpColumnSetting.placePopUp(event);
+		event.stopPropagation();
+	};
+	
+	NSGrid.prototype.__getColumnSettingSource = function()
+	{
+		var arrSource = [];
+		for(var count = 0;count < this.__columns.length;count++)
+		{
+			var objColumn = this.__columns[count];
+			if(objColumn["hideable"])
+			{
+				arrSource.push(objColumn);
+			}
+		}
+		return arrSource;
+	};
+  
+  if(objColumn["hideable"] && this.__isColumnValidForSwapOrRemove(colIndex))
+  
+  if(this.__enableColumnSetting)
+			{
+				svgShapes.addColumnSettingIcon();
+			}
+      
+      NSGrid.prototype.__getViewportHeight = function()
+	{
+		return this.__divTableHeaderContainerWrapper.offsetHeight + this.__divTableBodyContainerWrapper.offsetHeight + this.__divTableFooterContainerWrapper.offsetHeight;
+	};
+  
+  //to stop error of horizontal scrollbar position getting reset when sorting
+			   	var horScrollPos = 0;
+			   	if(this.__nsGrid.__divCenterTableBodyContainer)
+			   	{
+					horScrollPos = this.__nsGrid.__divCenterTableBodyContainer.scrollLeft;
+			   	}
+          
+          if(this.__nsGrid.__divCenterTableBodyContainer && horScrollPos > 0)
+			   	{
+			   		this.__nsGrid.__divCenterTableBodyContainer.scrollLeft = horScrollPos;
+			   	}
+          
+           if(this.util.isUndefinedOrNull(firstDateString) || this.util.isUndefinedOrNull(secondDateString))
+		      {
+		    	  var retValue = -1;
+		    	  if(this.util.isUndefinedOrNull(firstDateString) && this.util.isUndefinedOrNull(secondDateString))
+			      {
+			    	  retValue = 0;
+			      }
+		    	  if(this.util.isUndefinedOrNull(firstDateString))
+		    	  {
+		    		  retValue = -1;
+				  }
+				  else if(this.util.isUndefinedOrNull(secondDateString))
+				  {
+					  retValue = 1;
+				  }
+		    	  if(sortAscending)
+				  {
+		    		  return retValue; 
+				  }
+				  return (retValue * -1);
+		      }
+          
+          case keyCode.DELETE:
+			case keyCode.BACKSPACE:
+				var self = this;
+				setTimeout(function(){self.__updateValue.call(self,self.__config.input.value,false,true);},1000);
+			break;
+      
+      NSNumericTextBox.prototype.__setFormattedValue = function(value)
+	{
+		value = this.util.isUndefinedOrNull(value) ? this.__currentValue : value;
+		var textBox = this.__config.input;
+		if(this.util.isUndefinedOrNull(value) || value == "")
+		{
+			value = "";
+		}
+		else
+		{
+			value = this.__getFormattedValue(value);
+		}
+		textBox.value = value;
+	};
+  
+ this.__HOLISTICVIEW_ICON_ID = "nsSvgHolisticView";
+ 
+ NSSvgShapes.prototype.addColumnSettingIcon = function()
+	{
+		var COLUMNSETTING_ICON_VIEWPORT = "0 0 1000 1000";
+		var COLUMNSETTING_ICON_PATH = "M898.1,10H668.4h-30.6H362.2h-30.6H101.9C51.1,10,10,51.1,10,101.9v229.7v566.6c0,50.7,41.1,91.9,91.9,91.9h229.7h30.6h275.6h30.6h229.7c50.7,0,91.9-41.1,91.9-91.9V331.6V101.9C990,51.1,948.9,10,898.1,10z M331.6,959.4H117.2c-42.3,0-76.6-34.3-76.6-76.6V362.2h290.9V959.4z M637.8,959.4H362.2V362.2h275.6V959.4z M959.4,882.8c0,42.3-34.3,76.6-76.6,76.6H668.4V362.2h290.9V882.8z M959.4,331.6H40.6V117.2c0-42.3,34.3-76.6,76.6-76.6h214.4h30.6h275.6h30.6h214.4c42.3,0,76.6,34.3,76.6,76.6V331.6 Z";
+		var group = this.__objSVG.createGroup(this.__COLUMNSETTING_ICON_ID + "group");
+		var path = this.__objSVG.createPath(this.__COLUMNSETTING_ICON_ID + "path",COLUMNSETTING_ICON_PATH,null);
+		group.appendChild(path);
+		this.__objSVG.addElementInSymbol(this.__COLUMNSETTING_ICON_ID,COLUMNSETTING_ICON_VIEWPORT,group);
+	};
+  
+  this.util.addStyleClass(row,"nsDraggableRow");
+  this.util.addStyleClass(row,"nsDraggableRowDrag");
+  
+  if(target && target instanceof SVGElement)
+		{
+			target = event.currentTarget;
+		}
+    
+    closeOnOutsideClick: Boolean.parse(this.__config["closeOnOutsideClick"]),
+				hideOrRemoveOnOutsideClick: this.__config["hideOrRemoveOnOutsideClick"] || "remove",
+				title: this.__config["title"],
+				closeRequired: Boolean.parse(this.__config["closeRequired"]),
+				closeHtml: this.__config["closeHtml"],
+        
+        
+        if(this.__setting["title"] || this.__setting["closeRequired"])
+			{
+				this.__popUp.style.minHeight = "50px";
+				var divHead = this.util.createDiv(null,"nsPopUpHeader");
+				var divHeadContainer = this.util.createDiv(null,"nsPopUpHeaderContainer");
+				var divTitleContainer = this.util.createDiv(null,"nsPopUpTitleContainer");
+				if(this.__setting["title"])
+				{
+					var divTitle = this.util.createDiv(null,"nsPopUpTitle");
+					divTitle.innerHTML = this.__setting["title"];
+					divTitleContainer.appendChild(divTitle);
+				}
+				divHeadContainer.appendChild(divTitleContainer);
+				var divCloseContainer = this.util.createDiv(null,"nsPopUpCloseContainer");
+				if(this.__setting["closeRequired"])
+				{
+					var btnTitle = this.util.createElement("button",null,"nsPopUpBtnClose");
+					divCloseContainer.appendChild(btnTitle);
+					btnTitle.innerHTML = this.__setting["closeHtml"] || "<span class=\"nsPopUpClose\"></span>";
+					var self = this;
+					this.util.addEvent(btnTitle,"click",function(event){
+						self.__closeHandler.call(self,event);
+					});
+				}
+				divHeadContainer.appendChild(divCloseContainer);
+				divHead.appendChild(divHeadContainer);
+				this.__popUp.appendChild(divHead);
+			}
+      
+      this.__documentClickHandler = function(event)
+		{
+			this.__closeHandler(event);
+		};
+		
+		this.__closeHandler = function(event)
+		{
+			if(this.__setting.hideOrRemoveOnOutsideClick == "remove")
+			{
+				this.remove();
+			}
+			else
+			{
+				this.hide();
+			}
+		};
