@@ -1,1 +1,72 @@
-
+NSUtil.prototype.getTarget = function (event)
+	{
+		event = this.getEvent(event);
+		var target = event.target ? event.target : event.srcElement;
+		if(target && target instanceof SVGElement && event.currentTarget != document)
+		{
+			target = event.currentTarget;
+		}
+		return target;
+	};
+  
+  this.__width = null;
+		this.__cellWidth = null;
+    
+    this.__minWidth = 240;
+		this.__minCellWidth = 32;
+    
+    this.__injectClass();
+    
+    NSCalendar.prototype.__injectClass = function()
+	{
+		if(this.__width && this.__width > this.__minWidth)
+		{
+			this.util.addCSSClassInDOM(["#" + this.getID() + ".nsCalendar"],["width:" + this.__width + "px;"]);
+			if(!this.__cellWidth)
+			{
+				this.__cellWidth = Math.floor(this.__width / 7);
+			}
+		}
+		if(this.__cellWidth && this.__cellWidth > this.__minCellWidth)
+		{
+			this.util.addCSSClassInDOM(["#" + this.getID() + ".nsCalendar .nsCalendarWeek"],["width:" + this.__cellWidth + "px;"]);
+			this.util.addCSSClassInDOM(["#" + this.getID() + ".nsCalendar .nsCalendarDayContainerCell"],["width:" + this.__cellWidth + "px;"]);
+		}
+	};
+  
+  
+  if(setting.hasOwnProperty("width"))
+			{
+				this.__width = Number(setting["width"]);
+				if(isNaN(this.__width))
+				{
+					this.__width = null;
+				}
+			}
+			if(setting.hasOwnProperty("cellWidth"))
+			{
+				this.__cellWidth = Number(setting["cellWidth"]);
+				if(isNaN(this.__cellWidth))
+				{
+					this.__cellWidth = null;
+				}
+			}
+      
+      event = this.util.getEvent(event);
+		event.stopPropagation();
+    
+    
+    this.__calendarWidth = null;
+		this.__calendarCellWidth = null;
+    
+    if(setting.hasOwnProperty("calendarWidth"))
+			{
+				this.__calendarWidth = setting["calendarWidth"];
+			}
+			if(setting.hasOwnProperty("calendarCellWidth"))
+			{
+				this.__calendarCellWidth = setting["calendarCellWidth"];
+			}
+      
+      setting["width"] = this.__calendarWidth;
+			setting["cellWidth"] = this.__calendarCellWidth;
