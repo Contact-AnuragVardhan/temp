@@ -1,1 +1,53 @@
+protected boolean includeStartText = true;
+,String startText
 
+if(includeStartText && startText != null && startText.length() > 0)
+    		{
+    			String inputScript = startText;
+    			if(JS.equals(fileType))
+				{
+    				if(jsCompress)
+				    {
+    					String tempPath = tempDirPath + separator + "startTextFile.js";
+    					File file = new File(tempPath);
+    		    		file.getParentFile().mkdirs();
+    		    		FileWriter outputFileWriter = new FileWriter(file);
+    				    outputFileWriter.write(inputScript);
+    				    outputFileWriter.close();
+    					JSMinifier objJS = new JSMinifier();
+    					inputScript = objJS.process(tempPath);
+    					file = new File(tempPath);
+    					file.delete();
+    			        /*if(file.delete()) 
+    			        { 
+    			            System.out.println("startTextFile File deleted successfully"); 
+    			        } 
+    			        else
+    			        { 
+    			            System.out.println("Failed to delete the startTextFile file"); 
+    			        }*/
+				    }
+				}
+    			else
+    			{
+    				String tempPath = tempDirPath + separator + "startTextFile.css";
+					File file = new File(tempPath);
+		    		file.getParentFile().mkdirs();
+		    		FileWriter outputFileWriter = new FileWriter(file);
+				    outputFileWriter.write(inputScript);
+				    outputFileWriter.close();
+				    CSSMinifier objCSS = new CSSMinifier();
+				    inputScript = objCSS.process(tempPath);
+					file = new File(tempPath); 
+					file.delete();
+			        /*if(file.delete()) 
+			        { 
+			            System.out.println("startTextFile File deleted successfully"); 
+			        } 
+			        else
+			        { 
+			            System.out.println("Failed to delete the startTextFile file"); 
+			        }*/
+    			}
+    			outputScript.append(inputScript);
+    		}
