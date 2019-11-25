@@ -1,1 +1,24 @@
+nsModuleExport(this,"NSCalendar",NSCalendar,module,exports);
 
+var nsModuleExport = function(root,name,prototype,moduleRef,exportsRef)
+	{
+		//name = name.charAt(0).toUpperCase() + name.charAt(1).toUpperCase() + name.slice(2);
+		moduleRef = moduleRef ? moduleRef : module;
+		exportsRef = exportsRef ? exportsRef : exports;
+		if(typeof exportsRef === 'object' && typeof moduleRef === 'object')
+		{
+			moduleRef.exports[name] = prototype;
+		}
+		else if (typeof define === "function" && define.amd)
+		{
+			define(name,[], function () {return prototype;});
+		}
+		else if(typeof exportsRef === 'object')
+		{
+			exportsRef[name] = prototype;
+		}
+		else
+		{
+			root[name] = prototype;
+		}
+	};
