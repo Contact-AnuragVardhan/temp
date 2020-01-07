@@ -1,1 +1,18 @@
+		mapJSFiles.put("nsCarousel", baseJSURL + "util\\nsCarousel.js");
+		mapJSFiles.put("nsTabNavigator", baseJSURL + "prototype\\nsTabNavigator.js");
+		mapJSFiles.put("nsScrollAnimator", baseJSURL + "util\\nsScrollAnimator.js");
 
+mapJSDependency.put("nsTabNavigator",new String[]{"nsCarousel","nsScrollAnimator"});
+
+mapJSStartText.put("nsTabNavigator", startText);
+
+mapCSSFiles.put("nsCarousel", baseCSSURL + "nsCarousel.css");
+		mapCSSFiles.put("nsTabNavigator", baseCSSURL + "nsTabNavigator.css");
+    
+    mapDependency.put("nsTabNavigator",new String[]{"nsCarousel","nsTabNavigator"});
+    
+    ,"nsTabNavigator"
+    
+    
+    json = getJSON("nstabnavigator",version,"nsTabNavigator","nsTabNavigator",getDependencies(true,null),"NSTabNavigator Class",null);
+		createFile("nsTabNavigator",json);
