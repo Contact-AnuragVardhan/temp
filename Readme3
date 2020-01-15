@@ -1,1 +1,166 @@
-
+NSContainerBase.prototype.__callCreationComplete = function(event)
+	{
+		if(this.__creationCompleteInterval != -1)
+		{
+			clearTimeout(this.__creationCompleteInterval);
+			this.__creationCompleteInterval = -1;
+		}
+		if(this.util.isElementInDOM(this.__baseComponent))
+		{
+			this.__creationComplete();
+		}
+		else
+		{
+			var self = this;
+			this.__creationCompleteInterval = setTimeout(
+			function()
+			{ 
+				self.__callCreationComplete.bind(self)();
+			},10);
+		}
+	};
+  
+  if(!this.__isCreationCompleted)
+		{
+    
+    
+    //queue up the functions not called as Creation Complete called later
+		this.__queueFunc = [];
+    
+    if(this.__queueFunc && this.__queueFunc.length > 0)
+		{
+			for(var count = this.__queueFunc.length - 1;count > -1;count--)
+			{
+				this.__queueFunc[count]();
+				this.__queueFunc.splice(count, 1);
+			}
+		}
+    
+    if(this.__isCreationCompleted)
+			{
+      
+      else
+			{
+				//always add as the first item so that when execute we can start from end and remove the elements
+				this.__queueFunc.splice(0, 0, this.dataSource.bind(this,source,isReset));
+			}
+      
+      NSGrid.prototype.editCellByKeyField = function(keyFieldValue,dataField)
+	{
+		var item = this.__getItemBykeyField(keyFieldValue);
+		this.editCellByItem(item,dataField);
+	};
+	
+	NSGrid.prototype.editCellByItem = function(item,dataField)
+	{
+		var objRet = this.__getCellDetailsForEditing(item,dataField);
+		if(objRet)
+		{
+			this.__nsGridEditor.editCell(objRet.cell,objRet.item);
+		}
+	};
+	
+	NSGrid.prototype.editCellStopByIndex = function(index,dataField,isCancel)
+	{
+		var item = this.__getItemByIndex(index);
+		this.editCellStopByItem(item,dataField,isCancel);
+	};
+	
+	NSGrid.prototype.editCellStopByKeyField = function(keyFieldValue,dataField,isCancel)
+	{
+		var item = this.__getItemBykeyField(keyFieldValue);
+		this.editCellStopByItem(item,dataField,isCancel);
+	};
+	
+	NSGrid.prototype.editCellStopByItem = function(item,dataField,isCancel)
+	{
+		var objRet = this.__getCellDetailsForEditing(item,dataField);
+		if(objRet)
+		{
+			if (isCancel === void 0) 
+			{ 
+				isCancel = false; 
+			}
+			if(isCancel)
+			{
+				this.__nsGridEditor.cancelEditForCell(objRet.cell,objRet.item);
+			}
+			else
+			{
+				this.__nsGridEditor.saveEditForCell(objRet.cell,objRet.item);
+			}
+		}
+	};
+  
+  NSGrid.prototype.__getCellDetailsForEditing = function(item,dataField)
+	{
+		if(this.__nsGridEditor)
+		{
+			if(item)
+			{
+				var colItem = this.__getColumnObjectByDataField(dataField);
+				if(colItem)
+				{
+					var colIndex = colItem[this.__fieldColIndex];
+					var row = this.__getRowFromItem(item);
+					if(row)
+					{
+						var cells = row.cells;
+						var cell = cells[colIndex];
+						return {cell: cell,item: item};
+					}
+				}
+			}
+		}
+		return null;
+	};
+  
+  encodeParam: (typeof setting["encodeParam"] == "undefined") ? false : setting["encodeParam"]
+  
+  var getParam = function()
+			{
+				var strParam = "";
+				var param = config.param;
+				if (config.method.toUpperCase() === "POST" && !config.encodeParam && !util.isString(param)) 
+				{
+					return JSON.stringify(param);
+				}
+				if(util.isString(param))
+				{
+					return param;
+				}
+				for(var paramKey in param)
+				{
+					if(param[paramKey])
+					{
+						if(config.encodeParam)
+						{
+							strParam += "&" + encodeURIComponent(paramKey) + "=" + encodeURIComponent(param[paramKey]);
+						}
+						else
+						{
+							strParam += "&" + paramKey + "=" + param[paramKey];
+						}
+					}
+				}
+				if(strParam && strParam.length > 1)
+				{
+					strParam = strParam.substring(1);
+				}
+				
+				return strParam;
+			};
+      
+      //when enhance for row editing then we will use cell
+		this.cancelEditForCell = function(cell,item)
+		{
+			this.__callCancelForEditor(this.__lastEditor);
+		};
+		
+		//when enhance for row editing then we will use cell
+		this.saveEditForCell = function(cell,item)
+		{
+			this.__callSaveForEditor(this.__lastEditor);
+		};
+		
+    ,api: this.__nsGrid
