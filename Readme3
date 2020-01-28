@@ -1,8 +1,1 @@
-mapJSFiles.put("nsEvent", baseJSURL + "util\\nsEvent.js");
-mapJSDependency.put("nsTextBox",new String[]{"nsList","nsFilter"});
-mapJSStartText.put("nsEvent", utilRef);
 
-,"nsEvent"
-
-json = getJSON("nscompevent",version,"nsEvent","nsEvent",getDependencies(true,false,false,false,false,null),"nsEvent Class",null);
-		createFile("nsEvent",json);
