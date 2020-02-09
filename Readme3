@@ -1,1 +1,56 @@
+	position: relative;
+.nsEditor .nsEditorTextAreaContainer 
+{
+	position: relative;
+	float: left;
+	padding: 0px;
+	margin: 0px;
+	height: 100%;
+	width: calc(100% - 1px);
+}
 
+.nsEditor.nsEditorWithLineNumber .nsEditorTextAreaContainer 
+{
+	width: calc(100% - 56px);/*(width of line number div + margin right of line number div + 1)*/
+}
+
+
+.nsEditor.nsEditorWithLineNumber .nsEditorTextAreaGeneric .nsEditorLineElement
+{
+	margin:0;
+	font-size: 12px;
+}
+
+.nsEditor.nsEditorWithLineNumber .nsEditorTextArea .nsEditorLineElement, .nsEditorOuterContainer .nsEditorLineNumberWrapper .nsEditorLineNumber 
+{
+	font-family: monospace;
+	line-height: 15px !important;
+}
+
+.nsEditor .nsEditorTextAreaContainer .nsEditorTextArea 
+{
+	padding: 5px;
+	border: 0;
+}
+
+.nsEditor.nsEditorWithLineNumber .nsEditorTextAreaContainer .nsEditorTextArea
+{
+	padding:0px;
+	padding-top:5px;
+}
+
+.nsEditor .nsEditorTextAreaContainer .nsEditorTextArea:focus
+{
+	outline: none;
+}
+
+.nsEditor.nsEditorWithLineNumber .nsEditorTextAreaGeneric .nsEditorLineElement
+{
+	margin:0;
+	font-size: 12px;
+}
+
+.nsEditor .nsEditorTextAreaContainer .nsEditorTextArea:empty:not(:focus):before 
+{
+  content: attr(data-placeholder);
+}
