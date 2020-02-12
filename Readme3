@@ -1,1 +1,497 @@
-
+"use strict";
+var NSAjax = (function()
+{
+	function NSAjax() 
+	{
+		var self = this;
+		var activeReq = 0;
+		
+		var post = function(url,data,setting)
+		{
+			return processRequest(getSetting("POST",url,data,setting));
+		};
+		
+		var get = function(url,data,setting)
+		{
+			return processRequest(getSetting("GET",url,data,setting));
+		};
+		
+		var jsonp = function(url,data,setting)
+		{
+			setting = setting ? setting : {};
+			setting.dataType = "JSONP";
+			setting.url = url;
+			setting.param = data;
+			processRequest(setting);
+		};
+		
+		var getSetting = function(method,url,data,setting)
+		{
+			setting = setting ? setting : {};
+			setting.method = method;
+			setting.url = url;
+			setting.param = data;
+			setting.dataType = setting.dataType ? setting.dataType : "JSON";
+			
+			return setting;
+		};
+		
+		var processRequest = function(setting)
+		{
+			var config = null;
+			var request = null;
+			var requestDone = false;
+			var resolve = null;
+			var reject = null;
+			
+			var functionNameInitials = "nsjsonp";
+			var instanceNameInitials = "nsjsonpIns";
+			var random = -1;
+			var util = null;
+			
+			var onInit = function()
+			{
+				if(!setting)
+				{
+					return;
+				}
+				util = new NSUtil();
+				config = {
+						method: setting["method"] || "POST",
+						url: setting["url"] || "",
+						param: setting["param"] || {},
+						dataType: setting["dataType"] || "",
+						completeHandler: setting["completeHandler"],
+						timeOutHandler: setting["timeOutHandler"],
+						//if browser supports W3C Events then the below function will fire
+						loadStartHandler: setting["loadStartHandler"],
+						progressHandler: setting["progressHandler"],
+						abortHandler: setting["abortHandler"],
+						//end of browser supports W3C Events then the below function will fire
+						timeout: setting.timeout || -1,
+						header: setting["header"],
+						encodeParam: (typeof setting["encodeParam"] == "undefined") ? false : setting["encodeParam"],
+						processData: (typeof setting["processData"] == "undefined") ? true : setting["processData"],
+						mimeType: setting["mimeType"],
+						//should be set to false if param or data sent with get or post is of type FormData
+						setDefaultHeaders: (typeof setting["setDefaultHeaders"] == "undefined") ? true : setting["setDefaultHeaders"],
+				};
+			};
+			
+			var getPromise = function()
+			{
+				if(config)
+				{
+					handleActiveReq(true);
+					var objPromise = (config.dataType.toUpperCase() === "JSONP") ? handleJSONP() : handleNonJSNOPRequest();
+					return objPromise;
+				}
+				return null;
+			};
+			
+			var handleJSONP = function()
+			{
+				var objPromise = new Promise(function(parResolve,parReject)
+				{
+					resolve = parResolve;
+					reject = parReject;
+					if(random === -1)
+					{
+						random = util.getUniqueId();
+					}
+					var functionName = functionNameInitials + random;
+					var instanceName = instanceNameInitials + random;
+					//window[instanceName] = this;
+					
+					window[functionName] = function(json){
+						defaultSuccessHandler(json);
+					};
+					var url = config.url + "?callback=" + functionName;
+					var strParam = getParam();
+					if(strParam && strParam != "")
+					{
+						url += "&" + strParam;
+					}
+					createScript(url);
+				});
+				return objPromise;
+			};
+			
+			var createScript = function(url)
+			{
+		        var domPosition = document.getElementsByTagName("body")[0];
+		        var script = document.createElement("script");
+		        script.async = true;
+		        script.setAttribute("id", url);
+		        script.setAttribute("type","text/javascript");
+		        script.setAttribute("src",url);
+		        script.onload = script.onreadystatechange = function()
+		        {
+		        	if (!script.readyState || /loaded|complete/.test(script.readyState)) 
+		        	{
+						script.onload = script.onreadystatechange = null;
+						if (script.parentNode) 
+						{
+							script.parentNode.removeChild(script);
+						}
+						script = null;
+					}
+		        }; 
+		        domPosition.appendChild(script);
+			};
+			
+			var handleNonJSNOPRequest = function()
+			{
+				var objPromise = new Promise(function(parResolve,parReject)
+				{
+					resolve = parResolve;
+					reject = parReject;
+					if(config.timeout > 0)
+					{
+						window.setTimeout(function() 
+						{
+							requestDone = true;
+						}, config.timeout);
+					}
+					request = getRequest();
+					if(request) 
+					{
+						if(config.mimeType)
+						{
+							if(request["overrideMimeType"])
+							{
+								request.overrideMimeType(config.mimeType);
+							}
+						}
+						var strParam = getParam();
+						if (config.method.toUpperCase() === "POST") 
+						{
+							request.open("POST",config.url, true);
+							if(config.header)
+							{
+								for(var key in config.header)
+								{
+									request.setRequestHeader(key,config.header[key]);
+								}
+							}
+							else if(config.setDefaultHeaders) 
+							{
+								if(config.dataType && config.dataType.toUpperCase() === "JSON")
+								{
+									request.setRequestHeader("Content-type", "application/json");
+								}
+								else 
+								{
+									request.setRequestHeader("Content-type","application/x-www-form-urlencoded;charset=UTF-8");
+								}
+							}
+						}
+						else 
+						{
+							var url = config.url;
+							if(strParam && strParam != "")
+							{
+								url += "?" + strParam;
+								//so that send method sends as null for GET
+								strParam = null;
+							}
+							request.open("GET",url, true);
+						}
+						//Browser supports W3C Events
+						if("onloadstart" in request)
+						{
+							request.onloadstart = loadStartHandler;
+							request.onprogress = progressHandler;
+							request.onabort = abortHandler;
+							request.onerror = errorHandler;
+							request.onload = loadHandler;
+							request.ontimeout = timeOutHandler;
+							request.onloadend = loadEndHandler;
+						}
+						else
+						{
+							request.onreadystatechange = stateChange;
+						}
+						request.send(strParam);
+					}
+		   		});
+				return objPromise;
+			};
+			
+			var getRequest = function() 
+			{
+				if (window.XMLHttpRequest)
+				{
+					return new XMLHttpRequest();
+				}
+				else
+				{
+					var versions = ["Microsoft", "msxm3", "msxml2", "msxml1"];
+	                for (var count = 0;count < versions.length; count++) 
+	                {
+	                    try 
+	                    {
+	                        var version = versions[count] + ".XMLHTTP";
+	                        return new ActiveXObject(version);
+	                    } 
+	                    catch (error) 
+	                    {
+	                    }
+	                }
+				}
+				return null;
+			};
+			
+			var getParam = function()
+			{
+				if(config.processData)
+				{
+					var strParam = "";
+					var param = config.param;
+					if (config.method.toUpperCase() === "POST" && !config.encodeParam && !util.isString(param)) 
+					{
+						return JSON.stringify(param);
+					}
+					if(util.isString(param))
+					{
+						return param;
+					}
+					for(var paramKey in param)
+					{
+						if(param[paramKey])
+						{
+							if(config.encodeParam)
+							{
+								strParam += "&" + encodeURIComponent(paramKey) + "=" + encodeURIComponent(param[paramKey]);
+							}
+							else
+							{
+								strParam += "&" + paramKey + "=" + param[paramKey];
+							}
+						}
+					}
+					if(strParam && strParam.length > 1)
+					{
+						strParam = strParam.substring(1);
+					}
+					
+					return strParam;
+				}
+				return config.param;
+			};
+			
+			var stateChange = function (object) 
+			{
+				if (request.readyState === 4 && !requestDone)
+				{
+					var data = getResponseData();
+					if (isRequestSuccess()) 
+					{
+						defaultSuccessHandler(data);
+					}
+					else 
+					{
+						defaultErrorHandler(data);
+					}
+					defaultCompleteHandler();
+					request = null;
+				}
+				else if (request.readyState != 4 && requestDone) 
+				{
+					if(config["timeOutHandler"])
+					{
+						config["timeOutHandler"]();
+					}
+					request.onreadystatechange = null;
+				}
+			};
+			
+			var isRequestSuccess = function()
+			{
+				var retValue = false;
+				//if requesting a local resource
+				if(!request.status && location.protocol == "file:")
+				{
+					retValue = true;
+				}
+				// Any status in the 200 range is good
+				else if (request.status >= 200 && request.status < 300)
+				{
+					retValue = true;
+				}
+				//Successful if the document has not been modified and Safari returns an empty status if the file has not been modified
+				else if(request.status == 304 || (navigator.userAgent.indexOf("Safari") >= 0 && typeof request.status == "undefined"))
+				{
+					retValue = true;
+				}
+				return retValue;
+			};
+			
+			var getResponseData = function()
+			{
+				var contentType = request.getResponseHeader("content-type");
+				var data = null;
+				if(contentType && contentType.indexOf("json") > -1)
+				{
+					data = JSON.parse(request.response);
+				}
+				else 
+				{
+					var isXMLData = false;
+					var dataType = requestDone.dataType;
+					if(!dataType && contentType && contentType.indexOf("xml") > -1)
+					{
+						isXMLData = true;
+					}
+					if(isXMLData || (dataType && dataType.indexOf("xml") > -1))
+					{
+						data = request.responseXML;
+					}
+					else
+					{
+						data = request.responseText;
+					}
+					// If the specified type is "script", execute the returned text response as if it was JavaScript
+					if (dataType == "script") 
+					{
+						eval.call(window, data);
+					}
+				}
+				return data;
+			};
+			
+			var loadStartHandler = function(event)
+			{
+				if(config["loadStartHandler"])
+				{
+					config["loadStartHandler"]();
+				}
+			};
+		
+			var progressHandler = function(event)
+			{
+				if(config["progressHandler"])
+				{
+					if (event.lengthComputable) 
+					{
+						config["progressHandler"](event.loaded,event.total);
+					}
+					else
+					{
+						config["progressHandler"](event.loaded,-1);
+					}
+				}
+			};
+		
+			var abortHandler = function(event)
+			{
+				if(config["abortHandler"])
+				{
+					config["abortHandler"](event);
+				}
+				defaultErrorHandler(event);
+			};
+		
+			var errorHandler = function(event)
+			{
+				var data = getResponseData(event);
+				defaultErrorHandler(event);
+			};
+		
+			var loadHandler = function(event)
+			{
+				var data = getResponseData();
+				defaultSuccessHandler(data);
+			};
+		
+			var timeOutHandler = function(event)
+			{
+				if(config["timeOutHandler"])
+				{
+					config["timeOutHandler"](event);
+				}
+				defaultErrorHandler(event);
+			};
+		
+			var loadEndHandler = function(event)
+			{
+				defaultCompleteHandler();
+			};
+			
+			var defaultSuccessHandler = function(response)
+			{
+				if(config.dataType === "jsonp")
+				{
+					 var functionName = functionNameInitials + random;
+					 var instanceName = instanceNameInitials + random;
+					 if(window[instanceName])
+					 {
+						 window[instanceName] = null;
+					 }
+					 if(window[functionName])
+					 {
+						 window[functionName] = null;
+					 }
+				}
+				if(resolve)
+				{
+					resolve(response);
+					resolve = null;
+					handleActiveReq(false);
+				}
+			};
+		
+			var defaultErrorHandler = function(response)
+			{
+				if(reject)
+				{
+					reject(response);
+					reject = null;
+					handleActiveReq(false);
+				}
+			};
+		
+			var defaultCompleteHandler = function()
+			{
+				if(config.completeHandler)
+				{
+					config.completeHandler();
+				}
+				defaultSuccessHandler(null);
+			};
+			
+			onInit();
+			return getPromise();
+		};
+		
+		var handleActiveReq = function(add)
+		{
+			var util = new NSUtil();
+			if(add)
+			{
+				activeReq++;
+				if(activeReq == 1)
+				{
+					util.dispatchEvent(window,NSAjax.REQUEST_STARTED);
+				}
+			}
+			else
+			{
+				activeReq--;
+				if(activeReq == 0)
+				{
+					util.dispatchEvent(window,NSAjax.ALL_REQUEST_COMPLETED);
+				}
+			}
+		};
+		
+		self.post = post;
+		self.get = get;
+		self.jsonp = jsonp;
+		self.processRequest = processRequest;
+	};
+	NSAjax.REQUEST_STARTED = "requestStarted";
+	NSAjax.ALL_REQUEST_COMPLETED = "allRequestCompleted";
+	return NSAjax;
+})();
+nsModuleExport(this,"NSAjax",NSAjax,module,exports);
