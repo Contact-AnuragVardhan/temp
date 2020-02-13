@@ -1,1 +1,212 @@
+var maxZIndex = this.util.getMaxZIndex(this.__divOuterContainer);
+			if(maxZIndex > 0)
+			{
+				dropdown.style.zIndex = maxZIndex;
+			}
+      
+      if(!this.util.isUndefinedOrNull(height))
+      
+      
+      .nsEditor.nsEditorFullScreen
+{
+	width:calc(100vw - 2px) !important;
+	height:calc(100vh - 2px) !important;
+	position:absolute !important;
+	left:0px !important;
+	top:0px !important;
+	padding:0px !important;
+ 	z-index:5;
+}
 
+
+var NSEditorFullScreen = (function()
+{	
+	var NSEditorFullScreen = function(nsEditor)
+	{
+		this.__nsEditor = nsEditor;
+		this.util = nsEditor.util;
+		
+		this.__orignalSetting = {bodyHeight:null,parentPosition: null};
+		this.__maxZIndex = 0;
+		
+		this.setSettings = function()
+		{
+			
+		};
+		
+		this.initialize = function()
+		{
+			var self = this;
+			this.__nsEditor.__toolBarButton["fullScreen"] = {html:"<i class='fa fa-expand' aria-hidden='true'></i>",tooltip:"Full Screen",
+												  checkDisability: function(toolBarKey,toolBarItem,item)
+												  {
+													  if(toolBarKey === "viewSourceCode")
+													  {
+														  return true;
+													  }
+													  return false;
+												  },
+												  click:function(item,event)
+												  {
+													  self.toggle();
+													  event = self.util.getEvent();
+													  var iTag = event.target;
+													  if(event.target.nodeName.toLowerCase() === "button")
+													  {
+														  iTag = event.target.children[0];
+													  }
+													  if(iTag)
+													  {
+														  if(self.util.hasStyleClass(iTag,"fa-expand"))
+														  {
+															  self.util.removeStyleClass(iTag,"fa-expand");
+															  self.util.addStyleClass(iTag,"fa-compress");
+														  }
+														  else
+														  {
+															  self.util.addStyleClass(iTag,"fa-expand");
+															  self.util.removeStyleClass(iTag,"fa-compress");
+														  }
+													  }
+												  }};
+			this.__maxZIndex = this.util.getMaxZIndex(this.__nsEditor.__divOuterContainer);
+		};
+		
+		this.componentsInitialized = function()
+		{
+			
+		};
+		
+		this.resized = function(event)
+		{
+			
+		};
+		
+		this.destroy = function()
+		{
+			
+		};
+		
+		this.toggle = function()
+		{
+			this.util.hasStyleClass(this.__nsEditor.__divOuterContainer,"nsEditorFullScreen") ? this.restore() : this.maximize();
+		};
+		
+		this.maximize = function()
+		{
+			this.util.addStyleClass(this.__nsEditor.__divOuterContainer,"nsEditorFullScreen");
+			//this.__orignalSetting.bodyHeight = this.__nsEditor.__divBodyContainer.clientHeight;
+			//var height = this.__nsEditor.__divOuterContainer.clientHeight - this.__nsEditor.__divToolBarContainer.clientHeight - this.__nsEditor.__divTabContainer.clientHeight - this.__nsEditor.__divFooterContainer.clientHeight;
+			//this.__nsEditor.__resizeContainer(null,height);
+			this.__orignalSetting.bodyHeight = this.__nsEditor.__divBodyContainer.style.height;
+			this.__nsEditor.__divBodyContainer.style.height = "";
+			if(this.__maxZIndex == 0)
+			{
+				this.__maxZIndex = this.util.getMaxZIndex(this.__nsEditor.__divOuterContainer);
+			}
+			if(this.__maxZIndex > 0)
+			{
+				this.__nsEditor.__divOuterContainer.style.zIndex = this.__maxZIndex;
+			}
+			this.__setParentsPosition(false);
+			this.__nsEditor.__dispatchEvent(NSEditor.EVENT_MAXIMIZED);
+		};
+		
+		this.restore = function()
+		{
+			this.util.removeStyleClass(this.__nsEditor.__divOuterContainer,"nsEditorFullScreen");
+			//this.__nsEditor.__resizeContainer(null,this.__orignalSetting.bodyHeight);
+			this.__nsEditor.__divBodyContainer.style.height = this.__orignalSetting.bodyHeight;
+			this.__nsEditor.__divOuterContainer.style.zIndex = "";
+			this.__setParentsPosition(true);
+			this.__orignalSetting = {bodyHeight:null,parentPosition: null};
+			this.__nsEditor.__dispatchEvent(NSEditor.EVENT_RESTORED);
+		};
+		
+		this.__setParentsPosition = function(isReset)
+		{
+			var self = this;
+			var setPos = function(ele)
+			{
+				var setStatic = function()
+				{
+					ele.style.position = "static";
+					var id = "comp" + self.util.getUniqueId();
+					ele.setAttribute("ns-dynamic-id",id);
+					return id;
+				};
+				
+				if(ele.style.position)
+				{
+					if(ele.style.position == "relative")
+					{
+						var id = setStatic();
+						self.__orignalSetting.parentPosition[id] = {inStyle:true,position:ele.style.position};
+					}
+				}
+				else
+				{
+					var position = self.util.getStyleValue(ele,"position",true);
+					if(position == "relative")
+					{
+						var id = setStatic();
+						self.__orignalSetting.parentPosition[id] = {inStyle:false,position:position};
+					}
+				}
+			};
+			var resetPos = function(ele)
+			{
+				var resetStatic = function()
+				{
+					ele.removeAttribute("ns-dynamic-id");
+				};
+				var id = ele.getAttribute("ns-dynamic-id");
+				if(id && self.__orignalSetting.parentPosition[id])
+				{
+					var item = self.__orignalSetting.parentPosition[id];
+					if(item.inStyle)
+					{
+						ele.style.position = item.position;
+					}
+					else
+					{
+						ele.style.position = "";
+					}
+					resetStatic();
+				}
+			};
+			var element = this.__nsEditor.__divOuterContainer.parentElement;
+			if(isReset)
+			{
+				while(element && element.tagName != "BODY" && element.tagName != "HTML") 
+				{
+					resetPos(element);
+					element = element.parentElement;
+				}
+			}
+			else
+			{
+				this.__orignalSetting.parentPosition = {};
+				while(element && element.tagName != "BODY" && element.tagName != "HTML") 
+				{
+					setPos(element);
+					element = element.parentElement;
+				}
+			}
+		};
+		
+		NSEditor.prototype.maximize = function()
+		{
+			var objFullScreen = this.__pluginsInstances["fullScreen"].instance;
+			objFullScreen.maximize();
+		};
+		
+	};
+	NSEditor.TOOLBAR_BUTTONS_FULLSCREEN = "fullScreen";
+	NSEditor.EVENT_MAXIMIZED = "maximized";
+	NSEditor.EVENT_RESTORED = "restored";
+	NSEditor.prototype.registerPlugin("fullScreen",NSEditorFullScreen);
+	
+	return NSEditorFullScreen;
+})();
+nsModuleExport(this,"NSEditorFullScreen",NSEditorFullScreen,module,exports);
