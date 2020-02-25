@@ -1,1 +1,173 @@
+this.__setFields();
 
+if(!this.util.startsWith(key,this.__fieldPrefix))
+				{
+					retItem[key] = item[key];
+				}
+        
+        //Editor related public functions
+	
+	/*
+	 * for editType = cell 
+	 * combination can be this.editByIndex(cellIndex,rowIndex),this.editByIndex(rowIndex,dataField)
+	 * 
+	 * for editType = row 
+	 * combination can be this.editByIndex(rowIndex)
+	 * 
+	 */
+	NSGrid.prototype.editByIndex = function(index,dataField)
+	{
+		if(this.util.isUndefinedOrNull(dataField))
+		{
+			this.__nsGridEditor.edit(index);
+		}
+		else
+		{
+			this.__nsGridEditor.edit(dataField,index);
+		}
+	};
+	
+	/*
+	 * for editType = cell 
+	 * combination can be this.editByKeyField(keyFieldValue,dataField)
+	 * 
+	 * for editType = row 
+	 * combination can be this.editByKeyField(keyFieldValue)
+	 * 
+	 */
+	NSGrid.prototype.editByKeyField = function(keyFieldValue,dataField)
+	{
+		var item = this.__getItemBykeyField(keyFieldValue);
+		var rowIndex = this.__getIndexByItem(item);
+		this.editByIndex(rowIndex,dataField);
+	};
+	
+	/*
+	 * for editType = cell 
+	 * combination can be this.editByItem(item,dataField)
+	 * 
+	 * for editType = row 
+	 * combination can be this.editByItem(item)
+	 * 
+	 */
+	NSGrid.prototype.editByItem = function(item,dataField)
+	{
+		var rowIndex = this.__getIndexByItem(item);
+		this.editByIndex(rowIndex,dataField);
+	};
+	
+	/*
+	 * for editType = cell 
+	 * combination can be this.editStopByIndex(cellIndex,rowIndex,isCancel),this.editStopByIndex(rowIndex,dataField,isCancel)
+	 * 
+	 * for editType = row 
+	 * combination can be this.editStopByIndex(rowIndex,null,isCancel)
+	 * 
+	 */
+	NSGrid.prototype.editStopByIndex = function(index,dataField,isCancel)
+	{
+		var self = this;
+		var callLater = function(param1,param2)
+		{
+			if (isCancel === void 0) 
+			{ 
+				isCancel = false; 
+			}
+			if(isCancel)
+			{
+				self.__nsGridEditor.cancelEdit(param1,param2);
+			}
+			else
+			{
+				self.__nsGridEditor.saveEdit(param1,param2);
+			}
+		};
+		if(this.util.isUndefinedOrNull(dataField))
+		{
+			callLater(index);
+		}
+		else
+		{
+			callLater(dataField,index);
+		}
+	};
+	
+	/*
+	 * for editType = cell 
+	 * combination can be this.editStopByKeyField(keyFieldValue,dataField,isCancel)
+	 * 
+	 * for editType = row 
+	 * combination can be this.editStopByKeyField(keyFieldValue,null,isCancel)
+	 * 
+	 */
+	NSGrid.prototype.editStopByKeyField = function(keyFieldValue,dataField,isCancel)
+	{
+		var item = this.__getItemBykeyField(keyFieldValue);
+		var rowIndex = this.__getIndexByItem(item);
+		this.editStopByIndex(rowIndex,dataField,isCancel);
+	};
+	
+	/*
+	 * for editType = cell 
+	 * combination can be this.editStopByItem(item,dataField,isCancel)
+	 * 
+	 * for editType = row 
+	 * combination can be this.editStopByItem(item,null,isCancel)
+	 * 
+	 */
+	NSGrid.prototype.editStopByItem = function(item,dataField,isCancel)
+	{
+		var rowIndex = this.__getIndexByItem(item);
+		this.editStopByIndex(rowIndex,dataField,isCancel);
+	};
+	
+	NSGrid.prototype.getEditorInstances = function(element,dataField)
+	{
+		if(this.__nsGridEditor)
+		{
+			if(this.util.isUndefinedOrNull(dataField))
+			{
+				return this.__nsGridEditor.getEditorInstances(element);
+			}
+			else
+			{
+				this.__nsGridEditor.getEditorInstances(dataField,element);
+			}
+		}
+		return null;
+	};
+	
+	NSGrid.prototype.addItemsAsChildren = function(item,arrChildren)
+	{
+		this.__objGrid.addItemsAsChildren(item,arrChildren);
+	};
+	
+	//end of editor related public functions
+  
+  NSGrid.prototype.__setFields = function()
+	{
+		var id = this.getID();
+		this.__fieldPrefix = "ns_field";
+		this.__fieldIndex = this.__fieldPrefix + "_row_index" + id;
+		this.__fieldVisibleIndex = this.__fieldPrefix + "_row_visible_index" + id;
+		this.__fieldRow = this.__fieldPrefix + "_row" + id;
+		this.__fieldRowHtml = this.__fieldPrefix + "_row" + id;
+		this.__fieldRowLevel = this.__fieldPrefix + "_row_level" + id;
+		this.__fieldRowVisible = this.__fieldPrefix + "_row_visible" + id;
+		this.__fieldRowHover = this.__fieldPrefix + "_row_hover" + id;
+		this.__fieldParentIndex = this.__fieldPrefix + "_parent_index" + id;
+		this.__fieldHasChild = this.__fieldPrefix + "_row_hasChild" + id;
+		this.__fieldHasParent = this.__fieldPrefix + "_row_hasParent" + id;
+		this.__fieldIsCollapsed = this.__fieldPrefix + "_row_isCollapsed" + id;
+		this.__fieldRowArrow = this.__fieldPrefix + "row_arrow" + id;
+		this.__fieldCellText = this.__fieldPrefix + "cell_text" + id;
+		this.__fieldSelected = this.__fieldPrefix + "_selected" + id;
+		this.__fieldColIndex = this.__fieldPrefix + "_col_index" + id;
+		this.__fieldColSortedAsc = this.__fieldPrefix + "_col_sorted_asc" + id;
+		this.__fieldColVisible = this.__fieldPrefix + "_col_visible" + id;
+	};
+  
+  if(this.__nsGridEditor)
+		{
+			this.__nsGridEditor.resetVariables();
+		}
