@@ -1,1 +1,12 @@
 
+function windowResizeHandler() 
+{
+	var compMenu = document.getElementById("compMenu");
+	var divDetails = document.getElementById("divDetails");
+	divDetails.style.marginTop = compMenu.offsetHeight + "px";
+	//  heightOutput.textContent = window.innerHeight;
+	//  widthOutput.textContent = window.innerWidth;
+}
+
+window.addEventListener('load', loadHandler);
+window.addEventListener('resize', windowResizeHandler);
