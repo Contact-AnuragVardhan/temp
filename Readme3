@@ -1,1 +1,90 @@
-
+var NSEditorTable = (function()
+{
+	var NSEditorTable = function(nsEditor)
+	{
+		this.__nsEditor = nsEditor;
+		this.util = nsEditor.util;
+		
+		this.__nsTablePicker = null;
+		
+		this.setSettings = function()
+		{
+		};
+		
+		this.initialize = function()
+		{
+			var self = this;
+			this.__nsEditor.__toolBarButton["table"] = {html:"<i class='fa fa-table' aria-hidden='true'></i>",tooltip:"Table",
+												  checkDisability: function(toolBarKey,toolBarItem,item)
+												  {
+													  if(toolBarKey === "viewSourceCode")
+													  {
+														  return true;
+													  }
+													  return false;
+												  },
+												  click:function(item,event)
+												  {
+													  self.toggle.call(self,event);
+												  }};
+			this.__initializeTablePicker();
+		};
+		
+		this.componentsInitialized = function()
+		{
+			
+		};
+		
+		this.resized = function(event)
+		{
+			
+		};
+		
+		this.destroy = function()
+		{
+			if(this.__nsTablePicker)
+			{
+				this.__nsTablePicker.remove();
+			}
+		};
+		
+		this.toggle = function(event)
+		{
+			if(this.__nsTablePicker)
+			{
+				if(this.__nsTablePicker.isOpen())
+				{
+					this.__nsTablePicker.close(event);
+				}
+				else
+				{
+					this.__nsTablePicker.open(event);
+					event.stopPropagation();
+				}
+			}
+			
+		};
+		
+		this.__tablePickerCellClick = function(event,cell,rowIndex,cellIndex)
+		{
+			this.__nsTablePicker.close(event);
+			console.log(rowIndex,cellIndex);
+		};
+		
+		this.__initializeTablePicker = function()
+		{
+			if(!this.__nsTablePicker)
+			{
+				var setting = {isPopUp: true,width: 145, height:130,cellWidth: 12,cellHeight: 11, rowCount: 12,columnCount: 12, cellClickCallback: this.__tablePickerCellClick.bind(this)  };
+				this.__nsTablePicker = new NSTablePicker(setting);
+			}
+		};
+		
+		
+	};
+	
+	NSEditor.prototype.registerPlugin("table",NSEditorTable);
+	
+	return NSEditorTable;
+})();
+nsModuleExport(this,"NSEditorTable",NSEditorTable,module,exports);
