@@ -1,1 +1,396 @@
+if (!Array.from) {
+    Array.from = function (object) {
+        return [].slice.call(object);
+    };
+}
+if (!Array.prototype.includes) {
+    Array.prototype.includes = function (value) {
+        return this.indexOf(value) > -1;
+    };
+}
 
+	NSUtil.prototype.isElementInView = function(element,parent,doc) 
+	{
+		doc = doc ? doc : document;
+		var rect = element.getBoundingClientRect();
+		var elem = element;
+	    var top = rect.top;
+	    var height = rect.height;
+	    do 
+	    {
+	        if (elem && elem.parentNode) 
+	        {
+	            elem = elem.parentNode;
+	            rect = elem.getBoundingClientRect();
+	            if (!(top <= rect.bottom)) 
+	            {
+	                return false;
+	            }
+	            if (top + height <= rect.top) 
+	            {
+	                return false;
+	            }
+	        }
+	    } 
+	    while (elem && elem !== parent && elem.parentNode);
+	    var retValue = (top <= ((doc.documentElement && doc.documentElement.clientHeight) || 0));
+	    return retValue;
+	};
+	
+	NSUtil.prototype.scrollIntoView = function(element,parent,doc) 
+	{
+		if(!this.isElementInView(element,parent,doc))
+		{
+			if (parent.clientHeight !== parent.scrollHeight) 
+			{
+				parent.scrollTop = element.offsetTop;
+	        }
+	        if (!this.isElementInView(element, parent, doc)) 
+	        {
+	        	element.scrollIntoView();
+	        }
+		}
+	};
+	
+checkDisability: function(toolBarKey,toolBarItem,item,itemKey,isDefaultDisabled)
+												  {
+													  //it should enabled every time
+													  return !isDefaultDisabled;
+												  }
+                          
+                          .nsEditor .nsEditorTextArea table
+{
+    border-collapse: collapse;
+    margin-bottom: 10px;
+    width:100%;
+}
+
+.nsEditor .nsEditorTextArea table tr 
+{
+    user-select: none;
+}
+
+.nsEditor .nsEditorTextArea table tr td,
+.nsEditor .nsEditorTextArea table tr th
+{
+    border: 1px solid #ddd;
+    vertical-align: middle;
+    user-select: text;
+    padding: 5px 10px;
+}
+
+.nsEditor .nsEditorTextArea table .nsEditorHiddenRow
+{
+	height: 0px;
+    overflow: hidden;
+    line-height: 0;
+}
+
+.nsEditor .nsEditorTextArea table .nsEditorHiddenRow td
+{
+	height: 0;
+    padding: 0;
+    border-top: 0;
+    overflow: hidden;
+    line-height: 0;
+}
+
+var NSEditorTable = (function()
+{
+	var NSEditorTable = function(nsEditor)
+	{
+		this.__nsEditor = nsEditor;
+		this.util = nsEditor.util;
+		this.editorUtil = nsEditor.editorUtil;
+		
+		this.__nsTablePicker = null;
+		
+		this.setSettings = function()
+		{
+			var self = this;
+			this.__nsEditor.__toolBarButton["table"] = {html:"<i class='fa fa-table' aria-hidden='true'></i>",tooltip:"Table",showAsMenu: true,
+												  checkDisability: function(toolBarKey,toolBarItem,item,itemKey,isDefaultDisabled)
+												  {
+													  if(itemKey === "viewSourceCode")
+													  {
+														  return true;
+													  }
+													  return false;
+												  },
+												  click:function(item,key,event)
+												  {
+													  self.toggle.call(self,event);
+												  }};
+		};
+		
+		this.initialize = function()
+		{
+			this.__initializeTablePicker();
+		};
+		
+		this.componentsInitialized = function()
+		{
+			
+		};
+		
+		this.resized = function(event)
+		{
+			
+		};
+		
+		this.addStyleInIFrame = function()
+		{
+			var style = ".nsEditorBody table\r\n" + 
+					"{\r\n" + 
+					"    border-collapse: collapse;\r\n" + 
+					"    margin-bottom: 10px;\r\n" + 
+					"    width:100%;\r\n" + 
+					"}\r\n" + 
+					"\r\n" + 
+					".nsEditorBody table tr \r\n" + 
+					"{\r\n" + 
+					"    user-select: none;\r\n" + 
+					"}\r\n" + 
+					"\r\n" + 
+					".nsEditorBody table tr td,\r\n" + 
+					".nsEditorBody table tr th\r\n" + 
+					"{\r\n" + 
+					"    border: 1px solid #ddd;\r\n" + 
+					"    vertical-align: middle;\r\n" + 
+					"    user-select: text;\r\n" + 
+					"    padding: 5px 10px;\r\n" + 
+					"}\r\n" + 
+					"\r\n" + 
+					".nsEditorBody table .nsEditorHiddenRow\r\n" + 
+					"{\r\n" + 
+					"	height: 0px;\r\n" + 
+					"    overflow: hidden;\r\n" + 
+					"    line-height: 0;\r\n" + 
+					"}\r\n" + 
+					"\r\n" + 
+					".nsEditorBody table .nsEditorHiddenRow td\r\n" + 
+					"{\r\n" + 
+					"	height: 0;\r\n" + 
+					"    padding: 0;\r\n" + 
+					"    border-top: 0;\r\n" + 
+					"    overflow: hidden;\r\n" + 
+					"    line-height: 0;\r\n" + 
+					"}";
+			return style;
+		};
+		
+		this.destroy = function()
+		{
+			if(this.__nsTablePicker)
+			{
+				this.__nsTablePicker.remove();
+			}
+		};
+		
+		this.toggle = function(event)
+		{
+			if(this.__nsTablePicker)
+			{
+				if(this.__nsTablePicker.isOpen())
+				{
+					this.__nsTablePicker.close(event);
+				}
+				else
+				{
+					this.__nsTablePicker.open(event);
+					event.stopPropagation();
+				}
+			}
+			
+		};
+		
+		this.__tablePickerCellClick = function(event,cell,rowIndex,cellIndex)
+		{
+			this.__nsTablePicker.close(event);
+			console.log(rowIndex,cellIndex);
+			this.__createTable(rowIndex,cellIndex);
+		};
+		
+		this.__getDefaultValues = function()
+		{
+			var borderMap = {thin: "0px",medium: "1px",thick: "2px"};
+			var doc = this.__nsEditor.__getDocument();
+			var textArea = this.__nsEditor.__getTextArea();
+			var table = this.util.createElement("table",null,null,doc);
+		    table.insertRow(0).insertCell(0).innerHTML = "xxx";
+		    textArea.appendChild(table);
+		    var td = table.getElementsByTagName("td")[0];
+		    var tmpValue = this.util.getStyleValue(table, "border-left-width");
+		    var tableBorder = parseInt(borderMap[tmpValue] || tmpValue, 10);
+		    tmpValue = this.util.getStyleValue(td, "padding-left");
+		    var cellPadding = parseInt(borderMap[tmpValue] || tmpValue, 10);
+		    tmpValue = this.util.getStyleValue(td, "border-left-width");
+		    cellBorder = parseInt(borderMap[tmpValue] || tmpValue, 10);
+		    textArea.removeChild(table);
+		    return {
+		        tableBorder: tableBorder,
+		        cellPadding: cellPadding,
+		        cellBorder: cellBorder
+		    };
+		};
+		
+		this.__getCellWidth = function(colCount)
+		{
+			var textArea = this.__nsEditor.__getTextArea();
+            var doc = this.__nsEditor.__getDocument();
+            var parent = textArea;
+			var selection = this.__nsEditor.__getInternalSelection();
+			var self = this;
+			if(selection && selection.rangeCount)
+			{
+				var scanParent = function(paramElement)
+				{
+					return paramElement === textArea || (paramElement && self.editorUtil.isBlock(paramElement,textArea));
+				};
+				var range = selection.getRangeAt(0);
+				var startElement = range.startContainer;
+				var blockElement = this.editorUtil.loopParents(startElement,scanParent,textArea);
+				if(blockElement)
+				{
+					parent = blockElement;
+				}
+			}
+			var objDefault = this.__getDefaultValues();
+			var tableWidth = parent.offsetWidth;
+			var extraWidth = (objDefault.cellPadding * 2) - objDefault.cellBorder;
+			var cellWidth = Math.floor((tableWidth / colCount) - extraWidth);
+			return cellWidth;
+		};
+		
+		this.__createTable = function(rowCount,colCount)
+		{
+			var textArea = this.__nsEditor.__getTextArea();
+            var doc = this.__nsEditor.__getDocument();
+			var table = this.util.createElement("table",null,null,doc);
+			var thead = this.util.createElement("thead",null,null,doc);
+			table.appendChild(thead);
+			var tbody = this.util.createElement("tbody",null,null,doc);
+			table.appendChild(tbody);
+			this.__createFirstRow(doc,table,thead,colCount);
+            var firstCell = null;
+            var tr = null;
+            for (var rowIndex = 1; rowIndex <= rowCount; rowIndex++) 
+            {
+                tr = this.__createRow(doc,rowIndex,colCount);
+                if (!firstCell) 
+                {
+                	firstCell = tr.children[0];
+                }
+                tbody.appendChild(doc.createTextNode("\n"));
+                tbody.appendChild(tr);
+            }
+            this.__insertTable(doc,textArea,table,firstCell);
+		};
+		
+		this.__createFirstRow = function(doc,table,thead,colCount)
+		{
+			var cellWidth = this.__getCellWidth(colCount);
+			var tr = this.util.createElement("tr",null,null,doc);
+            this.util.addStyleClass(tr,"nsEditorHiddenRow");
+            var td = null;
+            for (var cellIndex = 1; cellIndex <= colCount; cellIndex++) 
+            {
+                td = this.util.createElement("td",null,null,doc);
+                td.style.width = cellWidth + "px";
+                tr.appendChild(td);
+            }
+            thead.appendChild(tr);
+		};
+		
+		this.__createRow = function(doc,rowIndex,colCount)
+		{
+			var tr = this.util.createElement("tr",null,null,doc);
+			tr.setAttribute("ns-row-index",rowIndex);
+            for (var cellIndex = 1; cellIndex <= colCount; cellIndex++) 
+            {
+            	var td = this.__createCell(doc,rowIndex,cellIndex);
+                tr.appendChild(doc.createTextNode("\n"));
+                tr.appendChild(doc.createTextNode("\t"));
+                tr.appendChild(td);
+            }
+            return tr;
+		};
+		
+		this.__createCell = function(doc,rowIndex,cellIndex)
+		{
+			var td = this.util.createElement("td",null,null,doc);
+			td.setAttribute("ns-row-index",rowIndex);
+			td.setAttribute("ns-cell-index",cellIndex);
+            td.appendChild(this.util.createElement("br",null,null,doc));
+            return td;
+		};
+		
+		this.__insertTable = function(doc,textArea,table,firstCell)
+		{
+			var self = this;
+			var element = this.__nsEditor.__findCurrentElement();
+            var isCollapsed = this.__nsEditor.__isCollapsed();
+            if (element && isCollapsed) 
+            {
+            	var self = this;
+            	var blockElement = this.editorUtil.getClosestElement(element,function(node) 
+            	{ 
+            		return self.editorUtil.isBlock(node,textArea); 
+            	},textArea);
+                if (blockElement && blockElement !== textArea && !blockElement.nodeName.match(/^TD|TH|TBODY|TABLE|THEADER|TFOOTER$/)) 
+                {
+                	this.__nsEditor.__setCursorAfter(blockElement);
+                }
+            }
+            this.__nsEditor.__insertNode(doc.createTextNode("\n"));
+            this.__nsEditor.__insertNode(table,false);
+            if(firstCell)
+            {
+            	this.__nsEditor.__setCursorIn(firstCell);
+            	this.util.scrollIntoView(firstCell,textArea,doc);
+            }
+            //closeAllPopups
+		};
+		
+		this.__initializeTablePicker = function()
+		{
+			if(!this.__nsTablePicker)
+			{
+				var setting = {isPopUp: true,width: 145, height:130,cellWidth: 12,cellHeight: 11, rowCount: 12,columnCount: 12, cellClickCallback: this.__tablePickerCellClick.bind(this)  };
+				this.__nsTablePicker = new NSTablePicker(setting);
+			}
+		};
+		
+		
+	};
+	
+	NSEditor.prototype.registerPlugin("table",NSEditorTable);
+	
+	return NSEditorTable;
+})();
+nsModuleExport(this,"NSEditorTable",NSEditorTable,module,exports);
+
+	<script src="../lib/com/org/util/nsIEUtils.js"></script>
+  
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.4.0/css/font-awesome.css">
+	<link href="../lib/css/com/org/nsComponent.css" rel="stylesheet">
+<!-- 	<link href="../package/nsEditor/nsEditor.min.css" rel="stylesheet"> -->
+	<link href="../lib/css/com/org/nsTablePicker.css" rel="stylesheet">
+	<link href="../lib/css/com/org/nsEditor.css" rel="stylesheet">
+	<link href="../lib/com/org/util/editor/plugins/fullScreen/css/fullScreen.css" rel="stylesheet">
+	<link href="../lib/com/org/util/editor/plugins/resize/css/resize.css" rel="stylesheet">
+	<link href="../lib/com/org/util/editor/plugins/table/css/table.css" rel="stylesheet">
+	<link href="../lib/com/org/util/editor/plugins/footerComp/css/footerComp.css" rel="stylesheet">
+	
+	<script src="../lib/com/org/util/nsIEUtils.js"></script>
+	<script src="../lib/com/org/util/nsUtil.js"></script>
+	<script src="../lib/com/org/prototype/base/nsContainerBase.js"></script>
+<!-- 	<script src="../package/nsEditor/nsEditor.min.js"></script> -->
+	<script src="../lib/com/org/util/nsTablePicker.js"></script>
+	<script src="../lib/com/org/prototype/nsEditor.js"></script>
+	<script src="../lib/com/org/util/editor/plugins/fullScreen/js/fullScreen.js"></script>
+<!-- 	<script src="../lib/com/org/util/editor/plugins/paste/js/paste.js"></script> -->
+	<script src="../lib/com/org/util/editor/plugins/resize/js/resize.js"></script>
+	<script src="../lib/com/org/util/editor/plugins/table/js/table.js"></script>
+	<script src="../lib/com/org/util/editor/plugins/footerComp/js/footerComp.js"></script>
