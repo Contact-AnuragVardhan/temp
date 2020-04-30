@@ -1,1 +1,7 @@
 
+mapJSFiles.put("nsScroller", baseJSURL + "util\\nsScroller.js");
+mapJSDependency.put("nsScroller",new String[]{"nsScrollAnimator"});
+mapJSStartText.put("nsScroller", startText);
+mapCSSFiles.put("nsScroller", baseCSSURL + "nsScroller.css");
+mapDependency.put("nsScroller",new String[]{"nsScroller"});
+,"nsScroller"
