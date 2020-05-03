@@ -1,14 +1,1 @@
-function getUrl()
-{
-	var loc = window.location;
-	var url = loc.origin + "/NSGridDemo/indexMob.jsp";
-	return url;
-};
 
-util = new NSUtil();
-	if(util.isMobile().any)
-	{
-		window.location.href = getUrl();
-	}
-	else
-	{
