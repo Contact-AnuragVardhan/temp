@@ -1,1 +1,17 @@
+var mimeTypeToAdd = 'MIME-Version: 1.0\nContent-Type: multipart/related;\n    type="text/html";\n    boundary="----=mhtDocumentPart"\nX-MimeOLE: Produced By Microsoft MimeOLE V6.1.7601.17609\n\nThis is a multi-part message in MIME format.\n\n------=mhtDocumentPart\nContent-Type: text/html;\n    charset="utf-8"\nContent-Transfer-Encoding: quoted-printable\nContent-Location: file://\\\\fake\\document.html\n\n'
 
+var docSetting = {appType:"doc",element:setting.element,pageBreakTag:setting.pageBreakTag,headerFooterCss:"",startHtml:"",endHtml:""};
+				if(setting.hasHeaderOrFooter)
+	            {
+	            	docSetting.headerFooterCss = setting.headerFooterCss;
+	            	docSetting.startHtml = setting.startHtml;
+	            	docSetting.endHtml = setting.endHtml;
+	            }
+				var htmlText = this.__getHTMLTextForOffice(docSetting);
+				if(htmlText && htmlText.length > 0)
+				{
+					var fileName = this.__getFileName("docx");
+					var exportSetting = {fileName:fileName,htmlSetting:{html:htmlText},printSetting:{orientation: setting.orientation}};
+					var docxExport = new NSDocxExport(exportSetting);
+					docxExport.process();
+				}
