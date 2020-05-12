@@ -1,1 +1,10 @@
-
+$scope.setGridHeight = function()
+	{
+		$scope.isScreenPotrait();
+		var div = document.getElementById("dgPendingActiveTask");
+		if(div)
+		{
+			var offset = $scope.isPotrait ? 190 : 150;
+			div.style.height = (window.innerHeight - offset) + "px";
+		}
+	};
