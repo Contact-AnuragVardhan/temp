@@ -1,17 +1,1 @@
-$scope.isScreenPotrait = function()
-	{
-		$scope.isPotrait = (window.innerHeight > window.innerWidth);
-		return $scope.isPotrait;
-	};
-	
-	$scope.windowResize = function(event)
-	{
-		clearTimeout($scope.windowResizeInterval);
-		$scope.windowResizeInterval = setTimeout(function(){
-			
-			$scope.setGridHeight();
-			$scope.$apply();
-		},10);
-	};
-	
-	window.onresize = $scope.windowResize;
+
