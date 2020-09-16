@@ -1,1 +1,10 @@
+class App extends React.Component<any,any>
+{
+    private compLoader: LoadingSpinner = null;
+    private modal: NSMessageBoxReact;
+    private appContainer: HTMLDivElement;
+    private resizeHandlerRef: any;
 
+
+    constructor(public props: any, public state: any) 
+    {
