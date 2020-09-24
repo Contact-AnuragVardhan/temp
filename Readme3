@@ -1,1 +1,14 @@
+import * as React from "react";
+import { INSMessageBoxBodyComponent } from '../../lib/nsMessageBox/interfaces';
 
+import {BaseComponent} from '../base/baseComponent';
+
+import {useContext} from "react";
+
+
+import { NSAjax } from 'nsajax';
+
+import { NSAjaxReact } from '../../lib/nsAjax/nsAjaxReact';
+
+
+export class KeyValueComp extends BaseComponent implements INSMessageBoxBodyComponent
