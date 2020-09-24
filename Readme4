@@ -1,1 +1,973 @@
+import * as React from 'react';
+import {ReactPortal} from "react";
+
+import 'nscontainerbase/nsComponent.min.css';
+import 'nsgrid/nsGrid.min.css';
+
+import {INSGridSetting, INSGridColumn, INSGridCascadeFunction, INSGridRendererComponentInstance, INSGridGroupRendererComponentInstance, INSGridHeaderRendererComponentInstance,
+        INSGridToolTipRendererComponentInstance, INSGridExtraRowHeaderRendererComponentInstance, INSGridEditorCustomComponentInstance,
+        INSGridEditorCustomComponentSetting} from "./interfaces";
+import DynamicComponentService from "../dynamicComponentService/dynamicComponentService"
+
+import { NSUtil } from 'nscomputil';
+import { NSGrid } from 'nsgrid';
+
+export interface INSGridReactSettings extends INSGridSetting {
+    setting?: INSGridSetting;
+}
+
+export class NSGridReact extends React.Component<INSGridReactSettings, any> {
+    
+    public static readonly GRID_RENDERED = "gridRendered";
+    public static readonly MULTI_SELECTION_EDITORS_TEXT = "TEXT";
+    public static readonly MULTI_SELECTION_EDITORS_TEXTAREA = "TEXTAREA";
+    public static readonly GRID_TYPE_HIERARCHICAL = "hierarchical";
+    public static readonly GRID_TYPE_GROUP = "group";
+    public static readonly GRID_TYPE_NORMAL = "normal";
+    public static readonly PAGINATION_TYPE_SCROLL = "scroll";
+    public static readonly PAGINATION_TYPE_PAGES = "pages";
+    public static readonly PAGINATION_MODE_AUTO = "auto";
+    public static readonly PAGINATION_MODE_MANUAL = "manual";
+    public static readonly RESPONSIVE_MODE_STACK = "stack";
+    public static readonly RESPONSIVE_MODE_COLUMN_TOGGLE = "columnToggle";
+    public static readonly ADVANCED_FILTER_TEXT = "text";
+    public static readonly ADVANCED_FILTER_NUMBER = "number";
+    public static readonly ADVANCED_FILTER_LIST = "list";
+    public static readonly MULTICOLUMN_KEY_SHIFT = "shift";
+    public static readonly MULTICOLUMN_KEY_CTRL = "ctrl";
+    public static readonly MULTICOLUMN_KEY_ALT = "alt";
+    public static readonly NAVIGATION_UP = "up";
+    public static readonly NAVIGATION_DOWN = "down";
+    //Editors
+    public static readonly EDITOR_EDITTYPE_CELL = "cell";
+    public static readonly EDITOR_EDITTYPE_ROW = "row";
+    public static readonly EDITOR_EDITING_SINGLECLICK = "singleClick";
+    public static readonly EDITOR_EDITING_DOUBLECLICK = "doubleClick";
+    public static readonly EDITOR_EDITING_NOCLICK = "noClick";
+    public static readonly EDITOR_TYPE_TEXT = "text";
+    public static readonly EDITOR_TYPE_TEXTAREA = "textArea";
+    public static readonly EDITOR_TYPE_CUSTOM = "custom";
+    
+    
+    private __nsGrid: any;
+    private __container: any;
+    private __setting : any;
+    private __dataSource : any;
+    private __nsUtil : any;
+    private __arrEvents: string[] = [];
+
+    private __hasInitialized: boolean = false;
+    private __hasGridDataSource: boolean = false;
+    private __hasDestroyed: boolean = false;
+    private __objCustomComponent: any;
+    private portals: ReactPortal[] = [];
+    private hasPendingPortalUpdate = false;
+    
+    private MAX_COMPONENT_CREATION_TIME: number = 1000;
+
+    constructor(public props: INSGridReactSettings, public state: any) 
+    {
+        super(props, state);
+    }
+    
+    public componentDidMount() 
+    {
+        if(!this.__nsGrid)
+        {
+            this.__nsUtil = new NSUtil();
+            this.__arrEvents = [ NSGrid.GRID_RENDERED,
+                               NSGrid.ROW_SELECTED,
+                               NSGrid.ROW_UNSELECTED,
+                               NSGrid.ROW_CLICKED,
+                               NSGrid.ROW_DOUBLE_CLICKED,
+                               NSGrid.ROW_NAVIGATED,
+                               NSGrid.CELL_SELECTED,
+                               NSGrid.CELL_UNSELECTED,
+                               NSGrid.CELL_CLICKED,
+                               NSGrid.CELL_DOUBLE_CLICKED,
+                               NSGrid.SORT_CHANGING,
+                               NSGrid.SORT_CHANGED,
+                               NSGrid.ADVANCED_FILTER_CLOSING,
+                               NSGrid.FILTER_CHANGING,
+                               NSGrid.FILTER_CHANGED,
+                               NSGrid.FILTER_RESETTED,
+                               NSGrid.COLUMN_RESIZING,
+                               NSGrid.COLUMN_RESIZED,
+                               NSGrid.COLUMN_MOVING,
+                               NSGrid.COLUMN_MOVED,
+                               NSGrid.MULTI_SELECTION_EDITORS_TEXT,
+                               NSGrid.MULTI_SELECTION_EDITORS_TEXTAREA,
+                               NSGrid.EDITOR_CELL_VALUE_CHANGED];
+            if(!this.props)
+            {
+                this.props = {};
+            }
+            const setting:INSGridSetting =  this.__nsUtil.cloneObject(this.props.setting,true);
+            //setting.columns = [];
+            //setting.multiLevelGroupColumn = null;
+            this.__dataSource = this.props.dataSource || setting.dataSource;
+            setting.columns = this.__setColumn(setting.columns);
+            setting.multiLevelGroupColumn = this.__setColumnObject(setting.multiLevelGroupColumn);
+            //setting.eventDispatcher = this.__eventDispatcher.bind(this);
+            if(this.__dataSource)
+            {
+                setting.dataSource = this.__dataSource;
+                if(this.__dataSource.length > 0)
+                {
+                    this.__hasGridDataSource = true;
+                }
+            }
+            this.__objCustomComponent = {};
+            this.__setting = setting;
+            this.__nsGrid = new NSGrid(this.__container,this.__setting);
+            this.__addEvents();
+        }
+        this.__hasInitialized = true;
+    }
+    
+    public shouldComponentUpdate(nextProps: any, nextState: any) 
+    {
+        return false;
+    }
+    
+    public componentWillReceiveProps(nextProps: any) 
+    {
+        const objChanges: any = {};
+        const arrPropKeys: string[] = Object.keys(nextProps);
+        const arrSettingKeys: string[] = Object.keys(this.__setting);
+        for (const propKey of arrPropKeys)
+        {
+            if(propKey === "setting")
+            {
+                const newSetting: INSGridSetting =  nextProps.setting;
+                for (const settingKey of arrSettingKeys)
+                {
+                    if(!this.__nsUtil.isObjectEqual(this.__setting[settingKey],newSetting[settingKey]))
+                    {
+                        objChanges[settingKey] = {oldValue: this.__setting[settingKey], newValue: newSetting[settingKey]};
+                    }  
+                }
+            }
+            else if(!this.__nsUtil.isObjectEqual(this.props[propKey],nextProps[propKey]))
+            {
+                objChanges[propKey] = {oldValue: this.props[propKey], newValue: nextProps[propKey]};
+            }
+        }
+        console.log(objChanges);
+        const arrChangeKeys: string[] = Object.keys(objChanges);
+        for (const changeKey of arrChangeKeys)
+        {
+            if(changeKey === "dataSource")
+            {
+                this.__dataSource = objChanges[changeKey].newValue;
+                if(this.__nsGrid)
+                {
+                    this.__objCustomComponent = {};
+                    if(this.__dataSource && this.__dataSource.length > 0)
+                    {
+                        this.__hasGridDataSource = true;
+                    }
+                    this.__nsGrid.dataSource(this.__dataSource);
+                }
+            }
+            else if(this.__hasGridDataSource)
+            {
+                
+            }
+        }
+        
+    }
+    
+    public componentWillUnmount() 
+    {
+        if(this.__hasInitialized)
+        {
+            if(this.__nsGrid)
+            {
+                this.__nsGrid.removeComponent();
+                this.__nsGrid = null;
+            }
+            this.__hasDestroyed = true;
+        }
+    }
+
+    public render() 
+    {
+        return React.createElement<any>("div",{
+            style: this.__getStyleForContainer(),
+            ref: (e: HTMLElement) => {
+                this.__container = e;
+            }
+        });
+    }
+    
+    setHeightOffset(offset : number) : void
+    {
+        this.__nsGrid.setHeightOffset(offset);
+    };
+    
+    deviceViewChanged(conditionTrue : boolean,queryIndex : number = 0,query : string = "") : void
+    {
+        this.__nsGrid.deviceViewChanged(conditionTrue,queryIndex,query);
+    };
+    
+    setState(data : any): void
+    {
+        this.__nsGrid.setState(data);
+    };
+    
+    getState(): any
+    {
+        return this.__nsGrid.getState();
+    };
+    
+    setColumn(arrColumns:INSGridColumn[]): void
+    {
+        this.__nsGrid.setColumn(this.__setColumn(arrColumns));
+    };
+    
+    dataSource(source?:any[],isReset?: boolean): any[]
+    {
+        return this.__nsGrid.dataSource(source,isReset);
+    };
+    
+    setContextMenuSetting(contextMenuSetting:any): void
+    {
+        this.__nsGrid.setContextMenuSetting(contextMenuSetting);
+    };
+    
+    getOrignalItem(item : any): void
+    {
+        return this.__nsGrid.getOrignalItem(item);
+    };
+    
+    addRows(source : any[]): void
+    {
+        this.__nsGrid.addRows(source);
+    };
+    
+    removeRows(arrIndex : any[]): void
+    {
+        this.__nsGrid.removeRows(arrIndex);
+    };
+    
+    groupBy(groupByField : string): void
+    {
+        this.__nsGrid.expandAll(groupByField);
+    };
+    
+    expandAll(): void
+    {
+        this.__nsGrid.expandAll();
+    };
+    
+    collapseAll(): void
+    {
+        this.__nsGrid.collapseAll();
+    };
+    
+    expandCollapseByRow(element : any,rowIndex : number): void
+    {
+        this.__nsGrid.expandCollapseByRow(element,rowIndex);
+    };
+    
+    getRowInfo(row : any): any
+    {
+        return this.__nsGrid.getRowInfo(row);
+    };
+    
+    getCellInfo(cell : any): any
+    {
+        return this.__nsGrid.getCellInfo(cell);
+    };
+    
+    getItemInfo(objItem : any): any
+    {
+        return this.__nsGrid.getItemInfo(objItem);
+    };
+    
+    getItemInfoByKeyField(keyFieldValue : string): any
+    {
+        return this.__nsGrid.getItemInfoByKeyField(keyFieldValue);
+    };
+    
+    cascadeValues(event: any,callBack: INSGridCascadeFunction): void
+    {
+        this.__nsGrid.cascadeValues(event,callBack);
+    };
+    
+    setFontSize(fontSize: number): void
+    {
+        this.__nsGrid.setFontSize(fontSize);
+    };
+    
+    addColumn(objColumn: INSGridColumn): void
+    {
+        this.__nsGrid.addColumn(this.__setColumnObject(objColumn));
+    };
+    
+    changeDeviceView(conditionTrue: boolean): void
+    {
+        this.__nsGrid.changeDeviceView(conditionTrue);
+    };
+    
+    hideColumn(column: INSGridColumn): boolean
+    {
+        return this.__nsGrid.hideColumn(column);
+    };
+    
+    showColumn(column: INSGridColumn): boolean
+    {
+        return this.__nsGrid.showColumn(column);
+    };
+    
+    swapColumns(sourceColumn: INSGridColumn,destinationColumn: INSGridColumn): boolean
+    {
+        return this.__nsGrid.swapColumns(sourceColumn,destinationColumn);
+    };
+    
+    moveColumn(column: INSGridColumn,toIndex: number): boolean
+    {
+        return this.__nsGrid.moveColumn(column,toIndex);
+    };
+    
+    sortBy(column: INSGridColumn,isAscending: boolean): void
+    {
+        this.__nsGrid.sortBy(column,isAscending);
+    };
+    
+    autoResizeColumn(column: INSGridColumn): void
+    {
+        this.__nsGrid.autoResizeColumn(column);
+    };
+    
+    updateRowByIndex(index: number): void
+    {
+        this.__nsGrid.updateRowByIndex(index);
+    };
+    
+    updateRowByKeyField(keyFieldValue: any): void
+    {
+        this.__nsGrid.updateRowByKeyField(keyFieldValue);
+    };
+    
+    updateCellByIndex(index: number,dataField: string): void
+    {
+        this.__nsGrid.updateCellByIndex(index,dataField);
+    };
+    
+    updateCellByKeyField(keyFieldValue: any,dataField: string): void
+    {
+        this.__nsGrid.updateCellByKeyField(keyFieldValue,dataField);
+    };
+    
+    updateItemInDataSource(item: any): void
+    {
+        this.__nsGrid.updateItemInDataSource(item);
+    };
+    
+    getGroupedSource(): any[]
+    {
+        return this.__nsGrid.getGroupedSource();
+    }
+    
+    setSelectedItems(arrItems: any[]): void
+    {
+        this.__nsGrid.setSelectedItems(arrItems);
+    };
+    
+    addSelectedItems(arrItems: any[]): void
+    {
+        this.__nsGrid.addSelectedItems(arrItems);
+    };
+    
+    removeSelectedItems(arrItems: any[]): void
+    {
+        this.__nsGrid.removeSelectedItems(arrItems);
+    };
+    
+    setSelectedItem(item: any): void
+    {
+        this.__nsGrid.setSelectedItem(item);
+    };
+    
+    setSelectedIndexes(arrSelectedIndex: number[]): void
+    {
+        this.__nsGrid.setSelectedIndexes(arrSelectedIndex);
+    };
+    
+    getSelectedIndex(): number
+    {
+        return this.__nsGrid.getSelectedIndex();
+    };
+    
+    getSelectedItem(): any
+    {
+        return this.__nsGrid.getSelectedItem();
+    };
+    
+    getSelectedIndexes(): number[]
+    {
+        return this.__nsGrid.getSelectedIndexes();
+    };
+    
+    getSelectedItems(): any[]
+    {
+        return this.__nsGrid.getSelectedItems();
+    };
+    
+    deselectAll(): void
+    {
+        this.__nsGrid.deselectAll();
+    };
+    
+    filter(filter: any,setting: any,enableHighlighting: boolean = false,recordLimit: number = -1): void
+    {
+        this.__nsGrid.filter(filter,setting,enableHighlighting,recordLimit);
+    };
+    
+    resetFilters(): void
+    {
+        this.__nsGrid.resetFilters();
+    };
+    
+    getFilteredData(): any[]
+    {
+        return this.__nsGrid.getFilteredData();
+    };
+    
+    highlightText(dataField: string,text: string): void
+    {
+        this.__nsGrid.highlightText(dataField,text);
+    };
+    
+    unHighlightText(): void
+    {
+        this.__nsGrid.unHighlightText();
+    };
+    
+    fixFixedHeader(): void
+    {
+        this.__nsGrid.fixFixedHeader();
+    };
+    
+    scrollToIndex(selectedIndex: number,animationRequired: boolean = false): void
+    {
+        this.__nsGrid.scrollToIndex(selectedIndex,animationRequired);
+    };
+    
+    setNoDataMessage(message: string): void
+    {
+        this.__nsGrid.setNoDataMessage(message);
+    };
+    
+    renderHeaderExtraRows(): void
+    {
+        this.__nsGrid.renderHeaderExtraRows();
+    };
+    //Editor related public functions
+    editByIndex(index: any,dataField?: string): void
+    {
+        this.__nsGrid.editByIndex(index,dataField);
+    };
+    editByKeyField(keyFieldValue: any,dataField?: string): void
+    {
+        this.__nsGrid.editByKeyField(keyFieldValue,dataField);
+    };
+    editByItem(item: any,dataField?: string): void
+    {
+        this.__nsGrid.editByItem(item,dataField);
+    };
+    editStopByIndex(index: any,dataField?: string,isCancel?:boolean): void
+    {
+        this.__nsGrid.editStopByIndex(index,dataField,isCancel);
+    };
+    editStopByKeyField(keyFieldValue: any,dataField?: string,isCancel?:boolean): void
+    {
+        this.__nsGrid.editStopByKeyField(keyFieldValue,dataField,isCancel);
+    };
+    editStopByItem(item: any,dataField?: string,isCancel?:boolean): void
+    {
+        this.__nsGrid.editStopByItem(item,dataField,isCancel);
+    };
+    getEditorInstances(element?: any,dataField?: string): any[]
+    {
+        return this.__nsGrid.getEditorInstances(element,dataField);
+    };
+    //end of editor related public functions
+    setStyle(styleProp: string,value: any): void
+    {
+        this.__nsGrid.setStyle(styleProp,value);
+    };
+    
+    setFocus(isFocus: boolean): void
+    {
+        this.__nsGrid.setFocus(isFocus);
+    };
+    
+    hasFocus(): boolean
+    {
+        return this.__nsGrid.hasFocus();
+    };
+    
+    setTheme(theme: string): void
+    {
+        this.__nsGrid.setTheme(theme);
+    };
+    
+    changeProperty(propertyName: string,value: any): void
+    {
+        this.__nsGrid.changeProperty(propertyName,value);
+    };
+    
+    getRendererComponentInstance(columnName:string,rowIndex: number): INSGridRendererComponentInstance
+    {
+        if(this.__objCustomComponent && this.__objCustomComponent[columnName] && this.__objCustomComponent[columnName].length > rowIndex && this.__objCustomComponent[columnName][rowIndex].renderer)
+        {
+            return this.__objCustomComponent[columnName][rowIndex].renderer;
+        }
+        return null;
+    };
+    
+    getGroupRendererComponentInstance(columnName:string,rowIndex: number): INSGridGroupRendererComponentInstance
+    {
+        if(this.__objCustomComponent && this.__objCustomComponent[columnName] && this.__objCustomComponent[columnName].length > rowIndex && this.__objCustomComponent[columnName][rowIndex].groupRenderer)
+        {
+            return this.__objCustomComponent[columnName][rowIndex].groupRenderer;
+        }
+        return null;
+    };
+    
+    getHeaderRendererComponentInstance(columnName:string): INSGridHeaderRendererComponentInstance
+    {
+        const rowIndex: number = 0;
+        if(this.__objCustomComponent && this.__objCustomComponent[columnName] && this.__objCustomComponent[columnName].length > rowIndex && this.__objCustomComponent[columnName][rowIndex].headerRenderer)
+        {
+            return this.__objCustomComponent[columnName][rowIndex].headerRenderer;
+        }
+        return null;
+    };
+    
+    getToolTipRendererComponentInstance(columnName:string,rowIndex: number): INSGridToolTipRendererComponentInstance
+    {
+        if(this.__objCustomComponent && this.__objCustomComponent[columnName] && this.__objCustomComponent[columnName].length > rowIndex && this.__objCustomComponent[columnName][rowIndex].toolTipRenderer)
+        {
+            return this.__objCustomComponent[columnName][rowIndex].toolTipRenderer;
+        }
+        return null;
+    };
+    
+    getExtraRowHeaderRendererComponentInstance(columnName:string,rowIndex: number): INSGridExtraRowHeaderRendererComponentInstance
+    {
+        if(this.__objCustomComponent && this.__objCustomComponent[columnName] && this.__objCustomComponent[columnName].length > rowIndex && this.__objCustomComponent[columnName][rowIndex].extraRowHeaderRenderer)
+        {
+            return this.__objCustomComponent[columnName][rowIndex].extraRowHeaderRenderer;
+        }
+        return null;
+    };
+    
+    getEditorComponentInstance(columnName:string,rowIndex: number): INSGridEditorCustomComponentInstance
+    {
+        if(this.__objCustomComponent && this.__objCustomComponent[columnName] && this.__objCustomComponent[columnName].length > rowIndex && this.__objCustomComponent[columnName][rowIndex].editor)
+        {
+            return this.__objCustomComponent[columnName][rowIndex].editor;
+        }
+        return null;
+    };
+    
+    getGrid(): any
+    {
+        return this.__nsGrid;
+    };
+    
+    waitForInstance(reactComponent: DynamicComponentService,callback: any, runningTime = 0) 
+    {
+        if (this.__hasDestroyed) 
+        {
+            callback && callback();
+            return;
+        }
+
+        if (reactComponent.isStatelessComponent() && reactComponent.statelessComponentRendered()) 
+        {
+            callback && callback();
+        } 
+        else if (!reactComponent.isStatelessComponent() && reactComponent.getComponentInstance()) 
+        {
+            callback && callback();
+        } 
+        else 
+        {
+            if (runningTime >= this.MAX_COMPONENT_CREATION_TIME) {
+                console.error(`nsGrid: React Component '${reactComponent.getReactComponentName()}' not created within ${this.MAX_COMPONENT_CREATION_TIME}ms`);
+                return;
+            }
+            window.setTimeout(() => this.waitForInstance(reactComponent, callback, runningTime + 5), 5);
+        }
+    }
+    
+    mountReactPortal(portal: ReactPortal, reactComponent: DynamicComponentService, callback: any) 
+    {
+        this.portals = [...this.portals, portal];
+        this.waitForInstance(reactComponent, callback)
+        this.batchUpdate();
+    }
+    
+    batchUpdate(callback?: any) 
+    {
+        if (this.hasPendingPortalUpdate) 
+        {
+            return callback && callback();
+        }
+        setTimeout(() => {
+            if (!this.__hasDestroyed) 
+            {
+                this.forceUpdate(() => {
+                    callback && callback();
+                    this.hasPendingPortalUpdate = false;
+                });
+            }
+        });
+        this.hasPendingPortalUpdate = true;
+    }
+
+
+    destroyPortal(portal: ReactPortal) 
+    {
+        this.portals = this.portals.filter(curPortal => curPortal !== portal);
+        this.batchUpdate();
+    }
+    
+    private __setColumn(arrColumns:INSGridColumn[]): INSGridColumn[]
+    {
+        if(arrColumns && arrColumns.length > 0)
+        {
+            const retValue: INSGridColumn[] = [];
+            for (const column of arrColumns)
+            {
+                retValue.push(this.__setColumnObject(column));
+            }
+            return retValue;
+        }
+        return arrColumns;
+    };
+    
+    private __setColumnObject(objColumn: INSGridColumn): INSGridColumn
+    {
+        if(objColumn)
+        {
+            const self: any = this;
+            if(objColumn.itemRendererComponent)
+            {
+                objColumn.itemRenderer = function(item: any,dataField: string,index: number,colIndex: number,row: any): any
+                {
+                    return self.__renderer(objColumn.itemRendererComponent,item,dataField,index,colIndex,row);
+                };
+            }
+            if(objColumn.groupRendererComponent)
+            {
+                objColumn.groupRenderer = function(item: any,dataField: string,index: number,colIndex: number,row: any,arrChildren: any[],childrenCount: number,arrFlatChildren: any[],groupLevel:number): any
+                {
+                    return self.__groupRenderer(objColumn.groupRendererComponent,item,dataField,index,colIndex,row,arrChildren,childrenCount,arrFlatChildren,groupLevel);
+                };
+            }
+            if(objColumn.headerRendererComponent)
+            {
+                objColumn.headerRenderer = function(colItem: INSGridColumn,colIndex: number): any
+                {
+                    return self.__headerRenderer(objColumn.headerRendererComponent,colItem,colIndex);
+                };
+            }
+            if(objColumn.toolTipRendererComponent)
+            {
+                objColumn.toolTipRenderer = function(item: any,dataField: string,index: number,colIndex: number,row: any): any
+                {
+                    return self.__toolTipRenderer(objColumn.toolTipRendererComponent,item,dataField,index,colIndex,row);
+                };
+            }
+            if(objColumn.extraRowHeaderRendererComponent)
+            {
+                objColumn.extraRowHeaderRenderer = function(dataField: string,colItem: INSGridColumn,arrFilteredGroupedSource: any[],rowIndex: number,colIndex: number,extraHeaderCell: any,extraHeaderRow: any): any
+                {
+                    return self.__extraRowHeaderRenderer(objColumn.extraRowHeaderRendererComponent,dataField,colItem,arrFilteredGroupedSource,rowIndex,colIndex,extraHeaderCell,extraHeaderRow);
+                };
+            }
+            if(objColumn.editorSetting && objColumn.editorSetting.customEditor)
+            {
+                objColumn.editorSetting.customEditor = self.__customEditor(objColumn.editorSetting.customEditor,objColumn);
+            }
+        }
+        return objColumn;
+    };
+    private __customEditor(customEditorComponent: any,objColumn: INSGridColumn): any
+    {
+        const self: any = this;
+        const __editor: any = function(this: any)
+        {
+            let objComponent: any = null;
+            let componentRef: any = null;
+            
+            this.init = function(setting: INSGridEditorCustomComponentSetting): void
+            {
+                 const callback = function(dynamicCompRef: DynamicComponentService,localComponentRef: any,container: HTMLElement)
+                 {
+                   objComponent = localComponentRef["component"] ? localComponentRef["component"] : localComponentRef;
+                   componentRef = dynamicCompRef;
+                   objComponent.init(setting);
+                   const objItem: INSGridEditorCustomComponentInstance = {instance: objComponent,componentRef: componentRef,setting: setting,colItem: objColumn,index: index,colIndex: setting.cellIndex,columnName: objColumn.dataField};
+                   self.__objCustomComponent[objColumn.dataField][index].editor = objItem;
+                   self.__emitRendererComponentCreated(objItem);
+                 };
+                 const index: number = setting.rowIndex;
+                 self.__getComponent(customEditorComponent,objColumn.dataField,index,callback.bind(self),setting);
+            };
+            this.getElement = function(): HTMLElement
+            {
+                return componentRef.getElement();
+            };
+            this.elementAdded = function(): void
+            {
+                if(objComponent && objComponent.elementAdded)
+                {
+                    objComponent.elementAdded();
+                }
+            };
+            this.handleKeyDown = function(event: any,keyCode: any): void
+            {
+                if(objComponent && objComponent.handleKeyDown)
+                {
+                    objComponent.handleKeyDown(event,keyCode);
+                }
+            };
+            this.getValue = function(): any
+            {
+                return objComponent.getValue();
+            };
+            this.destroy = function(): void
+            {
+                if(objComponent && objComponent.destroy)
+                {
+                    objComponent.destroy();
+                }
+            };
+            this.setFocus = function(): void
+            {
+                if(objComponent && objComponent.setFocus)
+                {
+                    objComponent.setFocus();
+                }
+            };
+            this.hasFocus = function(): any
+            {
+                if(objComponent && objComponent.hasFocus)
+                {
+                    return objComponent.hasFocus();
+                }
+                return null;
+            };
+            this.hasValueChanged = function(currentValue: any): any
+            {
+                if(objComponent && objComponent.hasValueChanged)
+                {
+                    return objComponent.hasValueChanged(currentValue);
+                }
+                return null;
+            };
+            this.validate = function(): any
+            {
+                if(objComponent && objComponent.validate)
+                {
+                    return objComponent.validate();
+                }
+                return null;
+            };
+            this.isPopUp = function(): boolean
+            {
+                if(objComponent && objComponent.isPopUp)
+                {
+                    return objComponent.isPopUp();
+                }
+                return false;
+            };
+            this.save = function(): void
+            {
+                if(objComponent && objComponent.save)
+                {
+                    objComponent.save();
+                }
+            };
+            this.cancel = function(): void
+            {
+                if(objComponent && objComponent.cancel)
+                {
+                    objComponent.cancel();
+                }
+            };
+            this.setPopUpWrapper = function(popUpWrapper: HTMLElement): void
+            {
+                if(objComponent && objComponent.setPopUpWrapper)
+                {
+                    objComponent.setPopUpWrapper(popUpWrapper);
+                }
+            };
+        };
+        
+        return __editor;
+    };
+    
+    private __renderer(rendererComponent: any,item: any,dataField: string,index: number,colIndex: number,row: any): any
+    {
+        if(item)
+        {
+            let objRef: any = null;
+            const self = this;
+            const callback = function(dynamicCompRef: DynamicComponentService,componentRef: any,container: HTMLElement)
+            {
+              componentRef.setData(item,dataField,index,colIndex,row);
+              const objItem: INSGridRendererComponentInstance = {instance: componentRef,componentRef: objRef.ref,item: item,index: index,colIndex: colIndex,columnName: dataField};
+              self.__objCustomComponent[dataField][index].renderer = objItem;
+              self.__emitRendererComponentCreated(objItem);
+            };
+            objRef = this.__getComponent(rendererComponent,dataField,index,callback.bind(this));
+            return objRef.container;
+        }
+        return null;
+    };
+    
+    private __groupRenderer(rendererComponent: any,item: any,dataField: string,index: number,colIndex: number,row: any,arrChildren: any[],childrenCount: number,arrFlatChildren: any[],groupLevel:number): any
+    {
+        if(item)
+        {
+            const self = this;
+            const callback = function(dynamicCompRef: DynamicComponentService,componentRef: any,container: HTMLElement)
+            {
+              const objComponent: any = objRef.instance;
+              objComponent.setData(item,dataField,index,colIndex,row,arrChildren,childrenCount,arrFlatChildren,groupLevel);
+              const objItem:INSGridGroupRendererComponentInstance = {instance: objComponent,componentRef: objRef.ref,item: item,index: index,colIndex: colIndex,columnName: dataField};
+              self.__objCustomComponent[dataField][index].groupRenderer = objItem;
+              self.__emitRendererComponentCreated(objItem);
+            };
+            const objRef: any = this.__getComponent(rendererComponent,dataField,index,callback.bind(this));
+            return objRef.container;
+        }
+        return null;
+    };
+    
+    private __headerRenderer(rendererComponent: any,colItem: INSGridColumn,colIndex: number): any
+    {
+        if(colItem)
+        {
+            const self = this;
+            const callback = function(dynamicCompRef: DynamicComponentService,componentRef: any,container: HTMLElement)
+            {
+              const objComponent: any = objRef.instance;
+              objComponent.setData(colItem,colIndex);
+              const objItem: INSGridHeaderRendererComponentInstance = {instance: objComponent,componentRef: objRef.ref,index: index,colItem: colItem,colIndex: colIndex};
+              self.__objCustomComponent[dataField][index].headerRenderer = objItem;
+              self.__emitRendererComponentCreated(objItem);
+            };
+            const dataField : string = colItem.dataField;
+            const index : number = 0;
+            const objRef: any = this.__getComponent(rendererComponent,dataField,index,callback.bind(this));
+            return objRef.container;
+        }
+        return null;
+    };
+    
+    private __toolTipRenderer(rendererComponent: any,item: any,dataField: string,index: number,colIndex: number,row: any): any
+    {
+        if(item)
+        {
+            const self = this;
+            const callback = function(dynamicCompRef: DynamicComponentService,componentRef: any,container: HTMLElement)
+            {
+              const objComponent: any = objRef.instance;
+              objComponent.setData(item,dataField,index,colIndex,row);
+              const objItem: INSGridToolTipRendererComponentInstance = {instance: objComponent,componentRef: objRef.ref,item: item,index: index,colIndex: colIndex,columnName: dataField};
+              self.__objCustomComponent[dataField][index].toolTipRenderer = objItem;
+              self.__emitRendererComponentCreated(objItem);
+            };
+            const objRef: any = this.__getComponent(rendererComponent,dataField,index,callback.bind(this));
+            return objRef.container;
+        }
+        return null;
+    };
+    
+    private __extraRowHeaderRenderer(rendererComponent: any,dataField: string,colItem: INSGridColumn,filteredDataSource: any[],index: number,colIndex: number,extraHeaderCell: any,extraHeaderRow: any): any
+    {
+        if(colItem)
+        {
+            const self = this;
+            const callback = function(dynamicCompRef: DynamicComponentService,componentRef: any,container: HTMLElement)
+            {
+              const objComponent: any = objRef.instance;
+              objComponent.setData(dataField,colItem,filteredDataSource,index,colIndex,extraHeaderCell,extraHeaderRow);
+              const objItem: INSGridExtraRowHeaderRendererComponentInstance = {instance: objComponent,componentRef: objRef.ref,colItem: colItem,index: index,colIndex: colIndex,columnName: dataField};
+              self.__objCustomComponent[dataField][index].extraRowHeaderRenderer = objItem;
+              self.__emitRendererComponentCreated(objItem);
+            };
+            const objRef: any = this.__getComponent(rendererComponent,dataField,index,callback.bind(this));
+            return objRef.container;
+        }
+        return null;
+    };
+    
+    private __getComponent(rendererComponent: any,dataField: string,index: number, callback?: null,prop?: null): any
+    {
+        if(!this.__objCustomComponent[dataField])
+        {
+            this.__objCustomComponent[dataField] = [];
+        }
+        if(!this.__objCustomComponent[dataField][index])
+        {
+            this.__objCustomComponent[dataField][index] = {};
+        }
+        const dynamicComponentService: DynamicComponentService = new DynamicComponentService(rendererComponent,this);
+        dynamicComponentService.createComponent(callback,prop);
+        const objComponent: any = dynamicComponentService.getComponentInstance();
+        const container: any = dynamicComponentService.getElement();
+        return {ref: dynamicComponentService,instance: objComponent,container: container};
+    };
+    
+    private __getStyleForContainer() 
+    {
+        const style: any = { height: "100%" };
+        const containerStyle = this.props.containerStyle;
+        if (containerStyle) {
+            Object.keys(containerStyle).forEach(key => {
+                style[key] = containerStyle[key];
+            });
+        }
+        return style;
+    }
+    
+    private __addEvents()
+    {
+        const self = this;
+        for (const eventName of this.__arrEvents)
+        {
+            this.__nsUtil.addEvent(this.__container,eventName,(function(eventNameParam: string){
+              return function(event: any) {
+                self.__eventListener.bind(self)(event,eventNameParam);
+              }
+            })(eventName));
+        }
+    }
+    
+    private __eventListener(event: any,eventName: string)
+    {
+        const eventListenerName: string = 'on' + eventName[0].toUpperCase() + eventName.substring(1);
+        if(this.props[eventListenerName])
+        {
+            this.props[eventListenerName](event);
+        }
+    }
+  
+    private __emitRendererComponentCreated(objItem:any)
+    {
+        this.__eventListener(objItem,"rendererComponentCreated");
+    };
+    
+}
+
 
