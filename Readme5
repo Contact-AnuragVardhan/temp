@@ -1,1 +1,61 @@
 
+import { NSEvent } from 'nscompevent';
+//import { NSEvent } from '../../external/nsEvent/nsEvent.min';
+
+export class NSReactEvent
+{
+    private static instance: NSReactEvent;
+    
+    private nsEvent: NSEvent;
+
+    constructor() 
+    {
+        this.nsEvent = new NSEvent();
+    }
+    
+    static getInstance(): NSReactEvent 
+    {
+        if (!NSReactEvent.instance) 
+        {
+            NSReactEvent.instance = new NSReactEvent();
+        }
+        return NSReactEvent.instance;
+    }
+    
+    addListener(event: any,callback: any): boolean
+    {
+        if(this.nsEvent)
+        {
+            return this.nsEvent.addListener(event,callback);
+        }
+        return false;
+    }
+    
+    removeListener(event: any,callback: any): boolean
+    {
+        if(this.nsEvent)
+        {
+            return this.nsEvent.removeListener(event,callback);
+        }
+        return false;
+    }
+    
+    hasListener(event: any,callback: any): boolean
+    {
+        if(this.nsEvent)
+        {
+            return this.nsEvent.hasListener(event,callback);
+        }
+        return false;
+    }
+    
+    dispatch(event: any,details: any): boolean
+    {
+        if(this.nsEvent)
+        {
+            return this.nsEvent.dispatch(event,details);
+        }
+        return false;
+    }
+    
+}
