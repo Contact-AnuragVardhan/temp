@@ -1,1 +1,124 @@
 
+.nmPageBody
+{
+	background-color: #000000;
+}
+.nmPageContainer
+{
+	color: #FFFFFF;
+}
+.nmPageHeader
+{
+	background-color: #000000;	
+}
+.nmContent
+{
+	background-color: #000000;	
+}
+.nmPageHeader .nmLogo 
+{
+    background-color: #ca2420;
+    color: #FFFFFF;
+    border-bottom: 0px solid transparent;
+}
+.nmPageHeader .nmPageHeaderContent 
+{
+    background-color: #737373;
+}
+.nmHeaderRight 
+{
+    background: #9D9D9D;
+}
+
+.nmHeaderRight 
+{
+    background: #9D9D9D;
+}
+.nmPageHeader .appName > h1 
+{
+    color: #000000;
+}
+.nmSidebarToggler
+{
+	color: #FFFFFF;
+}
+.nmSidebarToggler:hover
+{
+	background-color: #FFFFFF;
+	color: #000000;
+}
+.nmPageLogo .nmMainTitle 
+{
+	color:#f6f6f6;
+}
+.nmHeaderRight>.nmAppName > h1 
+{
+    color: #FFFFFF;
+}
+.nmHeaderRight>.nmAppDetail>.welcomeMessage 
+{
+    color: #FFFFFF;
+}
+.nmPageLogo small 
+{
+  	color:#eee;
+}
+.demo-panel-title 
+{
+  	color: #eee;
+}
+.nmPageFooter 
+{
+    background: #000000;
+    color: #FFFFFF;
+    border-top: 1px solid #d2d6de;
+}
+.form-group.has-error .form-control 
+{
+    border-color: #dd4b39 !important;
+    box-shadow: none;
+}
+
+/*************Horizontal Nav ***************/
+.navbar-nav>li>a 
+{
+    color: #000000;
+}
+.nav > li > a:hover, .nav > li > a:active, .nav > li > a:focus {
+    color: #444;
+    background: #f7f7f7;
+}
+.main-header .logo {
+    background-color: #ca2420;
+    color: #000000;
+    border-bottom: 0px solid transparent;
+}
+.main-header .navbar-brand {
+  color: #000000;
+}
+.main-header .navbar {
+    background-color: #FFFFFF;
+}
+.main-header .app-name > h1 {
+    color: #000000;
+}
+.main-header .welcom-message {
+    color: #000000;
+}
+.main-header .navbar .sidebar-toggle {
+    color: #000000;
+}
+.main-header .navbar .sidebar-toggle:hover {
+    background-color: #FFFFFF;
+}
+/*************End of Horizontal Nav ***************/
+/*************Modal Component ***************/
+.text-nomura-red {
+    color: #CA2420 !important;
+}
+/*************End of Modal Component ***************/
+.checkbox,
+.radio 
+{
+  color: #FFFFFF;
+}
