@@ -1,1 +1,103 @@
+import { NSMessageBoxReact } from '../../lib/nsMessageBox/nsMessageBoxReact';
+import { INSMessageBoxConfirmSetting, INSMessageBoxAlertSetting, INSMessageBoxConfirmButtonSetting } from '../../lib/nsMessageBox/interfaces';
+import { INSPanelCustomClass, INSPanelDivSetting } from '../../lib/nsPanel/interfaces';
 
+export class PopUpService
+{
+    private modal: NSMessageBoxReact;
+    
+    constructor(modal: NSMessageBoxReact) 
+    {
+        this.modal = modal;
+    }
+    
+    public showAlertPopup(alertMessage:string,fontAwsomeIcon:string = "fa-bell",iconColor:string = "text-nomura-red",alertHeader:string = "Alert"): void
+    {
+       this.__showAlert(alertMessage,fontAwsomeIcon,iconColor,alertHeader);
+    }
+    
+    public showSuccessAlertPopup(alertMessage:string,alertHeader:string = "Success"): void
+    {
+        this.__showAlert(alertMessage,"fa-check","text-nomura-green",alertHeader);
+    }
+  
+    public showFailureAlertPopup(alertMessage:string,alertHeader:string = "Failure"): void
+    {
+        this.__showAlert(alertMessage,"fa-warning","text-nomura-red",alertHeader);
+    }
+  
+    public showOkCancelPopup(alertMessage:string,alertHeader:string = "Alert",confirmCallback: any = null, cancelCallback: any = null,setting: any= null): void
+    {
+        this.__showConfirm(alertMessage,alertHeader,confirmCallback,cancelCallback,setting);
+    }
+  
+    public showNotificationsListPopup(alertMessage:string[],callback: any = null): void
+    {
+        this.__showNotificationsList(alertMessage,callback);
+    }
+    
+    private __showAlert(alertMessage:string,fontAwsomeIcon:string = "fa-bell",iconColor:string = "text-nomura-red",alertHeader:string = "Alert"): void
+    {
+        let titleHtml: string = '<i class="fa ' + fontAwsomeIcon + ' ' + iconColor + '"></i>&nbsp;&nbsp;<h3 class="box-title">' + alertHeader + '<span></span></h3>';
+        let bodyHtml: string = '<span style="text-align: center;">' + alertMessage + '</span>';
+        let customClass:INSPanelCustomClass = {container:"box box-nomura-red",titleBar:"box-header with-border",titleBarContent:null,iconConatiner:null,icon:null,body:null,
+                                                messageBody:"box-body",messageFooter:"box-footer"};
+        let setting : INSMessageBoxAlertSetting = { titleHtml: titleHtml,bodyContent: bodyHtml,customClass: customClass,
+                                                    enableModalCloseOnOutsideClick:true,enableModalCloseOnEscape:true,
+                                                    buttonClass:"btn btn-nomura-green",enableCloseIconVisibility:false};
+        this.modal.alert(setting);
+    } 
+    
+    private __showConfirm(alertMessage:string,alertHeader:string = null,confirmCallback: any = null, cancelCallback: any = null,prop: any= null): void
+    {
+        alertHeader = alertHeader ? alertHeader : "Alert";
+        prop = prop ? prop : {};
+        let titleHtml: string = '<i class="fa fa fa-bell text-nomura-red"></i>&nbsp;&nbsp;<h3 class="box-title">' + alertHeader + '<span></span></h3>';
+        let bodyHtml: string = '<span>' + alertMessage + '</span>';
+        let customClass:INSPanelCustomClass = {container:"box box-nomura-red",titleBar:"box-header with-border",titleBarContent:null,iconConatiner:null,icon:null,body:null,
+                                                messageBody:"box-body",messageFooter:"box-footer"};
+        let confirm: INSMessageBoxConfirmButtonSetting = {label:"Yes",cssClass:"btn btn-nomura-green",callback:confirmCallback};
+        let cancel: INSMessageBoxConfirmButtonSetting = {label:"Cancel",cssClass:"btn btn-nomura-red",callback:cancelCallback};
+        let panelSetting: INSPanelDivSetting = {width:"45%"};
+        let setting : INSMessageBoxConfirmSetting = { titleHtml: titleHtml,bodyContent: bodyHtml,customClass: customClass,
+                                                    enableModalCloseOnOutsideClick:true,enableModalCloseOnEscape:true,
+                                                    enableCloseIconVisibility:false,
+                                                    confirm:confirm,cancel:cancel,panelSetting:panelSetting};
+        for(let key in prop)
+        {
+            if(prop[key])
+            {
+                setting[key] = prop[key];
+            }
+        }
+        this.modal.confirm(setting);
+    }
+    
+    private __showNotificationsList(alertMessage:string[],callback: any = null): void
+    {
+        if(alertMessage && alertMessage.length > 0)
+        {
+            let titleHtml: string = '<i class="fa fa-tv text-nomura-green"></i>&nbsp;&nbsp;<h3 class="box-title">' + "System Notifications" + '<span></span></h3>';
+            let bodyHtml: string = '<ul class="notifications-list notifications-list-in-box">';
+            for (let message of alertMessage) 
+            {
+                bodyHtml +='<li class="notification">';
+                bodyHtml +='<div class="notification-icon">';
+                bodyHtml +='<i class="fa fa-circle-o text-nomura-orange"></i>';
+                bodyHtml +='</div>';
+                bodyHtml +='<div class="notification-message">';
+                bodyHtml +='<span>' + message + '</span>';
+                bodyHtml +='</div>';
+                bodyHtml +='</li>';
+            }
+            bodyHtml +='</ul>';
+            let customClass:INSPanelCustomClass = {container:"box box-nomura-red",titleBar:"box-header with-border",titleBarContent:null,iconConatiner:null,icon:null,body:null,
+                                                    messageBody:"box-body",messageFooter:"box-footer"};
+            let setting : INSMessageBoxAlertSetting = { titleHtml: titleHtml,bodyContent: bodyHtml,customClass: customClass,
+                                                        enableModalCloseOnOutsideClick:true,enableModalCloseOnEscape:true,
+                                                        buttonClass:"btn btn-nomura-green",callback:callback,enableCloseIconVisibility:false};
+            this.modal.alert(setting);
+        }
+        return null;
+    }
+}
