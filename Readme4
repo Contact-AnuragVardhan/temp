@@ -1,1 +1,140 @@
+<bean id="applicationContextProvider" class="com.nomura.util.ApplicationContextProvider">
+	</bean>
+  
+  package com.nomura.util;
 
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+
+public class ApplicationContextProvider implements ApplicationContextAware {
+	private static ApplicationContext ctx = null;
+	
+	 public static ApplicationContext getApplicationContext() {
+		 return ctx;
+	 }
+	 
+	 public void setApplicationContext(ApplicationContext ctxt) throws BeansException {
+		ctx = ctxt;
+	 }
+}
+
+
+@Controller
+public class AppController {
+
+	@Resource(name = "loginInfoServiceImpl")
+	private LoginInfoService loginInfoService;
+	
+
+	
+
+	private static final Log logger = LogFactory.getLog(AppController.class);
+
+	@RequestMapping(value = "/api/getLoginInfo", method = RequestMethod.POST, produces = "application/json")
+	public @ResponseBody LoginInfoVO getLoginInfo(HttpServletRequest request) throws   AppException {
+
+		System.out.println("hi how aref you a") ; 
+		
+		logger.info("Method getLoginUserInfo: Started - "
+				+ request.getHeader("X-NOM-GCD-UID") + "" + loginInfoService.getEnv());
+		LoginInfoVO loginInfo = new LoginInfoVO();
+		loginInfo.setLoginUserID(request.getHeader("X-NOM-GCD-UID"));
+		loginInfo.setEmployeeName(request.getHeader("X-NOM-COMMON-NAME"));
+		loginInfo.setEnvironment(loginInfoService.getEnv());
+		if (loginInfo.getLoginUserID() == null
+				&& "DEV".equalsIgnoreCase(loginInfoService.getEnv())) {
+			loginInfo.setLoginUserID("rtangrob");
+			request.getSession().setAttribute("EMAIL_ADDRESS",
+					"t.manish.bansod@nomura.com");
+			loginInfo.setEmployeeName("Robert Tang");
+		}
+
+		String empId = request.getHeader("X-NOM-GCD-EMPLOYEE-NUMBER");
+     
+     	logger.info("Inside getLoginInfo request.getHeader(X-NOM-GCD-EMPLOYEE-NUMBER) "+empId);
+		try
+		{
+		if(empId != null && !empId.startsWith("IN")) {			
+			empId = empId.substring(2);
+			empId = String.valueOf(Integer.parseInt(empId));
+			loginInfo.setEmployeeID(empId) ; 
+		}
+		}
+		catch(NumberFormatException e)
+		{
+		 //logger.error(NSS2Utils.getErrorMessage(e, request));
+		}
+		
+		try {
+			loginInfo = loginInfoService.getLoginInfo(loginInfo);
+			
+			request.getSession().setAttribute("LOGIN_DETAILS", loginInfo);
+			logger.info(" login user details : - " + request.getSession().getAttribute("LOGIN_DETAILS")) ; 
+		} catch (Exception e) {
+			e.printStackTrace();
+			String errorMessage = "Error occured while fetching user login info. Below is the exception details:\n" ; 
+			logger.error(errorMessage +  AppUtils.getErrorMessage(e, request), e);
+			throw new AppException("Error occured while fetching user login info.\n" + e.getMessage() );
+		}
+		logger.debug("Method getLoginUserInfo: End");
+		return loginInfo;
+	}
+  
+  @Service("loginInfoServiceImpl")
+public class LoginInfoServiceImpl implements LoginInfoService {
+	private static final Log logger = LogFactory
+			.getLog(LoginInfoServiceImpl.class);
+	private static SimpleDateFormat dtFormat = new SimpleDateFormat("MM/dd/yyyy");
+	private  String env;
+	private  String nefEnv;
+	private  String spoofGroup;
+	private  String buildVersionGroup;
+	private  String buildVersion = "1";
+	private  String buildNumber = "1";
+    private  String PROD_ENV = "PROD" ;  
+	@Resource(name="loginInfoDaoImpl")
+	private LoginInfoDao loginInfoDao;
+
+
+	
+	@Resource(name="nefClient")
+	private NEFEntitlementServiceImpl nefClient;
+	
+  
+	public LoginInfoVO getLoginInfo(LoginInfoVO loginInfo) throws Exception {
+		
+		if (isInValidLoginInfo(loginInfo)) {
+			
+			throw new Exception("Below Info Missing:-\n"				
+					+ (env==null || env.isEmpty() ? "App ENV\n" : "")
+					+ (nefEnv==null || nefEnv.isEmpty() ? "Nef ENV\n" : "")
+					+ (buildVersionGroup==null || buildVersionGroup.isEmpty() ? "Build Version Group\n":"")
+					+ (buildVersion==null || buildVersion.isEmpty() ? "Build Version\n" : "")
+					+ (buildNumber==null || buildNumber.isEmpty() ? "Build Number\n" : "")
+					+ (loginInfo.getLoginUserID()==null || loginInfo.getLoginUserID().isEmpty() ? "User UID\n" : "")
+			);
+		}
+		
+		if(loginInfo == null || loginInfo.getLoginUserID() == null || loginInfo.getLoginUserID().trim().equals("") )
+		{
+			throw new Exception("User ID is not valid");	
+		}
+		
+		
+		 
+		setNEFGroup(loginInfo) ; 
+		List<String> groups = Arrays.asList(loginInfo.getUserGroups()) ; 
+		loginInfo = loginInfoDao.getEmployeeIDandConnectionDetails(loginInfo) ; 
+		setLoginEnvDetails(loginInfo) ; 
+		
+       return loginInfo ; 
+	}
+
+
+@Repository("loginInfoDaoImpl")
+public class LoginInfoDaoImpl implements LoginInfoDao {
+	private static final Log logger = LogFactory.getLog(LoginInfoDaoImpl.class);
+
+	@Resource(name="jdbcTemplate")
+	private JdbcTemplate jdbcTemplate;
