@@ -1,1 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://java.sun.com/xml/ns/javaee" 
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://java.sun.com/xml/ns/javaee 
+	      					 http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
+	     version="3.0">
 
+	<display-name>CompliancePortal | RPT</display-name>
+
+<!-- 
+<context-param>
+		<param-name>globalInitializerClasses</param-name>
+		<param-value>com.nomura.fid.core.propstore.spring.adapters.PropstoreApplicationContextInitializer</param-value>
+	</context-param>
+	<context-param>
+		<param-name>propstore.property.sources</param-name>
+		<param-value>propertySourceName=props,env=${propstore_env},region=am,protocol=ssl||system=cts:compliance_portal,app=rpt,env=${propstore_dev_env}</param-value>
+	</context-param>
+ -->
+  	<servlet>
+		<servlet-name>RPT</servlet-name>
+		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>		
+		<init-param>
+			<param-name>contextConfigLocation</param-name>
+			<param-value>/WEB-INF/ApplicationContext.xml</param-value>
+		
+		</init-param>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>RPT</servlet-name>
+		<url-pattern>/</url-pattern>
+	</servlet-mapping>
+	
+	<servlet>
+	    <description>For Local Export Functionality</description>
+	    <display-name>ExportLocalServlet</display-name>
+	    <servlet-name>ExportLocalServlet</servlet-name>
+	    <servlet-class>com.nomura.servlet.ExportServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+	    <servlet-name>ExportLocalServlet</servlet-name>
+	    <url-pattern>/api/exportLocalDoc</url-pattern>
+	</servlet-mapping>
+	
+	<servlet>
+	    <description>For Export Functionality</description>
+	    <display-name>ExportServlet</display-name>
+	    <servlet-name>ExportServlet</servlet-name>
+	    <servlet-class>com.nomura.export.servlet.ExportServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+	    <servlet-name>ExportServlet</servlet-name>
+	    <url-pattern>/api/exportDoc</url-pattern>
+	</servlet-mapping>
+	
+
+
+	<filter>
+	  <filter-name>CorsFilter</filter-name>
+	  <filter-class>com.nomura.filter.CORSFilter</filter-class>
+   </filter>
+   <filter-mapping>
+	  <filter-name>CorsFilter</filter-name>
+	  <url-pattern>*</url-pattern>
+   </filter-mapping>
+   
+   <session-config>
+		<session-timeout>180</session-timeout>
+   </session-config>
+
+	<welcome-file-list>
+		<welcome-file>index.html</welcome-file>
+	</welcome-file-list>
+  
+
+	
+
+
+</web-app>
