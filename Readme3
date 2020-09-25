@@ -1,1 +1,64 @@
+package com.nomura.controller.exception;
+
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.servlet.ModelAndView;
+
+import com.nomura.exception.CustomException;
+import com.nomura.view.GsonJsonView;
+
+@ControllerAdvice
+public class ExceptionHandlingController 
+{
+	private static final Log logger = LogFactory.getLog(ExceptionHandlingController.class);
+
+	@ExceptionHandler(CustomException.class)
+	public ModelAndView handleError(HttpServletRequest request,Exception exception) throws Exception 
+	{
+	    logger.debug("In exception handler");
+	    
+	    ModelAndView mnv = new ModelAndView(new GsonJsonView()) ; 
+	    Map<String, Object> model =   mnv.getModel() ; 
+		model.put("STATUS", "FAILURE");
+		String message =  exception.getMessage();
+		try
+		{
+			if(message != null && message.indexOf("MESSAGE:-") > -1)
+			{
+				String[] arrMessage = message.split("MESSAGE:-");
+				if(arrMessage != null && arrMessage.length >= 2)
+				{
+					message = arrMessage[1];
+				}
+			}
+		}
+		catch(Exception e)
+		{
+			
+		}
+		model.put("MESSAGE", message);
+//		if (request.getSession() == null || request.getSession().getAttribute("LOGIN_DETAILS") == null) 
+//		{
+//			model.put("SESSION", "INVALID");	
+//			model.put("MESSAGE", "Session timeout. Please re-login.");
+//		}
+//		else
+//		{
+			if(((CustomException)exception).isHasLoggerMessage())	
+			{
+				logger.error("Exception Occured ",exception);
+			}
+			model.put("SESSION", "VALID");		
+		//}
+		
+		return mnv;
+	}
+
+}
 
