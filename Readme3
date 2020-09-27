@@ -1,1 +1,36 @@
-
+navEventHandler(event:any,eventType:string)
+    {
+        let divContent:any = this.__divContentRef.nativeElement;
+        if(this.common.showOnlyModule)
+        {
+            divContent.style.marginLeft = "0px";  
+        }
+        else
+        {
+            switch(eventType)
+            {
+              case "navigationOpenStart":
+                divContent.style.marginLeft = "250px";  
+              break;
+              case "navigationCloseStart":
+                divContent.style.marginLeft = "50px";
+              break;
+              case "navigationMenuSelected":
+                if(event instanceof Event)
+                { 
+                    let item:any = event["detail"];
+                    /*let compMenuHeader = this.__compMenuHeader.nativeElement;
+                    compMenuHeader.innerHTML = item.menuName;*/
+                }
+              break;
+            }
+        }
+    }
+    
+    resizeListener(event:any,eventType:string)
+    {
+        //let resizeEvent:any = new Event('resize');
+        let resizeEvent:any = document.createEvent("HTMLEvents");
+        resizeEvent.initEvent("resize", true, false);
+        window.dispatchEvent(resizeEvent);
+    }
