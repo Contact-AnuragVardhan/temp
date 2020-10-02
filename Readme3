@@ -1,1 +1,12 @@
-
+<div [hidden]="!unauthorized">
+		<div class="box box-danger box-border screen-center-box">
+			<div class="box-header with-border">
+				<i class="fa fa-ban text-nomura-red"></i>
+				<h3 class="box-title">Unauthorized</h3>
+			</div>
+			<!-- /.box-header -->
+			<div class="box-body">
+				You are not authorized to access this application.
+			</div><!-- /.box-body -->
+		</div>
+	</div>
