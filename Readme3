@@ -1,1 +1,4 @@
-
+import { NSMessageBoxReact, INSMessageBoxReactSettings } from '../../lib/nsMessageBox/nsMessageBoxReact';
+private modal: NSMessageBoxReact;
+const modalSetting: INSMessageBoxReactSettings = {enableModalCloseOnEscape: true,enableCloseIconVisibility: true};
+ <NSMessageBoxReact setting={modalSetting} ref={(ref) => this.modal = ref} />
