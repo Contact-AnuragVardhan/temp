@@ -1,1 +1,108 @@
+import * as React from "react";
+import { INSMessageBoxBodyComponent } from '../../lib/nsMessageBox/interfaces';
+import { NSGridReact, INSGridReactSettings } from '../../lib/nsGrid/nsGridReact';
+import { INSGridColumn, INSGridCustomClassSetting } from '../../lib/nsGrid/interfaces';
+import {BaseComponent} from '../base/baseComponent';
 
+
+export class CostCenterEmployeeList extends BaseComponent implements INSMessageBoxBodyComponent
+{
+    private container: any;
+    private grid: NSGridReact;
+    private empLink: string = null; 
+
+    constructor(public props: any, public state: any) 
+    {
+        super(props,state);
+        
+        const customClass: INSGridCustomClassSetting = {headerCell:"columnClass",firstBodyColumn:"columnClass", nonFirstBodyColumn:"columnClass"};
+        
+        const gridColumn: INSGridColumn[] = [{headerText:"Employee Name",dataField:"name",resizable:true,width:"50%",enableFilter:false,draggable: false,
+                                                    itemRenderer:this.employeeRenderer.bind(this)},
+                                              {headerText: "Chinese Wall Status", dataField: "chineseWallStatus", width: "50%",enableFilter:false,draggable: false}
+                                             ];
+        
+        
+        const gridSetting: INSGridReactSettings = {type: "normal", columnResizable: true,columnSortable: true,
+                columnDraggable: false, enableFilter: true, enableAdvancedFilter: true,
+               columns: gridColumn, customClass: customClass};
+        
+        this.state = {
+                costCenterEmployeeList: [],
+                gridSetting: gridSetting
+        };
+        console.log(this.context);
+    }
+    
+    componentDidMount() 
+    {
+        this.grid.dataSource([]);
+    }
+    
+    init(data:any) : void
+    {
+        this.setState({
+                costCenterEmployeeList: data.costCenterEmployeeList,
+        });
+        this.empLink = data.empLink;
+    };
+    
+    getElement(): any
+    {
+        return this.container;
+    };
+    
+    elementAdded(): void
+    {
+        if(this.state.costCenterEmployeeList)
+        {
+            this.grid.dataSource(this.state.costCenterEmployeeList);
+        }
+    };
+    
+   render() {
+       const style = {"maxHeight":"500px"};
+       //const data: any[] = this.state.costCenterEmployeeList;
+       const gridSetting: INSGridReactSettings = this.state.gridSetting;
+       
+       return (
+             <div ref={(ref) => this.container = ref} style={style}>
+               <NSGridReact setting={gridSetting} ref={(ref) => this.grid = ref}>
+               </NSGridReact>
+             </div>
+       )
+   }
+
+    private employeeRenderer(item: any,dataField: string,index: number,colIndex: number,row: any): any
+    {
+        if(item)
+        {
+            return '<a target="_blank" href="' + this.empLink + item.emplid + '">' + item[dataField] + '</a>'
+        }
+        return null;
+    }
+   
+   
+        
+   
+   
+
+
+}
+
+private openCostCenterEmployeeList(item: any,lstCostCenterEmployee: any[]): void
+   {
+       const self : any = this;
+       let titleHtml: string = "Employees in <b> " + item.COST_CODE + " - " + item.COST_CODE_DESC + "</b>&nbsp; is " + (lstCostCenterEmployee ? lstCostCenterEmployee.length : 0);
+       titleHtml += " (Public:" + item.PUBLIC_COUNT + ", Private:" + item.PRIVATE_COUNT + ", REI:" + item.REI_COUNT +  ") "
+       let modalSetting: INSMessageBoxCustomSetting = {titleHtml: titleHtml,bodyComponent: CostCenterEmployeeList,
+               panelSetting:{width:"60%",height:"60%"},
+               bodyComponentData: {costCenterEmployeeList: lstCostCenterEmployee,empLink: this.context.emLink},
+               buttons:[{label: "Close", callback: function(event: any)
+               {
+                   self.modalEmployee.close();
+                   event.stopPropagation();
+               }
+         }]};
+         this.modalEmployee.custom(modalSetting);
+   }
