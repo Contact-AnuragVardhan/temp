@@ -1,1 +1,10 @@
-
+fetch(this.context.getURL("getData"), {
+        method: 'POST',
+        body: formData,
+        /*headers: {
+            'Content-Type': 'multipart/form-data'
+        }*/
+    })
+    .then(res => res.text())
+    .then(html => console.log(html))
+    .catch(err => console.error(err));
