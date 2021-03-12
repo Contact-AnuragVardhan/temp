@@ -1,10 +1,30 @@
-fetch(this.context.getURL("getData"), {
-        method: 'POST',
-        body: formData,
-        /*headers: {
-            'Content-Type': 'multipart/form-data'
-        }*/
-    })
-    .then(res => res.text())
-    .then(html => console.log(html))
-    .catch(err => console.error(err));
+<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-test</artifactId>
+			<version>${SpringVersion}</version>
+			<scope>test</scope>
+		</dependency>
+        
+        
+        
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<version>1.10.19</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.jayway.jsonpath</groupId>
+			<artifactId>json-path</artifactId>
+			<version>1.2.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.jayway.jsonpath</groupId>
+			<artifactId>json-path-assert</artifactId>
+			<version>1.2.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jacoco</groupId>
+			<artifactId>jacoco-maven-plugin</artifactId>
+			<version>0.7.6.201602180812</version>
+		</dependency>
