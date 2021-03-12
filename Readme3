@@ -1,1 +1,15 @@
-
+var filesArr = Array.prototype.slice.call(files);
+    console.log(filesArr);
+    var item: any = {dataLength: 3, tillLevel: 2};
+    var formData = new FormData();
+    formData.append("data", new Blob([JSON.stringify(item)], {type: "application/json"}));
+    for(var i = 0; i < filesArr.length; i++){
+        formData.append("attachmentList", filesArr[i]);
+    }
+    
+    this.context.ajax.post(this.context.getURL("getData"),formData,{header: {'Content-Type': 'multipart/form-data' }})
+    .then((response) => {
+        this.context.globalIntercept(response,function(response){
+            console.log("success");
+        });
+    })
