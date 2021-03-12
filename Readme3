@@ -1,17 +1,1 @@
-var formData = new FormData();
-        formData.append("requestDetailsObj", new Blob([angular.toJson(requestDetailsObj)], {type: "application/json"}));
-        for(var i = 0; i < attachmentList.length; i++){
-        	formData.append("attachmentList", attachmentList[i]);
-        }
-		var createReqPromise = $http({
-            method: 'POST',
-            url: "createNewRequest",
-            headers: { 'Content-Type': undefined },
-            data: formData,
-            transformRequest: function (data, headersGetterFunction) {
-                return data;
-            }
-        }).then(function(response) {
-				return response.data;
-		});
-		return createReqPromise;
+
