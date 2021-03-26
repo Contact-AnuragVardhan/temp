@@ -1,1 +1,39 @@
-
+var getParams = function()
+		{
+			var param = config.param;
+			if(config.processData && param && !ajax.ajaxUtil.isTypeFormData(param))
+			{
+				if (self.method != "GET" && self.method != "HEAD" && config.dataType == "JSON" && !config.encodeParam && !ajax.util.isString(param)) 
+				{
+					return JSON.stringify(param);
+				}
+				if(ajax.util.isString(param))
+				{
+					return param;
+				}
+				if (self.method == "GET" || self.method == "HEAD")
+				{
+					var strParam = "";
+					for(var paramKey in param)
+					{
+						if(param[paramKey])
+						{
+							if(config.encodeParam)
+							{
+								strParam += "&" + encodeURIComponent(paramKey) + "=" + encodeURIComponent(param[paramKey]);
+							}
+							else
+							{
+								strParam += "&" + paramKey + "=" + param[paramKey];
+							}
+						}
+					}
+					if(strParam && strParam.length > 1)
+					{
+						strParam = strParam.substring(1);
+					}
+					return strParam;
+				}
+			}
+			return param;
+		};
