@@ -1,2 +1,170 @@
+import { Component, Input, Output, OnChanges, OnInit, OnDestroy, ElementRef, SimpleChange, EventEmitter,
+    ViewEncapsulation, AfterViewInit } from '@angular/core';
 
+declare var NSUtil: any;
+declare var NSCalendar: any;
+
+////////// Interfaces /////////////////////////////////////////////////////////
+
+export interface INSCalendarMarkDayDisabledFunction {
+    (date : any):void;
+}
+
+export interface INSCalendarButtonSettingObject {
+    html?: string;
+    cssClass?: string;
+}
+
+export interface INSCalendarButtonSetting {
+    prev?: INSCalendarButtonSettingObject;
+    next?: INSCalendarButtonSettingObject;
+}
+
+export interface INSCalendarCustomClass {
+    container?: string;
+    headerContainer?: string;
+    prevButton?: string;
+    nextButton?: string;
+    monthDropdown?: string;
+    yearDropdown?: string;
+    weekContainer?: string;
+    week?: string;
+    dayContainer?: string;
+    day?: string;
+    footerContainer?: string;
+    [propName: string]: any;
+}
+
+export interface INSCalendarSetting {
+    context?: any;
+    inputDateFormat?: string;
+    minDate?: any;
+    maxDate?: any;
+    selectedDate?: any;
+    monthValueName?: string[];
+    monthTextName?: string[];
+    weekName?: string[];
+    markDayDisabled?: INSCalendarMarkDayDisabledFunction;
+    showFooter?: boolean;
+    footerContent?: any;
+    theme?: string;
+    buttonSetting?: INSCalendarButtonSetting,
+    customClass?: INSCalendarCustomClass;
+}
+
+@Component({
+  selector: 'ns-calendar',
+  template: '',
+  encapsulation: ViewEncapsulation.None
+})
+
+export class NSCalendarComponent implements OnChanges, OnInit, OnDestroy, AfterViewInit 
+{  
+    @Input() setting: INSCalendarSetting;
+  
+    @Output() dateSelected:EventEmitter<any> = new EventEmitter();
+
+    private __element: HTMLElement;
+    private __objNSCalendar: any;
+
+    constructor(private elementRef:ElementRef) 
+    {
+        this.__element = elementRef.nativeElement;
+    };
+  
+    ngOnChanges(changes: {[propName: string]: SimpleChange}): void 
+    {
+       
+    };
+  
+    ngOnInit() : void
+    {
+       this.__objNSCalendar = new NSCalendar(this.__element,this.setting); 
+    };
+  
+    ngAfterViewInit(): void 
+    {
+    };
+  
+    ngOnDestroy(): void 
+    {
+    };
+  
+    getElement(): HTMLElement
+    {
+        return this.__element;
+    };
+    
+    getSelectedDate(): any
+    {
+        return this.__objNSCalendar.getSelectedDate();
+    };
+    
+    getSelectedDateAsString(format: string): any
+    {
+        return this.__objNSCalendar.getSelectedDateAsString(format);
+    };
+    
+    setSelectedDate(date: any,format: string): void
+    {
+        this.__objNSCalendar.setSelectedDate(date,format);
+    };
+    
+    setYear(year: number): void
+    {
+        this.__objNSCalendar.setYear(year);
+    };
+    
+    setMonth(month: number): void
+    {
+        this.__objNSCalendar.setMonth(month);
+    };
+    
+    reset(): void
+    {
+        this.__objNSCalendar.reset();
+    };
+    
+    setTodayDate(): void
+    {
+        this.__objNSCalendar.setTodayDate();
+    };
+    
+    setStyle(styleProp: string,value: any): void
+    {
+        this.__objNSCalendar.setStyle(styleProp,value);
+    };
+    
+    setFocus(isFocus: boolean): void
+    {
+        this.__objNSCalendar.setFocus(isFocus);
+    };
+    
+    hasFocus(): boolean
+    {
+        return this.__objNSCalendar.hasFocus();
+    };
+    
+    setTheme(theme: string): void
+    {
+        this.__objNSCalendar.setTheme(theme);
+    };
+    
+    changeProperty(propertyName: string,value: any): void
+    {
+        this.__objNSCalendar.changeProperty(propertyName,value);
+    };
+    
+    private __addEventHandlers(): void
+    {
+        let util = new NSUtil();
+        let eventHandler:any = this.__eventHandler.bind(this);
+        util.addEvent(this.__element,NSCalendar.DATE_SELECTED,eventHandler);
+    }
+  
+    private __eventHandler(event:any)
+    {
+        this[event.type].emit(event.detail);
+    }
+}
  
