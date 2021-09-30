@@ -1,1 +1,683 @@
+app.module
+
+import { NgModule, ErrorHandler } from '@angular/core';
+import { BrowserModule }  from '@angular/platform-browser';
+import { FormsModule }    from '@angular/forms';
+import {HttpClientModule, HTTP_INTERCEPTORS} from '@angular/common/http';
+
+import { Router, RouteReuseStrategy } from '@angular/router';
+
+import { AppComponent } from '../component/app.component';
+import { AppRoutingModule } from '../../router/app-routing.module';
+
+import { NSNavigationAngularModule } from 'ns-navigation-angular';
+import { SpoofLoginModule }  from '../../../util/spoofLogin/module/spoofLogin.module';
+import { LoggedInUserService } from '../../services/loginUserInfo/loginUserInfo.service';
+import { NMHttpInterceptor } from '../../../util/interceptor/nmHttpInterceptor';
+import { NMSharedService } from '../../../util/services/nmShared/nmShared.service';
+import { LoadingSpinnerComponent } from '../../../util/loadingSpinner/loadingSpinner.component';
+import { CommonService } from '../../services/common/common.service';
+import { SharedModule } from '../../../util/shared/shared.module';
+import { AuthorizeService } from '../../services/authorize/authorize.service';
+import { PopUpComponent } from '../../../util/popUpComponent/popUp.component';
+import { CustomErrorHandler, PreventErrorRouteReuseStrategy } from '../../util/errorHandler/customErrorHandler';
+import { NSMessageBoxAngularModule, NSMessageBoxAngularComponent} from 'ns-messagebox-angular';
+import { RequestIDComponent } from '../../modules/requestID/component/requestID.component';
+import { RequestIDModule } from '../../modules/requestID/module/requestID.module';
+import { NSGridAngularModule} from 'ng-nsgrid';
+import { NSTextBoxAngularComponent } from 'ns-textbox-angular';
+
+
+
+
+@NgModule({
+  imports: [
+    BrowserModule,
+    FormsModule,
+    AppRoutingModule,
+    HttpClientModule,
+    SpoofLoginModule,
+    SharedModule,
+    RequestIDModule,
+    NSMessageBoxAngularModule,
+    NSNavigationAngularModule,
+    NSGridAngularModule.forRoot([RequestIDComponent])
+  ],
+  declarations: [
+    AppComponent,
+    LoadingSpinnerComponent,
+    PopUpComponent
+  ],
+  providers: [
+  	LoggedInUserService,
+  	NMSharedService,
+  	CommonService,
+    AuthorizeService,
+  	{
+	    provide: HTTP_INTERCEPTORS,
+	    useClass: NMHttpInterceptor,
+	    multi: true,
+  	},
+    {provide: ErrorHandler, useClass: CustomErrorHandler},
+    { provide: RouteReuseStrategy, useClass: PreventErrorRouteReuseStrategy }
+  ],
+  bootstrap: [ AppComponent ],
+  entryComponents: [NSMessageBoxAngularComponent, NSTextBoxAngularComponent, RequestIDComponent],
+})
+export class AppModule {
+  // Diagnostic only: inspect router configuration
+  constructor(router: Router) {
+    //console.log('Routes: ', JSON.stringify(router.config, undefined, 2));
+  }
+}
+
+app.component
+
+import { Component, ViewChild, ElementRef, OnInit } from '@angular/core';
+import { INSNavigationMenu, NSNavigationAngularComponent } from 'ns-navigation-angular';
+import { SpoofLoginComponent } from '../../../util/spoofLogin/component/spoofLogin.component';
+import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
+import { NMSharedService } from '../../../util/services/nmShared/nmShared.service';
+import { LoadingSpinnerComponent } from '../../../util/loadingSpinner/loadingSpinner.component';
+import { LoggedInUserService } from '../../services/loginUserInfo/loginUserInfo.service';
+import { CommonService } from '../../services/common/common.service';
+import { NSMessageBoxService } from '../../../util/nsMessageBox/service/nsMessageBox.service';
+
+
+@Component({
+  selector: 'app-root',
+  templateUrl: '../view/app.component.html'
+})
+export class AppComponent implements OnInit
+{
+	@ViewChild(SpoofLoginComponent)
+    private __objSpoofLogin: SpoofLoginComponent;
+    @ViewChild(NSNavigationAngularComponent)
+    private __objNSNavigation: NSNavigationAngularComponent;
+    @ViewChild('header') 
+    private __divHeaderRef: ElementRef;
+    @ViewChild('content') 
+    private __divContentRef: ElementRef;
+    /*@ViewChild('compMenuHeader')
+    private __compMenuHeader: ElementRef;*/
+    @ViewChild(LoadingSpinnerComponent)
+    private __compLoader: LoadingSpinnerComponent;
+   
+    public showSpoofLogin: boolean = false;
+    public showPageContainer: boolean = false;
+    public selectViewType: boolean = false;
+    public unauthorized: boolean = false;
+    public setting:any;
+    
+    public userInfoObj:any;
+    private changeViewTo:string; 
+    private viewType: string;
+    private menuList: any[];
+    
+    
+    constructor(private router: Router,
+                private sharedService: NMSharedService,
+                private loggedInUserService: LoggedInUserService,
+                public common: CommonService,
+                private nsMessageBoxService : NSMessageBoxService,
+                private route: ActivatedRoute) 
+    {
+      
+    }
+    
+    ngOnInit() : void
+    {
+    	this.sharedService.loaderElement = this.__compLoader;
+    	this.__getLoggedUserInfo();
+        this.router.events.subscribe((event) => {
+          // example: NavigationStart, RoutesRecognized, NavigationEnd
+          if (event instanceof NavigationEnd) 
+          {
+              //event.urlAfterRedirects value will be /requests/77 or /requests
+              if(event.urlAfterRedirects)
+              {
+                  let arrMenu: string[] = event.urlAfterRedirects.split("/");
+                  if(arrMenu && arrMenu.length >= 2)
+                  {
+                      let menu: string = arrMenu[1];
+                      let item: any = this.getMenuItemByHref(menu);
+                      if(item)
+                      {
+                          let interval: any = setInterval(() => { this.__objNSNavigation.selectMenu(item);clearInterval(interval); }, 1000);
+                      }
+                  }
+              }
+              
+            console.log('NavigationEnd:', event);
+          }
+        });
+    };
+  
+    mainToggleBarHandler() 
+    {
+        this.__objNSNavigation.toggleNavigation();
+    }
+  
+    navEventHandler(event:any,eventType:string)
+    {
+        let divContent:any = this.__divContentRef.nativeElement;
+        if(this.common.showOnlyModule)
+        {
+            divContent.style.marginLeft = "0px";  
+        }
+        else
+        {
+            switch(eventType)
+            {
+              case "navigationOpenStart":
+                divContent.style.marginLeft = "250px";  
+              break;
+              case "navigationCloseStart":
+                divContent.style.marginLeft = "50px";
+              break;
+              case "navigationMenuSelected":
+                if(event instanceof Event)
+                { 
+                    let item:any = event["detail"];
+                    /*let compMenuHeader = this.__compMenuHeader.nativeElement;
+                    compMenuHeader.innerHTML = item.menuName;*/
+                }
+              break;
+            }
+        }
+    }
+    
+    resizeListener(event:any,eventType:string)
+    {
+        //let resizeEvent:any = new Event('resize');
+        let resizeEvent:any = document.createEvent("HTMLEvents");
+        resizeEvent.initEvent("resize", true, false);
+        window.dispatchEvent(resizeEvent);
+    }
+    
+    spoofLoginUser(event:any)
+    {
+    	let selectedItem: any = event.selectedItem;
+    	let isAsSelf: Boolean = event.isAsSelf;
+    	if(isAsSelf)
+    	{
+    		this.getMenusStateDetails();
+    	}
+    	else
+    	{
+    		this.loggedInUserService.getSpoofUserInfo(selectedItem.employeeID).subscribe(
+		        data => {
+					this.userInfoObj = data;
+		            this.common.logInUserInfoObj = this.userInfoObj;
+		            this.getMenusStateDetails();
+		        }, 
+		        err => {
+		            // Log errors if any
+		            console.log(err);
+		        }
+	        );
+    	}
+    }
+    
+    getMenusStateDetails()
+    {
+        this.loggedInUserService.getMenusStateDetails().subscribe(
+                data => {
+                    let result: any = data;
+                    this.menuList = result.menus;
+                    this.common.menuList = this.common.processMenuVOArray(null,result.menus,this.__menuClickHandler.bind(this))
+                    this.common.roles = result.roles;
+                    this.processViewType();
+                }, 
+                err => {
+                    // Log errors if any
+                    console.log(err);
+                }
+        );
+    }
+    
+    private __getLoggedUserInfo()
+    {
+    	this.loggedInUserService.getLoggedUserInfo().subscribe(
+	        data => {
+	            this.common.logInUserInfoObj = data;
+	            this.userInfoObj = data;
+	            this.processUserInfo();
+	        }, 
+	        err => {
+	            // Log errors if any
+	            console.log(err);
+	        }
+        );
+    }
+    
+    private processUserInfo() 
+	{
+  		this.showSpoofLogin = false;
+  		this.showPageContainer = false;
+  		this.selectViewType = false;
+  		this.unauthorized = false;
+  		if(this.userInfoObj.isSpoofingAllowed && (this.userInfoObj.environment == "DEV" || this.userInfoObj.environment == "INT" ||  this.userInfoObj.environment == "UAT"))
+        {
+            this.showSpoofLogin = true;
+            this.showPageContainer = false;
+            this.selectViewType = false;
+        }
+        else if(this.userInfoObj.isUserUnAuthorised)
+  		{
+  			this.unauthorized = true;
+  		}
+  		else 
+  		{
+  	        this.getMenusStateDetails();
+  		}
+	};
+  
+    private processViewType()
+    {
+      this.showSpoofLogin = false;
+      if(this.userInfoObj.isUserUnAuthorised)
+      {
+         this.unauthorized = true;
+      }
+      else
+      {
+          this.showPageContainer = true;
+          this.setting = {header:"NAVIGATION",pageHeaderContainer:this.__divHeaderRef.nativeElement,showCollapseIcon:false,iconCollapse:"<i class='fa fa-bars pull-right'></i>",
+                   titleField:"menuName",childField:"childMenus",iconPosition:"right",iconMenuExpanded:"<i class='fa fa-angle-left'></i>",
+                   iconMenuCollapsed:"<i class='fa fa-angle-left'></i>",collapseTopOffset:-40};//extraAttribute:"routerLink"
+          if(this.common.linkPath && this.common.linkPath != "" && this.common.isLinkPathValidForUserRole(this.common.menuList,this.common.linkPath.substring(1)))
+          {
+              this.router.navigate([this.common.linkPath]);
+          }
+          else
+          {
+            let routePath: string = this.getDefaultView();
+            if(routePath && routePath != "")
+            {
+                this.router.navigate(['/' + routePath]);
+            }
+          }
+      }
+    };
+  
+   private getDefaultView(): string
+   {
+       var menuList: any[] = this.common.menuList;
+       if(menuList && menuList.length > 0)
+       {
+           var menuItem;
+           var childMenuItem;
+           for(var i = 0; i < menuList.length; i++)
+           {
+               menuItem = menuList[i];
+               if(menuItem.defaultFor != "")
+               {
+                   var roleArr = menuItem.defaultFor.split(",");
+                   for(var j = 0; j < roleArr.length; j++)
+                   {
+                       if(this.isRolePresent(roleArr[j]))
+                       {
+                           return menuItem.href;
+                       }
+                   }
+               }
+               if(menuItem.childMenus)
+               {
+                   for(var j = 0; j < menuItem.childMenus.length; j++)
+                   {
+                       childMenuItem = menuItem.childMenus[j];
+                       if(childMenuItem.defaultFor != "")
+                       {
+                           var roleArr = childMenuItem.defaultFor.split(",");
+                           for(var j = 0; j < roleArr.length; j++)
+                           {
+                               if(this.isRolePresent(roleArr[j]))
+                               {
+                                   return childMenuItem.href;
+                               }
+                           }
+                           
+                       }
+                   }
+               }
+           }
+       }
+       /*if(this.common.menuList)
+       {
+           for(let menuItem of this.common.menuList)
+          {
+            if(menuItem.isSelectedByDefault)
+            {
+                return menuItem.href;
+            }
+            if(menuItem.childMenus && menuItem.childMenus.length > 0)
+            {
+                for(let childMenuItem of menuItem.childMenus)
+                {
+                    if(childMenuItem.isSelectedByDefault)
+                    {
+                        return childMenuItem.href;
+                    }
+                }
+            }
+          }
+       }
+        return "";*/
+    }
+   
+   private isRolePresent(roleName: string): boolean
+   {
+       if(this.common.roles && this.common.roles.length > 0)
+       {
+           for(var count = 0;count < this.common.roles.length;count++)
+           {
+               if(this.common.roles[count] === roleName)
+               {
+                   return true;
+               }
+           }
+       }
+       return false;
+   }
+    
+   private getMenuItemByHref(href: string): any
+   {
+       if(this.common.menuList && href)
+       {
+           for(let menuItem of this.common.menuList)
+          {
+            if(menuItem.href === href)
+            {
+                return menuItem;
+            }
+            if(menuItem.childMenus && menuItem.childMenus.length > 0)
+            {
+                for(let childMenuItem of menuItem.childMenus)
+                {
+                    if(childMenuItem.href === href)
+                    {
+                        return childMenuItem;
+                    }
+                }
+            }
+          }
+       }
+        return null;
+    }
+    
+    private __menuClickHandler(event:any,item:INSNavigationMenu,li:any) : boolean
+    {
+        console.debug(item);
+        if(item && item.isOpenInNewWindow)
+        {
+            let url:string = window.location.origin + window.location.pathname + "/#/" + item.href + "/true"
+            window.open(url);
+            return false;
+        }
+        return true;
+    }
+  
+}
+
+--NMHTTPInterceptor
+import {Injectable, ElementRef} from '@angular/core';
+import {HttpEvent, HttpInterceptor, HttpHandler, HttpRequest, HttpResponse, HttpErrorResponse} from '@angular/common/http';
+
+import { Observable } from 'rxjs/Observable';
+import 'rxjs/add/operator/do';
+import 'rxjs/add/observable/throw';
+import { NMSharedService } from '../services/nmShared/nmShared.service'
+import { LoadingSpinnerComponent } from '../loadingSpinner/loadingSpinner.component'
+import { PopUpComponent } from '../popUpComponent/popUp.component';
+
+@Injectable()
+export class NMHttpInterceptor implements HttpInterceptor 
+{
+	private __activeAjaxCalls: number = 0;
+	
+	constructor(private sharedService: NMSharedService) 
+	{
+  	}
+	
+  	intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> 
+  	{
+  		this.handleCalls(true);
+        //cloning Request Object to add session feature on server side when running from Angular Cli 
+        let clonedReq: HttpRequest<any> = req.clone({withCredentials:true});
+    	return next
+    	.handle(clonedReq)
+    	.do((ev: HttpEvent<any>) => {
+	        if (ev instanceof HttpResponse) 
+            {
+	          this.handleCalls(false);
+              if(ev.body && ev.body["STATUS"] && ev.body["STATUS"] === "FAILURE")
+              {
+                    PopUpComponent.showFailureAlertPopup(ev.body["MESSAGE"]);
+                    return Observable.throw(ev.body["MESSAGE"]);
+              }
+	          //console.log('processing response', ev);
+	        }
+	    })
+    	.catch(response => {
+    		this.handleCalls(false);
+	        if (response instanceof HttpErrorResponse) 
+	        {
+	          	//console.log('Processing http error', response);
+	        }
+
+       	 	return Observable.throw(response);
+      	});
+  	}
+  	
+  	private handleCalls(isRequest:Boolean):void
+  	{
+  		isRequest ? ++this.__activeAjaxCalls : --this.__activeAjaxCalls;
+  		(this.__activeAjaxCalls == 0) ? this.sharedService.loaderElement.hide() : this.sharedService.loaderElement.show();
+  	}
+}
+
+--Routing Modules
+
+import { NgModule }             from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+
+import { CreateRequestModule } from '../modules/createRequest/module/createRequest.module';
+import { CreateRequestComponent } from '../modules/createRequest/component/createRequest.component';
+
+import { MyApprovalModule } from '../modules/myApproval/module/myApproval.module';
+import { MyApprovalComponent } from '../modules/myApproval/component/myApproval.component';
+
+import { MyRequestsModule } from '../modules/myRequests/module/myRequests.module';
+import { MyRequestsComponent } from '../modules/myRequests/component/myRequests.component';
+
+import { ReportModule } from '../modules/reports/module/report.module';
+import { ReportComponent } from '../modules/reports/component/report.component';
+
+import { AboutModule } from '../modules/about/module/about.module';
+import { AboutComponent } from '../modules/about/component/about.component';
+
+import { DefaultWorkflowModule } from '../modules/defaultWorkflow/module/defaultWorkflow.module';
+import { DefaultWorkflowComponent } from '../modules/defaultWorkflow/component/defaultWorkflow.component';
+
+import { UploadTemplateModule } from '../modules/uploadTemplate/module/uploadTemplate.module';
+import { UploadTemplateComponent } from '../modules/uploadTemplate/component/uploadTemplate.component';
+
+import { DivisionSetupModule } from '../modules/divisionSetup/module/divisionSetup.module';
+import { DivisionSetupComponent } from '../modules/divisionSetup/component/divisionSetup.component';
+
+import { AuthorizeService } from '../services/authorize/authorize.service';
+import { CustomRouterErrorHandler } from '../util/errorHandler/customErrorHandler';
+
+
+const appRoutes: Routes = [
+  {
+    path: 'createRequest',
+    component: CreateRequestComponent,
+    canActivate: [AuthorizeService],
+    data: { preload: true },
+    pathMatch: 'full'
+  },
+  {
+    path: 'reqPendApproval',
+    component: MyApprovalComponent,
+    canActivate: [AuthorizeService],
+    data: { preload: true },
+    pathMatch: 'full'
+  },
+  {
+    path: 'reqPendApproval/:id',
+    component: MyApprovalComponent,
+    canActivate: [AuthorizeService],
+    data: { preload: true },
+    pathMatch: 'full'
+  },
+  {
+    path: 'myRequests',
+    component: MyRequestsComponent,
+    canActivate: [AuthorizeService],
+    data: { preload: true },
+    pathMatch: 'full'
+  },
+  {
+    path: 'myRequests/:id',
+    component: MyRequestsComponent,
+    canActivate: [AuthorizeService],
+    data: { preload: true },
+    pathMatch: 'full'
+  },
+  {
+    path: 'viewRequest',
+    component: ReportComponent,
+    canActivate: [AuthorizeService],
+    data: { preload: true },
+    pathMatch: 'full'
+  },
+  {
+    path: 'viewRequest/:id',
+    component: ReportComponent,
+    canActivate: [AuthorizeService],
+    data: { preload: true },
+    pathMatch: 'full'
+  },
+  {
+      path: 'defaultWorkflow',
+      component: DefaultWorkflowComponent,
+      canActivate: [AuthorizeService],
+      data: { preload: true },
+      pathMatch: 'full'
+  },
+  {
+      path: 'uploadTemplate',
+      component: UploadTemplateComponent,
+      canActivate: [AuthorizeService],
+      data: { preload: true },
+      pathMatch: 'full'
+  },
+  {
+      path: 'uploadTemplate/:open',
+      component: UploadTemplateComponent,
+      canActivate: [AuthorizeService],
+      data: { preload: true },
+      pathMatch: 'full'
+  },
+  {
+      path: 'divisionSetup',
+      component: DivisionSetupComponent,
+      canActivate: [AuthorizeService],
+      data: { preload: true },
+      pathMatch: 'full'
+  },
+  {
+    path: 'about',
+    component: AboutComponent,
+    canActivate: [AuthorizeService],
+    data: { preload: true },
+    pathMatch: 'full'
+  }
+  //{path: '', redirectTo: '/module2', pathMatch: 'full'}
+];
+
+@NgModule({
+  imports: [
+    CreateRequestModule,
+    MyApprovalModule,
+    MyRequestsModule,
+    ReportModule,
+    AboutModule,
+    DefaultWorkflowModule,
+    UploadTemplateModule,
+    DivisionSetupModule,
+    RouterModule.forRoot(appRoutes,{useHash: true, errorHandler: CustomRouterErrorHandler })
+  ],
+  exports: [
+    RouterModule
+  ],
+  providers: [
+  ]
+})
+export class AppRoutingModule { }
+
+--CustomErrorHandler
+
+import { Injectable, ErrorHandler, Injector } from '@angular/core';
+import { Router, RouteReuseStrategy, ActivatedRouteSnapshot, DetachedRouteHandle } from '@angular/router';
+
+let hasRouterError: boolean = false;
+
+@Injectable()
+export class CustomErrorHandler implements ErrorHandler 
+{
+      constructor(private injector: Injector) 
+      {
+          
+      }
+      handleError(error: any) 
+      {
+         console.log(error); 
+         if(hasRouterError) 
+         {
+            let router = this.injector.get(Router);
+            router.navigated = false;
+         }
+         //throw error;
+      }
+}
+
+export function CustomRouterErrorHandler(error: any) 
+{
+    console.log(error);
+    hasRouterError = true;
+    throw error;
+}
+
+export class PreventErrorRouteReuseStrategy implements RouteReuseStrategy 
+{
+  shouldDetach(route: ActivatedRouteSnapshot): boolean 
+  { 
+    return false; 
+  }
+  store(route: ActivatedRouteSnapshot, detachedTree: DetachedRouteHandle): void 
+  {
+  }
+  shouldAttach(route: ActivatedRouteSnapshot): boolean 
+  { 
+    return false; 
+  }
+  retrieve(route: ActivatedRouteSnapshot): DetachedRouteHandle|null 
+  { 
+    return null; 
+  }
+  shouldReuseRoute(future: ActivatedRouteSnapshot, curr: ActivatedRouteSnapshot): boolean 
+  {
+    if(hasRouterError) 
+    {
+      hasRouterError = false;
+      return false;
+    }
+    return future.routeConfig === curr.routeConfig;
+  }
+}
+
+
 
