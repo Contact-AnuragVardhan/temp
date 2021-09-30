@@ -1,1 +1,49 @@
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs/Rx';
+import { BaseService } from '../../../services/base/baseService';
 
+@Injectable()
+export class MyApprovalService extends BaseService
+{
+    constructor(private http: HttpClient) 
+    {
+      super();
+    }
+    
+    getRequestsForApproval(): Observable<any>
+    {
+      return this.http.post<any>(this.getURL("getRequestsForApproval"),null);
+    }    
+    
+}
+
+this.myApprovalService.getRequestsForApproval().subscribe(
+                    data => {
+                        this.requestsList = data;
+                        this.resetFilters();
+                        this.filteredRequests = this.requestsList;
+                        if(this.__paramRequestID != -1 && !isNaN(this.__paramRequestID))
+                        {
+                            let reqDetailObj : any;
+                            let isReqExists : boolean = false;
+                            for(let reqDetailObj of this.requestsList)
+                            {
+                                if(reqDetailObj.requestID == this.__paramRequestID)
+                                {
+                                    this.navigateToRequestDetailsTab(reqDetailObj);
+                                    isReqExists = true;
+                                }
+                            }
+                            if(!isReqExists)
+                            {
+                                PopUpComponent.showAlertPopup("Request ICER-" + this.__paramRequestID + " no longer exists in your List.");
+                            }
+                            this.__paramRequestID = -1;
+                        }
+                    }, 
+                    err => {
+                        // Log errors if any
+                        console.log(err);
+                    }
+         );
