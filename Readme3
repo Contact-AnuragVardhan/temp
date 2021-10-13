@@ -1,1 +1,9 @@
 
+private selectMenu(routePath: string): void
+    {
+        let item: any = this.nsNavigationReact["__nsNavigation"].getItemByField("link","#" + routePath);
+        if(item)
+        {
+            this.nsNavigationReact.selectMenu(item);
+        }
+    }
