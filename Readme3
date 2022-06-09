@@ -1,14 +1,1 @@
-private textBoxRendererToDL(selectedItem:any,labelField:string) : string
-{
-var selectedString = this.textBoxToDL.getText() ;
-console.log(selectedString) ;
-selectedString = selectedString.substring(0,selectedString.lastIndexOf(";"))
-if(selectedString!="")
-{selectedString = selectedString
-}
-if(selectedItem)
-{
-this.item.MAIL_TO_DL = (selectedString==''?'':selectedString+';')+ selectedItem["dlEmail"] + ";"; ;
-}
-return this.item.MAIL_TO_DL;
-}
+
