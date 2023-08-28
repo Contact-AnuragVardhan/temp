@@ -1,1 +1,3 @@
+NSTextBox.LIST_CLOSED_WITHOUT_SELECTION = "listClosedWithoutSelection";
 
+this.util.dispatchEvent(this.__baseComponent,NSTextBox.LIST_CLOSED_WITHOUT_SELECTION,this.getText(),{changeEvent:event});
