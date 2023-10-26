@@ -1,1 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<style>
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    font-family: 'Inter';
+	font-size: 16px;
+}
+
+.navigation {
+	background-color: #007bff;
+	color: white;
+}
+
+.nsHorNav {
+	display: flex;
+}
+
+div, button {
+	background-color: #007bff;;
+}
+
+.nsHorNav .nsHorNavItem {
+  position: relative;
+  z-index: 1;
+}
+
+.nsHorNav .nsHorNavItem, .nsHorNav .nsHorNavSubNavCon .nsHorNavSubNavItem {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  transition: background-color 150ms ease-in-out;
+  width: max-content;
+}
+
+.nsHorNav .nsHorNavItem.nsHorNavItemDisabled, .nsHorNav .nsHorNavSubNavCon .nsHorNavSubNavItem.nsHorNavItemDisabled {
+	opacity: .5;
+  	pointer-events: none;
+}
+
+.nsHorNav .nsHorNavItem .nsHorNavItemIconCon, .nsHorNav .nsHorNavSubNavCon .nsHorNavSubNavItem .nsHorNavItemIconCon {
+	margin-right: 10px;
+}
+
+.nsHorNav .nsHorNavSubNavCon {
+  position: relative;
+  display: table;
+}
+
+.nsHorNav .nsHorNavSubNavCon:not(.nsHorNavSubNavCon-0) .nsHorNavSubNavContent {
+  top: 20%;
+  left: 100%;
+}
+
+.nsHorNav .nsHorNavSubNavCon .nsHorNavSubNavItem {
+	display: flex;
+	align-items: center;
+}
+
+.nsHorNav .nsHorNavItem:hover, .nsHorNav .nsHorNavSubNavCon:hover .nsHorNavSubNavItem {
+  /*color: rgba(255,255,255,.75);*/
+}
+
+.nsHorNav .nsHorNavSubNavContent {
+  display: none;
+  position: absolute;
+  left: 0;
+  width: 100%;
+}
+
+.nsHorNav .nsHorNavSubNavContent .nsHorNavItem {
+  float: left;
+  color: inherit;
+  text-decoration: none;
+}
+
+.nsHorNav .nsHorNavSubNavCon .nsHorNavSubNavContentActive {
+  position: absolute;
+  display: block;
+  width: initial;
+}
+
+.nsHorNav .nsHorNavItem:hover, .nsHorNav .nsHorNavSubNavItem:hover {
+    background-color: #00b2ee !important;
+    border-color: #7d98b8 !important;
+    border-left-width: 1px !important;
+    color: #fff !important;
+}
+
+</style>
+</head>
+<body onload="init()">
+
+<div id="conNav" class="navigation">
+</div>
+
+<script>
+	
+	function createHorizontalNavBar(container,dataSource) {
+		if(container && dataSource && dataSource.length) {
+			var divParent = document.createElement('div');
+			divParent.setAttribute("class","nsHorNav");
+			for(var count = 0;count < dataSource.length;count++) {
+				var item = dataSource[count];
+				if(item) {
+					if(item.children && item.children.length) {
+						createSubNav(divParent,item,0);
+					}
+					else {
+						createNav(divParent,item,0);
+					}
+				}
+			}
+			container.appendChild(divParent);
+			document.addEventListener("click",documentClickHandler);
+		}
+		
+	}
+	
+	function createNav(con,item,level) {
+		var button = document.createElement('button');
+		button.setAttribute("class","nsHorNavItem nsHorNavItem-" + level);
+		if(item["disabled"])
+		{
+			button.classList.add("nsHorNavItemDisabled");
+		}
+		if(item["iconHTML"])
+		{
+			var spanIcon = document.createElement("span");
+			spanIcon.setAttribute("class","nsHorNavItemIconCon");
+			spanIcon.innerHTML = item["iconHTML"];
+			button.appendChild(spanIcon);
+		}
+		var spanText = document.createElement('span');
+		spanText.setAttribute("class","nsHorNavText");
+		spanText.appendChild(document.createTextNode(item.title));
+		button.appendChild(spanText);
+		button.addEventListener("click",navClickHandler.bind(null,con,item));
+		con.appendChild(button);
+	}
+	
+	function createSubNav(con,item,level) {
+		var button = document.createElement('button');
+		button.setAttribute("class","nsHorNavSubNavItem");
+		if(item["disabled"])
+		{
+			button.classList.add("nsHorNavItemDisabled");
+		}
+		if(item["iconHTML"])
+		{
+			var spanIcon = document.createElement("span");
+			spanIcon.setAttribute("class","nsHorNavItemIconCon");
+			spanIcon.innerHTML = item["iconHTML"];
+			button.appendChild(spanIcon);
+		}
+		var spanText = document.createElement('span');
+		spanText.setAttribute("class","nsHorNavText");
+		spanText.appendChild(document.createTextNode(item.title));
+		button.appendChild(spanText);
+		var divContent = document.createElement('div');
+		divContent.setAttribute("class","nsHorNavSubNavContent");
+		for(var count = 0;count < item.children.length;count++) {
+			var itemSub = item.children[count];
+			if(itemSub) {
+				if(itemSub.children && itemSub.children.length) {
+					createSubNav(divContent,itemSub,level + 1);
+				}
+				else {
+					createNav(divContent,itemSub,level + 1);
+				}
+			}
+		}
+		var divParent = document.createElement('div');
+		divParent.setAttribute("class","nsHorNavSubNavCon nsHorNavSubNavCon-" + level);
+		divParent.appendChild(button);
+		divParent.appendChild(divContent);
+		//button.addEventListener("click",showSubNav.bind(null,divParent,item));
+		button.addEventListener("click",subNavClickHandler.bind(null,divParent,item));
+		//button.addEventListener("mouseleave",hideSubNav.bind(null,divParent,item));
+		con.appendChild(divParent);
+	}
+	
+	function documentClickHandler(event) {
+		closeAllSubNavs();
+	}
+	
+	function navClickHandler(con,item,event) {
+		event.stopPropagation();
+		closeAllSubNavs();
+		if(item.handler) {
+			item.handler(event,item);
+		}
+	}
+	
+	function subNavClickHandler(con,item,event) {
+		event.stopPropagation();
+		showSubNav(con,item);
+	}
+	
+	function showSubNav(con,item) {
+		var content = con.querySelector(".nsHorNavSubNavContent");
+		if(content) {
+			content.classList.add('nsHorNavSubNavContentActive');
+		}
+	}
+	
+	function hideSubNav(con,item) {
+		var content = con;
+		if(!con.classList.contains("nsHorNavSubNavContentActive")) {
+			content = con.querySelector(".nsHorNavSubNavContent");
+		}
+		if(content) {
+			content.classList.remove('nsHorNavSubNavContentActive');
+		}
+	}
+	
+	function closeAllSubNavs() {
+		var arrContent = document.querySelectorAll(".nsHorNavSubNavContentActive");
+		if(arrContent && arrContent.length) {
+			for(var count = 0;count < arrContent.length;count++) {
+				arrContent[count].classList.remove('nsHorNavSubNavContentActive');
+			}
+		}
+	}
+</script>
+
+<script>
+	function menuClickHandler(event,item) {
+		console.log("In Click Handler",item);
+	}
+	var dataSource = [{
+		title: 'Menu 1',
+		iconHTML: '<i class="fa fa-folder-open"></i>',
+		handler: menuClickHandler
+	},{
+		title: 'Menu 2',
+		iconHTML: '<i class="fa fa-reply"></i>',
+		disabled:true,
+		handler: menuClickHandler
+	},{
+		title: 'Menu 3',
+		iconHTML: '<i class="fa fa-users"></i>',
+		children: [{
+			title: 'Menu 3.1',
+			iconHTML: '<img src="../demo/assets/images/cut.png"></img>',
+			handler: menuClickHandler
+		}, 
+		{
+			title: 'Menu 3.2',
+			iconHTML: '<i class="fa fa-users"></i>',
+			children:[{
+					title: 'Menu 3.2.1 ',
+					iconHTML: '<i class="fa fa-users"></i>',
+					handler: menuClickHandler
+				}, {
+					title: 'Menu 3.2.2',
+					iconHTML: '<i class="fa fa-users"></i>',
+					children:[{
+						title: 'Menu 3.2.2.1 ',
+						iconHTML: '<i class="fa fa-users"></i>',
+						header: true,
+						handler: menuClickHandler
+					}, {
+						title: 'Menu 3.2.2.2',
+						iconHTML: '<i class="fa fa-users"></i>',
+						handler: menuClickHandler
+					}]
+				}]
+		}]
+	} ];
+	function init() {
+		createHorizontalNavBar(document.getElementById("conNav"),dataSource);
+	}
+	
+</script>
+
+</body>
+</html>
 
