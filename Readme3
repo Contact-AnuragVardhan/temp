@@ -1,1 +1,108 @@
+import React, {useState,useContext,useEffect,useRef } from 'react';
 
+import { NSTextBoxReact, INSTextBoxReactSetting } from 'nscomponentsreact';
+import { GlobalContext } from '../../store/GlobalContext'; 
+import { EMPLOYEE_LABEL_FIELD, EMPLOYEE_SEARCH_COLUMNS, SEARCH_FIELD } from '../../store/UiConstants';
+
+
+export const Spoof = (props: any) => {
+    const context = useContext(GlobalContext);
+    let textBoxRef = useRef<NSTextBoxReact>(null);
+    let selectedTextBoxItemRef = React.useRef<any>(null);
+    const defaultState: any = {
+        textBoxSetting: null,
+    };
+
+    const [state, setState] = useState(defaultState);
+
+    useEffect(() => {
+        setTextBoxSetting();
+    }, []);
+
+    const setTextBoxSetting = () => {
+        if(!state.textBoxSetting) {
+            const objState = {...state};
+            let column: any[] =  EMPLOYEE_SEARCH_COLUMNS;
+            let dropDownSetting: any = {columns:column,enableVirtualScroll:true,enableFilter:true,enableAdvancedFilter:true,enablePagination:false};
+            let filterSetting: any = {caseSensitive:false,multiline:false,matchType:NSTextBoxReact.FILTER_TYPE_CONTAINS};
+            objState.textBoxSetting = {enableServerWithSmartSearch:true,placeholder:"Search Employee...",type:"autocomplete",dropDownType:NSTextBoxReact.DROPDOWN_TYPE_GRID,
+                                        listWidth:700,required:true,labelField:EMPLOYEE_LABEL_FIELD,minSearchStartChars:3,
+                                        enableMultipleSelection:false,enableKeyboardNavigation:true,
+                                        stopHoveringField:"stopOver",dropDownSetting:dropDownSetting,filterSetting:filterSetting,enableHighlighting:true,
+                                        isGridOrFilter:true,arrGridSearchField: SEARCH_FIELD,
+                                        serverSearchCallback:fetchEmployeeList,textBoxRendererCallback:textBoxRenderer};
+            setState(objState);
+        }
+    };
+
+    const fetchEmployeeList = (searchText: string) => {
+        let requestObj = {isActiveOnly:true,searchText:searchText};
+        context.ajax.post(context.getURL("getMatchingEmployeeList"),requestObj,null)
+        .then( (response: any) => {
+            context.globalIntercept(response,(response:any) => {
+                if(textBoxRef.current) {
+                   textBoxRef.current.dataSource(response);
+                }
+            });
+        })
+        .catch((err:any)=> context.globalCatchBlock(err));
+    };
+
+    const textBoxRenderer = (item:any,labelField:string) : string => {
+        //const objState = {...state};
+        let retVal = "";
+        if(item) {
+            selectedTextBoxItemRef.current = item ;                       
+            if(textBoxRef.current) {
+                textBoxRef.current.dataSource([]);
+            }
+            retVal = item['employeeName'] + " (" + item["employeeID"] + ")";
+        }
+        else {
+            selectedTextBoxItemRef.current = null; 
+        }
+        //setState(objState);
+        return retVal;
+    };
+
+    const spoofLogin = (isSpoofLogin: any) => {
+        if(isSpoofLogin && selectedTextBoxItemRef.current !=null )
+        {
+            props.loginAsSelected(selectedTextBoxItemRef.current); 
+        }
+        else
+        {
+            props.loginAsSelf() ; 
+        }
+    };
+
+    return (
+            <>
+                {state.textBoxSetting && (<div className="box box-danger box-border screen-center-box"  >
+                    <div className="box-header with-border">
+                        <i className="fa fa-hand-o-right text-nomura-red"></i>
+                        <h3 className="box-title">Select a User to Login</h3>
+                    </div> 
+                    <div className="box-body">
+                        <div className="text-center">
+                            <div className="form-group form-group-sm" style={{paddingLeft:"20px",paddingRight:"20px"}} >
+                                <NSTextBoxReact setting={state.textBoxSetting} ref={textBoxRef}>
+                                </NSTextBoxReact>
+                            </div>
+                            <div className="form-group" style={{paddingTop:"10px",paddingBottom:"10px"}}>
+                                <button className="btn btn-nomura-red" onClick={()=>spoofLogin(true) }  style={{width:"250px"}} >
+                                    <i className='fa fa-lock text-white'></i>&nbsp;&nbsp;&nbsp;Select User and Login
+                                </button>
+                            </div>
+                            <div className="form-group">
+                                <button className="btn btn-nomura-red" onClick={()=>spoofLogin(false) } style={{width:"250px"}} >
+                                    <i className='fa fa-lock text-white'></i>&nbsp;&nbsp;&nbsp;Login as Self
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                )}
+            </>
+        );
+};
